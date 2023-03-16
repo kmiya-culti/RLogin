@@ -1,6 +1,6 @@
-// login.cpp: CLogin クラスのインプリメンテーション
+///////////////////////////////////////////////////////
+// Login.cpp : 実装ファイル
 //
-//////////////////////////////////////////////////////////////////////
 
 #include "stdafx.h"
 #include "RLogin.h"
@@ -16,87 +16,6 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-//////////////////////////////////////////////////////////////////////
-// 構築/消滅
-//////////////////////////////////////////////////////////////////////
-
-CLogin::CLogin(class CRLoginDoc *pDoc) : CExtSocket(pDoc)
-{
-	m_Type = ESCT_RLOGIN;
-	m_ConnectFlag = 0;
-}
-
-CLogin::~CLogin()
-{
-}
-
-int CLogin::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
-{
-	int n;
-	BOOL val = 1;
-
-	for ( n = IPPORT_RESERVED - 1 ; ; n-- ) {
-		if ( CExtSocket::Open(lpszHostAddress, nHostPort, n, SOCK_STREAM, pAddrInfo) )
-			break;
-		if ( WSAGetLastError() != 0 || n <= (IPPORT_RESERVED / 2) ) {
-			if ( pAddrInfo != NULL )
-				FreeAddrInfo((ADDRINFOT *)pAddrInfo);
-			return FALSE;
-		}
-	}
-
-	// TO_RLNODELAYオプションに移行
-	// SetSockOpt(TCP_NODELAY, &val, sizeof(BOOL), SOL_SOCKET);
-
-	m_ConnectFlag = 1;
-	return TRUE;
-}
-
-void CLogin::OnConnect()
-{
-	CRLoginDoc *pDoc = GetDocument();
-	SendStr("");
-	SendStr(pDoc->RemoteStr(pDoc->m_ServerEntry.m_UserName));
-	SendStr(pDoc->RemoteStr(pDoc->m_ServerEntry.m_UserName));
-	SendStr(pDoc->RemoteStr(pDoc->m_ServerEntry.m_TermName));
-	m_ConnectFlag = 2;
-	CExtSocket::OnConnect();
-}
-
-void CLogin::SendStr(LPCSTR str)
-{
-
-	CExtSocket::Send(str, (int)strlen(str) + 1);		// With '\0'
-}
-
-void CLogin::SendWindSize()
-{
-	struct	winsize {
-		unsigned short ws_row, ws_col;
-		unsigned short ws_xpixel, ws_ypixel;
-	} *wp;
-	char obuf[4 + sizeof (struct winsize)];
-	int cx = 0, cy = 0, sx = 0, sy = 0;
-
-	if ( m_pDocument != NULL )
-		m_pDocument->m_TextRam.GetScreenSize(&cx, &cy, &sx, &sy);
-
-	if ( m_ConnectFlag < 2 )
-		return;
-
-	wp = (struct winsize *)(obuf + 4);
-	obuf[0] = '\377';
-	obuf[1] = '\377';
-	obuf[2] = 's';
-	obuf[3] = 's';
-	wp->ws_row = htons(cy);
-	wp->ws_col = htons(cx);
-	wp->ws_xpixel = htons(sx);
-	wp->ws_ypixel = htons(sy);
-
-	CExtSocket::Send(obuf, sizeof(obuf));
-}
-
 #define TIOCPKT_FLUSHREAD	0x01	/* flush packet */
 #define TIOCPKT_FLUSHWRITE	0x02	/* flush packet */
 #define TIOCPKT_STOP		0x04	/* stop output */
@@ -106,23 +25,95 @@ void CLogin::SendWindSize()
 #define TIOCPKT_IOCTL		0x40	/* state change of pty driver */
 #define TIOCPKT_WINDOW		0x80
 
-void CLogin::OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags)
-{
-	//TRACE("CLogin::OnReceiveCallBack %d(%02x...), %d\n", nBufLen, ((BYTE *)lpBuf)[0], nFlags);
+///////////////////////////////////////////////////////
+// CFifoLogin
 
-	if ( nFlags == 0 ) {
-		if ( m_ConnectFlag == 2 && nBufLen > 0 ) {
-			lpBuf = (void *)(((BYTE *)lpBuf) + 1);	// NULL Byte
-			nBufLen -= 1;
-			m_ConnectFlag = 3;
-		}
-		if ( nBufLen > 0 )
-			CExtSocket::OnReceiveCallBack(lpBuf, nBufLen, 0);
-	} else {
-		BYTE *buf = (BYTE *)lpBuf;
-		for ( int n = 0 ; n < nBufLen ; n++ ) {
-			if ( (buf[n] & TIOCPKT_WINDOW) != 0 )
-				SendWindSize();
-		}
+CFifoLogin::CFifoLogin(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoThread(pDoc, pSock)
+{
+}
+void CFifoLogin::SendStr(int nFd, LPCSTR mbs)
+{
+	Write(nFd, (BYTE *)mbs, (int)strlen(mbs) + 1);
+}
+void CFifoLogin::SendWindSize(int nFd)
+{
+	struct	winsize {
+		BYTE head[4];
+		unsigned short row, col;
+		unsigned short xpixel, ypixel;
+	} winsize;
+	int screen[4];
+
+	DocMsgIntPtr(DOCMSG_SCREENSIZE, screen);
+
+	winsize.head[0] = '\377';
+	winsize.head[1] = '\377';
+	winsize.head[2] = 's';
+	winsize.head[3] = 's';
+	winsize.row = htons(screen[1]);
+	winsize.col = htons(screen[0]);
+	winsize.xpixel = htons(screen[2]);
+	winsize.ypixel = htons(screen[3]);
+
+	Write(nFd, (BYTE *)&winsize, sizeof(winsize));
+}
+void CFifoLogin::OnOob(int nFd, int len, BYTE *pBuffer)
+{
+	ASSERT(nFd == FIFO_STDIN);
+
+	for ( ; len > 0 ; len--, pBuffer++ ) {
+		if ( (*pBuffer & TIOCPKT_WINDOW) != 0 )
+			SendWindSize(FIFO_STDOUT);
 	}
+}
+void CFifoLogin::OnConnect(int nFd)
+{
+	if ( nFd == FIFO_STDIN ) {
+		CStringA str;
+		SendStr(FIFO_STDOUT, "");
+		SendStr(FIFO_STDOUT, DocMsgStrA(DOCMSG_USERNAME, str));
+		SendStr(FIFO_STDOUT, str);
+		SendStr(FIFO_STDOUT, DocMsgStrA(DOCMSG_TERMNAME, str));
+	}
+	CFifoThread::OnConnect(nFd);
+}
+void CFifoLogin::OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult)
+{
+	switch(cmd) {
+	case FIFO_CMD_MSGQUEIN:
+		switch(param) {
+		case FIFO_QCMD_SENDWINSIZE:
+			SendWindSize(FIFO_STDOUT);
+			break;
+		}
+		break;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+// CLogin
+
+CLogin::CLogin(class CRLoginDoc *pDoc) : CExtSocket(pDoc)
+{
+	m_Type = ESCT_RLOGIN;
+}
+void CLogin::FifoLink()
+{
+	FifoUnlink();
+
+	ASSERT(m_pFifoLeft == NULL && m_pFifoMid == NULL && m_pFifoRight == NULL);
+
+	m_pFifoLeft   = new CFifoSocket(m_pDocument, this);
+	m_pFifoMid    = new CFifoLogin(m_pDocument, this);
+	m_pFifoRight  = new CFifoDocument(m_pDocument, this);
+
+	CFifoBase::MidLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
+}
+int CLogin::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
+{
+	return CExtSocket::Open(lpszHostAddress, nHostPort, IPPORT_RESERVED - 1, nSocketType, pAddrInfo);
+}
+void CLogin::SendWindSize()
+{
+	m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SENDWINSIZE);
 }

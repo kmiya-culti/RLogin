@@ -403,7 +403,6 @@ int CZModem::XDownLoad()
 	int st = 0;
 	int crcopt = FALSE;
     char tmp[1024];
-    LONGLONG file_size = 4096L;
     LONGLONG now_pos = 0L;
 
     SetXonXoff(FALSE);
@@ -415,7 +414,7 @@ int CZModem::XDownLoad()
 		goto CANRET;
 
     UpDownOpen("XModem File Download");
-	UpDownInit(file_size);
+	UpDownInit(0);
 
 	while ( !AbortCheck() ) {
 
@@ -462,11 +461,6 @@ int CZModem::XDownLoad()
 			crcopt = FALSE;
 		} else
 			st = 1;
-
-		if ( now_pos > (file_size * 3 / 4) ) {
-			file_size = now_pos * 4;
-			UpDownInit(file_size);
-		}
     }
 
 CANRET:
@@ -856,8 +850,7 @@ NEXTFILE:
 			}
 
 			ZSendData(txbuf, n, e);
-			//Bufferd_Flush();
-			Bufferd_Sync();
+			Bufferd_Flush();
 
 			Txpos += n;
 			break;
@@ -1206,6 +1199,7 @@ int CZModem::ZUpDown(int mode)
 			break;
 
 		case ZFILE:
+			m_bInitDone = TRUE;
 			Usevhdrs = (Rxhdr[ZF3] & ZCANVHDR) ? 1 : 0;
 
 			finMode = 0;

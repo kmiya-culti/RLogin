@@ -26,8 +26,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.27.7)</TD>
-            <TD width="20%" align="right">2023/02/10</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.28.0)</TD>
+            <TD width="20%" align="right">2023/03/17</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -433,6 +433,19 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2023/03/17</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.0/">2.28.0</A></TD>
+            <TD>全体的にバッファ回りをスレッドセーフティに変更<BR>
+            ソケットの操作をメッセージからイベントスレッドに変更<BR>
+            rlogin/telnetを完全にスレッド動作に変更<BR>
+            sshのチェンネルを全面的に見直して一部スレッドに変更<BR>
+            ファイル転送を全体的に見直してスレッドセーフティに変更<BR>
+            sshポートフォワードのサーバー機能をProxy Serverに変更<BR>
+            条件によりコンピュータ名などの取得に失敗するバグを修正<BR>
+            ファイル転送時のプログレスバーの表示を変更<BR>
+            openssl-3.1.0に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2023/02/10</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.7/">2.27.7</A></TD>
             <TD>タブバー右クリックでサーバーエントリーなどのメニューを表示<BR>
@@ -462,14 +475,6 @@ TD {
             openssl-3.0.6に更新<FONT color="#ff0000">※openssl-3.0.6は、キャンセルされました</FONT></TD>
           </TR>
           <TR>
-            <TD align="center">2022/09/16</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.3/">2.27.3</A></TD>
-            <TD>一部の秘密鍵ファイルのパスコード読み込み時に公開鍵の情報を表示<BR>
-            プリセットのカラーセットを一部変更して整理<BR>
-            ファイルアップダウンのエンコード・デコードにishを追加<BR>
-            RSA鍵の署名方式の初期設定をSHA2-256に変更</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -493,13 +498,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.0.8.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.1.0.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.0.8 openssl-3.0.8-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.1.0 openssl-3.1.0-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -584,7 +589,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.0.8 7 Feb 2023<BR>
+            <P>OpenSSL 3.1.0 14 Mar 2023<BR>
             Copyright (c) 1998-2023 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -878,7 +883,7 @@ TD {
                   $SPEAK_NEXT</TD>
                 </TR>
                 <TR>
-                  <TD valign="top"><FONT color="#c0c0c0">ローカルエディットモード(V)</FONT></TD>
+                  <TD valign="top">ローカルエディットモード(V)</TD>
                   <TD valign="top">オプション設定・通信共通・キー入力をローカルエディットモードにするがチェックされている場合に一時的にローカルエディットモードを有効・無効にします</TD>
                   <TD valign="top" align="right">Ctrl+INSERT</TD>
                   <TD valign="top">$LINEEDITMODE</TD>
@@ -3643,7 +3648,7 @@ fi</PRE>
                   <TD colspan="2">SSH2 ポートフォワードの設定</TD>
                 </TR>
                 <TR>
-                  <TD width="30%" align="center">Listen</TD>
+                  <TD width="15%" align="center">Listen</TD>
                   <TD>
                   <TABLE cellpadding="3">
                     <TBODY>
@@ -3652,31 +3657,34 @@ fi</PRE>
                         <TD>ローカル側で待機します</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">Local Socks</TD>
-                        <TD>ローカル側のSOCKSサーバーで待機します</TD>
+                        <TD valign="top">Local Proxyr</TD>
+                        <TD>ローカル側のHTTP/SOCKSサーバーで待機します</TD>
                       </TR>
                       <TR>
                         <TD valign="top">Remote</TD>
                         <TD>リモート側で待機します</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">Remote Socks</TD>
-                        <TD>リモート側のSOCKSサーバーで待機します</TD>
+                        <TD valign="top">Remote Proxy</TD>
+                        <TD>リモート側のHTTP/SOCKSサーバーで待機します</TD>
                       </TR>
                     </TBODY>
                   </TABLE>
-                  待機するサーバーの名前とポート番号を指定します</TD>
+                  </TD>
                 </TR>
                 <TR>
                   <TD align="center">Connect</TD>
-                  <TD>転送するホスト名とポート番号を指定します</TD>
+                  <TD>転送するホスト名とポート番号を指定します<BR>
+                  ※Local/Remote Proxy Serverの場合プロトコル内で動的に設定されます</TD>
                 </TR>
               </TBODY>
             </TABLE>
             <BR>
             例： localhost:pop3 &gt; mailxxx.com:pop3<BR>
             <BR>
-            RLoginが動いているパソコンでダミーのpop3サーバーを開き、接続があった場合には、その内容をSSH2で暗号化して安全にmailxxx.com:pop3に転送します</TD>
+            RLoginが動いているパソコンでダミーのpop3サーバーを開き、接続があった場合には、その内容をSSH2で暗号化して安全にmailxxx.com:pop3に転送します<BR>
+            <BR>
+            ※2.28.0からSOCKSサーバーに加えてHTTPのCONNECT/GETなどのプロキシーサーバーにも対応しました。簡易な実装なのでユーザー認証などには、対応していませんのでご注意ください</TD>
             <TD align="left" valign="top"><IMG src="image018.jpg" width="363" height="290" border="0"></TD>
           </TR>
         </TBODY>

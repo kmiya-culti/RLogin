@@ -15,10 +15,7 @@
 #include "TraceDlg.h"
 #include "AnyPastDlg.h"
 #include "TtyModeDlg.h"
-
-#ifdef	USE_FIFOBUF
-	#include "Fifo.h"
-#endif
+#include "Fifo.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -809,8 +806,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_GETMINMAXINFO()
 	ON_WM_INITMENU()
 
-	ON_MESSAGE(WM_SOCKSEL, OnWinSockSelect)
-	ON_MESSAGE(WM_GETHOSTADDR, OnGetHostAddr)
 	ON_MESSAGE(WM_ICONMSG, OnIConMsg)
 	ON_MESSAGE(WM_THREADCMD, OnThreadMsg)
 	ON_MESSAGE(WM_AFTEROPEN, OnAfterOpen)
@@ -819,10 +814,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_MESSAGE(WM_SETMESSAGESTRING, OnSetMessageString)
 	ON_MESSAGE(WM_NULL, OnNullMessage)
 	ON_MESSAGE(WM_SPEAKMSG, OnSpeakMsg)
-#ifdef	USE_FIFOBUF
 	ON_MESSAGE(WM_FIFOMSG, OnFifoMsg)
 	ON_MESSAGE(WM_DOCUMENTMSG, OnDocumentMsg)
-#endif
 
 	ON_COMMAND(ID_FILE_ALL_LOAD, OnFileAllLoad)
 	ON_COMMAND(ID_FILE_ALL_SAVE, OnFileAllSave)
@@ -1419,14 +1412,14 @@ LPCTSTR CMainFrame::PagentPipeName()
 	char data[CRYPTPROTECTMEMORY_BLOCK_SIZE];
 	int len = CRYPTPROTECTMEMORY_BLOCK_SIZE;	//	"Pageant" len = 7, CRYPTPROTECTMEMORY_BLOCK_SIZE = 16, (7 + 1 + 15) / 16 * 16 = 16
 	DWORD size;
-	TCHAR username[MAX_COMPUTERNAME_LENGTH + 2];
+	TCHAR username[MAX_COMPUTERNAME];
 	int dlen;
 	u_char digest[EVP_MAX_MD_SIZE];
 	CBuffer tmp(-1);
 
 	bInit = TRUE;
 
-	size = MAX_COMPUTERNAME_LENGTH;
+	size = MAX_COMPUTERNAME;
 	ZeroMemory(username, sizeof(username));
 	GetUserName(username, &size);
 
@@ -1554,117 +1547,6 @@ BOOL CMainFrame::AgeantSign(int type, CBuffer *blob, CBuffer *sign, LPBYTE buf, 
 }
 
 /////////////////////////////////////////////////////////////////////////////
-
-int CMainFrame::SetAsyncSelect(SOCKET fd, CExtSocket *pSock, long lEvent)
-{
-	ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10);
-
-	if ( lEvent != 0 && WSAAsyncSelect(fd, GetSafeHwnd(), WM_SOCKSEL, lEvent) != 0 )
-		return FALSE;
-
-#ifndef	USE_FIFOBUF
-	((CRLoginApp *)AfxGetApp())->AddIdleProc(IDLEPROC_SOCKET, pSock);
-#endif
-
-	CPtrArray *pSockPara = &(m_SocketParam[SOCKPARAMASK(fd)]);
-	for ( int n = 0 ; n < pSockPara->GetSize() ; n += 2 ) {
-		if ( (*pSockPara)[n] == (void *)fd ) {
-			(*pSockPara)[n + 1] = (void *)pSock;
-			return TRUE;
-		}
-	}
-	pSockPara->Add((void *)fd);
-	pSockPara->Add(pSock);
-
-	return TRUE;
-}
-
-void CMainFrame::DelAsyncSelect(SOCKET fd, CExtSocket *pSock, BOOL useWsa)
-{
-	if ( useWsa )
-		WSAAsyncSelect(fd, GetSafeHwnd(), 0, 0);
-
-#ifndef	USE_FIFOBUF
-	((CRLoginApp *)AfxGetApp())->DelIdleProc(IDLEPROC_SOCKET, pSock);
-#endif
-
-	CPtrArray *pSockPara = &(m_SocketParam[SOCKPARAMASK(fd)]);
-	for ( int n = 0 ; n < pSockPara->GetSize() ; n += 2 ) {
-		if ( (*pSockPara)[n] == (void *)fd ) {
-			pSockPara->RemoveAt(n, 2);
-			break;
-		}
-	}
-}
-
-int CMainFrame::SetAsyncHostAddr(int mode, LPCTSTR pHostName, CExtSocket *pSock)
-{
-	HANDLE hGetHostAddr;
-	CString *pStr = new CString(pHostName);
-	char *pData = new char[MAXGETHOSTSTRUCT];
-
-	memset(pData, 0, MAXGETHOSTSTRUCT);
-	if ( (hGetHostAddr = WSAAsyncGetHostByName(GetSafeHwnd(), WM_GETHOSTADDR, TstrToMbs(pHostName), pData, MAXGETHOSTSTRUCT)) == (HANDLE)0 ) {
-		CString errmsg;
-		errmsg.Format(_T("GetHostByName Error '%s'"), pHostName);
-		AfxMessageBox(errmsg, MB_ICONSTOP);
-		return FALSE;
-	}
-
-	m_HostAddrParam.Add(hGetHostAddr);
-	m_HostAddrParam.Add(pSock);
-	m_HostAddrParam.Add(pStr);
-	m_HostAddrParam.Add(pData);
-	m_HostAddrParam.Add((void *)(INT_PTR)mode);
-
-	return TRUE;
-}
-
-typedef struct _addrinfo_param {
-	CMainFrame		*pWnd;
-	int				mode;
-	CString			name;
-	CString			port;
-	ADDRINFOT		hint;
-	int				ret;
-} addrinfo_param;
-
-static UINT AddrInfoThread(LPVOID pParam)
-{
-	ADDRINFOT *ai;
-	addrinfo_param *ap = (addrinfo_param *)pParam;
-
-	ap->ret = GetAddrInfo(ap->name, ap->port, &(ap->hint), &ai);
-
-	if ( ap->pWnd->m_InfoThreadCount-- > 0 && ap->pWnd->m_hWnd != NULL )
-		ap->pWnd->PostMessage(WM_GETHOSTADDR, (WPARAM)ap, (LPARAM)ai);
-
-	return 0;
-}
-
-int CMainFrame::SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock)
-{
-	addrinfo_param *ap;
-
-	ap = new addrinfo_param;
-	ap->pWnd = this;
-	ap->mode = mode;
-	ap->name = pHostName;
-	ap->port.Format(_T("%d"), PortNum);
-	ap->ret  = 1;
-	memcpy(&(ap->hint), pHint, sizeof(ADDRINFOT));
-
-	m_InfoThreadCount++;
-	AfxBeginThread(AddrInfoThread, ap, THREAD_PRIORITY_NORMAL);
-
-	m_HostAddrParam.Add(ap);
-	m_HostAddrParam.Add(pSock);
-	m_HostAddrParam.Add(NULL);
-	m_HostAddrParam.Add(NULL);
-	m_HostAddrParam.Add((void *)(INT_PTR)mode);
-
-	return TRUE;
-}
 
 int CMainFrame::SetAfterId(void *param)
 {
@@ -2758,97 +2640,6 @@ void CMainFrame::Dump(CDumpContext& dc) const
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame メッセージ ハンドラ
 
-LRESULT CMainFrame::OnWinSockSelect(WPARAM wParam, LPARAM lParam)
-{
-	int	fs = WSAGETSELECTEVENT(lParam);
-	CExtSocket *pSock = NULL;
-	CPtrArray *pSockPara = &(m_SocketParam[SOCKPARAMASK(wParam)]);
-
-	for ( int n = 0 ; n < pSockPara->GetSize() ; n += 2 ) {
-		if ( (*pSockPara)[n] == (void *)wParam ) {
-			pSock = (CExtSocket *)((*pSockPara)[n + 1]);
-			break;
-		}
-	}
-
-	if ( pSock == NULL )
-		return TRUE;
-
-	ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10 );
-
-	if ( (fs & FD_CLOSE) == 0 && WSAGETSELECTERROR(lParam) != 0 ) {
-		pSock->OnError(WSAGETSELECTERROR(lParam));
-		return TRUE;
-	}
-
-	if ( (fs & FD_CONNECT) != 0 )
-		pSock->OnPreConnect();
-	if ( (fs & FD_ACCEPT) != 0 )
-		pSock->OnAccept((SOCKET)wParam);
-	if ( (fs & FD_READ) != 0 )
-		pSock->OnReceive(0);
-	if ( (fs & FD_OOB) != 0 )
-		pSock->OnReceive(MSG_OOB);
-	if ( (fs & FD_WRITE) != 0 )
-		pSock->OnSend();
-	if ( (fs & FD_CLOSE) != 0 )
-		pSock->OnPreClose();
-	if ( (fs & FD_RECVEMPTY) != 0 )
-		pSock->OnRecvEmpty();
-
-	return TRUE;
-}
-
-LRESULT CMainFrame::OnGetHostAddr(WPARAM wParam, LPARAM lParam)
-{
-	int n;
-	CExtSocket *pSock;
-	CString *pStr;
-	struct hostent *hp;
-	int mode;
-	struct sockaddr_in in;
-	int errcode = WSAGETASYNCERROR(lParam);
-	int buflen  = WSAGETASYNCBUFLEN(lParam);
-
-	for ( n = 0 ; n < m_HostAddrParam.GetSize() ; n += 5 ) {
-		mode = (int)(INT_PTR)(m_HostAddrParam[n + 4]);
-		if ( (mode & 030) == 0 && m_HostAddrParam[n] == (void *)wParam ) {
-			pSock = (CExtSocket *)m_HostAddrParam[n + 1];
-			pStr = (CString *)m_HostAddrParam[n + 2];
-			hp = (struct hostent *)m_HostAddrParam[n + 3];
-
-			if ( errcode == 0 ) {
-				memset(&in, 0, sizeof(in));
-				in.sin_family = hp->h_addrtype;
-				memcpy(&(in.sin_addr), hp->h_addr, (hp->h_length < sizeof(in.sin_addr) ? hp->h_length : sizeof(in.sin_addr)));
-				pSock->GetHostName((struct sockaddr *)&in, sizeof(in), *pStr);
-			}
-
-			pSock->OnAsyncHostByName(mode, *pStr);
-
-			m_HostAddrParam.RemoveAt(n, 5);
-			delete pStr;
-			delete hp;
-			break;
-
-		} else if ( (mode & 030) == 010 && m_HostAddrParam[n] == (void *)wParam ) {
-			addrinfo_param *ap = (addrinfo_param *)wParam;
-			ADDRINFOT *info = (ADDRINFOT *)lParam;
-			pSock = (CExtSocket *)m_HostAddrParam[n + 1];
-
-			if ( ap->ret == 0 )
-				pSock->OnAsyncHostByName(mode, (LPCTSTR)info);
-			else
-				pSock->OnAsyncHostByName(mode & 003, ap->name);
-
-			m_HostAddrParam.RemoveAt(n, 5);
-			delete ap;
-			break;
-		}
-	}
-	return TRUE;
-}
-
 LRESULT CMainFrame::OnIConMsg(WPARAM wParam, LPARAM lParam)
 {
 	switch(lParam) {
@@ -2861,10 +2652,26 @@ LRESULT CMainFrame::OnIConMsg(WPARAM wParam, LPARAM lParam)
 	return FALSE;
 }
 
+static int ThreadMsgComp(const void *src, const void *dis)
+{
+	return (int)((INT_PTR)src - (INT_PTR)*((void **)dis));
+}
+void CMainFrame::AddThreadMsg(void *pSyncSock)
+{
+	int n;
+	if ( !BinaryFind(pSyncSock, m_ThreadMsg.GetData(), sizeof(void *), (int)m_ThreadMsg.GetSize(), ThreadMsgComp, &n) )
+		m_ThreadMsg.InsertAt(n, pSyncSock);
+}
+void CMainFrame::DelThreadMsg(void *pSyncSock)
+{
+	int n;
+	if ( BinaryFind(pSyncSock, m_ThreadMsg.GetData(), sizeof(void *), (int)m_ThreadMsg.GetSize(), ThreadMsgComp, &n) )
+		m_ThreadMsg.RemoveAt(n);
+}
 LRESULT CMainFrame::OnThreadMsg(WPARAM wParam, LPARAM lParam)
 {
-	CSyncSock *pSp = (CSyncSock *)lParam;
-	pSp->ThreadCommand((int)wParam);
+	if ( BinaryFind((void *)lParam, m_ThreadMsg.GetData(), sizeof(void *), (int)m_ThreadMsg.GetSize(), ThreadMsgComp, NULL) )
+		((CSyncSock *)lParam)->ThreadCommand((int)wParam);
 	return TRUE;
 }
 
@@ -3509,7 +3316,8 @@ void CMainFrame::OnUpdateIndicatorSock(CCmdUI* pCmdUI)
 {
 	int n = 7;
 	CRLoginDoc *pDoc;
-	static LPCTSTR ProtoName[] = { _T("TCP"), _T("Login"), _T("Telnet"), _T("SSH"), _T("PFD"), _T("COM"), _T("PIPE"), _T("") };
+	static LPCTSTR ProtoName[] = { 
+		_T("TCP"), _T("Login"), _T("Telnet"), _T("COM"), _T("PIPE"), _T("SSH"), _T("PFD"), _T("") };
 
 	if ( (pDoc = GetMDIActiveDocument()) != NULL && pDoc->m_pSock != NULL )
 		n = pDoc->m_pSock->m_Type;
@@ -4636,7 +4444,6 @@ void CMainFrame::OnUpdateChartooltip(CCmdUI *pCmdUI)
 	pCmdUI->SetCheck(m_bCharTooltip);
 }
 
-#ifdef	USE_FIFOBUF
 static int FifoBaseComp(const void *src, const void *dis)
 {
 	return (int)((INT_PTR)src - (INT_PTR)*((void **)dis));
@@ -4644,14 +4451,12 @@ static int FifoBaseComp(const void *src, const void *dis)
 void CMainFrame::AddFifoActive(void *pFifoBase)
 {
 	int n;
-
 	if ( !BinaryFind(pFifoBase, m_FifoActive.GetData(), sizeof(void *), (int)m_FifoActive.GetSize(), FifoBaseComp, &n) )
 		m_FifoActive.InsertAt(n, pFifoBase);
 }
 void CMainFrame::DelFifoActive(void *pFifoBase)
 {
 	int n;
-
 	if ( BinaryFind(pFifoBase, m_FifoActive.GetData(), sizeof(void *), (int)m_FifoActive.GetSize(), FifoBaseComp, &n) )
 		m_FifoActive.RemoveAt(n);
 }
@@ -4678,16 +4483,28 @@ LRESULT CMainFrame::OnDocumentMsg(WPARAM wParam, LPARAM lParam)
 		break;
 
 	case DOCMSG_USERNAME:
-		ASSERT(pDocMsg->type == DOCMSG_TYPE_STRINGA);
-		*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ServerEntry.m_UserName);
+		if ( pDocMsg->type == DOCMSG_TYPE_STRINGA )
+			*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ServerEntry.m_UserName);
+		else if ( pDocMsg->type == DOCMSG_TYPE_STRINGW )
+			*((CStringW *)pDocMsg->pOut) = TstrToUni(pDocMsg->doc->m_ServerEntry.m_UserName);
 		break;
 	case DOCMSG_PASSNAME:
-		ASSERT(pDocMsg->type == DOCMSG_TYPE_STRINGA);
-		*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ServerEntry.m_PassName);
+		if ( pDocMsg->type == DOCMSG_TYPE_STRINGA )
+			*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ServerEntry.m_PassName);
+		else if ( pDocMsg->type == DOCMSG_TYPE_STRINGW )
+			*((CStringW *)pDocMsg->pOut) = TstrToUni(pDocMsg->doc->m_ServerEntry.m_PassName);
 		break;
 	case DOCMSG_TERMNAME:
-		ASSERT(pDocMsg->type == DOCMSG_TYPE_STRINGA);
-		*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ServerEntry.m_TermName);
+		if ( pDocMsg->type == DOCMSG_TYPE_STRINGA )
+			*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ServerEntry.m_TermName);
+		else if ( pDocMsg->type == DOCMSG_TYPE_STRINGW )
+			*((CStringW *)pDocMsg->pOut) = TstrToUni(pDocMsg->doc->m_ServerEntry.m_TermName);
+		break;
+	case DOCMSG_ENVSTR:
+		if ( pDocMsg->type == DOCMSG_TYPE_STRINGA )
+			*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ParamTab.m_ExtEnvStr);
+		else if ( pDocMsg->type == DOCMSG_TYPE_STRINGW )
+			*((CStringW *)pDocMsg->pOut) = TstrToUni(pDocMsg->doc->m_ParamTab.m_ExtEnvStr);
 		break;
 
 	case DOCMSG_SCREENSIZE:
@@ -4697,11 +4514,32 @@ LRESULT CMainFrame::OnDocumentMsg(WPARAM wParam, LPARAM lParam)
 			pDocMsg->doc->m_TextRam.GetScreenSize(pInt + 0, pInt + 1, pInt + 2, pInt + 3);
 		}
 		break;
+	case DOCMSG_LINEMODE:
+		if ( pDocMsg->type == 0 ) {
+			if ( pDocMsg->doc->m_TextRam.IsLineEditEnable() )
+				pDocMsg->doc->m_TextRam.LineEditSwitch();
+		} else {
+			if ( !pDocMsg->doc->m_TextRam.IsLineEditEnable() )
+				pDocMsg->doc->m_TextRam.LineEditSwitch();
+		}
+		break;
+	case DOCMSG_TTYMODE:
+		for ( int n = 0 ; n < pDocMsg->doc->m_ParamTab.m_TtyMode.GetSize() ; n++ ) {
+			if ( pDocMsg->doc->m_ParamTab.m_TtyMode[n].opcode == (BYTE)pDocMsg->pIn ) {
+				*((DWORD *)(pDocMsg->pOut)) = pDocMsg->doc->m_ParamTab.m_TtyMode[n].param;
+				break;
+			}
+		}
+		break;
+
+	case DOCMSG_KEEPALIVE:
+		if ( pDocMsg->doc->m_TextRam.IsOptEnable(TO_TELKEEPAL) && pDocMsg->doc->m_TextRam.m_TelKeepAlive > 0 )
+			*((DWORD *)(pDocMsg->pOut)) = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(pDocMsg->doc->m_TextRam.m_TelKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, pDocMsg->pIn);
+		break;
 	}
 
 	return TRUE;
 }
-#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // CDockContextEx

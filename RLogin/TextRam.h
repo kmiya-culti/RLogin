@@ -1199,7 +1199,6 @@ public:
 	CRect m_UpdateRect;
 	BOOL m_UpdateFlag;
 	BOOL m_FrameCheck;
-	clock_t m_UpdateClock;
 
 #define	LINEEDIT_NONE		0
 #define	LINEEDIT_ACTIVE		1

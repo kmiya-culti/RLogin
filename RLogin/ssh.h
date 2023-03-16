@@ -1,13 +1,8 @@
-// ssh.h: Cssh クラスのインターフェイス
-//
 //////////////////////////////////////////////////////////////////////
+// ssh.h : インターフェイス
+//
 
-#if !defined(AFX_SSH_H__2A682FAC_4F24_4168_9082_C9CDF2DD19D7__INCLUDED_)
-#define AFX_SSH_H__2A682FAC_4F24_4168_9082_C9CDF2DD19D7__INCLUDED_
-
-#if _MSC_VER > 1000
 #pragma once
-#endif // _MSC_VER > 1000
 
 #include "afxtempl.h"
 #include "Data.h"
@@ -29,8 +24,6 @@
 #include <openssl/core.h>
 #include <openssl/core_dispatch.h>
 #include <openssl/core_names.h>
-
-#pragma warning(disable : 4996)		// legacy warningを消す
 
 #define SSH_CIPHER_NONE         0       // none
 #define SSH_CIPHER_DES          2       // des
@@ -498,6 +491,8 @@ public:
 	~CPermit();
 };
 
+///////////////////////////////////////////////////////
+
 #define	MAX_PACKETLEN			(1U << 31)
 
 #define CHAN_SES_PACKET_DEFAULT (32 * 1024)
@@ -505,22 +500,24 @@ public:
 
 #define	CHAN_OPEN_LOCAL			001
 #define	CHAN_OPEN_REMOTE		002
-#define	CHAN_LISTEN				004
-#define	CHAN_PROXY_SOCKS		010
-#define	CHAN_SOCKS5_AUTH		020
-#define	CHAN_REMOTE_SOCKS		040
-#define	CHAN_OK(n)				((((CChannel *)m_pChan[n])->m_Status & (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE)) == (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE))
-#define	CHAN_MAXSIZE			200
 
-#define	CEOF_IEOF				0001
-#define	CEOF_ICLOSE				0002
-#define	CEOF_SEOF				0004
-#define	CEOF_SCLOSE				0010
-#define	CEOF_DEAD				0020
-#define	CEOF_IEMPY				0040
-#define	CEOF_OEMPY				0100
+#define	CHAN_ENDOF_LOCAL		1
+#define	CHAN_ENDOF_REMOTE		2
+#define	CHAN_CLOSE_LOCAL		3
+#define	CHAN_CLOSE_REMOTE		4
 
-#define	CEOF_OK(n)				((((CChannel *)m_pChan[n])->m_Eof & (CEOF_DEAD | CEOF_SEOF | CEOF_SCLOSE)) == 0)
+#define	SSHFT_NONE				0
+#define	SSHFT_STDIO				1
+#define	SSHFT_SFTP				2
+#define	SSHFT_AGENT				3
+#define	SSHFT_RCP				4
+#define	SSHFT_X11				5
+#define	SSHFT_LOCAL_LISTEN		6
+#define	SSHFT_REMOTE_LISTEN		7
+#define	SSHFT_LOCAL_SOCKS		8
+#define	SSHFT_REMOTE_SOCKS		9
+#define	SSHFT_SOCKET_LOCAL		10
+#define	SSHFT_SOCKET_REMOTE		11
 
 #define	CHAN_REQ_PTY			0
 #define	CHAN_REQ_SHELL			1
@@ -531,127 +528,80 @@ public:
 #define	CHAN_REQ_AGENT			6
 #define	CHAN_REQ_WSIZE			7
 
-#define	SSHFT_NONE				0
-#define	SSHFT_STDIO				1
-#define	SSHFT_SFTP				2
-#define	SSHFT_AGENT				3
-#define	SSHFT_RCP				4
-#define	SSHFT_X11				5
+#define	CHAN_MAXCONNECT			200
 
-class CFilter : public CObject
+class CFifoSsh : public CFifoWnd
 {
 public:
-	int m_Type;
-	class CChannel *m_pChan;
-	class CFilter *m_pNext;
-	CStringA m_Cmd;
+	CFifoSsh(class CRLoginDoc *pDoc, class CExtSocket *pSock);
 
-	CFilter();
-	virtual ~CFilter();
-	virtual void Destroy();
-	virtual void Close();
-	virtual void OnConnect();
-	virtual void Send(LPBYTE buf, int len);
-	virtual void OnReceive(const void *lpBuf, int nBufLen);
-	virtual void OnSendEmpty();
-	virtual void OnRecvEmpty();
-	virtual int GetSendSize();
-	virtual int GetRecvSize();
+	int GetFreeFifo(int nFd);
+
+	virtual void EndOfData(int nFd);
+
+	virtual void OnRead(int nFd);
+	virtual void OnWrite(int nFd);
+	virtual void OnOob(int nFd, int len, BYTE *pBuffer);
+	virtual void OnAccept(int nFd, SOCKET socket);
+	virtual void OnConnect(int nFd);
+	virtual void OnClose(int nFd, int nLastError);
+	virtual void OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult);
 };
 
-class CChannel : public CExtSocket
+class CFifoStdio : public CFifoDocument
 {
 public:
-	class Cssh *m_pSsh;
-	int m_Status;
-	int m_RemoteID;
-	int m_LocalID;
-	int m_LocalComs;
-	int m_LocalWind;
-	int m_LocalPacks;
-	int m_RemoteWind;
-	int m_RemoteMax;
-	CString m_TypeName;
-	int m_Eof;
-	CChannel *m_pNext;
-	CString m_lHost, m_rHost;
-	int m_lPort, m_rPort;
+	CFifoStdio(class CRLoginDoc *pDoc, class CExtSocket *pSock);
 
-	CBuffer m_Input;
-	CBuffer m_Output;
-	ULONGLONG m_ReadByte;
-	ULONGLONG m_WriteByte;
-	CTime m_ConnectTime;
-
-	class CFilter *m_pFilter;
-
-	const CChannel & operator = (CChannel &data);
-
-	CChannel();
-	virtual ~CChannel();
-
-	void Close();
-	int Send(const void *lpBuf, int nBufLen, int nFlags = 0);
-	void OnError(int err);
-	void OnClose();
-	void OnAccept(SOCKET hand);
-	void OnConnect();
-	void OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags);
-	int OnReceiveProcBack(void *lpBuf, int nBufLen, int nFlags);
-	int GetSendSize();
-	int GetRecvSize();
-	void OnRecvEmpty();
-	void OnSendEmpty();
-
-	void DoClose();
-	int CreateListen(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress, UINT nRemotePort);
+	virtual void EndOfData(int nFd);
 };
 
-class CStdIoFilter : public CFilter
-{
-public:
-	CStdIoFilter();
-	void OnReceive(const void *lpBuf, int nBufLen);
-	void OnSendEmpty();
-	void OnRecvEmpty();
-	int GetSendSize();
-	int GetRecvSize();
-};
-
-class CX11Filter : public CFilter
-{
-public:
-	CBuffer m_Buffer;
-
-	CX11Filter();
-	void OnReceive(const void *lpBuf, int nBufLen);
-	void OnConnect();
-	int GetSendSize();
-	int GetRecvSize();
-};
-
-class CSFtpFilter : public CFilter
+class CFifoSftp : public CFifoBase
 {
 public:
 	class CSFtp *m_pSFtp;
 
-	CSFtpFilter();
-	void Destroy();
-	void OnConnect();
-	void OnReceive(const void *lpBuf, int nBufLen);
-	int GetSendSize();
+public:
+	CFifoSftp(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CSFtp *pSFtp);
+	~CFifoSftp();
+
+	virtual void FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam);
 };
 
-class CAgent : public CFilter
+class CFifoSocks : public CFifoSync
 {
 public:
-	CBuffer m_RecvBuf;
+	int m_rFd;
+	int m_wFd;
+	int m_ChanId;
 
-	CAgent();
-	~CAgent();
+	int m_RetCode;
+	CStringA m_HostName;
+	int m_HostPort;
 
-	void OnReceive(const void *lpBuf, int nBufLen);
-	int GetSendSize();
+public:
+	CFifoSocks(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CFifoChannel *pChan);
+
+	virtual void OnLinked(int nFd, BOOL bMid);
+	virtual void OnUnLinked(int nFd, BOOL bMid);
+	virtual void FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam);
+
+	static UINT DecodeSocksWorker(LPVOID pParam);
+	void DecodeSocks();
+};
+
+class CFifoAgent : public CFifoWnd
+{
+public:
+	class CFifoChannel *m_pChan;
+
+public:
+	CFifoAgent(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CFifoChannel *pChan);
+
+	virtual void OnRead(int nFd);
+	virtual void OnWrite(int nFd);
+	virtual void OnConnect(int nFd);
+	virtual void OnClose(int nFd, int nLastError);
 
 	BOOL IsLocked();
 	LPCTSTR GetRsaSignAlg(CIdKey *key, int flag);
@@ -659,65 +609,92 @@ public:
 	void ReceiveBuffer(CBuffer *bp);
 };
 
-class CRcpUpload : public CFilter
+class CFifoX11 : public CFifoWnd
 {
 public:
-	class Cssh *m_pSsh;
-	CStringList m_FileList;
-	CString m_Path;
-	CString m_File;
-	struct _stati64 m_Stat;
-	FILE *m_Fd;
-	LONGLONG m_Size;
-	int m_Mode;
-	class CProgDlg m_ProgDlg;
+	class CFifoChannel *m_pChan;
 
-	void Destroy();
-	void Close();
-	void OnReceive(const void *lpBuf, int nBufLen);
-	void OnClose();
-	void OnSendEmpty();
+	CBuffer m_Buffer;
 
-	CRcpUpload();
-	~CRcpUpload();
+public:
+	CFifoX11(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CFifoChannel *pChan);
+
+	virtual void OnRead(int nFd);
+	virtual void OnWrite(int nFd);
+	virtual void OnOob(int nFd, int len, BYTE *pBuffer);
+	virtual void OnAccept(int nFd, SOCKET socket);
+	virtual void OnConnect(int nFd);
+	virtual void OnClose(int nFd, int nLastError);
+
+	BOOL OnReceive(const void *lpBuf, int nBufLen);
 };
 
-class CRcpDownload : public CFilter
+class CFifoRcp : public CFifoSync
 {
 public:
-	class Cssh *m_pSsh;
+	class CFifoChannel *m_pChan;
 	int m_Mode;
-	FILE *m_Fd;
-
-	int m_Req;
-	int m_Flag;
-	LONGLONG m_Size;
-	CStringA m_StrMsg;
-	__time64_t m_atime;
-	__time64_t m_mtime;
 	CString m_PathName;
+	CStringA m_FileName;
+	class CProgDlg *m_pProgDlg;
+	BOOL m_bAbortFlag;
 
-	LONGLONG m_ReadSize;
-	CStringList m_DirPath;
-	BOOL m_bHaveErr;
-	clock_t m_StartClock;
+public:
+	CFifoRcp(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CFifoChannel *pChan, int Mode);
 
-	int m_MaxCols;
-	int m_DivCols;
+	virtual void OnLinked(int nFd, BOOL bMid);
+	virtual void OnUnLinked(int nFd, BOOL bMid);
 
-	void DispMsg(LPCTSTR msg);
-	void DispInit();
-	void DispPos();
+	static UINT RcpUpDowndWorker(LPVOID pParam);
 
-	void PutOkMsg();
-	void PutErrorMsg(LPCSTR msg);
+	BOOL ReadLine(int nFd, CStringA &str);
+	LPCTSTR MakePath(LPCTSTR base, LPCSTR name, CString &path);
 
-	void OnConnect();
-	void OnReceive(const void *lpBuf, int nBufLen);
-
-	CRcpDownload();
-	~CRcpDownload();
+	void RcpUpLoad();
+	void RcpDownLoad();
 };
+
+///////////////////////////////////////////////////////
+
+class CFifoChannel : public CObject
+{
+public:
+	int m_Type;
+	int m_Status;
+	int m_Stage;
+
+	int m_RemoteID;
+	int m_LocalID;
+
+	int m_LocalComs;
+	int m_LocalWind;
+	int m_LocalPacks;
+
+	int m_RemoteComs;
+	int m_RemotePacks;
+
+	CStringA m_TypeName;
+
+	CString m_lHost, m_rHost;
+	int m_lPort, m_rPort;
+
+	BOOL m_bClosed;
+	CFifoBase *m_pFifoBase;
+};
+
+///////////////////////////////////////////////////////
+
+#define	SSH2_STAT_HAVEPROP				00001
+#define	SSH2_STAT_HAVEKEYS				00002
+#define	SSH2_STAT_HAVESESS				00004
+#define	SSH2_STAT_HAVELOGIN				00010
+#define	SSH2_STAT_HAVESTDIO				00020
+#define	SSH2_STAT_HAVESHELL				00040
+#define	SSH2_STAT_HAVEPFWD				00100
+#define	SSH2_STAT_HAVEAGENT				00200
+#define	SSH2_STAT_SENTKEXINIT			00400
+#define	SSH2_STAT_AUTHGSSAPI			01000
+#define	SSH2_STAT_HAVERSAPUB			02000
 
 #define	DHMODE_GROUP_1					0
 #define	DHMODE_GROUP_14					1
@@ -773,42 +750,33 @@ enum EAuthStat {
 	AST_DONE
 };
 
+typedef struct _DelayedCheck {
+	int	nFd;
+	int fdEvent;
+	void *pParam;
+	BOOL bDelBuf;
+} DelayedCheck;
+
 class Cssh : public CExtSocket 
 {
 public:
-	Cssh(class CRLoginDoc *pDoc);
-	virtual ~Cssh();
-
-	BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
-	void Close();
-	void OnConnect();
-	void OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags = 0);
-	int Send(const void* lpBuf, int nBufLen, int nFlags = 0);
-	void SendWindSize();
-	void SendBreak(int opt = 0);
-	void OnTimer(UINT_PTR nIDEvent);
-	void OnRecvEmpty();
-	void OnSendEmpty();
-	void GetStatus(CString &str);
-	int GetRecvSize();
-	void ResetOption();
-
 	int m_SSHVer;
 	CString m_HostName;
 	UINT m_HostPort;
-	int m_StdChan;
-	CFilter *m_pListFilter;
+
+	CString m_ServerVerStr;
+	CString m_ClientVerStr;
+
+	int m_SSH2Status;
+	BOOL m_bKnownHostUpdate;
+
 	CArray<CIdKey, CIdKey &> m_IdKeyTab;
+
 	CString m_x11AuthName, m_x11LocalName;
 	CBuffer m_x11AuthData, m_x11LocalData;
 
 	CMutex *m_pAgentMutex;
 	CStringA m_AgentPass;
-	BOOL m_bKnownHostUpdate;
-
-private:
-	CString m_ServerVerStr;
-	CString m_ClientVerStr;
 
 	int m_InPackStat;
 	int m_InPackLen;
@@ -842,27 +810,6 @@ private:
 	int m_CipTab[8];
 	int m_CompMode;
 
-	CIdKey *SelectIdKeyEntry();
-	int SMsgPublicKey(CBuffer *bp);
-	int SMsgAuthRsaChallenge(CBuffer *bp);
-	void ReceivePacket(CBuffer *bp);
-	void SendPacket(CBuffer *bp);
-	void SendDisconnect(LPCSTR str);
-
-	int m_SSH2Status;
-
-#define	SSH2_STAT_HAVEPROP		00001
-#define	SSH2_STAT_HAVEKEYS		00002
-#define	SSH2_STAT_HAVESESS		00004
-#define	SSH2_STAT_HAVELOGIN		00010
-#define	SSH2_STAT_HAVESTDIO		00020
-#define	SSH2_STAT_HAVESHELL		00040
-#define	SSH2_STAT_HAVEPFWD		00100
-#define	SSH2_STAT_HAVEAGENT		00200
-#define	SSH2_STAT_SENTKEXINIT	00400
-#define	SSH2_STAT_AUTHGSSAPI	01000
-#define	SSH2_STAT_HAVERSAPUB	02000
-
 	DWORD m_SendPackSeq;
 	DWORD m_RecvPackSeq;
 	DWORD m_SendPackLen;
@@ -875,45 +822,50 @@ private:
 	CBuffer m_MyPeer;
 	CBuffer m_SessHash;
 	int m_NeedKeyLen;
+
 	int m_DhMode;
 	DH *m_SaveDh;
+	int m_DhGexReqBits;
+
 	int m_EcdhCurveNid;
 	EC_KEY *m_EcdhClientKey;
 	const EC_GROUP *m_EcdhGroup;
+
 	EVP_PKEY *m_CurveEvpKey;
 	CBuffer m_CurveClientPubkey;
 	CBuffer m_SntrupClientKey;
+
 	CBuffer m_RsaHostBlob;
 	CBuffer m_RsaTranBlob;
 	CBuffer m_RsaSharedKey;
 	CBuffer m_RsaOaepSecret;
+
 	int m_AuthStat;
 	int m_AuthMode;
 	CString m_AuthMeta;
 	CString m_AuthLog;
+	BOOL m_bAuthAgentReqEnable;
+
 	CWordArray m_GlbReqMap;
 	CWordArray m_OpnReqMap;
 	CWordArray m_ChnReqMap;
-	CChannel *m_pChanNext;
-	CChannel *m_pChanFree;
-	CChannel *m_pChanFree2;
+
 	int m_OpenChanCount;
-	CPtrArray m_pChan;
+
 	CArray<CPermit, CPermit &> m_Permit;
-	CBuffer m_StdInRes;
-	CRcpUpload m_RcpCmd;
+	CStringArrayExt m_PortFwdTable;
 	int m_bPfdConnect;
+
+	//CRcpUpload m_RcpCmd;
+
 	BOOL m_bExtInfo;
 	CStringIndex m_ExtInfo;
-	int m_DhGexReqBits;
-	time_t m_ConnectTime;
+
 	int m_KeepAliveTiimerId;
 	int m_KeepAliveSendCount;
 	int m_KeepAliveReplyCount;
 	int m_KeepAliveRecvGlobalCount;
 	int m_KeepAliveRecvChannelCount;
-	BOOL m_bAuthAgentReqEnable;
-	CStringArrayExt m_PortFwdTable;
 
 	CredHandle m_SSPI_hCredential;
 	CtxtHandle *m_SSPI_phContext;
@@ -921,36 +873,97 @@ private:
 	CtxtHandle m_SSPI_hNewContext;
 	TimeStamp m_SSPI_tsExpiry;
 
+	int m_LastFreeId;
+	CPtrArray m_FifoCannel;
+	CStringList m_FileList;
+	CPtrList m_DelayedCheck;
+
+public:
+	Cssh(class CRLoginDoc *pDoc);
+	virtual ~Cssh();
+		
+	virtual void FifoLink();
+	virtual BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
+	virtual void Close();
+
+	virtual void OnRecvSocket(void *lpBuf, int nBufLen, int nFlags);
+	virtual void OnTimer(UINT_PTR nIDEvent);
+
+	virtual void SendWindSize();
+	virtual void SendBreak(int opt = 0);
+	virtual int GetRecvSize();
+
+	virtual void GetStatus(CString &str);
+	virtual void ResetOption();
+
+public:
+// SSH version 1
+	void SendDisconnect(LPCSTR str);
+	void SendPacket(CBuffer *bp);
+	int SMsgPublicKey(CBuffer *bp);
+	CIdKey *SelectIdKeyEntry();
+	int SMsgAuthRsaChallenge(CBuffer *bp);
+	void ReceivePacket(CBuffer *bp);
+
+// SSH version 2
+	void LogIt(LPCTSTR format, ...);
 	void SendTextMsg(LPCSTR str, int len);
-	void PortForward();
 	int MatchList(LPCTSTR client, LPCTSTR server, CString &str);
-	int ChannelOpen();
-	void ChannelClose(int id, BOOL bClose = FALSE);
+
 	LPCTSTR GetSigAlgs();
 	BOOL IsServerVersion(LPCTSTR pattan);
 	void UserAuthNextState();
 	void AddAuthLog(LPCTSTR str, ...);
 	BOOL IsStriStr(LPCSTR str, LPCSTR ptn);
 
+// Channel func
+	inline int IdToFdIn(int id)  { return(id * 2 + 0); }
+	inline int IdToFdOut(int id) { return(id * 2 + 1); }
+	inline int FdToId(int nFd)   { return(nFd / 2); }
+	inline int GetOpenChanCount() { return m_OpenChanCount; }
+
+	void DelayedCheckExec();
+	void ChannelCheck(int nFd, int fdEvent = 0, void *pParam = NULL);
+
+	class CFifoChannel *GetFifoChannel(int id);
+	BOOL ChannelCreate(int id, LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress, UINT nRemotePort);
+	BOOL ChannelOpen(int id, LPCTSTR lpszHostAddress, UINT nHostPort);
+	void ChannelClose(int id, int nStat = 0);
+	void ChannelPolling(int id);
+	void ChannelAccept(int id, SOCKET socket);
+	void SocksResult(class CFifoSocks *pFifoSocks);
+
+	void PortForward();
+	void OpenSFtpChannel();
+	void OpenRcpUpload(LPCTSTR file);
+	void OpenRcpDownload(LPCTSTR file);
+
+// SSH ver2 SendMsg...
 	void SendMsgKexInit();
-	void SendMsgNewKeys();
 	void SendMsgKexDhInit();
 	void SendMsgKexDhGexRequest();
 	int SendMsgKexEcdhInit();
 	void SendMsgKexCurveInit();
+	void SendMsgNewKeys();
 
 	void SendMsgServiceRequest(LPCSTR str);
 	int SendMsgUserAuthRequest(LPCSTR str);
 
-	int SendMsgChannelOpen(int n, LPCSTR type, LPCTSTR lhost = NULL, int lport = 0, LPCTSTR rhost = NULL, int rport = 0);
+	int SendMsgChannelOpen(int id, LPCSTR type, LPCTSTR lhost = NULL, int lport = 0, LPCTSTR rhost = NULL, int rport = 0);
+	void SendMsgChannelOpenConfirmation(int id);
+	void SendMsgChannelOpenFailure(int id);
+	void SendMsgChannelData(int id);
+
 	void SendMsgChannelRequesstShell(int id);
 	void SendMsgChannelRequesstSubSystem(int id, LPCSTR cmds);
-	void SendMsgChannelRequesstExec(int id);
+	void SendMsgChannelRequesstExec(int id, LPCSTR cmds);
 
 	void SendMsgGlobalRequest(int num, LPCSTR str, LPCTSTR rhost = NULL, int rport = 0);
 	void SendMsgKeepAlive();
 	void SendMsgUnimplemented();
 	void SendDisconnect2(int st, LPCSTR str);
+
+	void SendPacket2(CBuffer *bp);
 
 	int SSH2MsgKexInit(CBuffer *bp);
 	int HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_MD *evp_md);
@@ -975,8 +988,9 @@ private:
 	int SSH2MsgChannelClose(CBuffer *bp);
 	int SSH2MsgChannelData(CBuffer *bp, int type);
 	int SSH2MsgChannelEof(CBuffer *bp);
-	int SSH2MsgChannelRequesst(CBuffer *bp);
 	int SSH2MsgChannelAdjust(CBuffer *bp);
+
+	int SSH2MsgChannelRequesst(CBuffer *bp);
 	int SSH2MsgChannelRequestReply(CBuffer *bp, int type);
 
 	int SSH2MsgGlobalHostKeys(CBuffer *bp);
@@ -984,21 +998,6 @@ private:
 	int SSH2MsgGlobalRequestReply(CBuffer *bp, int type);
 
 	void ReceivePacket2(CBuffer *bp);
-	void SendPacket2(CBuffer *bp);
-
-public:
-	void LogIt(LPCTSTR format, ...);
-	int GetOpenChanCount() { return m_OpenChanCount; }
-	void OpenSFtpChannel();
-	void SendMsgChannelData(int id);
-	void SendMsgChannelOpenConfirmation(int id);
-	void SendMsgChannelOpenFailure(int id);
-	void DecodeProxySocks(int id, CBuffer &resvbuf);
-	void ChannelCheck(int n);
-	void ChannelPolling(int id);
-	void ChannelAccept(int id, SOCKET hand);
-	void OpenRcpUpload(LPCTSTR file);
-	void OpenRcpDownload(LPCTSTR file);
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -1095,4 +1094,3 @@ int	sntrup761_keypair(unsigned char *pk, unsigned char *sk);
 int	sntrup761_enc(unsigned char *cstr, unsigned char *k, const unsigned char *pk);
 int	sntrup761_dec(unsigned char *k, const unsigned char *cstr, const unsigned char *sk);
 
-#endif // !defined(AFX_SSH_H__2A682FAC_4F24_4168_9082_C9CDF2DD19D7__INCLUDED_)

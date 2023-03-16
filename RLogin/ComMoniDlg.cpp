@@ -8,6 +8,7 @@
 #include "RLoginView.h"
 #include "ComSock.h"
 #include "ComMoniDlg.h"
+#include "ComInitDlg.h"
 #include "UserFlowDlg.h"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -20,9 +21,9 @@ CComMoniDlg::CComMoniDlg(class CComSock *pSock, CWnd* pParent /*=NULL*/)
 {
 	m_pSock = pSock;
 	m_bActive = FALSE;
-	m_DataBits = 3;
-	m_ParityBit = 0;
-	m_StopBits = 0;
+	m_DataBits = _T("8");
+	m_ParityBit = _T("NOPARITY");
+	m_StopBits = _T("1");
 	m_FlowCtrl = 1;
 	m_BaudRate = _T("9600");
 	m_SendWait[0] = 0;
@@ -50,9 +51,9 @@ void CComMoniDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogExt::DoDataExchange(pDX);
 
 	DDX_CBString(pDX, IDC_BAUDRATE, m_BaudRate);
-	DDX_CBIndex(pDX, IDC_DATABITS, m_DataBits);
-	DDX_CBIndex(pDX, IDC_PARITYBIT, m_ParityBit);
-	DDX_CBIndex(pDX, IDC_STOPBITS, m_StopBits);
+	DDX_CBString(pDX, IDC_DATABITS, m_DataBits);
+	DDX_CBString(pDX, IDC_PARITYBIT, m_ParityBit);
+	DDX_CBString(pDX, IDC_STOPBITS, m_StopBits);
 	DDX_CBIndex(pDX, IDC_FLOWCTRL, m_FlowCtrl);
 
 	DDX_Text(pDX, IDC_SENDWAITC, m_SendWait[0]);
@@ -202,14 +203,17 @@ void CComMoniDlg::DrawGrapData(CDC *pDC, CRect &rect)
 
 BOOL CComMoniDlg::OnInitDialog()
 {
+	CComboBox *pCombo;
+	COMMPROP CommProp;
+
 	CDialogExt::OnInitDialog();
 
 	ASSERT(m_pSock != NULL && m_pSock->m_pComConf != NULL);
 
 	m_BaudRate.Format(_T("%d"), m_pSock->m_pComConf->dcb.BaudRate);
-	m_DataBits		= m_pSock->m_pComConf->dcb.ByteSize - 5;
-	m_ParityBit		= m_pSock->m_pComConf->dcb.Parity - NOPARITY;
-	m_StopBits		= m_pSock->m_pComConf->dcb.StopBits - ONESTOPBIT;
+	m_DataBits.Format(_T("%d"), m_pSock->m_pComConf->dcb.ByteSize);
+	m_ParityBit		= ParityBitsName[m_pSock->m_pComConf->dcb.Parity];
+	m_StopBits		= StopBitsName[m_pSock->m_pComConf->dcb.StopBits];
 	m_XoffLim		= m_pSock->m_pComConf->dcb.XoffLim;
 	m_XonLim		= m_pSock->m_pComConf->dcb.XonLim;
 	m_XonChar		= m_pSock->m_pComConf->dcb.XonChar;
@@ -220,6 +224,23 @@ BOOL CComMoniDlg::OnInitDialog()
 	m_FlowCtrl		= CComSock::GetFlowCtrlMode(&(m_pSock->m_pComConf->dcb), m_UserDef);
 
 	m_ComConfig.EnableWindow(FALSE);
+
+	memset(&CommProp, 0, sizeof(CommProp));
+
+	if ( m_pSock->m_hCom != INVALID_HANDLE_VALUE )
+		GetCommProperties(m_pSock->m_hCom, &CommProp);
+
+	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_BAUDRATE)) != NULL )
+		CComInitDlg::CommPropCombo(COMMPROP_TYPE_BAUD, pCombo, &CommProp);
+
+	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_DATABITS)) != NULL )
+		CComInitDlg::CommPropCombo(COMMPROP_TYPE_DATABITS, pCombo, &CommProp);
+
+	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_PARITYBIT)) != NULL )
+		CComInitDlg::CommPropCombo(COMMPROP_TYPE_PARITY, pCombo, &CommProp);
+
+	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_STOPBITS)) != NULL )
+		CComInitDlg::CommPropCombo(COMMPROP_TYPE_STOPBITS, pCombo, &CommProp);
 
 	UpdateData(FALSE);
 
@@ -306,9 +327,22 @@ void CComMoniDlg::OnBnClickedComconfig()
 	UpdateData(TRUE);
 
 	m_pSock->m_pComConf->dcb.BaudRate	= _tstoi(m_BaudRate);
-	m_pSock->m_pComConf->dcb.ByteSize	= m_DataBits  + 5;
-	m_pSock->m_pComConf->dcb.Parity		= m_ParityBit + NOPARITY;
-	m_pSock->m_pComConf->dcb.StopBits	= m_StopBits  + ONESTOPBIT;
+	m_pSock->m_pComConf->dcb.ByteSize	= (BYTE)_tstoi(m_DataBits);
+
+	m_pSock->m_pComConf->dcb.Parity = NOPARITY;
+	for ( int n = 0 ; ParityBitsName[n] != NULL ; n++ ) {
+		if ( _tcscmp(ParityBitsName[n], m_ParityBit) == 0 )
+			m_pSock->m_pComConf->dcb.Parity	= n;
+
+	}
+
+	m_pSock->m_pComConf->dcb.StopBits	= ONESTOPBIT;
+	for ( int n = 0 ; StopBitsName[n] != NULL ; n++ ) {
+		if ( _tcscmp(StopBitsName[n], m_StopBits) == 0 )
+			m_pSock->m_pComConf->dcb.StopBits	= n;
+
+	}
+
 	m_pSock->m_pComConf->dcb.XoffLim	= m_XoffLim;
 	m_pSock->m_pComConf->dcb.XonLim		= m_XonLim;
 	m_pSock->m_pComConf->dcb.XonChar	= m_XonChar;

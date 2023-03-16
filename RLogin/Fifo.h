@@ -1,22 +1,19 @@
+///////////////////////////////////////////////////////
+// Fifo.h : インターフェイス
+//
+
 #pragma once
-
-#include <openssl/ssl.h>
-
-#ifdef	USE_FIFOBUF
 
 #define	FIFO_BUFDEFMAX			(8 * 1024)
 #define	FIFO_BUFSIZE			(2 * 1024)
 
-#define	FIFO_FLOWUPER			(m_nBufSize * 4)
-#define	FIFO_FLOWMIDDLE			(m_nBufSize * 3)
-#define	FIFO_FLOWLOWER			(m_nBufSize * 2)
+#define	FIFO_BUFUPPER			(m_nBufSize * 4)
+#define	FIFO_BUFLOWER			(m_nBufSize * 2)
 
 #define	FIFO_STDIN				0
 #define	FIFO_STDOUT				1
 #define	FIFO_EXTIN				2
 #define	FIFO_EXTOUT				3
-
-#define	FD_POSTMSG				(1 << 31)	// > FD_MAX_EVENTS(10)
 
 #define	FIFO_TYPE_BASE			0
 #define	FIFO_TYPE_WINDOW		1
@@ -24,6 +21,9 @@
 #define	FIFO_TYPE_SYNC			3
 #define	FIFO_TYPE_EVENT			4
 #define	FIFO_TYPE_SOCKET		5
+#define	FIFO_TYPE_LISTEN		6
+#define	FIFO_TYPE_PIPE			7
+#define	FIFO_TYPE_COM			8
 
 #define	FIFO_THREAD_NONE		0
 #define	FIFO_THREAD_EXEC		1
@@ -40,6 +40,14 @@ enum FifoMsgQueInCmd {
 	FIFO_QCMD_SETSOCKOPT,		// CFifoSocket
 	FIFO_QCMD_IOCtl,			// CFifoSocket
 	FIFO_QCMD_SSLCONNECT,		// CFifoSocket
+
+	FIFO_QCMD_SENDWINSIZE,		// CFifoTelnet/CFifoLogin
+	FIFO_QCMD_SENDBREAK,		// CFifoTelnet/CFifoPipe/CFifoCom
+	FIFO_QCMD_COMMSTATE,		// CFifoCom
+	FIFO_QCMD_SETDTRRTS,		// CFifoCom
+
+	FIFO_QCMD_SYNCRET,			// CFifoSocks
+	FIFO_QCMD_RCPNEXT,			// CFifoRcp
 };
 
 class CFifoBuffer : public CObject
@@ -102,41 +110,55 @@ enum DocMsgType {
 	DOCMSG_TYPE_SIZE,
 	DOCMSG_TYPE_RECT,
 	DOCMSG_TYPE_INTPTR,
+	DOCMSG_TYPE_DWORDPTR,
 };
 
 enum DocMsgCmd {
-	DOCMSG_REMOTESTR,
+	DOCMSG_REMOTESTR,		// CFifoTelnet
 	DOCMSG_LOCALSTR,
 
-	DOCMSG_USERNAME,
-	DOCMSG_PASSNAME,
-	DOCMSG_TERMNAME,
+	DOCMSG_USERNAME,		// CFifoLogin, CFifoTelnet
+	DOCMSG_PASSNAME,		// CFifoTelnet
+	DOCMSG_TERMNAME,		// CFifoLogin, CFifoTelnet
+	DOCMSG_ENVSTR,			// CFifoTelnet
 
-	DOCMSG_SCREENSIZE,
+	DOCMSG_SCREENSIZE,		// CFifoLogin, CFifoTelnet
+	DOCMSG_LINEMODE,		// CFifoTelnet
+	DOCMSG_TTYMODE,			// CFifoTelnet
+	DOCMSG_KEEPALIVE,		// CFifoTelnet
 };
 
 class CFifoBase : public CObject
 {
 public:
 	int m_Type;
+	class CRLoginDoc *m_pDocument;
+	class CExtSocket *m_pSock;
+
 	CPtrArray m_FifoBuf;
 	CPtrArray m_EventTab;
 	CDWordArray m_fdAllowEvents;
 	CDWordArray m_fdPostEvents;
 	CSemaphore m_FifoSemaphore;
 	CEvent m_MsgEvent;
+	BOOL m_bMsgClosed;
 	CList<FifoMsg *, FifoMsg *> m_MsgList;
 	CSemaphore m_MsgSemaphore;
-	class CRLoginDoc *m_pDocument;
-	int m_nLastError;
+
 	int m_nBufSize;
+	int m_nLimitSize;
+	BOOL m_bFlowCtrl;
+	int m_nLastError;
+
+	int m_nBufMax;
+	BYTE *m_pBuffer;
 
 public:
-	CFifoBase(class CRLoginDoc *pDoc);
+	CFifoBase(class CRLoginDoc *pDoc, class CExtSocket *pSock);
 	~CFifoBase();
 
 	virtual BOOL IsOpen();
-	virtual void FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam) = NULL;
+	virtual void FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam);
 	virtual void SendCommand(int cmd, int param = 0, int msg = 0, int len = 0, void *buf = NULL, CEvent *pEvent = NULL, BOOL *pResult = NULL);
 	virtual void Destroy();
 
@@ -147,13 +169,13 @@ public:
 	void SendFdEvents(int nFd, int msg, void *pParam);
 	BOOL SendCmdWait(int cmd, int param = 0, int msg = 0, int len = 0, void *buf = NULL);
 	void SendFdCommand(int nFd, int cmd, int param = 0, int msg = 0, int len = 0, void *buf = NULL, CEvent *pEvent = NULL, BOOL *pResult = NULL);
-	void PostCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent = NULL, BOOL *pResult = NULL);
+	BOOL PostCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent = NULL, BOOL *pResult = NULL);
 	void DeleteMsg(FifoMsg *pFifoMsg);
 	void RemoveAllMsg();
 
 	void SetFdEvents(int nFd, DWORD fdEvent);
-	inline void ResetFdEvents(int nFd, DWORD fdEvent) { m_fdAllowEvents[nFd] &= ~fdEvent; }
-	inline BOOL IsFdEvents(int nFd, DWORD fdEvent) { return ((m_fdAllowEvents[nFd] & fdEvent) != 0 ? TRUE : FALSE); }
+	void ResetFdEvents(int nFd, DWORD fdEvent);
+	BOOL IsFdEvents(int nFd, DWORD fdEvent);
 
 	int Consume(int nFd, int nBufLen);
 	int Peek(int nFd, LPBYTE pBuffer, int nBufLen);
@@ -163,6 +185,9 @@ public:
 	BOOL HaveData(int nFd);
 	int GetDataSize(int nFd);
 	int GetXFd(int nFd);
+	BYTE *TempBuffer(int nSize);
+	int MoveBuffer(int nFd, class CBuffer *bp);
+	void Reset(int nFd);
 
 	void SetFifo(int nFd, CFifoBuffer *pFifo);
 	CFifoBuffer *GetFifo(int nFd);
@@ -178,15 +203,19 @@ public:
 	LPCSTR DocMsgStrA(int msg, CStringA &str);
 	LPCWSTR DocMsgStrW(int msg, CStringW &str);
 #ifdef	_UNICODE
-	#define	DocMsgStr(msg)	DocMsgStrW(msg)
+	#define	DocMsgStr(msg, str)	DocMsgStrW(msg, str)
 	#define	DOCMSG_TYPE_STRINGT	DOCMSG_TYPE_STRINGW
 #else
-	#define	DocMsgStr(msg)	DocMsgStrA(msg)
+	#define	DocMsgStr(msg, str)	DocMsgStrA(msg, str)
 	#define	DOCMSG_TYPE_STRINGT	DOCMSG_TYPE_STRINGA
 #endif
 	void DocMsgSize(int msg, CSize &size);
 	void DocMsgRect(int msg, CRect &rect);
 	void DocMsgIntPtr(int msg, int *pInt);
+	LPCSTR DocMsgRemoteStr(LPCTSTR str, CStringA &mbs);
+	void DocMsgLineMode(int sw);
+	DWORD DocMsgTtyMode(int mode, DWORD defVal);
+	DWORD DocMsgKeepAlive(void *pThis);
 	
 public:
 	static void Link(CFifoBase *pLeft, int lFd, CFifoBase *pRight, int rFd);
@@ -194,24 +223,6 @@ public:
 
 	static inline void MidLink(CFifoBase *pLeft, int lFd, CFifoBase *pMid, int mFd, CFifoBase *pRight, int rFd) { Link(pLeft, lFd, pRight, rFd); Link(pMid, mFd, pRight, rFd); }
 	static inline void MidUnLink(CFifoBase *pLeft, int lFd, CFifoBase *pMid, int mFd, CFifoBase *pRight, int rFd) { UnLink(pMid, mFd, TRUE); UnLink(pRight, rFd, FALSE); }
-};
-
-class CFifoWorkThread : public CWinThread
-{
-	DECLARE_DYNCREATE(CFifoWorkThread)
-
-public:
-	class CFifoBase *m_pFifoBase;
-
-public:
-	CFifoWorkThread();
-
-	virtual BOOL InitInstance();
-	virtual int ExitInstance();
-
-protected:
-	afx_msg void OnFifoMsg(WPARAM wParam, LPARAM lParam);
-	DECLARE_MESSAGE_MAP()
 };
 
 class CFifoWnd : public CFifoBase
@@ -224,19 +235,20 @@ public:
 	BOOL m_bDestroy;
 
 public:
-	CFifoWnd(class CRLoginDoc *pDoc);
+	CFifoWnd(class CRLoginDoc *pDoc, class CExtSocket *pSock);
 	~CFifoWnd();
 
-	void PostMessage(WPARAM wParam, LPARAM lParam);
-	void SendStr(int nFd, LPCSTR mbs);
+	virtual void OnLinked(int nFd, BOOL bMid);
+	virtual void OnUnLinked(int nFd, BOOL bMid);
 
+	virtual void PostMessage(int cmd, int param, int msg);
 	virtual void FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam);
 	virtual void MsgPump(WPARAM wParam);
 	virtual void SendCommand(int cmd, int param = 0, int msg = 0, int len = 0, void *buf = NULL, CEvent *pEvent = NULL, BOOL *pResult = NULL);
 	virtual void Destroy();
 	
-	virtual int Send(int nFd, BYTE *pBuffer, int nBufLen);
-	virtual int Recived(int nFd, BYTE *pBuffer, int nBufLen);
+	virtual void EndOfData(int nFd);
+	virtual void Recived(int nFd, BYTE *pBuffer, int nBufLen);
 
 	virtual void OnRead(int nFd);
 	virtual void OnWrite(int nFd);
@@ -247,21 +259,37 @@ public:
 	virtual void OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult);
 };
 
+class CFifoWorkThread : public CWinThread
+{
+	DECLARE_DYNCREATE(CFifoWorkThread)
+
+public:
+	BOOL m_bDestroy;
+
+public:
+	CFifoWorkThread();
+
+	virtual BOOL InitInstance();
+	virtual int ExitInstance();
+
+protected:
+	afx_msg void OnFifoMsg(WPARAM wParam, LPARAM lParam);
+	DECLARE_MESSAGE_MAP()
+};
+
 class CFifoThread : public CFifoWnd
 {
 public:
 	CFifoWorkThread *m_pWinThread;
 
 public:
-	CFifoThread(class CRLoginDoc *pDoc);
+	CFifoThread(class CRLoginDoc *pDoc, class CExtSocket *pSock);
 	~CFifoThread();
 
 	BOOL ThreadOpen();
 	BOOL ThreadClose();
 
-	virtual void FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam);
-	virtual void MsgPump(WPARAM wParam);
-	virtual void SendCommand(int cmd, int param = 0, int msg = 0, int len = 0, void *buf = NULL, CEvent *pEvent = NULL, BOOL *pResult = NULL);
+	virtual void PostMessage(int cmd, int param, int msg);
 	virtual BOOL IsOpen();
 	virtual void Destroy();
 
@@ -276,9 +304,10 @@ public:
 	CWinThread *m_pWinThread;
 	CEvent m_AbortEvent;
 	int m_TunnelFd;
+	CPtrArray m_nFdBuffer;
 
 public:
-	CFifoSync(class CRLoginDoc *pDoc);
+	CFifoSync(class CRLoginDoc *pDoc, class CExtSocket *pSock);
 	~CFifoSync();
 
 	virtual BOOL IsOpen();
@@ -291,6 +320,18 @@ public:
 	int Send(int nFd, LPBYTE pBuffer, int nBufLen, DWORD mSec = INFINITE);
 	inline void TunnelReadWrite(int nFd) { m_TunnelFd = nFd; }
 
+	CBuffer *nFdBuffer(int nFd);
+
+	int RecvByte(int nFd, DWORD mSec = INFINITE);
+	int RecvBuffer(int nFd, LPBYTE pBuffer, int nBufLen, DWORD mSec = INFINITE);
+	inline int RecvSize(int nFd) { return GetDataSize(nFd) + nFdBuffer(nFd)->GetSize(); }
+	void RecvBaek(int nFd, LPBYTE pBuffer = NULL, int nBufLen = 0);
+	void RecvClear(int nFd);
+
+	inline void SendByte(int nFd, int ch) { nFdBuffer(nFd)->Put8Bit(ch); }
+	inline void SendBuffer(int nFd, LPBYTE pBuffer, int nBufLen) { nFdBuffer(nFd)->Apend(pBuffer, nBufLen); }
+	inline void SendFlush(int nFd, int mSec) { CBuffer *bp = nFdBuffer(nFd); Send(nFd, bp->GetPtr(), bp->GetSize(), mSec); bp->Clear(); }
+
 	BOOL Open(AFX_THREADPROC pfnThreadProc, LPVOID pParam, int nPriority = THREAD_PRIORITY_NORMAL);
 	void Close();
 	void Abort();
@@ -302,7 +343,8 @@ public:
 	CArray<HANDLE, HANDLE> m_hWaitEvents;
 
 public:
-	CFifoASync(class CRLoginDoc *pDoc);
+	CFifoASync(class CRLoginDoc *pDoc, class CExtSocket *pSock);
+	~CFifoASync();
 
 	virtual void FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam);
 
@@ -318,7 +360,6 @@ public:
 	CEvent m_AbortEvent;
 	int m_Threadtatus;
 	CWinThread *m_pWinThread;
-	int m_nLimitSize;
 	SSL *m_SSL_pSock;
 
 	CString m_HostAddress;
@@ -328,14 +369,17 @@ public:
 	int m_nSocketType;
 
 public:
-	CFifoSocket(class CRLoginDoc *pDoc);
+	CFifoSocket(class CRLoginDoc *pDoc, class CExtSocket *pSock);
 	~CFifoSocket();
 
 	virtual BOOL IsOpen();
 	virtual void Destroy();
+	virtual void OnUnLinked(int nFd, BOOL bMid);
 
-	BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nFamily = AF_UNSPEC, int nSocketType = SOCK_STREAM);
+	void ThreadEnd();
+	BOOL Open(LPCTSTR lpszHostAddress = NULL, UINT nHostPort = 0, UINT nSocketPort = 0, int nFamily = AF_UNSPEC, int nSocketType = SOCK_STREAM);
 	BOOL Close();
+	BOOL ReOpen();
 
 	BOOL Attach(SOCKET hSocket);
 	void Detach();
@@ -344,15 +388,14 @@ public:
 	BOOL SocketLoop();
 };
 
-class CListenSocket : public CObject
+class CFifoListen : public CFifoASync
 {
 public:
-	int m_nFd;
-	CFifoBase *m_pFifoBase;
 	CArray<WSAEVENT, WSAEVENT> m_SocketEvent;
 	CArray<SOCKET, SOCKET> m_Socket;
 	int m_nLastError;
 
+	BOOL m_bAbort;
 	CEvent m_AbortEvent;
 	int m_Threadtatus;
 	CWinThread *m_pWinThread;
@@ -364,8 +407,8 @@ public:
 	int m_nBacklog;
 
 public:
-	CListenSocket(int nFd, CFifoBase *pFifoBase);
-	~CListenSocket();
+	CFifoListen(class CRLoginDoc *pDoc, class CExtSocket *pSock);
+	~CFifoListen();
 
 	void Destroy();
 
@@ -379,82 +422,34 @@ public:
 class CFifoProxy : public CFifoWnd
 {
 public:
-	class CExtSocket *m_pSock;
 
 public:
 	CFifoProxy(class CRLoginDoc *pDoc, class CExtSocket *pSock);
+	~CFifoProxy();
 
 	virtual void OnRead(int nFd);
 	virtual void OnWrite(int nFd);
-	virtual void OnOob(int nFd, int len, BYTE *pBuffer);
-	virtual void OnAccept(int nFd, SOCKET socket);
 	virtual void OnConnect(int nFd);
 	virtual void OnClose(int nFd, int nLastError);
-	virtual void OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult);
-};
-
-//#define	USE_AVERAGE
-
-class CFifoMiddle : public CFifoWnd
-{
-public:
-	class CExtSocket *m_pSock;
-	BOOL m_bFlowCtrl;
-
-#ifdef	USE_AVERAGE
-	struct {
-		clock_t start;
-		int lastSize;
-		LONGLONG totalSize;
-		int average;
-	} m_Average[4];
-#endif
-
-public:
-	CFifoMiddle(class CRLoginDoc *pDoc, class CExtSocket *pSock);
-
-#ifdef	USE_AVERAGE
-	void Average(int nFd, int len);
-	int Read(int nFd, LPBYTE pBuffer, int nBufLen);
-	int Write(int nFd, LPBYTE pBuffer, int nBufLen);
-#endif
-
-	virtual void OnRead(int nFd);
-	virtual void OnWrite(int nFd);
-	virtual void OnOob(int nFd, int len, BYTE *pBuffer);
-	virtual void OnAccept(int nFd, SOCKET socket);
-	virtual void OnConnect(int nFd);
-	virtual void OnClose(int nFd, int nLastError);
-	virtual void OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult);
 };
 
 class CFifoDocument : public CFifoWnd
 {
 public:
-	class CExtSocket *m_pSock;
 	clock_t m_RecvStart;
 	BOOL m_bContinue;
+	BOOL m_bClosed;
 
 public:
 	CFifoDocument(class CRLoginDoc *pDoc, class CExtSocket *pSock);
-	CFifoDocument::~CFifoDocument();
+	~CFifoDocument();
+
+	virtual void EndOfData(int nFd);
 
 	virtual void OnRead(int nFd);
 	virtual void OnWrite(int nFd);
 	virtual void OnClose(int nFd, int nLastError);
-	virtual void OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult);
+	virtual void OnConnect(int nFd);
 
 	BOOL OnIdle();
 };
-
-class CFifoLogin : CFifoThread
-{
-public:
-	void SendWindSize(int nFd);
-
-	virtual int Recived(int nFd, BYTE *pBuffer, int nBufLen);
-	virtual void OnOob(int nFd, int len, BYTE *pBuffer);
-	virtual void OnConnect(int nFd);
-};
-
-#endif	// USE_FIFOBUF

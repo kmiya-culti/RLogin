@@ -1,6 +1,6 @@
-// Telnet.cpp: CTelnet クラスのインプリメンテーション
-//
 //////////////////////////////////////////////////////////////////////
+// Telnet.cpp : 実装ファイル
+//
 
 #include "stdafx.h"
 #include "RLogin.h"
@@ -14,6 +14,28 @@
 static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
+
+///////////////////////////////////////////////////////
+// CFifoTelnet
+
+CFifoTelnet::CFifoTelnet(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoThread(pDoc, pSock)
+{
+}
+void CFifoTelnet::OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult)
+{
+	switch(cmd) {
+	case FIFO_CMD_MSGQUEIN:
+		switch(param) {
+		case FIFO_QCMD_SENDBREAK:
+			((CTelnet *)m_pSock)->FifoSendBreak(msg);
+			break;
+		case FIFO_QCMD_SENDWINSIZE:
+			((CTelnet *)m_pSock)->FifoSendWindSize();
+			break;
+		}
+		break;
+	}
+}
 
 //////////////////////////////////////////////////////////////////////
 // CMint
@@ -236,6 +258,18 @@ CTelnet::~CTelnet()
 	if ( m_KeepAliveTiimerId != 0 )
 		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_KeepAliveTiimerId);
 }
+void CTelnet::FifoLink()
+{
+	FifoUnlink();
+
+	ASSERT(m_pFifoLeft == NULL && m_pFifoMid == NULL && m_pFifoRight == NULL);
+
+	m_pFifoLeft   = new CFifoSocket(m_pDocument, this);
+	m_pFifoMid    = new CFifoTelnet(m_pDocument, this);
+	m_pFifoRight  = new CFifoDocument(m_pDocument, this);
+
+	CFifoBase::MidLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
+}
 BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
     int n;
@@ -328,20 +362,16 @@ void CTelnet::OnConnect()
 	SendOpt(TELC_WILL, TELOPT_BINARY);
 	MyOpt[TELOPT_BINARY].status = TELSTS_WANT_ON;
 
-	if ( m_pDocument->m_TextRam.IsOptEnable(TO_TELKEEPAL) && m_pDocument->m_TextRam.m_TelKeepAlive > 0 )
-		m_KeepAliveTiimerId = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_TelKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
+	m_KeepAliveTiimerId = m_pFifoMid->DocMsgKeepAlive(this);
 
 	CExtSocket::OnConnect();
 }
 void CTelnet::SockSend(char *buf, int len)
 {
-	if ( m_Fd == (-1) )
-		return;
-
 	if ( EncryptOutputFlag )
 		EncryptEncode(buf, len);
 
-	CExtSocket::Send(buf, len);
+	SendSocket(buf, len);
 }
 void CTelnet::SendFlush()
 {
@@ -351,14 +381,14 @@ void CTelnet::SendFlush()
 	SockSend((char *)m_SendBuff.GetPtr(), m_SendBuff.GetSize());
 	m_SendBuff.Clear();
 }
-int CTelnet::Send(const void* lpBuf, int nBufLen, int nFlags)
+void CTelnet::OnRecvProtocol(void* lpBuf, int nBufLen, int nFlags)
 {
 	int n, i;
 	char *buf = (char *)lpBuf;
 	char tmp[4];
 
    if ( ReceiveStatus == RVST_NON )
-	   return 0;
+	   return;
 
 	if ( (MyOpt[TELOPT_LINEMODE].flags & TELFLAG_ON) != 0 ) {
 		for ( n = 0 ; n < nBufLen ; n++ ) {
@@ -393,20 +423,22 @@ int CTelnet::Send(const void* lpBuf, int nBufLen, int nFlags)
 		}
 		SendFlush();
 	}
-
-	return nBufLen;
 }
 void CTelnet::SendBreak(int opt)
+{
+	m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SENDBREAK);
+}
+void CTelnet::FifoSendBreak(int opt)
 {
 	char tmp[4];
 	
 	if ( (MyOpt[TELOPT_LINEMODE].flags & TELFLAG_ON) != 0 ) {
 		switch(opt) {
 		case 0:		// ^C
-			Send("\x03", 1);
+			SendProtocol("\x03", 1, 0);
 			break;
 		case 1:		// ^Z
-			Send("\x1A", 1);
+			SendProtocol("\x1A", 1, 0);
 			break;
 		}
 	} else {
@@ -453,11 +485,11 @@ void CTelnet::PrintOpt(int st, int ch, int opt)
 		(ch == TELC_DM   ? "DM" : "???")))))),
 		telopts[opt]);
 }
-void CTelnet::SendStr(LPCTSTR str)
+void CTelnet::SendStr(LPCSTR str)
 {
 	int n = 0;
 	char tmp[256];
-	LPCSTR p = m_pDocument->RemoteStr(str);
+	LPCSTR p = str;
 
 	while ( *p != '\0' ) {
 		if ( *p == (char)TELC_IAC )
@@ -508,29 +540,33 @@ void CTelnet::SendSlcOpt()
 }
 void CTelnet::SendWindSize()
 {
+	m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SENDWINSIZE);
+}
+void CTelnet::FifoSendWindSize()
+{
 	int n = 0;
-	int cx = 0, cy = 0, sx = 0, sy = 0;
+	int screen[4];
 	char tmp[32];
 
-   if ( ReceiveStatus == RVST_NON )
-	   return;
+	if ( ReceiveStatus == RVST_NON )
+		return;
 
-   if ( (MyOpt[TELOPT_NAWS].flags & TELFLAG_ON) == 0 )
-	   return;
+	if ( (MyOpt[TELOPT_NAWS].flags & TELFLAG_ON) == 0 )
+		return;
 
-   if ( m_pDocument != NULL )
-	   m_pDocument->m_TextRam.GetScreenSize(&cx, &cy, &sx, &sy);
+	ASSERT(m_pFifoLeft != NULL);
+	m_pFifoLeft->DocMsgIntPtr(DOCMSG_SCREENSIZE, screen);
 
 	tmp[n++] = (char)TELC_IAC;
 	tmp[n++] = (char)TELC_SB;
 	tmp[n++] = (char)TELOPT_NAWS;
-	if ( (tmp[n++] = (char)(cx >> 8)) == (char)TELC_IAC )
+	if ( (tmp[n++] = (char)(screen[0] >> 8)) == (char)TELC_IAC )
 		tmp[n++] = (char)TELC_IAC;
-	if ( (tmp[n++] = (char)(cx)) == (char)TELC_IAC )
+	if ( (tmp[n++] = (char)(screen[0])) == (char)TELC_IAC )
 		tmp[n++] = (char)TELC_IAC;
-	if ( (tmp[n++] = (char)(cy >> 8)) == (char)TELC_IAC )
+	if ( (tmp[n++] = (char)(screen[1] >> 8)) == (char)TELC_IAC )
 		tmp[n++] = (char)TELC_IAC;
-	if ( (tmp[n++] = (char)(cy)) == (char)TELC_IAC )
+	if ( (tmp[n++] = (char)(screen[1])) == (char)TELC_IAC )
 		tmp[n++] = (char)TELC_IAC;
 	tmp[n++] = (char)TELC_IAC;
 	tmp[n++] = (char)TELC_SE;
@@ -713,20 +749,20 @@ void CTelnet::OptFunc(struct TelOptTab *tab, int opt, int sw, int ch)
 			tab[opt].flags &= ~TELFLAG_ON;
 			if ( opt == TELOPT_LINEMODE ) {
 				SendFlush();
-				if ( m_pDocument != NULL && m_pDocument->m_TextRam.IsLineEditEnable() )
-					m_pDocument->m_TextRam.LineEditSwitch();
+				ASSERT(m_pFifoLeft != NULL);
+				m_pFifoLeft->DocMsgLineMode(0);	// LineMode off
 			}
 			break;
 		case TELSTS_ON:
 			tab[opt].flags |= TELFLAG_ON;
 			if ( opt == TELOPT_NAWS )
-				SendWindSize();
+				FifoSendWindSize();
 			else if ( opt == TELOPT_ENCRYPT )
 				EncryptSendSupport();
 			else if ( opt == TELOPT_LINEMODE ) {
 				SendSlcOpt();
-				if ( m_pDocument != NULL && !m_pDocument->m_TextRam.IsLineEditEnable() )
-					m_pDocument->m_TextRam.LineEditSwitch();
+				ASSERT(m_pFifoLeft != NULL);
+				m_pFifoLeft->DocMsgLineMode(1);	// LineMode on
 			} else if ( opt == TELOPT_COMPORT ) {
 				SendCpcValue(CPC_CTS_SET_BAUDRATE, CpcOpt.baudrate);
 				SendCpcValue(CPC_CTS_SET_DATASIZE, CpcOpt.datasize);
@@ -745,6 +781,10 @@ void CTelnet::SubOptFunc(char *buf, int len)
 	int ptr = 0;
 	char tmp[256];
 	CStringIndex env;
+	CStringA mbs;
+	CString work;
+
+	ASSERT(m_pFifoLeft != NULL);
 
 #define	SB_GETC()	(ptr >= len ? EOF : (buf[ptr++] & 0xFF))
 
@@ -762,7 +802,7 @@ void CTelnet::SubOptFunc(char *buf, int len)
 		tmp[n++] = (char)TELOPT_TTYPE;
 		tmp[n++] = (char)TELQUAL_IS;
 		SockSend(tmp, n);
-		SendStr(m_pDocument->m_ServerEntry.m_TermName);
+		SendStr(m_pFifoLeft->DocMsgStrA(DOCMSG_TERMNAME, mbs));
 		n = 0;
 		tmp[n++] = (char)TELC_IAC;
 		tmp[n++] = (char)TELC_SE;
@@ -782,21 +822,11 @@ void CTelnet::SubOptFunc(char *buf, int len)
 		tmp[n++] = (char)TELQUAL_IS;
 		SockSend(tmp, n);
 		{
-			int n;
-			int ispeed = 9600;
-			int ospeed = 9600;
-			CString str;
+			int ispeed = m_pFifoLeft->DocMsgTtyMode(128, 9600);	// ISPEED
+			int ospeed = m_pFifoLeft->DocMsgTtyMode(129, 9600);	// OSPEED;
+			CStringA str;
 
-			if ( m_pDocument != NULL ) {
-				for ( n = 0 ; n < m_pDocument->m_ParamTab.m_TtyMode.GetSize() ; n++ ) {
-					if ( m_pDocument->m_ParamTab.m_TtyMode[n].opcode == 128 )		// ISPEED
-						ispeed = m_pDocument->m_ParamTab.m_TtyMode[n].param;
-					else if ( m_pDocument->m_ParamTab.m_TtyMode[n].opcode == 129 )	// OSPEED
-						ospeed = m_pDocument->m_ParamTab.m_TtyMode[n].param;
-				}
-			}
-
-			str.Format(_T("%d,%d"), ispeed, ospeed);;
+			str.Format("%d,%d", ispeed, ospeed);;
 			SendStr(str);
 		}
 		n = 0;
@@ -819,19 +849,19 @@ void CTelnet::SubOptFunc(char *buf, int len)
 		tmp[n++] = (char)TELQUAL_IS;
 		SockSend(tmp, n);
 
-		env.GetString(m_pDocument->m_ParamTab.m_ExtEnvStr);
-		env[_T("USER")] = m_pDocument->m_ServerEntry.m_UserName;
+		env.GetString(m_pFifoLeft->DocMsgStr(DOCMSG_ENVSTR, work));
+		env[_T("USER")] = m_pFifoLeft->DocMsgStr(DOCMSG_USERNAME, work);
 		for ( i = 0 ; i < env.GetSize() ; i++ ) {
 			if ( env[i].m_Value == 0 || env[i].m_nIndex.IsEmpty() || env[i].m_String.IsEmpty() )
 				continue;
 			n = 0;
 			tmp[n++] = (char)ENV_VAR;
 			SockSend(tmp, n);
-			SendStr(env[i].m_nIndex);
+			SendStr(m_pFifoLeft->DocMsgRemoteStr(env[i].m_nIndex, mbs));
 			n = 0;
 			tmp[n++] = (char)ENV_VALUE;
 			SockSend(tmp, n);
-			SendStr(env[i].m_String);
+			SendStr(m_pFifoLeft->DocMsgRemoteStr(env[i].m_String, mbs));
 		}
 
 		n = 0;
@@ -1063,7 +1093,7 @@ void CTelnet::SubOptFunc(char *buf, int len)
 		break;
 	}
 }
-void CTelnet::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
+void CTelnet::OnRecvSocket(void* lpBuf, int nBufLen, int nFlags)
 {
     int c;
     int n = 0;
@@ -1183,7 +1213,7 @@ void CTelnet::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 		}
 	}
 
-	CExtSocket::OnReceiveCallBack(tmp, n, 0);
+	SendDocument(tmp, n, 0);
 }
 
 void CTelnet::SendCpcValue(int cmd, int value)
@@ -1306,6 +1336,8 @@ void CTelnet::AuthReply(char *buf, int len)
 	if ( len < 0 )
 		return;
 
+	ASSERT(m_pFifoLeft != NULL);
+
 	switch(a) {
 	case AUTHTYPE_SRA:
 		switch(b) {
@@ -1317,7 +1349,7 @@ void CTelnet::AuthReply(char *buf, int len)
 
 			SraCommonKey(ska, pkb);
 
-			work = m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_UserName);
+			m_pFifoLeft->DocMsgStrA(DOCMSG_USERNAME, work);
 			if ( (n = work.GetLength()) > 250 )
 				n = 250;
 			strncpy(tmp, work, n);
@@ -1334,7 +1366,7 @@ void CTelnet::AuthReply(char *buf, int len)
 				break;
 			}
 
-			work = m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName);
+			m_pFifoLeft->DocMsgStrA(DOCMSG_PASSNAME, work);
 			if ( (n = work.GetLength()) > 250 )
 				n = 250;
 			strncpy(tmp, work, n);

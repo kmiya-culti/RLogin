@@ -4010,7 +4010,7 @@ int CScript::ComFunc(int cmd, CScriptValue &local)
 
 	CComSock *pComSock = (CComSock *)m_pDoc->m_pSock;
 
-	if ( pComSock->m_hCom == INVALID_HANDLE_VALUE || pComSock->m_pComConf == NULL || pComSock->m_ThreadMode != CComSock::THREAD_RUN )
+	if ( pComSock->m_hCom == INVALID_HANDLE_VALUE || pComSock->m_pComConf == NULL )
 		return FUNC_RET_NOMAL;
 
 	switch(cmd) {
@@ -5484,19 +5484,19 @@ int CScript::Func09(int cmd, CScriptValue &local)
 			CStringD str;
 			str = (DCHAR)(int)local[0];
 			LPCSTR mbs = m_pDoc->RemoteStr(str);
-			m_pDoc->m_pSock->Send((LPCSTR)mbs, (int)strlen(mbs));
+			m_pDoc->m_pSock->SendProtocol((LPCSTR)mbs, (int)strlen(mbs));
 		}
 		break;
 	case 4:		// sputs(s);
 		if ( m_pDoc->m_pSock != NULL ) {
 			LPCSTR mbs = m_pDoc->RemoteStr((LPCWSTR)local[0]);
-			m_pDoc->m_pSock->Send((LPCSTR)mbs, (int)strlen(mbs));
+			m_pDoc->m_pSock->SendProtocol((LPCSTR)mbs, (int)strlen(mbs));
 		}
 		break;
 	case 5:		// swrite(s);
 		if ( m_pDoc->m_pSock != NULL ) {
 			CBuffer *bp = local[0].GetBuf();
-			m_pDoc->m_pSock->Send(bp->GetPtr(), bp->GetSize());
+			m_pDoc->m_pSock->SendProtocol(bp->GetPtr(), bp->GetSize());
 		}
 		break;
 
@@ -5549,7 +5549,7 @@ int CScript::Func09(int cmd, CScriptValue &local)
 	case 13:	// tprintf(fmt, ...)
 		if ( m_pDoc->m_pSock != NULL ) {
 			LPCSTR mbs = m_pDoc->RemoteStr(Format(local, 0));
-			m_pDoc->m_pSock->Send((LPCSTR)mbs, (int)strlen(mbs));
+			m_pDoc->m_pSock->SendProtocol((LPCSTR)mbs, (int)strlen(mbs));
 		}
 		break;
 	}

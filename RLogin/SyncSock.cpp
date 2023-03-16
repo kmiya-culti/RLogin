@@ -27,31 +27,31 @@ static char THIS_FILE[]=__FILE__;
 
 CSyncSock::CSyncSock(class CRLoginDoc *pDoc, CWnd *pWnd)
 {
-	m_pWnd = pWnd;
 	m_pDoc = pDoc;
-	m_pView = NULL;
+	m_pMainWnd = pWnd;
+	m_pViewWnd = NULL;
 	m_ProtoName = _T("None");
+	m_DoCommand = 0;
+
+	m_ThreadMode = THREAD_NONE;
+
+	m_RecvBuf.Clear();
 	m_SendBuf.Clear();
-	m_DoAbortFlag = FALSE;
-	m_ThreadFlag = FALSE;
-	m_ThreadMode = 0;
-	m_pThreadEvent = new CEvent(FALSE, TRUE);
-	m_pParamEvent  = new CEvent(FALSE, TRUE);
+
+	m_pProgDlg = NULL;
+	m_AbortFlag = FALSE;
+
 	m_ResvDoit = FALSE;
 	m_MultiFile = FALSE;
 	m_IsAscii = FALSE;
 	m_bUseWrite = FALSE;
 	m_ExtFileDlgMode = 0;
-	m_EchoPostReq = FALSE;
 	m_bInitDone = FALSE;
-	m_bUpdateReq = FALSE;
 }
 
 CSyncSock::~CSyncSock()
 {
-	DoAbort();
-	delete m_pThreadEvent;
-	delete m_pParamEvent;
+	DoAbort(TRUE);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -60,18 +60,16 @@ static UINT ProcThread(LPVOID pParam)
 {
 	CSyncSock *pThis = (CSyncSock *)pParam;
 
-	pThis->m_ThreadFlag = TRUE;
-	pThis->OnProc(pThis->m_ThreadMode);
-	for ( int n = 0 ; n < 10 && pThis->m_EchoPostReq ; n++ )
-		Sleep(100);
+	pThis->OnProc(pThis->m_DoCommand);
+
 	if ( pThis->m_RecvBuf.GetSize() > 0 ) {
 		pThis->m_pDoc->m_pSock->SyncReceiveBack(pThis->m_RecvBuf.GetPtr(), pThis->m_RecvBuf.GetSize());
 		pThis->m_RecvBuf.Clear();
 	}
-	pThis->m_ThreadFlag = FALSE;
-	pThis->m_pThreadEvent->SetEvent();
-	if ( !pThis->m_DoAbortFlag )
-		pThis->m_pWnd->PostMessage(WM_THREADCMD, THCMD_ENDOF, (LPARAM)pThis);
+
+	pThis->m_ThreadMode = CSyncSock::THREAD_ENDOF;
+	pThis->m_pMainWnd->PostMessage(WM_THREADCMD, THCMD_ENDOF, (LPARAM)pThis);
+
 	return 0;
 }
 void  CSyncSock::StatusMsg(int ids)
@@ -81,215 +79,165 @@ void  CSyncSock::StatusMsg(int ids)
 	str.Format(CStringLoad(ids), m_ProtoName);
 	((CMainFrame *)AfxGetMainWnd())->SetStatusText(str);
 }
+LPCSTR CSyncSock::PathNameToFileName(LPCTSTR pathName)
+{
+	LPCTSTR p;
+
+	if ( (p = _tcsrchr(pathName, _T('\\'))) != NULL || (p = _tcsrchr(pathName, _T(':'))) != NULL )
+		p += 1;
+	else
+		p = pathName;
+
+	return m_pDoc->RemoteStr(p);
+}
+BOOL CSyncSock::FileDlgProc()
+{
+	LPCTSTR p;
+
+	if ( (p = _tcsrchr(m_PathName, _T('.'))) == NULL )
+		p = _T(".");
+
+	CExtFileDialog dlg(((m_Param & CHKFILENAME_OPEN) ? TRUE : FALSE), p + 1, m_PathName,
+		OFN_HIDEREADONLY | OFN_ENABLESIZING | ((m_Param & CHKFILENAME_MULTI) != 0 ? OFN_ALLOWMULTISELECT : 0), 
+		CStringLoad(IDS_FILEDLGALLFILE), m_pMainWnd, 0, (m_ExtFileDlgMode == 0 ? TRUE : FALSE), m_ExtFileDlgMode, this);
+
+	if ( DpiAwareDoModal(dlg, m_ExtFileDlgMode != 0 ? REQDPICONTEXT_SCALED : REQDPICONTEXT_AWAREV2) != IDOK )
+		goto FILENOSELECT;
+
+	if ( (m_Param & CHKFILENAME_MULTI) != 0 ) {
+		m_ResvPath.RemoveAll();
+
+		POSITION pos = dlg.GetStartPosition();
+		while ( pos != NULL )
+			m_ResvPath.AddTail(dlg.GetNextPathName(pos));
+
+		if ( m_ResvPath.IsEmpty() )
+			goto FILENOSELECT;
+
+		m_PathName = m_ResvPath.RemoveHead();
+		m_FileName = PathNameToFileName(m_PathName);
+
+		m_MultiFile = (!m_ResvPath.IsEmpty() ? TRUE : FALSE);
+
+	} else {
+		m_PathName = dlg.GetPathName();
+		m_FileName = m_pDoc->RemoteStr(dlg.GetFileName());
+	}
+
+	return TRUE;
+
+FILENOSELECT:
+	if ( !m_ResvPath.IsEmpty() )
+		m_ResvPath.RemoveAll();
+	m_MultiFile = FALSE;
+
+	m_PathName.Empty();
+	m_FileName.Empty();
+
+	return FALSE;
+}
 void CSyncSock::ThreadCommand(int cmd)
 {
-	int n;
-	LPCTSTR p;
 	CString work;
-	LONGLONG pos;
+
+	ASSERT(m_pMainWnd != NULL && m_pDoc != NULL && m_pDoc->m_pSock != NULL);
 
 	switch(cmd) {
 	case THCMD_START:
-		if ( m_ThreadFlag )
+		if ( m_ThreadMode != THREAD_NONE )
 			break;
-		m_pView = (m_pDoc == NULL ? NULL : m_pDoc->GetAciveView());
-		m_pThreadEvent->ResetEvent();
-		AfxBeginThread(ProcThread, this, THREAD_PRIORITY_NORMAL);
-		Sleep(100);
-		if ( m_pDoc != NULL )
-			m_pDoc->SetSleepReq(SLEEPSTAT_DISABLE);
+		m_pViewWnd = m_pDoc->GetAciveView();
+
+		m_ThreadMode = THREAD_RUN;
+		m_pSyncThread = AfxBeginThread(ProcThread, this, THREAD_PRIORITY_NORMAL);
+
+		m_pDoc->SetSleepReq(SLEEPSTAT_DISABLE);
 		StatusMsg(IDS_FILETRANSMITSTART);
 		break;
 	case THCMD_ENDOF:
-		if ( m_DoAbortFlag )
+		if ( m_ThreadMode != THREAD_ENDOF )
 			break;
-		WaitForSingleObject(m_pThreadEvent->m_hObject, INFINITE);
-		if ( m_pDoc->m_pSock != NULL )
-			m_pDoc->m_pSock->SetRecvSyncMode(FALSE);
-		if ( m_ResvDoit && !m_ResvPath.IsEmpty() )
+
+		m_ThreadMode = THREAD_NONE;
+		((CMainFrame *)::AfxGetMainWnd())->DelThreadMsg(this);
+		m_pDoc->m_pSock->SetRecvSyncMode(FALSE);
+
+		if ( m_ResvDoit && !m_AbortFlag && !m_ResvPath.IsEmpty() )
 			m_pDoc->DoDropFile();
 		m_ResvDoit = FALSE;
-		if ( m_pDoc != NULL )
-			m_pDoc->SetSleepReq(SLEEPSTAT_ENABLE);
+
+		if ( m_pProgDlg != NULL )
+			m_pProgDlg->DestroyWindow();
+		m_pProgDlg = NULL;
+
+		m_pDoc->SetSleepReq(SLEEPSTAT_ENABLE);
 		StatusMsg(IDS_FILETRANSMITCLOSE);
 		break;
 	case THCMD_DLGOPEN:
-		if ( m_ProgDlg.m_hWnd != NULL )
+		if ( m_pProgDlg != NULL )
 			break;
-		if ( m_pDoc != NULL )
-			m_ProgDlg.m_pSock = m_pDoc->m_pSock;
-		m_ProgDlg.Create(IDD_PROGDLG, m_pWnd);
-		m_ProgDlg.SetWindowText(MbsToTstr(m_Message));
-		m_ProgDlg.ShowWindow(SW_SHOW);
-		m_pParamEvent->SetEvent();
-		if ( m_pView != NULL )
-			m_pView->SetFocus();
+		m_pProgDlg = new CProgDlg(m_pMainWnd);
+		m_pProgDlg->m_pAbortFlag = &m_AbortFlag;
+		m_pProgDlg->m_AutoDelete = TRUE;
+		m_pProgDlg->m_pSock = m_pDoc->m_pSock;
+		m_pProgDlg->Create(IDD_PROGDLG, m_pMainWnd);
+		m_pProgDlg->SetWindowText(MbsToTstr(m_Message));
+		m_pProgDlg->ShowWindow(SW_SHOW);
+		if ( m_pViewWnd != NULL )
+			m_pViewWnd->SetFocus();
 		break;
 	case THCMD_DLGCLOSE:
-		if ( m_ProgDlg.m_hWnd == NULL )
-			break;
-		m_ProgDlg.DestroyWindow();
+		if ( m_pProgDlg != NULL )
+			m_pProgDlg->DestroyWindow();
+		m_pProgDlg = NULL;
 		break;
 	case THCMD_DLGMESSAGE:
-		work = m_pDoc->LocalStr(m_Message);
-		if ( m_ProgDlg.m_hWnd == NULL )
-			m_pWnd->MessageBox(work);
-		else
-			m_ProgDlg.SetMessage(work);
+		if ( m_pProgDlg != NULL )
+			m_pProgDlg->SetMessage(m_pDoc->LocalStr(m_Message));
 		break;
 	case THCMD_DLGRANGE:
-		if ( m_ProgDlg.m_hWnd == NULL )
+		if ( m_pProgDlg == NULL )
 			break;
-		m_ProgDlg.SetFileName(m_PathName);
-		m_ProgDlg.SetRange(m_Size, m_RemSize);
-		m_pParamEvent->SetEvent();
-		break;
-	case THCMD_DLGPOS:
-		m_ProgSema.Lock();
-		m_bUpdateReq = FALSE;
-		pos = m_Size;
-		m_ProgSema.Unlock();
-		if ( m_ProgDlg.m_hWnd != NULL )
-			m_ProgDlg.SetPos(pos);
-		break;
-	case THCMD_SENDBUF:
-		m_SendSema.Lock();
-		m_SwapBuf.Swap(m_SendBuf);
-		m_SendBuf.Clear();
-		m_SendSema.Unlock();
-		if ( m_pDoc->m_pSock != NULL )
-			m_pDoc->m_pSock->Send(m_SwapBuf.GetPtr(), m_SwapBuf.GetSize(), 0);
+		m_pProgDlg->SetFileName(m_PathName);
+		m_pProgDlg->SetRange(m_pLongLong[0], m_pLongLong[1]);
 		break;
 	case THCMD_CHECKPATH:
-		RECHECK:
 		if ( !m_ResvPath.IsEmpty() ) {
 			m_PathName = m_ResvPath.RemoveHead();
-
+			// ファイルドロップ時は、m_MultiFileがFALSE
 			// ファイルダイアログ拡張時は、毎回オプションを確認するようにした
 			if ( !m_MultiFile && m_ExtFileDlgMode != 0 ) {
-				if ( (p = _tcsrchr(m_PathName, _T('.'))) == NULL )
-					p = _T(".");
-
-				// FileUploadのファイルドロップ時は、シングルに強制
 				m_Param &= ~CHKFILENAME_MULTI;
-
-				CExtFileDialog dlg(((m_Param & CHKFILENAME_OPEN) ? TRUE : FALSE), p + 1, m_PathName,
-					OFN_HIDEREADONLY | OFN_ENABLESIZING | ((m_Param & CHKFILENAME_MULTI) ? OFN_ALLOWMULTISELECT : 0), 
-					CStringLoad(IDS_FILEDLGALLFILE), m_pWnd, 0, (m_ExtFileDlgMode == 0 ? TRUE : FALSE), m_ExtFileDlgMode, this);
-
-				if ( DpiAwareDoModal(dlg, m_ExtFileDlgMode != 0 ? REQDPICONTEXT_SCALED : REQDPICONTEXT_AWAREV2) == IDOK ) {
-					m_PathName = dlg.GetPathName();
-					m_FileName = m_pDoc->RemoteStr(dlg.GetFileName());
-					m_ResvDoit = TRUE;
-
-				} else {
-					if ( !m_ResvPath.IsEmpty() )
-						m_ResvPath.RemoveAll();
-					m_PathName.Empty();
-					m_FileName.Empty();
-					m_ResvDoit = FALSE;
-				}
-
+				m_ResvDoit = (FileDlgProc() ? TRUE : FALSE);
 			} else {
-				if ( (p = _tcsrchr(m_PathName, _T('\\'))) != NULL || (p = _tcsrchr(m_PathName, _T(':'))) != NULL )
-					m_FileName = m_pDoc->RemoteStr(p + 1);
-				else
-					m_FileName = m_pDoc->RemoteStr(m_PathName);
-
+				m_FileName = PathNameToFileName(m_PathName);
 				m_ResvDoit = TRUE;
 			}
 
 			if ( m_ResvPath.IsEmpty() )
 				m_MultiFile = FALSE;
-
 		} else {
 			m_MultiFile = FALSE;
 			m_PathName = m_pDoc->LocalStr(m_FileName);
-			if ( (p = _tcsrchr(m_PathName, _T('.'))) == NULL )
-				p = _T(".");
-
-			CExtFileDialog dlg(((m_Param & CHKFILENAME_OPEN) ? TRUE : FALSE), p + 1, m_PathName,
-				OFN_HIDEREADONLY | OFN_ENABLESIZING | ((m_Param & CHKFILENAME_MULTI) ? OFN_ALLOWMULTISELECT : 0), 
-				CStringLoad(IDS_FILEDLGALLFILE), m_pWnd, 0, (m_ExtFileDlgMode == 0 ? TRUE : FALSE), m_ExtFileDlgMode, this);
-
-			if ( DpiAwareDoModal(dlg, m_ExtFileDlgMode != 0 ? REQDPICONTEXT_SCALED : REQDPICONTEXT_AWAREV2) == IDOK ) {
-				if ( (m_Param & CHKFILENAME_MULTI) != 0 ) {
-					POSITION pos = dlg.GetStartPosition();
-					while ( pos != NULL )
-						m_ResvPath.AddTail(dlg.GetNextPathName(pos));
-
-					if ( !m_ResvPath.IsEmpty() ) {
-						m_MultiFile = TRUE;
-						goto RECHECK;
-					}
-
-					m_PathName.Empty();
-					m_FileName.Empty();
-
-				} else {
-					m_PathName = dlg.GetPathName();
-					m_FileName = m_pDoc->RemoteStr(dlg.GetFileName());
-				}
-
-			} else {
-				m_PathName.Empty();
-				m_FileName.Empty();
-			}
+			m_ResvDoit = (FileDlgProc() ? TRUE : FALSE);
 		}
-		m_pParamEvent->SetEvent();
 		break;
 	case THCMD_YESNO:
 		work = m_pDoc->LocalStr(m_Message);
-		if ( m_pWnd->MessageBox(work, _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES )
+		if ( m_pMainWnd->MessageBox(work, _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES )
 			m_Param = 'Y';
-		m_pParamEvent->SetEvent();
 		break;
 	case THCMD_XONXOFF:
-		if ( m_pDoc->m_pSock != NULL )
-			m_pDoc->m_pSock->SetXonXoff(m_Param);
-		m_pParamEvent->SetEvent();
+		m_pDoc->m_pSock->SetXonXoff(m_Param);
 		break;
 	case THCMD_SENDSTR:
-		m_SendSema.Lock();
 		m_pDoc->SendBuffer(m_SendBuf);
-		m_SendBuf.Clear();
-		m_SendSema.Unlock();
-		m_pParamEvent->SetEvent();
 		break;
 	case THCMD_SENDSCRIPT:
-		m_SendSema.Lock();
 		m_pDoc->SendScript((LPCWSTR)m_SendBuf.GetPtr(), NULL);
-		m_SendBuf.Clear();
-		m_SendSema.Unlock();
-		m_pParamEvent->SetEvent();
-		break;
-	case THCMD_SENDSYNC:
-		m_SendSema.Lock();
-		if ( m_pDoc->m_pSock != NULL ) {
-			m_pDoc->m_pSock->m_pSyncEvent = m_pParamEvent;
-			m_pDoc->m_pSock->Send(m_SendBuf.GetPtr(), m_SendBuf.GetSize(), 0);
-		}
-		m_SendBuf.Clear();
-		m_SendSema.Unlock();
-		//m_pParamEvent->SetEvent();
 		break;
 	case TGCMD_MESSAGE:
-		m_pWnd->MessageBox(MbsToTstr(m_Message));
-		m_pParamEvent->SetEvent();
-		break;
-	case TGCMD_NOWAITMESSAGE:
-		m_pWnd->MessageBox(MbsToTstr(m_Message));
-		break;
-	case THCMD_ECHOBUFFER:
-		m_SendSema.Lock();
-		m_SwapBuf.Swap(m_EchoBuf);
-		m_EchoBuf.Clear();
-		m_EchoPostReq = FALSE;
-		m_SendSema.Unlock();
-		while ( m_SwapBuf.GetSize() > 0 ) {
-			n = m_pDoc->OnSocketReceive(m_SwapBuf.GetPtr(), m_SwapBuf.GetSize(), 0);
-			m_SwapBuf.Consume(n);
-		}
+		m_pMainWnd->MessageBox(MbsToTstr(m_Message));
 		break;
 	}
 }
@@ -300,30 +248,56 @@ void CSyncSock::OnProc(int cmd)
 
 void CSyncSock::DoProc(int cmd)
 {
-	if ( m_ThreadFlag )
+	ASSERT(m_pMainWnd != NULL && m_pDoc != NULL && m_pDoc->m_pSock != NULL);
+
+	if ( m_ThreadMode != THREAD_NONE )
 		return;
-	m_DoAbortFlag = FALSE;
-	m_ProgDlg.m_AbortFlag = FALSE;
-	m_EchoPostReq = FALSE;
+
 	m_bInitDone = FALSE;
-	m_ThreadMode = cmd;
+	m_AbortFlag = FALSE;
+
+	m_DoCommand = cmd;
 	m_pDoc->m_pSock->SetRecvSyncMode(TRUE);
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_START, (LPARAM)this);
+
+	((CMainFrame *)::AfxGetMainWnd())->AddThreadMsg(this);
+
+	m_pMainWnd->PostMessage(WM_THREADCMD, THCMD_START, (LPARAM)this);
 }
-void CSyncSock::DoAbort()
+void CSyncSock::DoAbort(BOOL bClose)
 {
-	if ( !m_ThreadFlag )
+	if ( m_ThreadMode == THREAD_NONE )
 		return;
-	m_DoAbortFlag = TRUE;
-	m_ProgDlg.m_AbortFlag = TRUE;
-	m_pParamEvent->SetEvent();
+
+	if ( !bClose ) {
+		m_AbortFlag = TRUE;
+		ASSERT(m_pDoc != NULL && m_pDoc->m_pSock != NULL);
+		m_pDoc->m_pSock->SyncAbort();
+		return;
+	}
+
+	m_ThreadMode = THREAD_DOEND;
+	((CMainFrame *)::AfxGetMainWnd())->DelThreadMsg(this);
+
+	m_AbortFlag = TRUE;
 	if ( m_pDoc != NULL && m_pDoc->m_pSock != NULL )
 		m_pDoc->m_pSock->SyncAbort();
-	WaitForSingleObject(m_pThreadEvent->m_hObject, INFINITE);
+
+	WaitForSingleObject(*m_pSyncThread, INFINITE);
+	m_ThreadMode = THREAD_NONE;
+
 	if ( m_pDoc != NULL && m_pDoc->m_pSock != NULL )
 		m_pDoc->m_pSock->SetRecvSyncMode(FALSE);
+
+	if ( m_pProgDlg != NULL )
+		m_pProgDlg->DestroyWindow();
+	m_pProgDlg = NULL;
+
+	if ( !m_ResvPath.IsEmpty() )
+		m_ResvPath.RemoveAll();
+
 	if ( m_pDoc != NULL )
 		m_pDoc->SetSleepReq(SLEEPSTAT_ENABLE);
+	StatusMsg(IDS_FILETRANSMITCLOSE);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -358,78 +332,49 @@ void CSyncSock::DebugMsg(LPCSTR fmt, ...)
 
 void CSyncSock::Bufferd_Send(int c)
 {
-#ifdef	USE_FIFOBUF
 	m_SendBuf.Put8Bit(c);
-#else
-	m_SendSema.Lock();
-	m_SendBuf.Put8Bit(c);
-	m_SendSema.Unlock();
-#endif
 }
 void CSyncSock::Bufferd_SendBuf(char *buf, int len)
 {
-#ifdef	USE_FIFOBUF
 	m_SendBuf.Apend((LPBYTE)buf, len);
-#else
-	m_SendSema.Lock();
-	m_SendBuf.Apend((LPBYTE)buf, len);
-	m_SendSema.Unlock();
-#endif
 }
 void CSyncSock::Bufferd_Flush()
 {
 	DebugMsg("Bufferd_Flush %d", m_SendBuf.GetSize());
 	DebugDump(m_SendBuf.GetPtr(), m_SendBuf.GetSize() < 16 ? m_SendBuf.GetSize() : 16);
 
-#ifdef	USE_FIFOBUF
-	if ( m_pDoc->m_pSock != NULL && m_SendBuf.GetSize() > 0 )
-		m_pDoc->m_pSock->SyncSend(m_SendBuf.GetPtr(), m_SendBuf.GetSize(), 0);
+	ASSERT(m_pDoc != NULL && m_pDoc->m_pSock != NULL);
 
+	if ( m_ThreadMode >= THREAD_DOEND )
+		return;
+
+	if ( m_SendBuf.GetSize() > 0 )
+		m_pDoc->m_pSock->SyncSend(m_SendBuf.GetPtr(), m_SendBuf.GetSize(), INFINITE, &m_AbortFlag);
 	m_SendBuf.Clear();
-#else
-	ASSERT(m_pWnd != NULL);
-
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDBUF, (LPARAM)this);
-#endif
 }
 void CSyncSock::Bufferd_Clear()
 {
-#ifdef	USE_FIFOBUF
-	m_SendBuf.Clear();
-#else
-	m_SendSema.Lock();
-	m_SendBuf.Clear();
-	m_SendSema.Unlock();
-#endif
+	ASSERT(m_pDoc != NULL && m_pDoc->m_pSock != NULL);
 
-	if ( m_bInitDone && m_pDoc->m_pSock != NULL ) {
+	m_SendBuf.Clear();
+
+	if ( m_bInitDone ) {
 		m_RecvBuf.Clear();
-
-		BOOL f = FALSE;
-		BYTE tmp[256];
-		while ( m_pDoc->m_pSock->SyncReceive(tmp, 256, 1000, &f) > 0 );
+		m_pDoc->m_pSock->SyncRecvClear();
 	}
-}
-void CSyncSock::Bufferd_Sync()
-{
-#ifdef	USE_FIFOBUF
-	Bufferd_Flush();
-#else
-	m_pParamEvent->ResetEvent();
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDSYNC, (LPARAM)this);
-	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
-#endif
 }
 int CSyncSock::Bufferd_Receive(int sec, int msec)
 {
 	int n;
 	BYTE tmp[2048];
 
-	if ( m_pDoc->m_pSock == NULL || m_DoAbortFlag )
-		return (-1);	// ERROR
+	ASSERT(m_pDoc != NULL && m_pDoc->m_pSock != NULL);
+
+	if ( m_ThreadMode >= THREAD_DOEND )
+		return (-2);
 
 	if ( m_RecvBuf.GetSize() <= 0 ) {
-		if ( (n = m_pDoc->m_pSock->SyncReceive(tmp, 2048, sec * 1000 + msec, &m_ProgDlg.m_AbortFlag)) <= 0 )
+		if ( (n = m_pDoc->m_pSock->SyncReceive(tmp, 2048, sec * 1000 + msec, &m_AbortFlag)) <= 0 )
 			return (-2);	// TIME OUT
 		m_RecvBuf.Apend(tmp, n);
 
@@ -443,22 +388,22 @@ BOOL CSyncSock::Bufferd_ReceiveBuf(char *buf, int len, int sec, int msec)
 {
 	int n;
 
-	if ( m_pDoc->m_pSock == NULL || m_DoAbortFlag )
+	ASSERT(m_pDoc != NULL && m_pDoc->m_pSock != NULL);
+
+	if ( m_ThreadMode >= THREAD_DOEND )
 		return FALSE;
 
 	if ( (n = m_RecvBuf.GetSize()) > 0 ) {
 		if ( n > len )
 			n = len;
-
 		memcpy(buf, m_RecvBuf.GetPtr(), n);
 		m_RecvBuf.Consume(n);
-
 		buf += n;
 		len -= n;
 	}
 
 	while ( len > 0 ) {
-		if ( (n = m_pDoc->m_pSock->SyncReceive(buf, len, sec * 1000 + msec, &m_ProgDlg.m_AbortFlag)) <= 0 )
+		if ( (n = m_pDoc->m_pSock->SyncReceive(buf, len, sec * 1000 + msec, &m_AbortFlag)) <= 0 )
 			return FALSE;
 
 		DebugMsg("Bufferd_ReceiveBuf %d", n);
@@ -476,179 +421,150 @@ void CSyncSock::Bufferd_ReceiveBack(char *buf, int len)
 }
 int CSyncSock::Bufferd_ReceiveSize()
 {
-	if ( m_pDoc->m_pSock == NULL || m_DoAbortFlag )
-		return 0;
+	ASSERT(m_pDoc != NULL && m_pDoc->m_pSock != NULL);
 
 	return m_pDoc->m_pSock->GetRecvProcSize() + m_RecvBuf.GetSize();
 }
 void CSyncSock::SetXonXoff(int sw)
 {
+	ASSERT(m_pMainWnd != NULL);
+
+	if ( m_ThreadMode >= THREAD_DOEND )
+		return;
+
 	m_Param = sw;
-	m_pParamEvent->ResetEvent();
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_XONXOFF, (LPARAM)this);
-	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+	m_pMainWnd->SendMessage(WM_THREADCMD, THCMD_XONXOFF, (LPARAM)this);
+}
+void CSyncSock::SendEcho(int ch)
+{
+	ASSERT(m_pDoc != NULL && m_pDoc->m_pSock != NULL);
+
+	BYTE c = (BYTE)ch;
+	m_pDoc->m_pSock->SyncExtSend(&c, 1, INFINITE, &m_AbortFlag);
+}
+void CSyncSock::SendEchoBuffer(char *buf, int len)
+{
+	ASSERT(m_pDoc != NULL && m_pDoc->m_pSock != NULL);
+
+	m_pDoc->m_pSock->SyncExtSend(buf,len, INFINITE, &m_AbortFlag);
 }
 
 //////////////////////////////////////////////////////////////////////
 
 BOOL CSyncSock::CheckFileName(int mode, LPCSTR file, int extmode)
 {
-	if ( m_DoAbortFlag )
+	ASSERT(m_pMainWnd != NULL);
+
+	if ( m_ThreadMode >= THREAD_DOEND )
 		return FALSE;
+
 	m_Param = mode;
 	m_FileName = file;
 	m_ExtFileDlgMode = extmode;
-#ifdef	USE_FIFOBUF
-	m_pWnd->SendMessage(WM_THREADCMD, THCMD_CHECKPATH, (LPARAM)this);
-#else
-	m_pParamEvent->ResetEvent();
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_CHECKPATH, (LPARAM)this);
-	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
-#endif
+	m_pMainWnd->SendMessage(WM_THREADCMD, THCMD_CHECKPATH, (LPARAM)this);
 	return (m_FileName.IsEmpty() || m_PathName.IsEmpty() ? FALSE : TRUE);
 }
 int CSyncSock::YesOrNo(LPCSTR msg)
 {
-	if ( m_DoAbortFlag )
+	ASSERT(m_pMainWnd != NULL);
+
+	if ( m_ThreadMode >= THREAD_DOEND )
 		return 'N';
+
 	m_Param = 'N';
 	m_Message = msg;
-#ifdef	USE_FIFOBUF
-	m_pWnd->SendMessage(WM_THREADCMD, THCMD_YESNO, (LPARAM)this);
-#else
-	m_pParamEvent->ResetEvent();
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_YESNO, (LPARAM)this);
-	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
-#endif
+	m_pMainWnd->SendMessage(WM_THREADCMD, THCMD_YESNO, (LPARAM)this);
 	return m_Param;
-}
-int CSyncSock::AbortCheck()
-{
-	if ( m_ProgDlg.m_hWnd == NULL )
-		return FALSE;
-	return m_ProgDlg.m_AbortFlag;
-}
-void CSyncSock::SendEcho(int ch)
-{
-	BOOL bPost = FALSE;
-
-	m_SendSema.Lock();
-	m_EchoBuf.Put8Bit(ch);
-	if ( !m_EchoPostReq )
-		m_EchoPostReq = bPost = TRUE;
-	m_SendSema.Unlock();
-
-	if ( bPost )
-		m_pWnd->PostMessage(WM_THREADCMD, THCMD_ECHOBUFFER, (LPARAM)this);
-}
-void CSyncSock::SendEchoBuffer(char *buf, int len)
-{
-	BOOL bPost = FALSE;
-
-	m_SendSema.Lock();
-	m_EchoBuf.Apend((LPBYTE)buf, len);
-	if ( !m_EchoPostReq )
-		m_EchoPostReq = bPost = TRUE;
-	m_SendSema.Unlock();
-
-	if ( bPost )
-		m_pWnd->PostMessage(WM_THREADCMD, THCMD_ECHOBUFFER, (LPARAM)this);
 }
 void CSyncSock::UpDownOpen(LPCSTR msg)
 {
+	ASSERT(m_pMainWnd != NULL);
+
+	if ( m_ThreadMode >= THREAD_DOEND )
+		return;
+
 	m_Message = msg;
-#ifdef	USE_FIFOBUF
-	m_pWnd->SendMessage(WM_THREADCMD, THCMD_DLGOPEN, (LPARAM)this);
-#else
-	m_pParamEvent->ResetEvent();
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGOPEN, (LPARAM)this);
-	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
-#endif
+	m_pMainWnd->SendMessage(WM_THREADCMD, THCMD_DLGOPEN, (LPARAM)this);
 }
 void CSyncSock::UpDownClose()
 {
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGCLOSE, (LPARAM)this);
+	ASSERT(m_pMainWnd != NULL);
+
+	if ( m_ThreadMode >= THREAD_DOEND )
+		return;
+
+	m_pMainWnd->PostMessage(WM_THREADCMD, THCMD_DLGCLOSE, (LPARAM)this);
 }
 void CSyncSock::UpDownMessage(LPCSTR msg)
 {
+	ASSERT(m_pMainWnd != NULL);
+
+	if ( m_ThreadMode >= THREAD_DOEND )
+		return;
+
 	m_Message = msg;
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGMESSAGE, (LPARAM)this);
+	m_pMainWnd->PostMessage(WM_THREADCMD, THCMD_DLGMESSAGE, (LPARAM)this);
 }
 void CSyncSock::UpDownInit(LONGLONG size, LONGLONG rems)
 {
-	if ( m_DoAbortFlag )
+	ASSERT(m_pMainWnd != NULL);
+
+	if ( m_ThreadMode >= THREAD_DOEND )
 		return;
-	m_Size = size;
-	m_RemSize = rems;
-#ifdef	USE_FIFOBUF
-	m_pWnd->SendMessage(WM_THREADCMD, THCMD_DLGRANGE, (LPARAM)this);
-#else
-	m_pParamEvent->ResetEvent();
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGRANGE, (LPARAM)this);
-	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
-#endif
+
+	m_pLongLong[0] = size;
+	m_pLongLong[1] = rems;
+	m_pMainWnd->SendMessage(WM_THREADCMD, THCMD_DLGRANGE, (LPARAM)this);
 }
 void CSyncSock::UpDownStat(LONGLONG size)
 {
-	BOOL bPost = FALSE;
-
-	m_ProgSema.Lock();
-	if ( !m_bUpdateReq )
-		m_bUpdateReq = bPost = TRUE;
-	m_Size = size;
-	m_ProgSema.Unlock();
-
-	if ( bPost )
-		m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGPOS, (LPARAM)this);
+	if ( m_pProgDlg != NULL && (!m_pProgDlg->m_UpdatePost || m_pProgDlg->m_LastSize == size) ) {
+		m_pProgDlg->m_UpdatePost = TRUE;
+		m_pLongLong[0] = size;
+		m_pProgDlg->PostMessage(WM_PROGUPDATE, PROG_UPDATE_POS, (LPARAM)m_pLongLong);
+	}
 }
 void CSyncSock::SendString(LPCWSTR str)
 {
-	if ( m_DoAbortFlag )
+	ASSERT(m_pMainWnd != NULL);
+
+	if ( m_ThreadMode >= THREAD_DOEND )
 		return;
-	m_SendSema.Lock();
+
 	m_SendBuf.Clear();
 	m_SendBuf.Apend((LPBYTE)str, (int)wcslen(str) * sizeof(WCHAR));
-	m_SendSema.Unlock();
-#ifdef	USE_FIFOBUF
-	m_pWnd->SendMessage(WM_THREADCMD, THCMD_SENDSTR, (LPARAM)this);
-#else
-	m_pParamEvent->ResetEvent();
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDSTR, (LPARAM)this);
-	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
-#endif
+	m_pMainWnd->SendMessage(WM_THREADCMD, THCMD_SENDSTR, (LPARAM)this);
 }
 void CSyncSock::SendScript(LPCWSTR str)
 {
-	if ( m_DoAbortFlag )
+	ASSERT(m_pMainWnd != NULL);
+
+	if ( m_ThreadMode >= THREAD_DOEND )
 		return;
-	m_SendSema.Lock();
+
 	m_SendBuf.Clear();
 	m_SendBuf.Apend((LPBYTE)str, (int)wcslen(str) * sizeof(WCHAR));
-	m_SendSema.Unlock();
-#ifdef	USE_FIFOBUF
-	m_pWnd->SendMessage(WM_THREADCMD, THCMD_SENDSCRIPT, (LPARAM)this);
-#else
-	m_pParamEvent->ResetEvent();
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDSCRIPT, (LPARAM)this);
-	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
-#endif
+	m_pMainWnd->SendMessage(WM_THREADCMD, THCMD_SENDSCRIPT, (LPARAM)this);
 }
 void CSyncSock::Message(LPCSTR msg)
 {
+	ASSERT(m_pMainWnd != NULL);
+
+	if ( m_ThreadMode >= THREAD_DOEND )
+		return;
+
 	m_Message = msg;
-#ifdef	USE_FIFOBUF
-	m_pWnd->SendMessage(WM_THREADCMD, TGCMD_MESSAGE, (LPARAM)this);
-#else
-	m_pParamEvent->ResetEvent();
-	m_pWnd->PostMessage(WM_THREADCMD, TGCMD_MESSAGE, (LPARAM)this);
-	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
-#endif
+	m_pMainWnd->SendMessage(WM_THREADCMD, TGCMD_MESSAGE, (LPARAM)this);
 }
 void CSyncSock::NoWaitMessage(LPCSTR msg)
 {
+	ASSERT(m_pMainWnd != NULL);
+
+	if ( m_ThreadMode >= THREAD_DOEND )
+		return;
+
 	m_Message = msg;
-	m_pParamEvent->ResetEvent();
-	m_pWnd->PostMessage(WM_THREADCMD, TGCMD_NOWAITMESSAGE, (LPARAM)this);
+	m_pMainWnd->PostMessage(WM_THREADCMD, TGCMD_MESSAGE, (LPARAM)this);
 }
 
 //////////////////////////////////////////////////////////////////////

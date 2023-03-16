@@ -36,9 +36,7 @@
 #include "afxcmn.h"
 #include "sphelper.h"
 
-#ifdef	USE_FIFOBUF
 #include "Fifo.h"
-#endif
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -686,6 +684,7 @@ CRLoginApp::CRLoginApp()
 // 唯一の CRLoginApp オブジェクトです。
 
 	CRLoginApp theApp;
+	BOOL CompNameLenBugFix = TRUE;
 
 	BOOL ExDwmEnable = FALSE;
 #ifdef	USE_DWMAPI
@@ -972,8 +971,16 @@ BOOL CRLoginApp::InitLocalPass()
 		key.Digest(m_LocalPass, dlg.m_Edit);
 		key.DecryptStr(tmp, passok);
 
-		if ( tmp.Compare(_T("01234567")) == 0 )
+		if ( tmp.Compare(_T("01234567")) == 0 ) {
+			if ( CompNameLenBugFix == FALSE ) {
+				// MAX_COMPUTERNAME_LENGTHのバグを修正
+				CompNameLenBugFix = TRUE;
+				key.EncryptStr(passok, _T("01234567"));
+				WriteProfileString(_T("RLoginApp"), _T("LocalPass"), passok);
+				CompNameLenBugFix = FALSE;	// 後でチェックする為に戻す
+			}
 			return TRUE;
+		}
 	}
 
 	return FALSE;
@@ -1430,6 +1437,23 @@ BOOL CRLoginApp::InitInstance()
 	pMainFrame->ShowWindow(m_nCmdShow);
 	pMainFrame->UpdateWindow();
 
+	// MAX_COMPUTERNAME_LENGTHのバグをチェック
+	if ( (CompNameLenBugFix = GetProfileInt(_T("RLoginApp"), _T("CompNameLenBugFix"), FALSE)) == FALSE ) {
+		DWORD size;
+		TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
+
+		CompNameLenBugFix = TRUE;
+
+		size = MAX_COMPUTERNAME_LENGTH;
+		if ( !GetUserName(buf, &size) )
+			CompNameLenBugFix = FALSE;
+		size = MAX_COMPUTERNAME_LENGTH;
+		if ( !GetComputerName(buf, &size) )
+			CompNameLenBugFix = FALSE;
+
+		WriteProfileInt(_T("RLoginApp"), _T("CompNameLenBugFix"), TRUE);
+	}
+
 	// パスワードロックの確認
 	if ( !InitLocalPass() )
 		return FALSE;
@@ -1439,6 +1463,15 @@ BOOL CRLoginApp::InitInstance()
 
 	// レジストリベースのサーバーエントリーの読み込み
 	pMainFrame->m_ServerEntryTab.Serialize(FALSE);
+
+	if ( CompNameLenBugFix == FALSE ) {
+		// MAX_COMPUTERNAME_LENGTHのバグを修正
+		CompNameLenBugFix = TRUE;
+		if ( pMainFrame->m_ServerEntryTab.GetSize() > 0 ) {
+			pMainFrame->m_ServerEntryTab.Serialize(TRUE);
+			AfxMessageBox(IDS_COMPNAMELENBUGFIX, MB_ICONINFORMATION | MB_OK);
+		}
+	}
 
 	// ユーザープロファイルの更新を確認
 	if ( m_pszRegistryKey == NULL && GetProfileInt(_T("RLoginApp"), _T("CompressPrivateProfile"), 0) == 0 ) {
@@ -1524,6 +1557,8 @@ int CRLoginApp::ExitInstance()
 
 	CONF_modules_finish();
 	CONF_modules_unload(1);
+
+	OPENSSL_cleanup();
 
 	WSACleanup();
 
@@ -3155,9 +3190,6 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 		m_pIdleTop = pProc->m_pNext;
 
 		switch(pProc->m_Type) {
-		case IDLEPROC_SOCKET:
-			rt = ((CExtSocket *)(pProc->m_pParam))->OnIdle();
-			break;
 		case IDLEPROC_ENCRYPT:
 			rt = mt_proc(pProc->m_pParam);
 			break;
@@ -3167,11 +3199,9 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 		case IDLEPROC_VIEW:
 			rt = ((CRLoginView *)(pProc->m_pParam))->OnIdle();
 			break;
-#ifdef	USE_FIFOBUF
 		case IDLEPROC_FIFODOC:
 			rt = ((CFifoDocument *)(pProc->m_pParam))->OnIdle();
 			break;
-#endif
 		}
 
 		// pProcの呼び出し後の利用不可(DelIdleProc後の可能性あり)
@@ -3193,7 +3223,7 @@ BOOL CRLoginApp::IsIdleMessage(MSG* pMsg)
 		return TRUE;
 	}
 
-	if ( pMsg->message == WM_SOCKSEL || pMsg->message == WM_NULL || pMsg->message == WM_PAINT )
+	if ( pMsg->message == WM_NULL || pMsg->message == WM_PAINT )
 		return TRUE;
 
 	if ( CWinApp::IsIdleMessage(pMsg) )

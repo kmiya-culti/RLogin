@@ -564,6 +564,7 @@ CSFtp::CSFtp(CWnd* pParent /*=NULL*/)
 	m_bPostMsg = FALSE;
 	m_bTheadExec = FALSE;
 	m_pTaskbarList = NULL;
+	m_pFifoSftp = NULL;
 }
 CSFtp::~CSFtp()
 {
@@ -601,24 +602,8 @@ void CSFtp::DoDataExchange(CDataExchange* pDX)
 
 void CSFtp::Send(LPBYTE buf, int len)
 {
-	m_pChan->m_Output.Apend(buf, len);
-	m_pChan->m_pSsh->SendMsgChannelData(m_pChan->m_LocalID);
-}
-int CSFtp::OnReceive(const void *lpBuf, int nBufLen)
-{
-	m_RecvBuf.Apend((LPBYTE)lpBuf, nBufLen);
-
-	if ( (m_DoExec & 001) != 0 ) {
-		m_DoExec |= 002;
-		return nBufLen;
-	}
-
-	if ( !m_bPostMsg ) {
-		m_bPostMsg = TRUE;
-		PostMessage(WM_RECIVEBUFFER);
-	}
-
-	return nBufLen;
+	if ( m_pFifoSftp != NULL )
+		m_pFifoSftp->Write(FIFO_STDOUT, buf, len);
 }
 void CSFtp::OnConnect()
 {
@@ -630,8 +615,12 @@ void CSFtp::OnConnect()
 }
 void CSFtp::Close()
 {
-	ASSERT(m_pChan != NULL);
-	m_pChan->DoClose();
+	KillTimer(SFTP_TIMERID);
+
+	if ( m_pFifoSftp != NULL ) {
+		m_pFifoSftp->SendFdEvents(FIFO_STDOUT, FD_CLOSE, NULL);
+		m_pFifoSftp = NULL;
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2809,9 +2798,8 @@ void CSFtp::OnClose()
 
 void CSFtp::OnDestroy() 
 {
-	m_pChan->m_pFilter = NULL;
 	Close();
-	CDialogExt::OnDestroy();	
+	CDialogExt::OnDestroy();
 }
 
 void CSFtp::PostNcDestroy() 
@@ -2931,7 +2919,7 @@ BOOL CSFtp::OnInitDialog()
 	rect.bottom = AfxGetApp()->GetProfileInt(_T("SFtpWnd"), _T("cy"), rect.bottom);
 	CheckMoveWindow(rect, FALSE);
 
-	SetTimer(1120, 3000, NULL);
+	SetTimer(SFTP_TIMERID, 3000, NULL);
 
 	AddShortCutKey(IDC_LOCAL_LIST,	'C',		MASK_CTRL,	0,	ID_EDIT_COPY);
 	AddShortCutKey(IDC_LOCAL_LIST,	'V',		MASK_CTRL,	0,	ID_EDIT_PASTE);
@@ -3757,11 +3745,6 @@ HCURSOR CSFtp::OnQueryDragIcon()
 
 void CSFtp::OnTimer(UINT_PTR nIDEvent) 
 {
-	if ( (m_DoExec & 003) == 002 ) {
-		m_DoExec &= ~002;
-		OnReceive("", 0);
-	}
-
 	if ( m_UpdateCheckMode ) {	// Local
 		struct _stati64 st;
 		if ( !_tstati64(m_LocalCurDir, &st) && m_LocalCurTime < st.st_mtime && !m_DoExec )
@@ -3776,26 +3759,34 @@ void CSFtp::OnTimer(UINT_PTR nIDEvent)
 
 LRESULT CSFtp::OnReceiveBuffer(WPARAM wParam, LPARAM lParam)
 {
-	int n;
-	CBuffer buf;
-
-//	TRACE("OnReceiveBuffer %d\n", m_RecvBuf.GetSize());
-
 	try {
-		while ( m_RecvBuf.GetSize() >= 4 ) {
-			n = m_RecvBuf.PTR32BIT(m_RecvBuf.GetPtr());
+		if ( (int)wParam == FD_CONNECT ) {
+			OnConnect();
 
-			if ( n > (256 * 1024) || n < 0 )
-				throw _T("sftp packet length error");
+		} else if ( m_pFifoSftp != NULL ) {	// FD_READ
+			int n;
+			CBuffer buf;
 
-			if ( m_RecvBuf.GetSize() < (n + 4) )
-				break;
+			m_pFifoSftp->m_MsgSemaphore.Lock();
+			n = m_pFifoSftp->MoveBuffer(FIFO_STDIN, &m_RecvBuf);
+			m_bPostMsg = FALSE;
+			m_pFifoSftp->m_MsgSemaphore.Unlock();
 
-			buf.Clear();
-			buf.Apend(m_RecvBuf.GetPtr() + 4, n);
-			m_RecvBuf.Consume(n + 4);
+			while ( m_RecvBuf.GetSize() >= 4 ) {
+				n = m_RecvBuf.PTR32BIT(m_RecvBuf.GetPtr());
 
-			ReceiveBuffer(&buf);
+				if ( n > (256 * 1024) || n < 0 )
+					throw _T("sftp packet length error");
+
+				if ( m_RecvBuf.GetSize() < (n + 4) )
+					break;
+
+				buf.Clear();
+				buf.Apend(m_RecvBuf.GetPtr() + 4, n);
+				m_RecvBuf.Consume(n + 4);
+
+				ReceiveBuffer(&buf);
+			}
 		}
 
 	} catch(LPCTSTR msg) {
@@ -3806,8 +3797,6 @@ LRESULT CSFtp::OnReceiveBuffer(WPARAM wParam, LPARAM lParam)
 		MessageBox(_T("SFTP unkown error"));
 		m_RecvBuf.Clear();
 	}
-
-	m_bPostMsg = FALSE;
 
 	return TRUE;
 }

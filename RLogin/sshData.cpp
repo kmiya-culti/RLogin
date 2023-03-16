@@ -3404,18 +3404,18 @@ int CIdKey::SetPrivateBlob(CBuffer *bp)
 BOOL CIdKey::GetUserSid(CBuffer &buf)
 {
 	DWORD size = 0, dsz = 0;
-	TCHAR host[MAX_COMPUTERNAME_LENGTH + 2];
-	TCHAR user[MAX_COMPUTERNAME_LENGTH + 2];
+	TCHAR host[MAX_COMPUTERNAME];
+	TCHAR user[MAX_COMPUTERNAME];
 	SID_NAME_USE snu;
 	PSID pSid = NULL;
     LPTSTR pDomain = NULL;
 	BOOL rt = FALSE;
 
-	size = MAX_COMPUTERNAME_LENGTH;
+	size = MAX_COMPUTERNAME;
 	if ( !GetComputerName(host, &size) )
 		return FALSE;
 
-	size = MAX_COMPUTERNAME_LENGTH;
+	size = MAX_COMPUTERNAME;
 	if ( !GetUserName(user, &size) )
 		goto ENDOF;
 
@@ -3445,13 +3445,13 @@ ENDOF:
 BOOL CIdKey::GetHostSid(CBuffer &buf)
 {
 	DWORD size = 0, dsz = 0;
-	TCHAR host[MAX_COMPUTERNAME_LENGTH + 2];
+	TCHAR host[MAX_COMPUTERNAME];
 	SID_NAME_USE snu;
 	PSID pSid = NULL;
     LPTSTR pDomain = NULL;
 	BOOL rt = FALSE;
 
-	size = MAX_COMPUTERNAME_LENGTH;
+	size = MAX_COMPUTERNAME;
 	if ( !GetComputerName(host, &size) )
 		return FALSE;
 
@@ -3480,18 +3480,51 @@ ENDOF:
 }
 void CIdKey::GetUserHostName(CString &str)
 {
-	DWORD size;
-	TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
+	if ( CompNameLenBugFix == FALSE ) {
+		DWORD size;
+		TCHAR buf[MAX_COMPUTERNAME];
 
-	str = _T("");
-	size = MAX_COMPUTERNAME_LENGTH;
-	if ( GetUserName(buf, &size) )
-		str += buf;
+		str = _T("");
+		size = MAX_COMPUTERNAME_LENGTH;
+		if ( GetUserName(buf, &size) )
+			str += buf;
 
-	str += _T("@");
-	size = MAX_COMPUTERNAME_LENGTH;
-	if ( GetComputerName(buf, &size) )
-		str += buf;
+		str += _T("@");
+		size = MAX_COMPUTERNAME_LENGTH;
+		if ( GetComputerName(buf, &size) )
+			str += buf;
+
+	} else {
+		DWORD size;
+		DWORD max = MAX_COMPUTERNAME;
+		TCHAR *pBuf = new TCHAR[max];
+
+		str = _T("");
+		size = max;
+		if ( GetUserName(pBuf, &size) )
+			str += pBuf;
+		else if ( GetLastError() == ERROR_INSUFFICIENT_BUFFER ) {
+			delete pBuf;
+			max = size;
+			pBuf = new TCHAR[max];
+			if ( GetUserName(pBuf, &size) )
+				str += pBuf;
+		}
+
+		str += _T("@");
+		size = max;
+		if ( GetComputerName(pBuf, &size) )
+			str += pBuf;
+		else if ( GetLastError() == ERROR_BUFFER_OVERFLOW ) {
+			delete pBuf;
+			max = size;
+			pBuf = new TCHAR[max];
+			if ( GetComputerName(pBuf, &size) )
+				str += pBuf;
+		}
+
+		delete pBuf;
+	}
 }
 
 void CIdKey::MakeKey(CBuffer *bp, LPCTSTR pass, int Mode)

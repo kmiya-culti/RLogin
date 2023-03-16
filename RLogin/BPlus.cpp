@@ -130,9 +130,42 @@ CBPlus::~CBPlus()
 
 void CBPlus::OnProc(int cmd)
 {
-	switch(cmd) {
-	case 0x05: BP_Term_ENQ(); break;
-	case 0x10: BP_DLE_Seen(); break;
+	//switch(cmd) {
+	//case 0x05: BP_Term_ENQ(); break;
+	//case 0x10: BP_DLE_Seen(); break;
+	//}
+	BP_Init_Check();
+}
+
+//////////////////////////////////////////////////////////////////////
+
+void CBPlus::BP_Init_Check()
+{
+	int stat = 0;
+
+	while ( Read_Byte() ) {
+		switch(stat) {
+		case 0:
+			if ( e_ch == enq )
+				BP_Term_ENQ();
+			else if ( e_ch == dle )
+				stat = 1;
+			else {
+				SendEcho(e_ch);
+				return;
+			}
+			break;
+		case 1:
+			if ( e_ch == 'B' ) {
+				if ( BP_DLE_Seen() )
+					return;
+			} else {
+				SendEcho(e_ch);
+				return;
+			}
+			stat = 0;
+			break;
+		}
 	}
 }
 
@@ -172,8 +205,8 @@ void CBPlus::BP_Term_ENQ()
 {
     int     i;
 
-    if ( !Read_Byte() || e_ch != enq )
-		return;
+  //  if ( !Read_Byte() || e_ch != enq )
+		//return;
 
     Seq_Num = 0;
     Mx_Bf_Sz = Buffer_Size = 512;               /* Set up defaults */
@@ -712,7 +745,9 @@ void CBPlus::Send_Failure(char *Reason)
     int	    i;
     buf_type *p;
 
-    SA_Next_to_ACK = 0;
+	Bufferd_Clear();
+
+	SA_Next_to_ACK = 0;
     SA_Next_to_Fill = 0;
     SA_Waiting = 0;
     Aborting   = TRUE;          /* Inform Get_ACK we're aborting ]*/
@@ -727,8 +762,6 @@ void CBPlus::Send_Failure(char *Reason)
 
     if ( Reason[0] != 'A' )
 		UpDownMessage(Reason + 1);
-
-	Bufferd_Clear();
 }
 
 void CBPlus::Do_Transport_Parameters()
@@ -1171,11 +1204,11 @@ int	CBPlus::BP_DLE_Seen()
     int i;
 	CStringA fileName;
 
-    if ( !Read_Byte() || e_ch != dle )
-		return 0;
+  //  if ( !Read_Byte() || e_ch != dle )
+		//return 0;
 
-    if ( !Read_Byte() || e_ch != 'B' )
-		return 0;
+  //  if ( !Read_Byte() || e_ch != 'B' )
+		//return 0;
 
 	SA_Next_to_ACK  = 0;    /* Initialize Send-ahead variables */
     SA_Next_to_Fill = 0;

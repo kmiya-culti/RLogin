@@ -49,9 +49,9 @@ public:
 	CStatic m_ColBox[9];
 	CStatic m_GrapBox;
 	CString m_BaudRate;
-	int m_DataBits;
-	int m_ParityBit;
-	int m_StopBits;
+	CString m_DataBits;
+	CString m_ParityBit;
+	CString m_StopBits;
 	int m_FlowCtrl;
 	CString m_UserDef;
 	int m_SendWait[2];

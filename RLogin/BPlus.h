@@ -71,6 +71,8 @@ public:
 	CStringA	F_TrueName;
 	BOOL		F_FileType;
 
+	void BP_Init_Check();
+
 	void Clear_Quote_Table();
 	void Update_Quote_Table (char *Quote_Set);
 

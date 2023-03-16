@@ -390,7 +390,7 @@ CKnownHostsDlg::CKnownHostsDlg()
 CKnownHostsDlg::~CKnownHostsDlg()
 {
 	for ( int n = 0 ; n < m_Data.GetSize() ; n++ )
-		delete m_Data[n];
+		delete (KNOWNHOSTDATA *)m_Data[n];
 }
 
 BEGIN_MESSAGE_MAP(CKnownHostsDlg, CTtyModeDlg)

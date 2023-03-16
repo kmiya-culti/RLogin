@@ -1,13 +1,8 @@
-// Telnet.h: CTelnet クラスのインターフェイス
-//
 //////////////////////////////////////////////////////////////////////
+// PipeSock.h : インターフェイス
+//
 
-#if !defined(AFX_TELNET_H__ECB045AA_51FC_4815_A70B_04DA0D152E54__INCLUDED_)
-#define AFX_TELNET_H__ECB045AA_51FC_4815_A70B_04DA0D152E54__INCLUDED_
-
-#if _MSC_VER > 1000
 #pragma once
-#endif // _MSC_VER > 1000
 
 #include "ExtSocket.h"
 #include "Data.h"
@@ -282,6 +277,14 @@
 
 typedef unsigned char DesData[8], IdeaData[16];
 
+class CFifoTelnet : public CFifoThread
+{
+public:
+	CFifoTelnet(class CRLoginDoc *pDoc, class CExtSocket *pSock);
+
+	virtual void OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult);
+};
+
 class CMint : public CObject
 {
 public:
@@ -308,19 +311,26 @@ public:
 class CTelnet : public CExtSocket  
 {
 public:
-	BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
-	void OnConnect();
-	void OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags);
-	int Send(const void *lpBuf, int nBufLen, int nFlags = 0);
-	void SendBreak(int opt = 0);
-	void SendWindSize();
-	void SetXonXoff(int sw);
-	void GetStatus(CString &str);
-	void OnTimer(UINT_PTR nIDEvent);
-	void ResetOption();
-
 	CTelnet(class CRLoginDoc *pDoc);
 	virtual ~CTelnet();
+
+	virtual void FifoLink();
+	virtual BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
+
+	virtual void OnConnect();
+	virtual void OnRecvSocket(void *lpBuf, int nBufLen, int nFlags);
+	virtual void OnRecvProtocol(void *lpBuf, int nBufLen, int nFlags);
+
+	virtual void GetStatus(CString &str);
+	virtual void SendBreak(int opt = 0);
+	virtual void SendWindSize();
+	virtual void SetXonXoff(int sw);
+	virtual void ResetOption();
+
+	virtual void OnTimer(UINT_PTR nIDEvent);
+
+	void FifoSendWindSize();
+	void FifoSendBreak(int opt = 0);
 
 private:
 	struct	TelOptTab {
@@ -331,10 +341,11 @@ private:
 	char SubOptBuf[SUBOPTLEN + 1];
 	int ReceiveStatus;
 	int m_KeepAliveTiimerId;
+	CBuffer m_SendBuff;
 
 	void SockSend(char *buf, int len);
 	void SendFlush();
-	void SendStr(LPCTSTR str);
+	void SendStr(LPCSTR str);
 	void SendOpt(int ch, int opt);
 	void SendSlcOpt();
 	void OptFunc(struct TelOptTab *tab, int opt, int sw, int ch);
@@ -414,5 +425,3 @@ private:
 	void EncryptDecode(char *p, int len);
 	void EncryptEncode(char *p, int len);
 };
-
-#endif // !defined(AFX_TELNET_H__ECB045AA_51FC_4815_A70B_04DA0D152E54__INCLUDED_)

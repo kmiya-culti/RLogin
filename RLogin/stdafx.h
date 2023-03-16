@@ -19,10 +19,7 @@
 //#define	USE_CLEFIA			// CLEFIA暗号を有効にする
 //#define	USE_MACCTX			// EVP_MAC_CTXの動作が微妙(init(key=NULLに非対応)
 //#define	USE_X509			// opensslのx509公開鍵証明を有効
-
-#ifdef	_DEBUG
 #define	USE_FIFOBUF				// FifoBufferをテスト
-#endif
 
 // Windows バージョン
 
@@ -127,6 +124,8 @@
 #pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "version.lib")
 #pragma comment(lib, "windowscodecs.lib")
+
+#pragma warning(disable : 4996)		// openssl legacy warningを消す
 
 #ifdef	USE_DIRECTWRITE
   #include <d2d1.h>

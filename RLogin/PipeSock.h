@@ -1,7 +1,10 @@
-#pragma once
-#include "extsocket.h"
+//////////////////////////////////////////////////////////////////////
+// PipeSock.h : インターフェイス
+//
 
-class CPipeSock : public CExtSocket
+#pragma once
+
+class CFifoPipe : public CFifoASync
 {
 public:
 	HANDLE m_hIn[2];
@@ -10,41 +13,44 @@ public:
 	volatile int m_InThreadMode;
 	volatile int m_OutThreadMode;
 
+	CWinThread *m_ProcThread;
 	CWinThread *m_InThread;
 	CWinThread *m_OutThread;
 
-	CEvent *m_pInEvent;
-	CEvent *m_pOutEvent;
-	CEvent *m_pSendEvent;
-
-	CSemaphore m_RecvSema;
-	CSemaphore m_SendSema;
-
+	CEvent m_AbortEvent[3];
 	PROCESS_INFORMATION m_proInfo;
 
-	OVERLAPPED m_ReadOverLap;
-	OVERLAPPED m_WriteOverLap;
-
 public:
-	BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
-	BOOL AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
-	void Close();
-	int Send(const void* lpBuf, int nBufLen, int nFlags = 0);
-	void SendBreak(int opt);
-	void OnReceive(int nFlags);
-	void OnSend();
-	int OnIdle();
-	int GetRecvSize();
-	int GetSendSize();
+	CFifoPipe(class CRLoginDoc *pDoc, class CExtSocket *pSock);
+	~CFifoPipe();
 
-	void GetPathMaps(CStringMaps &maps);
-	void GetDirMaps(CStringMaps &maps, LPCTSTR dir, BOOL pf = FALSE);
+	virtual void OnUnLinked(int nFd, BOOL bMid);
+
 	BOOL IsPipeName(LPCTSTR path);
+	BOOL Open(LPCTSTR pCommand);
+	void Close();
+	void SendBreak(int opt);
 
+	BOOL FlowCtrlCheck(int nFd);
+	BOOL WaitForEvent(int nFd, HANDLE hAbortEvent);
+
+	void OnProcWait();
 	void OnReadProc();
 	void OnWriteProc();
 	void OnReadWriteProc();
+};
 
+class CPipeSock : public CExtSocket
+{
+public:
+
+public:
 	CPipeSock(class CRLoginDoc *pDoc);
 	virtual ~CPipeSock(void);
+
+	virtual void FifoLink();
+	virtual void SendBreak(int opt);
+
+	void GetPathMaps(CStringMaps &maps);
+	void GetDirMaps(CStringMaps &maps, LPCTSTR dir, BOOL pf = FALSE);
 };

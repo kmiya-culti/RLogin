@@ -75,7 +75,7 @@ const CPfdData & CPfdData::operator = (CPfdData &data)
 
 IMPLEMENT_DYNAMIC(CPfdListDlg, CDialogExt)
 
-static LPCTSTR	ListenTypeName[] = { _T("local"), _T("socks"), _T("remote"), _T("rsocks") };
+static LPCTSTR	ListenTypeName[] = { _T("local"), _T("Lproxy"), _T("remote"), _T("Rproxy") };
 
 CPfdListDlg::CPfdListDlg(CWnd* pParent /*=NULL*/)
 	: CDialogExt(CPfdListDlg::IDD, pParent)
@@ -122,8 +122,13 @@ void CPfdListDlg::InitList()
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, ListenTypeName[m_Data[n].m_ListenType], 0, 0, 0, n);
 		m_List.SetItemText(n, 1, m_Data[n].m_ListenHost);
 		m_List.SetItemText(n, 2, m_Data[n].m_ListenPort);
-		m_List.SetItemText(n, 3, m_Data[n].m_ConnectHost);
-		m_List.SetItemText(n, 4, m_Data[n].m_ConnectPort);
+		if ( (m_Data[n].m_ListenType & 1) == 0 ) {
+			m_List.SetItemText(n, 3, m_Data[n].m_ConnectHost);
+			m_List.SetItemText(n, 4, m_Data[n].m_ConnectPort);
+		} else {
+			m_List.SetItemText(n, 3, _T(""));
+			m_List.SetItemText(n, 4, _T(""));
+		}
 		m_List.SetLVCheck(n, m_Data[n].m_EnableFlag);
 		m_List.SetItemData(n, n);
 	}
@@ -145,11 +150,11 @@ void CPfdListDlg::UpdateCheck()
 // CPfdListDlg メッセージ ハンドラ
 
 static const LV_COLUMN InitListTab[5] = {
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, _T("Type"),  0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  70, _T("Type"),  0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, _T("Listened Host"),  0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, _T("Port"), 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  50, _T("Port"), 0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, _T("Connect Host"),   0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, _T("Port"),   0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  50, _T("Port"),   0, 0 }, 
 	};
 
 BOOL CPfdListDlg::OnInitDialog() 

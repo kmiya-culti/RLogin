@@ -125,6 +125,7 @@ public:
 	class CStatusDlg *m_pMediaCopyWnd;
 	CWordArray m_OptFixCheck;
 	BOOL m_bSleepDisable;
+	int m_SockSyncChar;
 
 	static void LoadOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
 	static void SaveOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
@@ -160,7 +161,6 @@ public:
 
 	int SocketOpen();
 	void SocketClose();
-	int SocketReceive(void *lpBuf, int nBufLen);
 	void SocketSend(void *lpBuf, int nBufLen, BOOL delaySend = FALSE);
 	LPCSTR Utf8Str(LPCTSTR str);
 	LPCSTR RemoteStr(LPCTSTR str);
@@ -170,11 +170,7 @@ public:
 	void OnSocketError(int err);
 	void OnSocketClose();
 	int OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags);
-
-#ifdef	USE_FIFOBUF
-	int m_SockSyncChar;
 	BOOL SocketSyncMode();
-#endif
 
 	void SetDocTitle();
 	inline void SetStatus(LPCTSTR str) { m_SockStatus = str; SetDocTitle(); }

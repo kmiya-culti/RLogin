@@ -3780,7 +3780,7 @@ FONTSIZETAB *CFontChacheNode::FontSizeCheck(LPCTSTR pFontName)
 	if ( ((Metric.tmHeight - Metric.tmInternalLeading) * 100 / Metric.tmHeight) < 80 )
 		pTab->Height = Metric.tmHeight * 80 / (Metric.tmHeight - Metric.tmInternalLeading);
 
-	TRACE(_T("%s\tWith=%d Height=%d Fixed=%d\n"), pTab->FontName, pTab->Width, pTab->Height, pTab->bFixed);
+	//TRACE(_T("%s\tWith=%d Height=%d Fixed=%d\n"), pTab->FontName, pTab->Width, pTab->Height, pTab->bFixed);
 
 	dc.SelectObject(pOld);
 	Font.DeleteObject();

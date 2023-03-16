@@ -305,7 +305,6 @@ public:
 	HICON m_hIconActive;
 	NOTIFYICONDATA m_IconData;
 	CImageList m_ImageGozi;
-	CPtrArray m_SocketParam[SOCKPARAHASH];
 	CPtrArray m_HostAddrParam;
 	CPtrArray m_AfterIdParam;
 	CServerEntryTab m_ServerEntryTab;
@@ -362,6 +361,8 @@ public:
 	class CHistoryDlg *m_pHistoryDlg;
 	class CAnyPastDlg *m_pAnyPastDlg;
 	BOOL m_PastNoCheck;
+	CPtrArray m_FifoActive;
+	CPtrArray m_ThreadMsg;
 
 	BOOL WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf, LPCTSTR pipename);
 	BOOL PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
@@ -375,10 +376,12 @@ public:
 	void SetIconStyle();
 	void SetIconData(HICON hIcon, LPCTSTR str);
 
-	int SetAsyncSelect(SOCKET fd, CExtSocket *pSock, long lEvent = 0);
-	void DelAsyncSelect(SOCKET fd, CExtSocket *pSock, BOOL useWsa = TRUE);
-	int SetAsyncHostAddr(int mode, LPCTSTR pHostName, CExtSocket *pSock);
-	int SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock);
+	void AddThreadMsg(void *pSyncSock);
+	void DelThreadMsg(void *pSyncSock);
+
+	void AddFifoActive(void *pFifoBase);
+	void DelFifoActive(void *pFifoBase);
+
 	int SetAfterId(void *param);
 	void UpdateServerEntry();
 	int OpenServerEntry(CServerEntry &Entry);
@@ -605,8 +608,7 @@ protected:
 	afx_msg void OnChartooltip();
 	afx_msg void OnUpdateChartooltip(CCmdUI *pCmdUI);
 
-	afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
-	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);
+	//afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnIConMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnThreadMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnAfterOpen(WPARAM wParam, LPARAM lParam);
@@ -615,15 +617,8 @@ protected:
 	afx_msg LRESULT OnSetMessageString(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnNullMessage(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnSpeakMsg(WPARAM wParam, LPARAM lParam);
-
-#ifdef	USE_FIFOBUF
-public:
-	CPtrArray m_FifoActive;
-	void AddFifoActive(void *pFifoBase);
-	void DelFifoActive(void *pFifoBase);
 	afx_msg LRESULT OnFifoMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnDocumentMsg(WPARAM wParam, LPARAM lParam);
-#endif
 };
 
 

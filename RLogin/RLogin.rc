@@ -653,9 +653,9 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,206,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,225,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.27.7 (2023/02/10)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.28.0 (2023/03/17)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2023 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 3.0.8 7 Feb 2023",IDC_STATIC,44,53,189,8
+    LTEXT           "OpenSSL 3.1.0 14 Mar 2023",IDC_STATIC,44,53,189,8
     LTEXT           "Copyright (c) 1998-2023 The OpenSSL Project",IDC_STATIC,44,63,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,72,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,81,189,8
@@ -948,9 +948,9 @@ CAPTION "SSH2 ポートフォワード設定"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "Local",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,19,21,56,10
-    CONTROL         "Local Socks",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,93,21,66,10
+    CONTROL         "Local Proxy Server",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,93,21,98,10
     CONTROL         "Remote",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,19,36,56,10
-    CONTROL         "Remote Socks",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,93,36,66,10
+    CONTROL         "Remote Proxy Server",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,93,36,98,10
     COMBOBOX        IDC_LISTENHOST,14,66,118,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_GROUP | WS_TABSTOP
     COMBOBOX        IDC_LISTENPORT,138,66,48,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_CONNECTHOST,14,122,118,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
@@ -2195,8 +2195,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,27,7,0
- PRODUCTVERSION 2,27,7,0
+ FILEVERSION 2,28,0,0
+ PRODUCTVERSION 2,28,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2213,12 +2213,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.27.7.0"
+            VALUE "FileVersion", "2.28.0.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.27.7.0"
+            VALUE "ProductVersion", "2.28.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4166,8 +4166,12 @@ END
 
 IDD_COMINITDLG DLGINIT
 BEGIN
+    IDC_BAUDRATE, 0x403, 3, 0
+0x3537, "\000" 
     IDC_BAUDRATE, 0x403, 4, 0
 0x3131, 0x0030, 
+    IDC_BAUDRATE, 0x403, 4, 0
+0x3531, 0x0030, 
     IDC_BAUDRATE, 0x403, 4, 0
 0x3033, 0x0030, 
     IDC_BAUDRATE, 0x403, 4, 0
@@ -4534,6 +4538,7 @@ STRINGTABLE
 BEGIN
     IDS_FILETRANSMITCLOSE   "%sファイル転送を終了しました"
     IDS_COMPPRIVATEPROFILE  "プライベートプロファイルの圧縮を有効にしてすべての設定を更新しますか？\n下位互換が無い更新になりますのでご注意ください。"
+    IDS_COMPNAMELENBUGFIX   "コンピュータ名などの取得に失敗するバグを修正しました\nファイルベースの場合にパスワードを再設定する必要があります\nまた、下位互換性がありませんのでご注意ください"
 END
 
 STRINGTABLE

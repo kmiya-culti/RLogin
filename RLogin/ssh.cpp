@@ -1,12 +1,13 @@
-// ssh.cpp: Cssh クラスのインプリメンテーション
-//
 //////////////////////////////////////////////////////////////////////
+// ssh.cpp : 実装ファイル
+//
 
 #include "stdafx.h"
 #include "RLogin.h"
 #include "MainFrm.h"
 #include "RLoginDoc.h"
 #include "RLoginView.h"
+#include "ExtSocket.h"
 #include "PassDlg.h"
 #include "EditDlg.h"
 #include "IdkeySelDLg.h"
@@ -29,16 +30,122 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-#define	SSH2_GSS_OIDTYPE	0x06
+//////////////////////////////////////////////////////////////////////
+// CFifoSsh
 
-static const struct _gssapi_kerberos_mech {
-	BYTE	len;
-	BYTE	*data;
-} gssapi_kerberos_mech = { 9, (BYTE *)"\x2a\x86\x48\x86\xf7\x12\x01\x02\x02" };	// Kerberos : iso(1) member-body(2) United States(840) mit(113554) infosys(1) gssapi(2) krb5(2)
+/*
+CFifoSocket		CFifoSsh										CFifoStdio
+	STDOUT		STDIN->OnRecvSocket	   ChannelCheck->EXTOUT		STDIN->OnRecvDocument->CDocument::OnSocketReceive
+	STDINT		STDOUT<-SendSocket		ChannelCheck<-EXTIN		STDOUT<-SendProtocol<-CDocument::SocketSend
+								      ChennelCheck->ChanOut		STDIN->SendMsgChannelData
+								       ChennelCheck->ChanIn		STDOUT<-SSH2MsgChannelData 
+*/
+
+CFifoSsh::CFifoSsh(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoWnd(pDoc, pSock)
+{
+}
+int CFifoSsh::GetFreeFifo(int nFd)
+{
+	Lock();
+	for ( ; nFd < GetFifoSize() ; nFd += 2 ) {
+		if ( m_FifoBuf[nFd] == NULL && m_FifoBuf[nFd + 1] == NULL ) {
+			Unlock();
+			return nFd;
+		}
+	}
+	Unlock();
+
+	return nFd;
+}
+void CFifoSsh::EndOfData(int nFd)
+{
+	if ( m_nLastError == 0 ) {
+		m_pSock->OnClose();
+		m_pDocument->OnSocketClose();
+	} else {
+		m_pSock->OnError(m_nLastError);
+		m_pDocument->OnSocketError(m_nLastError);
+	}
+}
+void CFifoSsh::OnRead(int nFd)
+{
+	int readlen;
+	BYTE *buf = TempBuffer(m_nBufSize);
+
+	ASSERT((nFd & 1) == 0);
+
+	if ( nFd == FIFO_STDIN ) {
+		while ( !m_bDestroy ) {
+			if ( (readlen = Read(nFd, buf, m_nBufSize)) < 0 ) {
+				// nFd End of data
+				ResetFdEvents(nFd, FD_READ);
+				EndOfData(nFd);
+				break;
+			} else if ( readlen == 0 ) {
+				// nFd No data
+				break;
+			} else {
+				// Call Process
+				m_pSock->OnRecvSocket(buf, readlen, 0);
+			}
+		}
+	} else
+		((Cssh *)m_pSock)->ChannelCheck(nFd, FD_READ, NULL);
+}
+void CFifoSsh::OnWrite(int nFd)
+{
+	ASSERT((nFd & 1) != 0);
+
+	if ( nFd == FIFO_STDOUT )
+		ResetFdEvents(nFd, FD_WRITE);
+	else
+		((Cssh *)m_pSock)->ChannelCheck((nFd & ~1), FD_WRITE, NULL);	// EXTOUT->EXTIN 注意
+}
+void CFifoSsh::OnOob(int nFd, int len, BYTE *pBuffer)
+{
+	ResetFdEvents(nFd, FD_OOB);
+}
+void CFifoSsh::OnAccept(int nFd, SOCKET socket)
+{
+	if ( nFd == FIFO_STDIN )
+		m_pSock->OnAccept(socket);
+	else
+		((Cssh *)m_pSock)->ChannelCheck(nFd, FD_ACCEPT, (void *)socket);
+}
+void CFifoSsh::OnConnect(int nFd)
+{
+	if ( nFd == FIFO_STDIN )
+		m_pSock->OnConnect();
+	else
+		((Cssh *)m_pSock)->ChannelCheck(nFd, FD_CONNECT, NULL);
+}
+void CFifoSsh::OnClose(int nFd, int nLastError)
+{
+	if ( nFd == FIFO_STDIN )
+		m_nLastError = nLastError;
+	else
+		((Cssh *)m_pSock)->ChannelCheck(nFd, FD_CLOSE, (void *)nLastError);
+}
+void CFifoSsh::OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult)
+{
+	if ( cmd != FIFO_CMD_MSGQUEIN )
+		return;
+
+	switch(param) {
+	case FIFO_QCMD_SYNCRET:
+		((Cssh *)m_pSock)->ChannelCheck(((Cssh *)m_pSock)->IdToFdOut(msg), FD_ACCEPT, buf);	// FdOut !!
+		break;
+	case FIFO_QCMD_RCPNEXT:
+		if ( msg == TRUE )
+			((Cssh *)m_pSock)->OpenRcpUpload(NULL);
+		else
+			((Cssh *)m_pSock)->m_FileList.RemoveAll();
+		break;
+	}
+}
 
 //////////////////////////////////////////////////////////////////////
-// Cssh 構築/消滅
-//////////////////////////////////////////////////////////////////////
+// Cssh
 
 Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 {
@@ -47,8 +154,6 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_EcdhClientKey = NULL;
 	m_SSHVer = 0;
 	m_InPackStat = 0;
-	m_pListFilter = NULL;
-	m_ConnectTime = 0;
 	m_KeepAliveTiimerId = 0;
 	m_KeepAliveSendCount = m_KeepAliveReplyCount = 0;
 	m_KeepAliveRecvGlobalCount = m_KeepAliveRecvChannelCount = 0;
@@ -60,6 +165,7 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_RsaOaepSecret.m_bZero = TRUE;
 	m_SessHash.m_bZero = TRUE;
 	m_SntrupClientKey.m_bZero = TRUE;
+	m_LastFreeId = 2;
 
 	for ( int n = 0 ; n < 6 ; n++ )
 		m_VKey[n] = NULL;
@@ -84,6 +190,27 @@ Cssh::~Cssh()
 
 	if ( m_CurveEvpKey != NULL )
 		EVP_PKEY_free(m_CurveEvpKey);
+
+	while ( m_FifoCannel.GetSize() > 0 ) {
+		if ( m_FifoCannel[0] != NULL )
+			delete (CFifoChannel *)m_FifoCannel[0];
+		m_FifoCannel.RemoveAt(0);
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+
+void Cssh::FifoLink()
+{
+	FifoUnlink();
+
+	ASSERT(m_pFifoLeft == NULL && m_pFifoMid == NULL && m_pFifoRight == NULL);
+
+	m_pFifoLeft   = new CFifoSocket(m_pDocument, this);
+	m_pFifoMid    = new CFifoSsh(m_pDocument, this);
+	m_pFifoRight  = new CFifoStdio(m_pDocument, this);
+
+	CFifoBase::MidLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
 }
 int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
@@ -104,7 +231,6 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_RecvPackSeq = m_RecvPackLen = 0;
 		m_CipherMode = SSH_CIPHER_NONE;
 		m_SessionIdLen = 0;
-		m_StdChan = (-1);
 		m_AuthStat = AST_START;
 		m_AuthMode = AUTH_MODE_NONE;
 		m_bKeybIntrReq = FALSE;
@@ -115,12 +241,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_DhMode = DHMODE_GROUP_1;
 		m_GlbReqMap.RemoveAll();
 		m_ChnReqMap.RemoveAll();
-		for ( n = 0 ; n < m_pChan.GetSize() ; n++ )
-			delete m_pChan[n];
-		m_pChan.RemoveAll();
-		m_pChanNext = m_pChanFree = m_pChanFree2 = NULL;
 		m_OpenChanCount = 0;
-		m_pListFilter = NULL;
 		m_Permit.RemoveAll();
 		m_MyPeer.Clear();
 		m_HisPeer.Clear();
@@ -140,7 +261,6 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_bKnownHostUpdate = TRUE;
 		m_bReqRsaSha1 = FALSE;
 
-		m_ConnectTime = 0;
 		m_KeepAliveSendCount = m_KeepAliveReplyCount = 0;
 		m_KeepAliveRecvGlobalCount = m_KeepAliveRecvChannelCount = 0;
 		m_bAuthAgentReqEnable = FALSE;
@@ -275,42 +395,30 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 }
 void Cssh::Close()
 {
-	m_StdChan = (-1);
-	for ( int n = 0 ; n < m_pChan.GetSize() ; n++ ) 
-		delete (CChannel *)m_pChan[n];
-	m_pChan.RemoveAll();
+	for ( int n = 0 ; n < m_FifoCannel.GetSize() ; n++ ) {
+		CFifoChannel *pChan = (CFifoChannel *)m_FifoCannel[n];
+		if ( pChan != NULL ) {
+			pChan->m_Status = 0;
+			ChannelClose(n);
+		}
+	}
+
 	CExtSocket::Close();
 }
-int Cssh::Send(const void* lpBuf, int nBufLen, int nFlags)
+
+//////////////////////////////////////////////////////////////////////
+
+void Cssh::OnTimer(UINT_PTR nIDEvent)
 {
-	try {
-		CBuffer tmp;
-		switch(m_SSHVer) {
-		case 1:
-			tmp.Put8Bit(SSH_CMSG_STDIN_DATA);
-			tmp.PutBuf((LPBYTE)lpBuf, nBufLen);
-			SendPacket(&tmp);
-			break;
-		case 2:
-			if ( m_StdChan == (-1) || m_StdInRes.GetSize() > 0 || !CHAN_OK(m_StdChan) )
-				m_StdInRes.Apend((LPBYTE)lpBuf, nBufLen);
-			else
-				((CChannel *)m_pChan[m_StdChan])->m_pFilter->Send((LPBYTE)lpBuf, nBufLen);
-			break;
-		}
-		return nBufLen;
-	} catch(...) {
-		::AfxMessageBox(_T("ssh Send Error"));
-		return 0;
-	}
+	if ( nIDEvent == m_KeepAliveTiimerId )
+		SendMsgKeepAlive();
+	else
+		CExtSocket::OnTimer(nIDEvent);
 }
-void Cssh::OnConnect()
-{
-	time(&m_ConnectTime);
-	m_bCallConnect = FALSE;
-	CExtSocket::OnConnect();
-}
-void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
+
+//////////////////////////////////////////////////////////////////////
+
+void Cssh::OnRecvSocket(void* lpBuf, int nBufLen, int nFlags)
 {
 	CString msg;
 
@@ -352,7 +460,7 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 						}
 
 						str.Format("%s\r\n", m_pDocument->RemoteStr(m_ClientVerStr));
-						CExtSocket::Send((LPCSTR)str, str.GetLength());
+						SendSocket((LPCSTR)str, str.GetLength());
 
 						DEBUGLOG("Receive Version %s", TstrToMbs(m_ServerVerStr));
 						DEBUGLOG("Send Version %s", str);
@@ -606,15 +714,19 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 
 	::AfxMessageBox(msg);
 }
+
+//////////////////////////////////////////////////////////////////////
+
 void Cssh::SendWindSize()
 {
 	try {
+		CFifoChannel *pChan;
+		CBuffer tmp;
 		int cx = 0, cy = 0, sx = 0, sy = 0;
 
 		if ( m_pDocument != NULL )
 			m_pDocument->m_TextRam.GetScreenSize(&cx, &cy, &sx, &sy);
 
-		CBuffer tmp;
 		switch(m_SSHVer) {
 		case 1:
 			tmp.Put8Bit(SSH_CMSG_WINDOW_SIZE);
@@ -625,10 +737,10 @@ void Cssh::SendWindSize()
 			SendPacket(&tmp);
 			break;
 		case 2:
-			if ( m_StdChan == (-1) || !CHAN_OK(m_StdChan) || !CEOF_OK(m_StdChan) )	// ((CChannel *)m_pChan[m_StdChan])->m_RemoteID == (-1) )
+			if ( (pChan = GetFifoChannel(FdToId(FIFO_EXTIN))) == NULL || (pChan->m_Status & CHAN_OPEN_REMOTE) == 0 )
 				break;
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-			tmp.Put32Bit(((CChannel *)m_pChan[m_StdChan])->m_RemoteID);
+			tmp.Put32Bit(pChan->m_RemoteID);
 			tmp.PutStr("window-change");
 			tmp.Put8Bit(0);
 			tmp.Put32Bit(cx);
@@ -645,13 +757,15 @@ void Cssh::SendWindSize()
 void Cssh::SendBreak(int opt)
 {
 	try {
+		CFifoChannel *pChan;
 		CBuffer tmp;
+
 		switch(m_SSHVer) {
 		case 2:
-			if ( m_StdChan == (-1) || !CHAN_OK(m_StdChan) || !CEOF_OK(m_StdChan) )	// ((CChannel *)m_pChan[m_StdChan])->m_RemoteID == (-1) )
+			if ( (pChan = GetFifoChannel(FdToId(FIFO_EXTIN))) == NULL || (pChan->m_Status & CHAN_OPEN_REMOTE) == 0 )
 				break;
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-			tmp.Put32Bit(((CChannel *)m_pChan[m_StdChan])->m_RemoteID);
+			tmp.Put32Bit(pChan->m_RemoteID);
 			tmp.PutStr("break");
 			tmp.Put8Bit(0);
 			tmp.Put32Bit(opt != 0 ? 300 : 100);
@@ -662,59 +776,16 @@ void Cssh::SendBreak(int opt)
 		::AfxMessageBox(_T("ssh SendBreak Error"));
 	}
 }
-
-void Cssh::OnTimer(UINT_PTR nIDEvent)
-{
-	if ( nIDEvent == m_KeepAliveTiimerId )
-		SendMsgKeepAlive();
-	else
-		CExtSocket::OnTimer(nIDEvent);
-}
-void Cssh::OnRecvEmpty()
-{
-	// Display処理(OnSocketReceive)バッファが少なくなった時
-
-	if ( m_StdChan != (-1) )
-		((CChannel *)m_pChan[m_StdChan])->m_pFilter->OnRecvEmpty();
-
-	CExtSocket::OnRecvEmpty();
-}
-void Cssh::OnSendEmpty()
-{
-	// すべてのパケットを送信後
-
-	for ( CFilter *fp = m_pListFilter ; fp != NULL ; fp = fp->m_pNext )
-		fp->OnSendEmpty();
-}
 int Cssh::GetRecvSize()
 {
-	return m_RecvSize;
+	return CExtSocket::GetRecvSocketSize();
 }
-void Cssh::ResetOption()
-{
-	CExtSocket::ResetOption();
 
-	if ( m_KeepAliveTiimerId != 0 ) {
-		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_KeepAliveTiimerId);
-		m_KeepAliveTiimerId = 0;
-	}
-
-	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_SshKeepAlive > 0 )
-		m_KeepAliveTiimerId = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
-
-	if ( m_bAuthAgentReqEnable != m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) || m_PortFwdTable.Compare(m_pDocument->m_ParamTab.m_PortFwd) != 0 ) {
-		AfxMessageBox(CStringLoad(IDS_SSHOPTIONCHECK), MB_ICONWARNING);
-
-		m_bAuthAgentReqEnable = m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT);
-		m_PortFwdTable = m_pDocument->m_ParamTab.m_PortFwd;
-	}
-}
+//////////////////////////////////////////////////////////////////////
 
 void Cssh::GetStatus(CString &str)
 {
 	CString tmp;
-	CChannel *cp;
-
 
 	CExtSocket::GetStatus(str);
 
@@ -781,9 +852,9 @@ void Cssh::GetStatus(CString &str)
 		str += _T("none");
 	str += _T("\r\n");
 
-	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_SshKeepAlive > 0 ) {
+	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_SshKeepAlive > 0 && m_pDocument->m_ConnectTime != 0 ) {
 		CTime now = CTime::GetCurrentTime();
-		int sec = (int)(now.GetTime() - m_ConnectTime);
+		int sec = (int)(now.GetTime() - m_pDocument->m_ConnectTime);
 
 		str += _T("KeepAlive CtoS: ");
 
@@ -814,10 +885,13 @@ void Cssh::GetStatus(CString &str)
 	tmp.Format(_T("Open Channel: %d\r\n"), m_OpenChanCount);
 	str += tmp;
 
-	for ( cp = m_pChanNext ; cp != NULL ; cp = cp->m_pNext ) {
-		tmp.Format(_T("Chanel: RemoteId=%d LocalId=%d Status=%o(%o) Type=%s Read=%lld Write=%lld\r\n"),
-			cp->m_RemoteID, cp->m_LocalID, cp->m_Status, cp->m_Eof, cp->m_TypeName, cp->m_WriteByte, cp->m_ReadByte);
-		str += tmp;
+	for ( int n = 0 ;  n < m_FifoCannel.GetSize() ; n++ ) {
+		CFifoChannel *pChan = (CFifoChannel *)m_FifoCannel[n];
+		if ( pChan != NULL ) {
+			tmp.Format(_T("Chanel: RemoteId=%d LocalId=%d Name=%s Type=%d Status=%03o Stage=%d\r\n"),
+				pChan->m_RemoteID, pChan->m_LocalID, MbsToTstr(pChan->m_TypeName), pChan->m_Type, pChan->m_Status, pChan->m_Stage);
+			str += tmp;
+		}
 	}
 
 	if ( m_Permit.GetSize() > 0 ) {
@@ -826,15 +900,36 @@ void Cssh::GetStatus(CString &str)
 		str += tmp;
 
 		for ( int n = 0 ; n < m_Permit.GetSize() ; n++ ) {
-			tmp.Format(_T("Type=%d Listened=%s:%d Connect=%s:%d\r\n"), m_Permit[n].m_Type, (LPCTSTR)m_Permit[n].m_rHost, m_Permit[n].m_rPort, (LPCTSTR)m_Permit[n].m_lHost, m_Permit[n].m_lPort);
+			if ( m_Permit[n].m_Type == PFD_RSOCKS )
+				tmp.Format(_T("Type=%d Listened=%s:%d\r\n"), m_Permit[n].m_Type, (LPCTSTR)m_Permit[n].m_rHost, m_Permit[n].m_rPort);
+			else
+				tmp.Format(_T("Type=%d Listened=%s:%d Connect=%s:%d\r\n"), m_Permit[n].m_Type, (LPCTSTR)m_Permit[n].m_rHost, m_Permit[n].m_rPort, (LPCTSTR)m_Permit[n].m_lHost, m_Permit[n].m_lPort);
 			str += tmp;
 		}
+	}
+}
+void Cssh::ResetOption()
+{
+	CExtSocket::ResetOption();
+
+	if ( m_KeepAliveTiimerId != 0 ) {
+		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_KeepAliveTiimerId);
+		m_KeepAliveTiimerId = 0;
+	}
+
+	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_SshKeepAlive > 0 )
+		m_KeepAliveTiimerId = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
+
+	if ( m_bAuthAgentReqEnable != m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) || m_PortFwdTable.Compare(m_pDocument->m_ParamTab.m_PortFwd) != 0 ) {
+		AfxMessageBox(CStringLoad(IDS_SSHOPTIONCHECK), MB_ICONWARNING);
+
+		m_bAuthAgentReqEnable = m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT);
+		m_PortFwdTable = m_pDocument->m_ParamTab.m_PortFwd;
 	}
 }
 
 //////////////////////////////////////////////////////////////////////
 // SSH1 Function
-//////////////////////////////////////////////////////////////////////
 
 void Cssh::SendDisconnect(LPCSTR str)
 {
@@ -867,7 +962,7 @@ void Cssh::SendPacket(CBuffer *bp)
 	ext.Put32Bit(len);
 	ext.Apend(bp->GetPtr(), bp->GetSize());
 
-	CExtSocket::Send(ext.GetPtr(), ext.GetSize());
+	SendSocket(ext.GetPtr(), ext.GetSize());
 }
 
 int Cssh::SMsgPublicKey(CBuffer *bp)
@@ -1217,7 +1312,6 @@ void Cssh::ReceivePacket(CBuffer *bp)
 
 //////////////////////////////////////////////////////////////////////
 // SSH2 Function
-//////////////////////////////////////////////////////////////////////
 
 void Cssh::LogIt(LPCTSTR format, ...)
 {
@@ -1237,10 +1331,10 @@ void Cssh::LogIt(LPCTSTR format, ...)
 	CString tmp;
 	CTime now = CTime::GetCurrentTime();
 	DWORD size;
-	TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
+	TCHAR buf[MAX_COMPUTERNAME];
 
 	tmp = now.Format(_T("%b %d %H:%M:%S "));
-	size = MAX_COMPUTERNAME_LENGTH;
+	size = MAX_COMPUTERNAME;
 	if ( GetComputerName(buf, &size) )
 		tmp += buf;
 	tmp += _T(" : ");
@@ -1248,7 +1342,7 @@ void Cssh::LogIt(LPCTSTR format, ...)
 	tmp += _T("\r\n");
 
 	CStringA mbs(tmp);
-	CExtSocket::OnReceiveCallBack((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
+	SendDocument((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
 }
 void Cssh::SendTextMsg(LPCSTR str, int len)
 {
@@ -1267,418 +1361,7 @@ void Cssh::SendTextMsg(LPCSTR str, int len)
 		}
 	}
 
-	CExtSocket::OnReceiveCallBack((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
-}
-int Cssh::ChannelOpen()
-{
-	int n, mx;
-	CChannel *cp;
-
-	while ( (cp = m_pChanFree) == NULL ) {
-		for ( mx = 0 ; (cp = m_pChanFree2) != NULL ; mx++ ) {
-			m_pChanFree2 = cp->m_pNext;
-			cp->m_pNext = m_pChanFree;
-			m_pChanFree = cp;
-		}
-		if ( mx < 5 ) {
-			n = (int)m_pChan.GetSize();
-			if ( (mx = n + 10) == CHAN_MAXSIZE ) {
-				if ( AfxMessageBox(CStringLoad(IDE_MANYCHANNEL), MB_ICONQUESTION | MB_YESNO) != IDYES )
-					return (-1);
-			}
-			m_pChan.SetSize(mx);
-			while ( n < mx ) {
-				cp = new CChannel;
-				cp->m_pNext = m_pChanFree;
-				m_pChanFree = cp;
-				m_pChan[--mx] = cp;
-				cp->m_LocalID = mx;
-			}
-		}
-	}
-	m_pChanFree = cp->m_pNext;
-
-	cp->m_pNext = m_pChanNext;
-	m_pChanNext = cp;
-
-	cp->m_pDocument  = m_pDocument;
-	cp->m_pSsh       = this;
-
-	cp->m_Status     = 0;
-	cp->m_TypeName   = _T("");
-	cp->m_RemoteID   = (-1);
-	cp->m_RemoteWind = 0;
-	cp->m_RemoteMax  = 0;
-	cp->m_LocalComs  = 0;
-	cp->m_LocalWind  = CHAN_SES_WINDOW_DEFAULT;
-	cp->m_LocalPacks = CHAN_SES_PACKET_DEFAULT;
-	cp->m_Eof        = 0;
-	cp->m_Input.Clear();
-	cp->m_Output.Clear();
-
-	cp->m_lHost      = _T("");
-	cp->m_lPort      = 0;
-	cp->m_rHost      = _T("");
-	cp->m_rPort      = 0;
-	cp->m_ReadByte   = 0;
-	cp->m_WriteByte  = 0;
-	cp->m_ConnectTime= 0;
-
-#ifndef	USE_FIFOBUF
-	((CRLoginApp *)AfxGetApp())->AddIdleProc(IDLEPROC_SOCKET, cp);
-#endif
-
-	return cp->m_LocalID;
-}
-void Cssh::ChannelClose(int id, BOOL bClose)
-{
-	CChannel *cp, *tp;
-
-	cp = (CChannel *)m_pChan[id];
-
-	if ( (tp = m_pChanNext) == cp )
-		m_pChanNext = cp->m_pNext;
-	else {
-		while ( tp->m_pNext != NULL ) {
-			if ( tp->m_pNext == cp ) {
-				tp->m_pNext = cp->m_pNext;
-				break;
-			}
-			tp = tp->m_pNext;
-		}
-	}
-
-	cp->m_pNext = m_pChanFree2;
-	m_pChanFree2 = cp;
-
-	cp->Close();
-
-	if ( id == m_StdChan ) {
-		m_StdChan = (-1);
-		m_SSH2Status &= ~SSH2_STAT_HAVESTDIO;
-
-		if ( m_pChanNext != NULL && AfxMessageBox(CStringLoad(IDS_SSHCLOSEALL), MB_ICONQUESTION | MB_YESNO) == IDYES )
-			PostMessage(m_Fd, WSAMAKESELECTREPLY(FD_CLOSE, 0));
-	}
-
-	if ( bClose && m_pChanNext == NULL && m_Permit.GetSize() == 0 )
-		PostMessage(m_Fd, WSAMAKESELECTREPLY(FD_CLOSE, 0));
-}
-void Cssh::ChannelCheck(int n)
-{
-	CChannel *cp = (CChannel *)m_pChan[n];
-	CBuffer tmp;
-
-	if ( !CHAN_OK(n) ) {
-		if ( (cp->m_Status & CHAN_LISTEN) && (cp->m_Eof & CEOF_DEAD) ) {
-			ChannelClose(n, TRUE);
-			LogIt(_T("Listen Closed #%d %s:%d -> %s:%d"), n, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
-		}
-		return;
-	}
-
-	cp->m_Eof &= ~(CEOF_IEMPY | CEOF_OEMPY);
-	if ( cp->GetSendSize() == 0 )
-		cp->m_Eof |= CEOF_IEMPY;
-	if ( cp->GetRecvSize() == 0 )
-		cp->m_Eof |= CEOF_OEMPY;
-
-	if ( !(cp->m_Eof & CEOF_SEOF) && !(cp->m_Eof & CEOF_SCLOSE) ) {
-		if ( (cp->m_Eof & CEOF_ICLOSE) || ((cp->m_Eof & CEOF_DEAD) && (cp->m_Eof & CEOF_OEMPY)) ) {
-			cp->m_Output.Clear();
-			cp->m_Eof |= (CEOF_SEOF | CEOF_OEMPY);
-			tmp.Clear();
-			tmp.Put8Bit(SSH2_MSG_CHANNEL_EOF);
-			tmp.Put32Bit(cp->m_RemoteID);
-			SendPacket2(&tmp);
-		}
-	}
-
-	if ( !(cp->m_Eof & CEOF_SCLOSE) ) {
-		if ( (cp->m_Eof & CEOF_DEAD) || ((cp->m_Eof & CEOF_IEOF) && (cp->m_Eof & CEOF_IEMPY)) ) {
-			cp->m_Input.Clear();
-			cp->m_Eof |= (CEOF_SCLOSE | CEOF_IEMPY);
-			tmp.Clear();
-			tmp.Put8Bit(SSH2_MSG_CHANNEL_CLOSE);
-			tmp.Put32Bit(cp->m_RemoteID);
-			SendPacket2(&tmp);
-		}
-	}
-
-	if ( !(cp->m_Eof & CEOF_ICLOSE) && !(cp->m_Eof & CEOF_OEMPY) && cp->m_Output.GetSize() > 0 )
-		SendMsgChannelData(n);
-
-	if ( (cp->m_Eof & CEOF_ICLOSE) && (cp->m_Eof & CEOF_SCLOSE) ) {
-		if ( cp->m_pFilter != NULL ) {
-			switch(cp->m_pFilter->m_Type) {
-			case SSHFT_STDIO:
-				LogIt(_T("Closed #%d stdio"), n);
-				break;
-			case SSHFT_SFTP:
-				LogIt(_T("Closed #%d sftp"), n);
-				break;
-			case SSHFT_AGENT:
-				LogIt(_T("Closed #%d agent"), n);
-				break;
-			case SSHFT_RCP:
-				LogIt(_T("Closed #%d rcp"), n);
-				break;
-			case SSHFT_X11:
-				LogIt(_T("Closed #%d x11"), n);
-				break;
-			}
-		} else
-			LogIt(_T("Closed #%d %s:%d -> %s:%d"), n, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
-		m_OpenChanCount--;
-		ChannelClose(n, TRUE);
-	}
-}
-void Cssh::ChannelAccept(int id, SOCKET hand)
-{
-	int i;
-	CString host;
-	int port;
-	CChannel *cp = (CChannel *)m_pChan[id];
-
-	if ( (i = ChannelOpen()) < 0 )
-		return;
-
-	if ( !cp->Accept((CExtSocket *)m_pChan[i], hand) ) {
-		ChannelClose(i);
-		return;
-	}
-
-	CExtSocket::GetPeerName((int)((CChannel *)m_pChan[i])->m_Fd, host, &port);
-
-	if ( (cp->m_Status & CHAN_PROXY_SOCKS) != 0 ) {
-		((CChannel *)m_pChan[i])->m_Status = CHAN_PROXY_SOCKS;
-		((CChannel *)m_pChan[i])->m_lHost = host;
-		((CChannel *)m_pChan[i])->m_lPort = port;
-	} else {
-		SendMsgChannelOpen(i, "direct-tcpip", cp->m_rHost, cp->m_rPort, host, port);
-	}
-}
-void Cssh::ChannelPolling(int id)
-{
-	int n;
-	CBuffer tmp;
-	CChannel *cp = (CChannel *)m_pChan[id];
-
-	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
-		return;
-
-	if ( (n = cp->m_LocalComs - cp->GetSendSize()) >= (cp->m_LocalWind / 2) ) {
-		tmp.Clear();
-		tmp.Put8Bit(SSH2_MSG_CHANNEL_WINDOW_ADJUST);
-		tmp.Put32Bit(cp->m_RemoteID);
-		tmp.Put32Bit(n);
-		SendPacket2(&tmp);
-
-		DEBUGLOG("WindowAdjust #%d %d - %d = %d (%d)", cp->m_LocalID, cp->m_LocalComs, cp->GetSendSize(), n, cp->m_LocalWind);
-
-		cp->m_LocalComs -= n;
-	}
-
-	if ( cp->GetSendSize() <= 0 )
-		ChannelCheck(id);
-}
-void Cssh::DecodeProxySocks(int id, CBuffer &resvbuf)
-{
-	int n;
-	int len;
-	int id_len, dm_len;
-	BOOL bS4a = FALSE;
-	DWORD dw;
-	LPBYTE p, e;
-	CString host[2];
-	int port[2];
-	struct {
-		BYTE version;
-		BYTE command;
-		WORD dest_port;
-		union {
-			struct in_addr	in_addr;
-			DWORD			dw_addr;
-			BYTE			bt_addr[4];
-		} dest;
-	} s4_req;
-	BYTE tmp[257];
-	struct sockaddr_in in;
-    struct sockaddr_in6 in6;
-	CChannel *cp = (CChannel *)m_pChan[id];
-	CBuffer sendbuf;
-
-	if ( (len = resvbuf.GetSize()) < 2 )
-		return;
-
-	p = resvbuf.GetPtr();
-	e = p + len;
-
-	switch(p[0]) {
-	case 4:
-		if ( len < 8 )
-			break;
-
-		if ( p[1] != 0x01 ) {		// CONNECT Command
-			ChannelClose(id);
-			return;
-		}
-
-		p += (1 + 1 + 2);			// version + command +  dest_port
-
-		if ( p[0] == 0 && p[1] == 0 && p[2] == 0 && p[3] != 0 )
-			bS4a = TRUE;
-
-		p += 4;						// in_addr
-
-		// UserID Skip
-		for ( id_len = 0 ; ; ) {
-			if ( p >= e )
-				return;
-			id_len++;
-			if ( *(p++) == '\0' )
-				break;
-		}
-		// Domain Name Skip
-		for ( dm_len = 0 ; bS4a ; ) {
-			if ( p >= e )
-				return;
-			if ( dm_len < 256 )
-				tmp[dm_len++] = *p;
-			if ( *(p++) == '\0' )
-				break;
-		}
-		tmp[dm_len] = '\0';
-
-		s4_req.version      = resvbuf.Get8Bit();
-		s4_req.command      = resvbuf.Get8Bit();
-		s4_req.dest_port    = resvbuf.GetWord();	// LT Word
-		s4_req.dest.dw_addr = resvbuf.GetDword();	// LT DWord
-		resvbuf.Consume(id_len);					// UserID
-		resvbuf.Consume(dm_len);					// Domain Name
-
-		sendbuf.Put8Bit(0);
-		sendbuf.Put8Bit(90);
-		sendbuf.Put16Bit(0);
-		sendbuf.Put32Bit(INADDR_ANY);
-		cp->Send(sendbuf.GetPtr(), sendbuf.GetSize());
-		sendbuf.Clear();
-
-		host[0] = (bS4a && dm_len > 0 ? (LPCSTR)tmp : inet_ntoa(s4_req.dest.in_addr));
-		port[0] = ntohs(s4_req.dest_port);
-		host[1] = cp->m_lHost;
-		port[1] = cp->m_lPort;
-
-
-		if ( (cp->m_Status & CHAN_REMOTE_SOCKS) != 0 ) {
-			cp->m_Status &= ~CHAN_REMOTE_SOCKS;
-			cp->m_rHost = host[0];
-			cp->m_rPort = port[0];
-
-			if ( cp->AsyncOpen(cp->m_rHost, cp->m_rPort) )
-				LogIt(_T("Open #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
-			else
-				LogIt(_T("Remote-socks Open Permit Failure #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
-
-		} else
-			SendMsgChannelOpen(id, "direct-tcpip", host[0], port[0], host[1], port[1]);
-
-		break;
-
-	case 5:
-		if ( (cp->m_Status & CHAN_SOCKS5_AUTH) == 0 ) {
-			if ( len < (p[1] + 2) )
-				break;
-			for ( n = 2 ; n < (p[1] + 2) ; n++ ) {
-				if ( p[n] == '\0' )		// SOCKS5_NOAUTH
-					break;
-			}
-			if ( n >= (p[1] + 2) ) {
-				ChannelClose(id);
-				break;
-			}
-			resvbuf.Consume(p[1] + 2);
-			len = resvbuf.GetSize();
-
-			sendbuf.Put8Bit(5);
-			sendbuf.Put8Bit(0);
-			cp->Send(sendbuf.GetPtr(), sendbuf.GetSize());
-			sendbuf.Clear();
-
-			cp->m_Status |= CHAN_SOCKS5_AUTH;
-		}
-
-		if ( len < 4 )
-			break;
-		if ( p[1] != '\x01' || p[2] != '\0' ) {	// SOCKS5_CONNECT  ?
-			ChannelClose(id);
-			break;
-		}
-		if ( p[3] == '\x01' ) {			// SOCKS5_IPV4
-			if ( len < (4 + 4 + 2) )
-				break;
-			memcpy(tmp, p + 4, 4);
-			resvbuf.Consume(4 + 4);
-			memset(&in, 0, sizeof(in));
-			in.sin_family = AF_INET;
-			memcpy(&(in.sin_addr), tmp, 4);
-			cp->GetHostName((struct sockaddr *)&in, sizeof(in), host[0]);
-		} else if ( p[3] == '\x03' ) {	// SOCKS5_DOMAIN
-			if ( len < (4 + p[4] + 2) )
-				break;
-			memcpy(tmp, p + 5, p[4]);
-			resvbuf.Consume(5 + p[4]);
-			tmp[p[4]] = '\0';
-			host[0] = tmp;
-		} else if ( p[3] == '\x04' ) {	// SOCKS5_IPV6
-			if ( len < (4 + 16 + 2) )
-				break;
-			memcpy(tmp, p + 4, 16);
-			resvbuf.Consume(4 + 16);
-			memset(&in6, 0, sizeof(in6));
-			in6.sin6_family = AF_INET6;
-			memcpy(&(in6.sin6_addr), tmp, 16);
-			cp->GetHostName((struct sockaddr *)&in6, sizeof(in6), host[0]);
-		} else {
-			ChannelClose(id);
-			break;
-		}
-
-		dw = *((WORD *)(resvbuf.GetPtr()));
-		resvbuf.Consume(2);
-
-		sendbuf.Put8Bit(0x05);
-		sendbuf.Put8Bit(0x00);	// SOCKS5_SUCCESS
-		sendbuf.Put8Bit(0x00);
-		sendbuf.Put8Bit(0x01);	// SOCKS5_IPV4
-		sendbuf.Put32Bit(INADDR_ANY);
-		sendbuf.Put16Bit(dw);
-		cp->Send(sendbuf.GetPtr(), sendbuf.GetSize());
-		sendbuf.Clear();
-
-		port[0] = ntohs((WORD)dw);
-		host[1] = cp->m_lHost;
-		port[1] = cp->m_lPort;
-
-		if ( (cp->m_Status & CHAN_REMOTE_SOCKS) != 0 ) {
-			cp->m_Status &= ~CHAN_REMOTE_SOCKS;
-			cp->m_rHost = host[0];
-			cp->m_rPort = port[0];
-
-			if ( cp->AsyncOpen(cp->m_rHost, cp->m_rPort) )
-				LogIt(_T("Open #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
-			else
-				LogIt(_T("Remote-socks Open Permit Failure #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
-
-		} else
-			SendMsgChannelOpen(id, "direct-tcpip", host[0], port[0], host[1], port[1]);
-
-		break;
-
-	default:
-		ChannelClose(id);
-		break;
-	}
+	SendDocument((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
 }
 int Cssh::MatchList(LPCTSTR client, LPCTSTR server, CString &str)
 {
@@ -1711,11 +1394,641 @@ int Cssh::MatchList(LPCTSTR client, LPCTSTR server, CString &str)
 
 	return FALSE;
 }
+LPCTSTR Cssh::GetSigAlgs()
+{
+	int n;
+
+	if ( (n = m_ExtInfo.Find(_T("server-sig-algs"))) < 0 )
+		return NULL;
+
+	return m_ExtInfo[n].m_String;
+}
+BOOL Cssh::IsServerVersion(LPCTSTR pattan)
+{
+	//	if (sscanf(server_version_string, "SSH-%d.%d-%[^\n]\n", &remote_major, &remote_minor, remote_version) != 3)
+	LPCTSTR str = m_ServerVerStr;
+
+	// SSH-
+	if ( _tcsncmp(str, _T("SSH-"), 4) != 0 )
+		return FALSE;
+	str += 4;
+
+	// major version
+	while ( *str >= _T('0') && *str <= _T('9') )
+		str++;
+	if ( *str != _T('.') )
+		return FALSE;
+	str++;
+
+	// minor version
+	while ( *str >= _T('0') && *str <= _T('9') )
+		str++;
+	if ( *str != _T('-') )
+		return FALSE;
+	str++;
+
+	if ( _tcsnicmp(str, pattan, _tcslen(pattan)) == 0 )
+		return TRUE;
+
+	return FALSE;
+}
+void Cssh::UserAuthNextState()
+{
+	m_IdKeyPos = 0;
+	m_AuthStat = m_AuthReqTab[m_AuthStat];
+	m_AuthMode = AUTH_MODE_NONE;
+}
+void Cssh::AddAuthLog(LPCTSTR str, ...)
+{
+	CString tmp;
+	va_list arg;
+
+	va_start(arg, str);
+	tmp.FormatV(str, arg);
+	va_end(arg);
+
+	if ( !m_AuthLog.IsEmpty() )
+		m_AuthLog += _T(", ");
+
+	m_AuthLog += tmp;
+}
+BOOL Cssh::IsStriStr(LPCSTR str, LPCSTR ptn)
+{
+	for ( ; *str != '\0' ; str++ ) {
+		if ( tolower(*str) == tolower(*ptn) ) {
+			LPCSTR s = str + 1;
+			LPCSTR p = ptn + 1;
+			for ( ; ; ) {
+				if ( *p == '\0' )
+					return TRUE;
+				if ( tolower(*s) != tolower(*p) )
+					break;
+				s++;
+				p++;
+			}
+		}
+	}
+
+	return FALSE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// Channel funcsion
+
+class CFifoChannel *Cssh::GetFifoChannel(int id)
+{
+	int nFd = IdToFdIn(id);
+	CFifoChannel *pChan = NULL;
+
+	if ( id < 0 ) {
+		if ( id == (-2) ) {
+			nFd = FIFO_EXTIN;
+			id = FdToId(nFd);
+
+			while ( id >= m_FifoCannel.GetSize() )
+				m_FifoCannel.Add(NULL);
+
+			m_FifoCannel[id] = pChan = new CFifoChannel;
+			m_OpenChanCount++;
+
+			pChan->m_Type = SSHFT_STDIO;
+			pChan->m_Status = 0;
+			pChan->m_Stage = 0;
+			pChan->m_TypeName = _T("console");
+			pChan->m_RemoteID = (-1);
+			pChan->m_LocalID = id;
+			pChan->m_LocalComs = 0;
+			pChan->m_LocalWind = m_pDocument->m_ParamTab.m_StdIoBufSize * 1024;
+			pChan->m_LocalPacks = pChan->m_LocalWind / 4;
+			pChan->m_pFifoBase = NULL;
+			pChan->m_bClosed = FALSE;
+
+		} else {
+			for ( nFd = IdToFdIn(m_LastFreeId) ; ; nFd += 2 ) {
+				nFd = ((CFifoSsh *)m_pFifoMid)->GetFreeFifo(nFd);
+				id = FdToId(nFd);
+
+				while ( id >= m_FifoCannel.GetSize() )
+					m_FifoCannel.Add(NULL);
+
+				if ( m_FifoCannel[id] == NULL )
+					break;
+			}
+			m_LastFreeId = id + 1;
+
+			if ( ++m_OpenChanCount == CHAN_MAXCONNECT ) {
+				if ( AfxMessageBox(CStringLoad(IDE_MANYCHANNEL), MB_ICONQUESTION | MB_YESNO) != IDYES )
+					return NULL;
+			}
+
+			m_FifoCannel[id] = pChan = new CFifoChannel;
+
+			pChan->m_Type = SSHFT_NONE;
+			pChan->m_Status = 0;
+			pChan->m_Stage = 0;
+			pChan->m_RemoteID = (-1);
+			pChan->m_LocalID = id;
+			pChan->m_LocalComs = 0;
+			pChan->m_LocalWind = CHAN_SES_WINDOW_DEFAULT;
+			pChan->m_LocalPacks = CHAN_SES_PACKET_DEFAULT;
+			pChan->m_pFifoBase = NULL;
+			pChan->m_bClosed = FALSE;
+		}
+
+	} else if ( id < m_FifoCannel.GetSize() )
+		pChan = (CFifoChannel *)m_FifoCannel[id];
+
+	return pChan;
+}
+
+BOOL Cssh::ChannelCreate(int id, LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress, UINT nRemotePort)
+{
+	int nFd = IdToFdIn(id);
+	CFifoChannel *pChan = GetFifoChannel(id);
+
+	ASSERT(pChan != NULL);
+
+	pChan->m_lHost	= (lpszHostAddress != NULL ? lpszHostAddress : _T(""));
+	pChan->m_lPort	= nHostPort;
+	pChan->m_rHost	= (lpszRemoteAddress != NULL ? lpszRemoteAddress : _T(""));
+	pChan->m_rPort	= nRemotePort;
+
+	pChan->m_pFifoBase = new CFifoListen(m_pDocument, this);
+
+	CFifoBase::Link(m_pFifoMid, nFd, pChan->m_pFifoBase, FIFO_STDIN);
+
+	if ( !((CFifoListen *)pChan->m_pFifoBase)->Open(lpszHostAddress, nHostPort) )
+		return FALSE;
+
+	return TRUE;
+}
+BOOL Cssh::ChannelOpen(int id, LPCTSTR lpszHostAddress, UINT nHostPort)
+{
+	int nFd = IdToFdIn(id);
+	CFifoChannel *pChan = GetFifoChannel(id);
+
+	ASSERT(pChan != NULL);
+
+	pChan->m_pFifoBase = new CFifoSocket(m_pDocument, this);
+
+	CFifoBase::Link(m_pFifoMid, nFd, pChan->m_pFifoBase, FIFO_STDIN);
+
+	if ( !((CFifoSocket *)pChan->m_pFifoBase)->Open(lpszHostAddress, nHostPort) )
+		return FALSE;
+
+	return TRUE;
+}
+/*
+=================================
+RecvEOF			CHAN_ENDOF_REMOTE	0
+	SendEOF
+	WriteBlock			0->1
+RecvClose		CHAN_CLOSE_REMOTE	1
+	SendClose
+	IsOpen
+		DoClose			1->2
+	IsClosed
+		ChannelClose	1->99
+OnClose			CHAN_CLOSE_LOCAL	2
+	ChannelClose		2->99
+=================================
+RecvEOF			CHAN_ENDOF_REMOTE	0
+	SendEOF
+	WriteBlock			0->1
+OnClose			CHAN_CLOSE_LOCAL	1
+	SendClose			1->3
+RecvClose		CHAN_CLOSE_REMOTE	3
+	ChannelClose		3->99
+=================================
+OnRead			CHAN_ENDOF_LOCAL	0
+	SendEOF
+	IsOpen
+		DoClose			0->4
+	IsClosed
+		Stage			0->6
+RecvClose		CHAN_CLOSE_REMOTE	4
+	SendClose			4->5
+OnClose			CHAN_CLOSE_LOCAL	5
+	ChannelClose		5->99
+
+RecvClose		CHAN_CLOSE_REMOTE	6
+	SendClose
+	ChannelClose		6->99
+=================================
+OnRead			CHAN_ENDOF_LOCAL	0
+	SendEOF
+	IsOpen
+		DoClose			0->4
+	IsClosed
+		SendClose		0->5
+OnClose			CHAN_CLOSE_LOCAL	4
+	SendClose			4->5
+RecvClose		CHAN_CLOSE_REMOTE	5
+	ChannelClose		5->99
+=================================
+RecvClose		CHAN_CLOSE_REMOTE	0
+	IsOpen
+		DoClose			0->7
+	IsClosed
+		SendClose
+		ChannelClose	0->99
+OnClose			CHAN_CLOSE_LOCAL	7
+	SendClose
+	ChannelClose		7->99
+=================================
+OnClose			CHAN_CLOSE_LOCAL	0
+	SendEOF				0->8
+RecvClose		CHAN_CLOSE_REMOTE	8
+	SendClose
+	ChannelClose		8->99
+=================================
+*/
+void Cssh::ChannelClose(int id, int nStat)
+{
+	CFifoChannel *pChan = GetFifoChannel(id);
+	CBuffer tmp;
+
+	ASSERT(pChan != NULL);
+
+#define	SendChanMsg(msg) { tmp.Clear(); tmp.Put8Bit(msg); tmp.Put32Bit(pChan->m_RemoteID); SendPacket2(&tmp); }
+
+	//TRACE("ChannelClose #%d %d %d\n", id, nStat, pChan->m_Stage);
+
+	ASSERT(nStat == 0 || pChan->m_RemoteID != (-1));
+
+	switch(nStat) {
+	case CHAN_ENDOF_LOCAL:		// OnRead
+		if ( pChan->m_Stage == 0 ) {
+			SendChanMsg(SSH2_MSG_CHANNEL_EOF);
+			if ( !pChan->m_bClosed ) {
+				m_pFifoMid->SendFdEvents(IdToFdOut(id), FD_CLOSE, NULL);
+				m_pFifoMid->Read(IdToFdIn(id), NULL, 0);	// Channel Write Block
+				pChan->m_Stage = 4;
+			} else {
+				pChan->m_Stage = 5;
+			}
+		}
+		return;
+	case CHAN_ENDOF_REMOTE:		// RecvEOF
+		if ( pChan->m_Stage == 0 ) {
+			pChan->m_Stage = 1;
+			SendChanMsg(SSH2_MSG_CHANNEL_EOF);
+			m_pFifoMid->Write(IdToFdOut(id), NULL, 0);	// Channel Read Endof
+		}
+		return;
+	case CHAN_CLOSE_LOCAL:		// OnClose
+		if ( pChan->m_Stage == 0 ) {
+			pChan->m_Stage = 8;
+			SendChanMsg(SSH2_MSG_CHANNEL_EOF);
+		} else if ( pChan->m_Stage == 1 ) {
+			pChan->m_Stage = 3;
+			SendChanMsg(SSH2_MSG_CHANNEL_CLOSE);
+		} else if ( pChan->m_Stage == 2 ) {
+			pChan->m_Stage = 99;
+			break;	// ChannelClose
+		} else if ( pChan->m_Stage == 4 ) {
+			pChan->m_Stage = 6;
+			SendChanMsg(SSH2_MSG_CHANNEL_CLOSE);
+		} else if ( pChan->m_Stage == 5 ) {
+			pChan->m_Stage = 99;
+			break;	// ChannelClose
+		} else if ( pChan->m_Stage == 7 ) {
+			pChan->m_Stage = 99;
+			SendChanMsg(SSH2_MSG_CHANNEL_CLOSE);
+			break;	// ChannelClose
+		}
+		return;
+	case CHAN_CLOSE_REMOTE:		// RecvClose
+		if ( pChan->m_Stage == 0 ) {
+			if ( !pChan->m_bClosed ) {
+				pChan->m_Stage = 7;
+				m_pFifoMid->SendFdEvents(IdToFdOut(id), FD_CLOSE, NULL);
+				m_pFifoMid->Read(IdToFdIn(id), NULL, 0);	// Channel Write Block
+			} else {
+				pChan->m_Stage = 99;
+				SendChanMsg(SSH2_MSG_CHANNEL_CLOSE);
+				break;	// ChannelClose
+			}
+		} else if ( pChan->m_Stage == 1 ) {
+			SendChanMsg(SSH2_MSG_CHANNEL_CLOSE);
+			if ( !pChan->m_bClosed ) {
+				pChan->m_Stage = 2;
+				m_pFifoMid->SendFdEvents(IdToFdOut(id), FD_CLOSE, NULL);
+				m_pFifoMid->Read(IdToFdIn(id), NULL, 0);	// Channel Write Block
+			} else {
+				pChan->m_Stage = 99;
+				break;	// ChannelClose
+			}
+		} else if ( pChan->m_Stage == 3 ) {
+			pChan->m_Stage = 99;
+			break;	// ChannelClose
+		} else if ( pChan->m_Stage == 4 ) {
+			pChan->m_Stage = 5;
+			SendChanMsg(SSH2_MSG_CHANNEL_CLOSE);
+		} else if ( pChan->m_Stage == 5 ) {
+			pChan->m_Stage = 99;
+			SendChanMsg(SSH2_MSG_CHANNEL_CLOSE);
+			break;	// ChannelClose
+		} else if ( pChan->m_Stage == 6 ) {
+			pChan->m_Stage = 99;
+			break;	// ChannelClose
+		} else if ( pChan->m_Stage == 8 ) {
+			pChan->m_Stage = 99;
+			SendChanMsg(SSH2_MSG_CHANNEL_CLOSE);
+			break;	// ChannelClose
+		}
+		return;
+	}
+
+	if ( pChan->m_pFifoBase != NULL ) {
+		CFifoBase::UnLink(pChan->m_pFifoBase, FIFO_STDIN, FALSE);
+		pChan->m_pFifoBase->Destroy();
+	}
+
+	switch(pChan->m_Type) {
+	case SSHFT_NONE:
+		LogIt(_T("Closed #%d %s:%d -> %s:%d"), id, pChan->m_lHost, pChan->m_lPort, pChan->m_rHost, pChan->m_rPort);
+		break;
+	case SSHFT_STDIO:
+		LogIt(_T("Closed #%d stdio"), id);
+		break;
+	case SSHFT_SFTP:
+		LogIt(_T("Closed #%d sftp"), id);
+		break;
+	case SSHFT_AGENT:
+		LogIt(_T("Closed #%d agent"), id);
+		break;
+	case SSHFT_RCP:
+		LogIt(_T("Closed #%d rcp"), id);
+		break;
+	case SSHFT_X11:
+		LogIt(_T("Closed #%d x11"), id);
+		break;
+	case SSHFT_LOCAL_LISTEN:
+	case SSHFT_REMOTE_LISTEN:
+		LogIt(_T("Listen Closed #%d %s:%d"), id, pChan->m_rHost, pChan->m_rPort);
+		break;
+	case SSHFT_LOCAL_SOCKS:
+	case SSHFT_REMOTE_SOCKS:
+		LogIt(_T("Sock Closed #%d %s:%d"), id, pChan->m_lHost, pChan->m_lPort);
+		break;
+	case SSHFT_SOCKET_LOCAL:
+	case SSHFT_SOCKET_REMOTE:
+		LogIt(_T("Closed #%d %s:%d -> %s:%d"), id, pChan->m_lHost, pChan->m_lPort, pChan->m_rHost, pChan->m_rPort);
+		break;
+	}
+
+	delete pChan;
+	ASSERT(id < m_FifoCannel.GetSize());
+	m_FifoCannel[id] = NULL;
+	m_OpenChanCount--;
+
+	if ( id < m_LastFreeId )
+		m_LastFreeId = id;
+	
+	if ( id == FdToId(FIFO_EXTIN) && (m_SSH2Status & SSH2_STAT_HAVESTDIO) != 0 ) {
+		m_SSH2Status &= ~SSH2_STAT_HAVESTDIO;
+
+		if ( m_OpenChanCount > 0 && AfxMessageBox(CStringLoad(IDS_SSHCLOSEALL), MB_ICONQUESTION | MB_YESNO) == IDYES )
+			PostClose(0);
+	}
+
+	if ( nStat != 0 && m_OpenChanCount == 0 && m_Permit.GetSize() == 0 )
+		PostClose(0);
+}
+void Cssh::DelayedCheckExec()
+{
+	while ( !m_DelayedCheck.IsEmpty() ) {
+		DelayedCheck *pDelayedCheck = (DelayedCheck *)m_DelayedCheck.RemoveHead();
+		ChannelCheck(pDelayedCheck->nFd, pDelayedCheck->fdEvent, pDelayedCheck->pParam);
+		if ( pDelayedCheck->bDelBuf )
+			delete (CBuffer *)pDelayedCheck->pParam;
+		delete pDelayedCheck;
+	}
+}
+void Cssh::ChannelCheck(int nFd, int fdEvent, void *pParam)
+{
+	int id = FdToId(nFd);
+	CFifoChannel *pChan = GetFifoChannel(id);
+	CBuffer tmp, *bp = (CBuffer *)pParam;
+
+//	ASSERT(pChan != NULL);
+	if ( pChan == NULL )
+		return;
+
+	if (  (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 ) {
+		DelayedCheck *pDelayedCheck = new DelayedCheck;
+		pDelayedCheck->nFd     = nFd;
+		pDelayedCheck->fdEvent = fdEvent;
+		if ( (nFd & 1) != 0 && fdEvent == FD_READ && bp != NULL ) {	// EXTOUT SSH -> FifoChennel FD_READ pParam = CBuffer ptr
+			CBuffer *pTemp = new CBuffer();
+			pTemp->Swap(*bp);
+			pDelayedCheck->pParam = pTemp;
+			pDelayedCheck->bDelBuf = TRUE;
+		} else {
+			pDelayedCheck->pParam  = pParam;
+			pDelayedCheck->bDelBuf = FALSE;
+		}
+		m_DelayedCheck.AddTail(pDelayedCheck);
+		return;
+	}
+
+	if ( (nFd & 1) == 0 ) {	
+		// EXTIN  FifoChannel -> SSH
+		switch(fdEvent) {
+		case FD_READ:			// CFifoSsh::OnRead
+			SendMsgChannelData(id);
+			break;
+
+		case FD_WRITE:			// CFifoSsh::OnWrite
+			ChannelPolling(id);
+			break;
+
+		case FD_ACCEPT:			// CFifoSsh::OnAccept
+			ChannelAccept(id, (SOCKET)pParam);
+			break;
+
+		case FD_CONNECT:		// CFifoSsh::OnConnect
+			if ( (pChan->m_Status & CHAN_OPEN_LOCAL) == 0 )
+				SendMsgChannelOpenConfirmation(id);
+			break;
+
+		case FD_CLOSE:			// CFifoSsh::OnClose
+			if ( (pChan->m_Status & CHAN_OPEN_LOCAL) == 0 )
+				SendMsgChannelOpenFailure(id);
+			else if ( (pChan->m_Status & CHAN_OPEN_REMOTE) != 0 )
+				ChannelClose(id, CHAN_CLOSE_LOCAL);
+			else
+				pChan->m_bClosed = TRUE;
+			break;
+		}
+
+	} else {
+		// EXTOUT SSH -> FifoChennel
+		switch(fdEvent) {
+		case FD_READ:			// SSH2MsgChannelData
+			ASSERT(m_pFifoMid != NULL);
+			m_pFifoMid->Write(IdToFdOut(id), bp->GetPtr(), bp->GetSize());	// FifoMid(Write)->FifoChannel
+			break;
+
+		case FD_WRITE:			// SSH2MsgChannelAdjust
+			ASSERT(m_pFifoMid != NULL);
+			m_pFifoMid->SetFdEvents(IdToFdIn(id), FD_READ);
+			break;
+
+		case FD_ACCEPT:			// CFifoSocks -> CFifoSsh::OnCommand(FIFO_QCMD_SYNCRET)
+			SocksResult((CFifoSocks *)pParam);
+			break;
+
+		case FD_CONNECT:		// SSH2MsgChannelOpenReply
+			ASSERT(m_pFifoMid != NULL);
+			if ( !pChan->m_bClosed )
+				m_pFifoMid->SendFdEvents(nFd, FD_CONNECT, NULL);
+			else
+				ChannelClose(id, CHAN_CLOSE_LOCAL);
+			break;
+
+		case FD_CLOSE:
+			ChannelClose(id, CHAN_CLOSE_LOCAL);
+			break;
+		}
+	}
+}
+void Cssh::ChannelPolling(int id)
+{
+	int len;
+	CFifoChannel *pChan = GetFifoChannel(id);
+	CBuffer tmp;
+
+	ASSERT(pChan != NULL);
+
+	if ( (pChan->m_Status & (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE)) != (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE) )
+		return;
+
+	if ( (len = pChan->m_LocalComs - m_pFifoMid->GetDataSize(id)) >= (pChan->m_LocalWind * 3 / 4) ) {
+		tmp.Clear();
+		tmp.Put8Bit(SSH2_MSG_CHANNEL_WINDOW_ADJUST);
+		tmp.Put32Bit(pChan->m_RemoteID);
+		tmp.Put32Bit(len);
+		SendPacket2(&tmp);
+
+		DEBUGLOG("WindowAdjust #%d %d - %d = %d (%d)", cp->m_LocalID, cp->m_LocalComs, cp->GetSendSize(), n, cp->m_LocalWind);
+
+		pChan->m_LocalComs -= len;
+	}
+}
+void Cssh::ChannelAccept(int id, SOCKET socket)
+{
+	int port;
+	CString host[2];
+	CFifoChannel *pChan = GetFifoChannel(id);
+	CFifoChannel *pNewChan;
+
+	ASSERT(pChan != NULL);
+
+	if ( (pNewChan = GetFifoChannel(-1)) == NULL ) {
+		::closesocket(socket);
+		return;
+	}
+	
+	CExtSocket::GetPeerName((SOCKET)socket, host[0], &port);
+
+	if ( pChan->m_Type == SSHFT_LOCAL_LISTEN ) {
+		pNewChan->m_Type = SSHFT_SOCKET_LOCAL;
+		pNewChan->m_Status |= CHAN_OPEN_LOCAL;
+		pNewChan->m_pFifoBase = new CFifoSocket(m_pDocument, this);
+
+		CFifoBase::Link(m_pFifoMid, IdToFdIn(pNewChan->m_LocalID), pNewChan->m_pFifoBase, FIFO_STDIN);
+
+		if ( !((CFifoSocket *)pNewChan->m_pFifoBase)->Attach(socket) ) {
+			LogIt(_T("Local Listen attach error #%d %s:%d"), id, pChan->m_lHost, pChan->m_lPort);
+			ChannelClose(pNewChan->m_LocalID);
+			return;
+		}
+
+		host[1] = pChan->m_rHost;
+		SendMsgChannelOpen(pNewChan->m_LocalID, "direct-tcpip", host[1], pChan->m_rPort, host[0], port);
+
+	} else if ( pChan->m_Type == SSHFT_LOCAL_SOCKS ) {
+		pNewChan->m_Type = SSHFT_SOCKET_LOCAL;
+		pNewChan->m_Status |= CHAN_OPEN_LOCAL;
+		pNewChan->m_lHost = host[0];
+		pNewChan->m_lPort = port;
+		pNewChan->m_pFifoBase = new CFifoSocket(m_pDocument, this);
+		CFifoSocks *pFifoSocks = new CFifoSocks(m_pDocument, this, pNewChan);
+
+		pFifoSocks->m_rFd = FIFO_EXTIN;
+		pFifoSocks->m_wFd = FIFO_EXTOUT;
+
+		CFifoBase::MidLink(m_pFifoMid, IdToFdIn(pNewChan->m_LocalID), pFifoSocks, FIFO_STDIN, pNewChan->m_pFifoBase, FIFO_STDIN);
+
+		if ( !((CFifoSocket *)pNewChan->m_pFifoBase)->Attach(socket) )
+			pFifoSocks->Abort();
+	}
+}
+void Cssh::SocksResult(class CFifoSocks *pFifoSocks)
+{
+	CFifoChannel *pChan = GetFifoChannel(pFifoSocks->m_ChanId);
+	CString host[2];
+
+	ASSERT(pChan != NULL || pChan->m_LocalID != pFifoSocks->m_ChanId);
+
+	if ( pChan->m_Type == SSHFT_REMOTE_SOCKS ) {
+		if ( pFifoSocks->m_RetCode == 0 || (pFifoSocks->m_fdPostEvents[FIFO_STDIN] & FD_CLOSE) != 0 ) {	// STDIN = ssh channel
+			LogIt(_T("Remote Socks Failure #%d %s:%d"), pChan->m_LocalID, pChan->m_lHost, pChan->m_lPort);
+			pChan->m_pFifoBase->SendFdEvents(FIFO_STDOUT, FD_CLOSE, NULL);
+
+		} else {
+			CFifoSocket *pFifoSocket = new CFifoSocket(m_pDocument, this);
+
+			pChan->m_rHost = m_pDocument->LocalStr(pFifoSocks->m_HostName);
+			pChan->m_rPort = pFifoSocks->m_HostPort;
+
+			CFifoBase::Link(pFifoSocks, FIFO_EXTIN, pFifoSocket, FIFO_STDIN);
+			CFifoBase::UnLink(pFifoSocks, FIFO_STDIN, TRUE);
+			pFifoSocks->Destroy();
+
+			pChan->m_Type = SSHFT_SOCKET_REMOTE;
+			pChan->m_Status |= (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE);
+			pChan->m_pFifoBase = pFifoSocket;
+
+			if ( !pFifoSocket->Open(pChan->m_rHost, pChan->m_rPort) ) {
+				LogIt(_T("Remote Socks Open Error #%d %s:%d"), pChan->m_LocalID, pChan->m_rHost, pChan->m_rPort);
+				pChan->m_pFifoBase->SendFdEvents(FIFO_STDOUT, FD_CLOSE, NULL);
+			}
+		}
+
+	} else if ( pChan->m_Type == SSHFT_SOCKET_LOCAL ) {
+		if ( pFifoSocks->m_RetCode == 0 || (pFifoSocks->m_fdPostEvents[FIFO_EXTIN] & FD_CLOSE) != 0 ) {	// EXTIN = socket
+			LogIt(_T("Local Socks %s #%d %s:%d"), 
+				(pFifoSocks->m_fdPostEvents[FIFO_EXTIN] & FD_CLOSE) != 0 ? _T("Closed") : _T("Failure"),
+				pChan->m_LocalID, pChan->m_lHost, pChan->m_lPort);
+
+			CFifoBase::UnLink(pFifoSocks, FIFO_STDIN, TRUE);
+			pFifoSocks->Destroy();
+
+			pChan->m_rHost.Empty();
+			pChan->m_rPort = 0;
+
+			ChannelClose(pChan->m_LocalID);
+
+		} else {
+			host[0] = m_pDocument->LocalStr(pFifoSocks->m_HostName);
+			host[1] = pChan->m_lHost;
+			SendMsgChannelOpen(pChan->m_LocalID, "direct-tcpip", host[0], pFifoSocks->m_HostPort, host[1], pChan->m_lPort);
+
+			CFifoBase::UnLink(pFifoSocks, FIFO_STDIN, TRUE);
+			pFifoSocks->Destroy();
+		}
+	}
+}
+
 void Cssh::PortForward()
 {
 	int n, i, a = 0;
 	CString str;
 	CStringArrayExt tmp;
+	CFifoChannel *pChan;
 
 	m_bPfdConnect = 0;
 	m_PortFwdTable = m_pDocument->m_ParamTab.m_PortFwd;
@@ -1733,14 +2046,14 @@ void Cssh::PortForward()
 
 		switch(tmp.GetVal(4)) {
 		case PFD_LOCAL:
-			if ( (n = ChannelOpen()) < 0 )
+			if ( (pChan = GetFifoChannel(-1)) == NULL )
 				break;
-			((CChannel *)m_pChan[n])->m_Status = CHAN_LISTEN;
-			((CChannel *)m_pChan[n])->m_TypeName = _T("tcpip-listen");
-			if ( !((CChannel *)m_pChan[n])->CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
+			pChan->m_Type = SSHFT_LOCAL_LISTEN;
+			pChan->m_TypeName = _T("tcpip-listen");
+			if ( !ChannelCreate(pChan->m_LocalID, tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
 				str.Format(_T("Port Forward Error %s:%s->%s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1], (LPCTSTR)tmp[2], (LPCTSTR)tmp[3]);
 				AfxMessageBox(str);
-				ChannelClose(n);
+				ChannelClose(pChan->m_LocalID);
 			} else {
 				LogIt(_T("Local Listen %s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
 				a++;
@@ -1748,14 +2061,14 @@ void Cssh::PortForward()
 			break;
 
 		case PFD_SOCKS:
-			if ( (n = ChannelOpen()) < 0 )
+			if ( (pChan = GetFifoChannel(-1)) == NULL )
 				break;
-			((CChannel *)m_pChan[n])->m_Status = CHAN_LISTEN | CHAN_PROXY_SOCKS;
-			((CChannel *)m_pChan[n])->m_TypeName = _T("socks-listen");
-			if ( !((CChannel *)m_pChan[n])->CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
+			pChan->m_Type = SSHFT_LOCAL_SOCKS;
+			pChan->m_TypeName = _T("socks-listen");
+			if ( !ChannelCreate(pChan->m_LocalID, tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
 				str.Format(_T("Socks Listen Error %s:%s->%s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1], (LPCTSTR)tmp[2], (LPCTSTR)tmp[3]);
 				AfxMessageBox(str);
-				ChannelClose(n);
+				ChannelClose(pChan->m_LocalID);
 			} else {
 				LogIt(_T("Local Socks %s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
 				a++;
@@ -1772,7 +2085,7 @@ void Cssh::PortForward()
 			m_Permit[n].m_rPort = GetPortNum(tmp[1]);
 			m_Permit[n].m_Type  = tmp.GetVal(4);
 			SendMsgGlobalRequest(n, "tcpip-forward", tmp[0], GetPortNum(tmp[1]));
-			LogIt(_T("Remote Listen %s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
+			LogIt(_T("Remote %s %s:%s"), (m_Permit[n].m_Type == PFD_REMOTE ? _T("Listen") : _T("Socks")), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
 			m_bPfdConnect++;
 			a++;
 			break;
@@ -1782,7 +2095,7 @@ void Cssh::PortForward()
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
 		if ( a == 0 && !m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFTPORY) ) {
 			AfxMessageBox(CStringLoad(IDE_PORTFWORDERROR));
-			PostMessage(m_Fd, WSAMAKESELECTREPLY(FD_CLOSE, 0));
+			PostClose(0);
 		}
 
 		if ( m_bPfdConnect == 0 ) {
@@ -1793,60 +2106,131 @@ void Cssh::PortForward()
 		m_bPfdConnect = 0;
 }
 
+//////////////////////////////////////////////////////////////////////
+
 void Cssh::OpenSFtpChannel()
 {
-	int id;
-
 	if ( (m_SSH2Status & SSH2_STAT_HAVELOGIN) == 0 )
 		return;
 
-	if ( (id = SendMsgChannelOpen((-1), "session")) < 0 )
-		return;
+	int id = SendMsgChannelOpen((-1), "session");
+	ASSERT(id >= 0);
+	CFifoChannel *pChan = GetFifoChannel(id);
+	ASSERT(pChan != NULL);
 
-	CSFtpFilter *pFilter = new CSFtpFilter;
+	pChan->m_Type = SSHFT_SFTP;
+	pChan->m_Status = CHAN_OPEN_LOCAL;
+	pChan->m_pFifoBase = new CFifoSftp(m_pDocument, this, new CSFtp(NULL));
 
-	((CChannel *)m_pChan[id])->m_pFilter = pFilter;
-	pFilter->m_pChan = (CChannel *)m_pChan[id];
-	pFilter->m_pSFtp = new CSFtp(NULL);
-	pFilter->m_pSFtp->m_pSSh = this;
-	pFilter->m_pSFtp->m_pChan = (CChannel *)m_pChan[id];
-	pFilter->m_pSFtp->m_HostKanjiSet = m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode];
-	pFilter->m_pSFtp->Create(IDD_SFTPDLG, CWnd::GetDesktopWindow());
-	pFilter->m_pSFtp->ShowWindow(SW_SHOW);
+	((CFifoSftp *)pChan->m_pFifoBase)->m_pSFtp->m_pSSh = this;
+	((CFifoSftp *)pChan->m_pFifoBase)->m_pSFtp->m_pFifoSftp = pChan->m_pFifoBase;
+	((CFifoSftp *)pChan->m_pFifoBase)->m_pSFtp->m_HostKanjiSet = m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode];
+	((CFifoSftp *)pChan->m_pFifoBase)->m_pSFtp->Create(IDD_SFTPDLG, CWnd::GetDesktopWindow());
+	((CFifoSftp *)pChan->m_pFifoBase)->m_pSFtp->ShowWindow(SW_SHOW);
+
+	CFifoBase::Link(m_pFifoMid, IdToFdIn(id), pChan->m_pFifoBase, FIFO_STDIN);
+}
+
+static LPCTSTR GetFileName(LPCTSTR path)
+{
+	LPCTSTR p;
+	return ((p = _tcsrchr(path, _T('\\'))) != NULL || (p = _tcsrchr(path, _T(':'))) != NULL ? (p + 1) : path);
+}
+static LPCTSTR ShellEscape(LPCTSTR str, CString &work)
+{
+	CString tmp;
+
+	while ( *str != _T('\0') ) {
+		if ( _tcschr(_T(" \"$@&'()^|[]{};*?<>`\\"), *str) != NULL ) {
+			work += _T('\\');
+			work += *(str++);
+		} else if ( *str == _T('\t') ) {
+			work += _T("\\t");
+			str++;
+		} else if ( *str == _T('\r') ) {
+			work += _T("\\r");
+			str++;
+		} else if ( *str == _T('\n') ) {
+			work += _T("\\n");
+			str++;
+		} else if ( *str < _T(' ') ) {
+			tmp.Format(_T("\\%03o"), *str);
+			work += tmp;
+			str++;
+		} else {
+			work += *(str++);
+		}
+	}
+
+	return work;
 }
 void Cssh::OpenRcpUpload(LPCTSTR file)
 {
-	int id;
-
-	m_RcpCmd.m_pSsh = this;
-
-	if ( file != NULL ) {
-		m_RcpCmd.m_FileList.AddTail(file);
-		m_RcpCmd.Destroy();
-
-	} else if ( (id = SendMsgChannelOpen((-1), "session")) >= 0 ) {
-		((CChannel *)m_pChan[id])->m_pFilter = &m_RcpCmd;
-		m_RcpCmd.m_pChan = (CChannel *)m_pChan[id];
-		m_RcpCmd.m_pNext = m_pListFilter;
-		m_pListFilter = &m_RcpCmd;
+	if ( file == NULL ) {
+		if ( !m_FileList.IsEmpty() )
+			m_FileList.RemoveHead();
+		if ( m_FileList.IsEmpty() )
+			return;
+		file = m_FileList.GetHead();
+	} else {
+		if ( !m_FileList.IsEmpty() ) {
+			m_FileList.AddTail(file);
+			return;
+		}
+		m_FileList.AddTail(file);
 	}
+
+	int id = SendMsgChannelOpen((-1), "session");
+	ASSERT(id >= 0);
+	CFifoChannel *pChan = GetFifoChannel(id);
+	ASSERT(pChan != NULL);
+	LPCTSTR last = GetFileName(file);
+	CString work;
+
+	pChan->m_Type = SSHFT_RCP;
+	pChan->m_Status = CHAN_OPEN_LOCAL;
+	pChan->m_rHost.Format(m_pDocument->m_TextRam.m_DropFileCmd[5], ShellEscape(last, work));
+	pChan->m_pFifoBase = new CFifoRcp(m_pDocument, this, pChan, 0);	// rcp file upload = 0
+
+	((CFifoRcp *)pChan->m_pFifoBase)->m_PathName = file;
+	((CFifoRcp *)pChan->m_pFifoBase)->m_FileName = last;
+
+	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg = new CProgDlg(NULL);
+	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg->m_pAbortFlag = &(((CFifoRcp *)pChan->m_pFifoBase)->m_bAbortFlag);
+	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg->Create(IDD_PROGDLG, ::AfxGetMainWnd());
+	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg->SetWindowText(_T("scp File upload"));
+	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg->ShowWindow(SW_SHOW);
+
+	CFifoBase::Link(m_pFifoMid, IdToFdIn(id), pChan->m_pFifoBase, FIFO_STDIN);
 }
 void Cssh::OpenRcpDownload(LPCTSTR file)
 {
-	int id;
-	CString cmd;
+	int id = SendMsgChannelOpen((-1), "session");
+	ASSERT(id >= 0);
+	CFifoChannel *pChan = GetFifoChannel(id);
+	ASSERT(pChan != NULL);
+	CString work;
 
-	CRcpDownload *pRcpDown = new CRcpDownload;
-	pRcpDown->m_pSsh = this;
-	cmd.Format(_T("scp -p -r -f %s"), file);
-	pRcpDown->m_Cmd = m_pDocument->RemoteStr(UniToTstr(cmd));
+	wchar_t *MyDownload;
+	SHGetKnownFolderPath(FOLDERID_Downloads, 0, NULL, &MyDownload);
 
-	if ( (id = SendMsgChannelOpen((-1), "session")) >= 0 ) {
-		((CChannel *)m_pChan[id])->m_pFilter = pRcpDown;
-		pRcpDown->m_pChan = (CChannel *)m_pChan[id];
-	} else
-		delete pRcpDown;
+	pChan->m_Type = SSHFT_RCP;
+	pChan->m_Status = CHAN_OPEN_LOCAL;
+	pChan->m_rHost.Format(_T("scp -p -r -f %s"), ShellEscape(file, work));
+	pChan->m_pFifoBase = new CFifoRcp(m_pDocument, this, pChan, 1);	// rcp file download = 1
+
+	((CFifoRcp *)pChan->m_pFifoBase)->m_PathName = UniToTstr(MyDownload);
+	((CFifoRcp *)pChan->m_pFifoBase)->m_FileName = file;
+
+	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg = new CProgDlg(NULL);
+	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg->Create(IDD_PROGDLG, ::AfxGetMainWnd());
+	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg->SetWindowText(_T("scp File download"));
+	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg->ShowWindow(SW_SHOW);
+
+	CFifoBase::Link(m_pFifoMid, IdToFdIn(id), pChan->m_pFifoBase, FIFO_STDIN);
 }
+
+//////////////////////////////////////////////////////////////////////
 
 void Cssh::SendMsgKexInit()
 {
@@ -1854,10 +2238,13 @@ void Cssh::SendMsgKexInit()
 
 	if ( m_MyPeer.GetSize() == 0 || (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
 		return;
+
 	m_SSH2Status |= SSH2_STAT_SENTKEXINIT;
+
 	tmp.Put8Bit(SSH2_MSG_KEXINIT);
 	tmp.Apend(m_MyPeer.GetPtr(), m_MyPeer.GetSize());
 	SendPacket2(&tmp);
+
 	m_SendPackLen = 0;
 }
 void Cssh::SendMsgKexDhInit()
@@ -2020,6 +2407,16 @@ void Cssh::SendMsgNewKeys()
 		m_bExtInfo = FALSE;
 	}
 }
+
+//////////////////////////////////////////////////////////////////////
+
+#define	SSH2_GSS_OIDTYPE	0x06
+
+static const struct _gssapi_kerberos_mech {
+	BYTE	len;
+	BYTE	*data;
+} gssapi_kerberos_mech = { 9, (BYTE *)"\x2a\x86\x48\x86\xf7\x12\x01\x02\x02" };	// Kerberos : iso(1) member-body(2) United States(840) mit(113554) infosys(1) gssapi(2) krb5(2)
+
 void Cssh::SendMsgServiceRequest(LPCSTR str)
 {
 	CBuffer tmp;
@@ -2027,83 +2424,7 @@ void Cssh::SendMsgServiceRequest(LPCSTR str)
 	tmp.PutStr(str);
 	SendPacket2(&tmp);
 }
-LPCTSTR Cssh::GetSigAlgs()
-{
-	int n;
 
-	if ( (n = m_ExtInfo.Find(_T("server-sig-algs"))) < 0 )
-		return NULL;
-
-	return m_ExtInfo[n].m_String;
-}
-BOOL Cssh::IsServerVersion(LPCTSTR pattan)
-{
-	//	if (sscanf(server_version_string, "SSH-%d.%d-%[^\n]\n", &remote_major, &remote_minor, remote_version) != 3)
-	LPCTSTR str = m_ServerVerStr;
-
-	// SSH-
-	if ( _tcsncmp(str, _T("SSH-"), 4) != 0 )
-		return FALSE;
-	str += 4;
-
-	// major version
-	while ( *str >= _T('0') && *str <= _T('9') )
-		str++;
-	if ( *str != _T('.') )
-		return FALSE;
-	str++;
-
-	// minor version
-	while ( *str >= _T('0') && *str <= _T('9') )
-		str++;
-	if ( *str != _T('-') )
-		return FALSE;
-	str++;
-
-	if ( _tcsnicmp(str, pattan, _tcslen(pattan)) == 0 )
-		return TRUE;
-
-	return FALSE;
-}
-void Cssh::UserAuthNextState()
-{
-	m_IdKeyPos = 0;
-	m_AuthStat = m_AuthReqTab[m_AuthStat];
-	m_AuthMode = AUTH_MODE_NONE;
-}
-void Cssh::AddAuthLog(LPCTSTR str, ...)
-{
-	CString tmp;
-	va_list arg;
-
-	va_start(arg, str);
-	tmp.FormatV(str, arg);
-	va_end(arg);
-
-	if ( !m_AuthLog.IsEmpty() )
-		m_AuthLog += _T(", ");
-
-	m_AuthLog += tmp;
-}
-BOOL Cssh::IsStriStr(LPCSTR str, LPCSTR ptn)
-{
-	for ( ; *str != '\0' ; str++ ) {
-		if ( tolower(*str) == tolower(*ptn) ) {
-			LPCSTR s = str + 1;
-			LPCSTR p = ptn + 1;
-			for ( ; ; ) {
-				if ( *p == '\0' )
-					return TRUE;
-				if ( tolower(*s) != tolower(*p) )
-					break;
-				s++;
-				p++;
-			}
-		}
-	}
-
-	return FALSE;
-}
 int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 {
 	int skip, len;
@@ -2324,65 +2645,70 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 	
 	return FALSE;
 }
-int Cssh::SendMsgChannelOpen(int n, LPCSTR type, LPCTSTR lhost, int lport, LPCTSTR rhost, int rport)
-{
-	CBuffer tmp;
-	CChannel *cp;
 
-	if ( n < 0 && (n = ChannelOpen()) < 0 )
+//////////////////////////////////////////////////////////////////////
+
+int Cssh::SendMsgChannelOpen(int id, LPCSTR type, LPCTSTR lhost, int lport, LPCTSTR rhost, int rport)
+{
+	CFifoChannel *pChan = GetFifoChannel(id);
+	CBuffer tmp;
+
+	if ( pChan == NULL )
 		return (-1);
 
-	cp = (CChannel *)m_pChan[n];
-	cp->m_Status     = CHAN_OPEN_LOCAL;
-	cp->m_TypeName   = type;
+	pChan->m_TypeName = type;
+	pChan->m_Status |= CHAN_OPEN_LOCAL;
 
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN);
 	tmp.PutStr(type);
-	tmp.Put32Bit(n);
-	tmp.Put32Bit(cp->m_LocalWind);
-	tmp.Put32Bit(cp->m_LocalPacks);
+	tmp.Put32Bit(pChan->m_LocalID);
+	tmp.Put32Bit(pChan->m_LocalWind);
+	tmp.Put32Bit(pChan->m_LocalPacks);
+
 	if ( lhost != NULL ) {
 		tmp.PutStr(m_pDocument->RemoteStr(lhost));
 		tmp.Put32Bit(lport);
 		tmp.PutStr(m_pDocument->RemoteStr(rhost));
 		tmp.Put32Bit(rport);
-		cp->m_lHost = lhost;
-		cp->m_lPort = lport;
-		cp->m_rHost = rhost;
-		cp->m_rPort = rport;
+		pChan->m_lHost = lhost;
+		pChan->m_lPort = lport;
+		pChan->m_rHost = rhost;
+		pChan->m_rPort = rport;
 	}
-	SendPacket2(&tmp);
 
-	return n;
+	SendPacket2(&tmp);
+	return pChan->m_LocalID;
 }
 void Cssh::SendMsgChannelOpenConfirmation(int id)
 {
+	CFifoChannel *pChan = GetFifoChannel(id);
 	CBuffer tmp;
-	CChannel *cp = (CChannel *)m_pChan[id];
 
-	cp->m_Status |= CHAN_OPEN_LOCAL;
-	cp->m_ConnectTime = CTime::GetCurrentTime();
-	m_OpenChanCount++;
+	ASSERT(pChan != NULL);
+
+	pChan->m_Status |= CHAN_OPEN_LOCAL;
 
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN_CONFIRMATION);
-	tmp.Put32Bit(cp->m_RemoteID);
-	tmp.Put32Bit(cp->m_LocalID);
-	tmp.Put32Bit(cp->m_LocalWind);
-	tmp.Put32Bit(cp->m_LocalPacks);
+	tmp.Put32Bit(pChan->m_RemoteID);
+	tmp.Put32Bit(pChan->m_LocalID);
+	tmp.Put32Bit(pChan->m_LocalWind);
+	tmp.Put32Bit(pChan->m_LocalPacks);
 	SendPacket2(&tmp);
 
-	if ( cp->m_pFilter != NULL )
-		LogIt(_T("Open #%d Filter"), id);
-	else if ( (cp->m_Status & CHAN_REMOTE_SOCKS) == 0 )
-		LogIt(_T("Open #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
+	if ( pChan->m_Type >= SSHFT_LOCAL_LISTEN )
+		LogIt(_T("Open #%d %s:%d -> %s:%d"), id, pChan->m_lHost, pChan->m_lPort, pChan->m_rHost, pChan->m_rPort);
+	else
+		LogIt(_T("Open #%d Filter %d"), id, pChan->m_Type);
 }
 void Cssh::SendMsgChannelOpenFailure(int id)
 {
+	CFifoChannel *pChan = GetFifoChannel(id);
 	CBuffer tmp;
-	CChannel *cp = (CChannel *)m_pChan[id];
+
+	ASSERT(pChan != NULL);
 
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN_FAILURE);
-	tmp.Put32Bit(cp->m_RemoteID);
+	tmp.Put32Bit(pChan->m_RemoteID);
 	tmp.Put32Bit(SSH2_OPEN_CONNECT_FAILED);
 	tmp.PutStr("open failed");
 	tmp.PutStr("");
@@ -2394,35 +2720,44 @@ void Cssh::SendMsgChannelData(int id)
 {
 	int len;
 	CBuffer tmp(CHAN_SES_PACKET_DEFAULT + 16);
-	CChannel *cp = (CChannel *)m_pChan[id];
+	CFifoChannel *pChan = GetFifoChannel(id);
+	BYTE *buf;
 
-	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) || !CEOF_OK(id) || (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
+	if ( pChan == NULL || (pChan->m_Status & (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE)) != (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE) )
 		return;
 
-	while ( (len = cp->m_Output.GetSize()) > 0 ) {
-		if ( len > cp->m_RemoteWind )
-			len = cp->m_RemoteWind;
+	for ( ; ; ) {
+		if ( (len = pChan->m_RemotePacks) > pChan->m_RemoteComs )
+			len = pChan->m_RemoteComs;
 
-		if ( len > cp->m_RemoteMax )
-			len = cp->m_RemoteMax;
+		if ( len <= 0 ) {
+			m_pFifoMid->ResetFdEvents(IdToFdIn(id), FD_READ);
+			break;
+		}
 
-		if ( len <= 0 )
-			return;			// ChannelCheck内でSendMsgChannelDataを呼び出すので注意
+		buf = m_pFifoMid->TempBuffer(len);
+
+		if ( (len = m_pFifoMid->Read(IdToFdIn(id), buf, len)) < 0 ) {
+			// End of Data
+			ChannelClose(id, CHAN_ENDOF_LOCAL);
+			break;
+		} else if ( len == 0 ) {
+			// No data
+			break;
+		}
 
 		tmp.Clear();
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_DATA);
-		tmp.Put32Bit(cp->m_RemoteID);
-		tmp.PutBuf(cp->m_Output.GetPtr(), len);
-		cp->m_Output.Consume(len);
-		cp->m_RemoteWind -= len;
+		tmp.Put32Bit(pChan->m_RemoteID);
+		tmp.PutBuf(buf, len);
 		SendPacket2(&tmp);
 
-		if ( cp->m_Output.GetSize() <= 0 && id == m_StdChan )
-			cp->m_pFilter->OnSendEmpty();
+		pChan->m_RemoteComs -= len;
 	}
-
-	ChannelCheck(id);
 }
+
+//////////////////////////////////////////////////////////////////////
+
 void Cssh::SendMsgChannelRequesstShell(int id)
 {
 	int n;
@@ -2431,7 +2766,8 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	CBuffer tmp, tmode, dump;
 	CString str;
 	CStringIndex env;
-	CChannel *cp = (CChannel *)m_pChan[id];
+	CFifoChannel *pChan = GetFifoChannel(id);
+
 	//static const struct _dummy_ttymode {
 	//	BYTE	opcode;
 	//	DWORD	param;
@@ -2459,7 +2795,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) ) {
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-		tmp.Put32Bit(cp->m_RemoteID);
+		tmp.Put32Bit(pChan->m_RemoteID);
 		tmp.PutStr("auth-agent-req@openssh.com");
 		tmp.Put8Bit(0);
 		SendPacket2(&tmp);
@@ -2496,7 +2832,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 
 			tmp.Clear();
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-			tmp.Put32Bit(cp->m_RemoteID);
+			tmp.Put32Bit(pChan->m_RemoteID);
 			tmp.PutStr("x11-req");
 			tmp.Put8Bit(0);
 			tmp.Put8Bit(0);		// XXX bool single connection
@@ -2512,7 +2848,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 
 	tmp.Clear();
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-	tmp.Put32Bit(cp->m_RemoteID);
+	tmp.Put32Bit(pChan->m_RemoteID);
 	tmp.PutStr("pty-req");
 	tmp.Put8Bit(1);
 	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_TermName));
@@ -2545,7 +2881,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 			continue;
 		tmp.Clear();
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-		tmp.Put32Bit(cp->m_RemoteID);
+		tmp.Put32Bit(pChan->m_RemoteID);
 		tmp.PutStr("env");
 		tmp.Put8Bit(0);
 		tmp.PutStr(m_pDocument->RemoteStr(env[n].m_nIndex));
@@ -2555,7 +2891,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 
 	tmp.Clear();
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-	tmp.Put32Bit(cp->m_RemoteID);
+	tmp.Put32Bit(pChan->m_RemoteID);
 	tmp.PutStr("shell");
 	tmp.Put8Bit(1);
 	SendPacket2(&tmp);
@@ -2563,30 +2899,33 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 }
 void Cssh::SendMsgChannelRequesstSubSystem(int id, LPCSTR cmds)
 {
+	CFifoChannel *pChan = GetFifoChannel(id);
 	CBuffer tmp;
-	CChannel *cp = (CChannel *)m_pChan[id];
 
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-	tmp.Put32Bit(cp->m_RemoteID);
+	tmp.Put32Bit(pChan->m_RemoteID);
 	tmp.PutStr("subsystem");
 	tmp.Put8Bit(1);
 	tmp.PutStr(cmds);
 	SendPacket2(&tmp);
 	m_ChnReqMap.Add(CHAN_REQ_SUBSYS);
 }
-void Cssh::SendMsgChannelRequesstExec(int id)
+void Cssh::SendMsgChannelRequesstExec(int id, LPCSTR cmds)
 {
+	CFifoChannel *pChan = GetFifoChannel(id);
 	CBuffer tmp;
-	CChannel *cp = (CChannel *)m_pChan[id];
 
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-	tmp.Put32Bit(cp->m_RemoteID);
+	tmp.Put32Bit(pChan->m_RemoteID);
 	tmp.PutStr("exec");
 	tmp.Put8Bit(1);
-	tmp.PutStr(cp->m_pFilter->m_Cmd);
+	tmp.PutStr(cmds);
 	SendPacket2(&tmp);
 	m_ChnReqMap.Add(CHAN_REQ_EXEC);
 }
+
+//////////////////////////////////////////////////////////////////////
+
 void Cssh::SendMsgGlobalRequest(int num, LPCSTR str, LPCTSTR rhost, int rport)
 {
 	CBuffer tmp;
@@ -2634,6 +2973,9 @@ void Cssh::SendDisconnect2(int st, LPCSTR str)
 	tmp.PutStr(str);
 	SendPacket2(&tmp);
 }
+
+//////////////////////////////////////////////////////////////////////
+
 void Cssh::SendPacket2(CBuffer *bp)
 {
 	int n = bp->GetSize() + 128;
@@ -2686,12 +3028,12 @@ void Cssh::SendPacket2(CBuffer *bp)
 			m_EncMac.Compute(m_SendPackSeq, tmp.GetPtr(), tmp.GetSize(), &enc);
 	}
 
-	CExtSocket::Send(enc.GetPtr(), enc.GetSize());
+	SendSocket(enc.GetPtr(), enc.GetSize());
 
 	m_SendPackSeq += 1;
 	m_SendPackLen += sz;
 
-	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 && CExtSocket::GetSendSize() == 0 && CExtSocket::GetRecvSize() == 0 && (m_SendPackLen >= MAX_PACKETLEN || m_RecvPackLen >= MAX_PACKETLEN) )
+	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 && CExtSocket::GetRecvSize() == 0 && (m_SendPackLen >= MAX_PACKETLEN || m_RecvPackLen >= MAX_PACKETLEN) )
 		SendMsgKexInit();
 }
 
@@ -2760,7 +3102,7 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 
 	for ( n = 0 ; n < 8 ; n++ ) {
 		if ( !MatchList(m_CProp[n], m_SProp[n], m_VProp[n]) )
-			return TRUE;
+			return (-1);
 	}
 
 	if ( m_EncCip.IsAEAD(m_VProp[PROP_ENC_ALGS_CTOS]) || m_EncCip.IsPOLY(m_VProp[PROP_ENC_ALGS_CTOS]) )
@@ -2777,7 +3119,7 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		}
 	}
 	if ( kextab[n].name == NULL )
-		return TRUE;
+		return (-1);
 
 	if ( _tcsstr(m_SProp[PROP_KEX_ALGS], _T("ext-info-s")) != NULL ) {
 		// ext-info-sによりSSH2_MSG_NEWKEYSの後にSSH2_MSG_EXT_INFOを送る必要があるのか？
@@ -2809,7 +3151,7 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	if ( m_NeedKeyLen < m_DecMac.GetKeyLen(m_VProp[PROP_MAC_ALGS_STOC]) )    m_NeedKeyLen = m_DecMac.GetKeyLen(m_VProp[PROP_MAC_ALGS_STOC]);
 
 	m_RecvPackLen = 0;
-	return FALSE;
+	return 0;
 }
 int Cssh::HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_MD *evp_md)
 {
@@ -2887,12 +3229,12 @@ int Cssh::HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_M
 
 	EVP_MD_CTX_free(md_ctx);
 
-	return FALSE;
+	return 0;
 }
 int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 {
 	int n;
-	int ret = TRUE;
+	int ret = (-1);
 	CBuffer tmp(-1), sign(-1), addb(-1), skey(-1);
 	BIGNUM *spub = NULL, *ssec = NULL;
 	LPBYTE p;
@@ -2902,10 +3244,10 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	addb.PutBuf(tmp.GetPtr(), tmp.GetSize());
 
 	if ( !m_HostKey.GetBlob(&tmp) )
-		return TRUE;
+		return (-1);
 
 	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, this) )
-		return TRUE;
+		return (-1);
 
 	if ( (spub = BN_new()) == NULL || (ssec = BN_new()) == NULL )
 		goto ENDRET;
@@ -2949,7 +3291,7 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	if ( HostVerifyKey(&sign, &addb, &skey, evp_md) )
 		goto ENDRET;
 
-	ret = FALSE;
+	ret = 0;
 
 ENDRET:
 	if ( spub != NULL )
@@ -2967,7 +3309,7 @@ int Cssh::SSH2MsgKexDhGexGroup(CBuffer *bp)
 		DH_free(m_SaveDh);
 
 	if ( (m_SaveDh = DH_new()) == NULL )
-		return TRUE;
+		return (-1);
 
 	BIGNUM *p = bp->GetBIGNUM2(NULL);
 	BIGNUM *g = bp->GetBIGNUM2(NULL);
@@ -2977,10 +3319,10 @@ int Cssh::SSH2MsgKexDhGexGroup(CBuffer *bp)
 	int grp_bits = DH_bits(m_SaveDh);
 
 	if ( DHGEX_MIN_BITS > grp_bits || grp_bits > DHGEX_MAX_BITS )
-		return TRUE;
+		return (-1);
 
 	if ( dh_gen_key(m_SaveDh, m_NeedKeyLen * 8) )
-		return TRUE;
+		return (-1);
 
 	BIGNUM const *pub_key = NULL;
 
@@ -2990,13 +3332,13 @@ int Cssh::SSH2MsgKexDhGexGroup(CBuffer *bp)
 	tmp.PutBIGNUM2(pub_key);
 	SendPacket2(&tmp);
 
-	return FALSE;
+	return 0;
 }
 int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 {
 	int n;
 	LPBYTE p;
-	int ret = TRUE;
+	int ret = (-1);
 	CBuffer tmp(-1), sign(-1), addb(-1), skey(-1);
 	BIGNUM *spub = NULL, *ssec = NULL;
 	const EVP_MD *evp_md;
@@ -3005,10 +3347,10 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 	addb.PutBuf(tmp.GetPtr(), tmp.GetSize());
 
 	if ( !m_HostKey.GetBlob(&tmp) )
-		return TRUE;
+		return (-1);
 
 	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, this) )
-		return TRUE;
+		return (-1);
 
 	if ( (spub = BN_new()) == NULL || (ssec = BN_new()) == NULL )
 		goto ENDRET;
@@ -3046,7 +3388,7 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 	if ( HostVerifyKey(&sign, &addb, &skey, evp_md) )
 		goto ENDRET;
 
-	ret = FALSE;
+	ret = 0;
 
 ENDRET:
 	if ( spub != NULL )
@@ -3059,7 +3401,7 @@ ENDRET:
 }
 int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 {
-	int ret = TRUE;
+	int ret = (-1);
 	CBuffer tmp(-1), sign(-1), addb(-1), skey(-1);
 	EC_POINT *server_public = NULL;
 	BIGNUM *shared_secret = NULL;
@@ -3071,10 +3413,10 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 	addb.PutBuf(tmp.GetPtr(), tmp.GetSize());
 
 	if ( !m_HostKey.GetBlob(&tmp) )
-		return TRUE;
+		return (-1);
 
 	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, this) )
-		return TRUE;
+		return (-1);
 
 	if ( (server_public = EC_POINT_new(m_EcdhGroup)) == NULL )
 		goto ENDRET;
@@ -3119,7 +3461,7 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 	EC_KEY_free(m_EcdhClientKey);
 	m_EcdhClientKey = NULL;
 
-	ret = FALSE;
+	ret = 0;
 
 ENDRET:
 	if ( kbuf != NULL )
@@ -3136,7 +3478,7 @@ ENDRET:
 int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 {
 	int n;
-	int ret = TRUE;
+	int ret = (-1);
 	CBuffer tmp(-1), sign(-1), addb(-1), skey(-1);
 	CBuffer server_public(-1), shared_key(-1);
 	BIGNUM *shared_secret = NULL;
@@ -3152,10 +3494,10 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 	addb.PutBuf(tmp.GetPtr(), tmp.GetSize());
 
 	if ( !m_HostKey.GetBlob(&tmp) )
-		return TRUE;
+		return (-1);
 
 	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, this) )
-		return TRUE;
+		return (-1);
 
 	bp->GetBuf(&server_public);
 	bp->GetBuf(&sign);
@@ -3174,9 +3516,9 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 		evp_md = EVP_sha512();
 		ctsz = sntrup761_CIPHERTEXTBYTES;
 		if ( server_public.GetSize() < ctsz )
-			return TRUE;
+			return (-1);
 		if ( sntrup761_dec(shared_key.PutSpc(sntrup761_BYTES), server_public.GetPtr(), m_SntrupClientKey.GetPtr()) != 0 )
-			return TRUE;
+			return (-1);
 		break;
 	}
 
@@ -3218,7 +3560,7 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 	if ( HostVerifyKey(&sign, &addb, &skey, evp_md) )
 		goto ENDRET;
 
-	ret = FALSE;
+	ret = 0;
 
 ENDRET:
 	if ( pkey != NULL )
@@ -3243,7 +3585,7 @@ int Cssh::SSH2MsgKexRsaPubkey(CBuffer *bp)
        string    server public host key and certificates (K_S)
        string    K_T, transient RSA public key
 */
-	int ret = TRUE;
+	int ret = (-1);
 	CBuffer tmp(-1);
 	const EVP_MD *evp_md = EVP_sha256();
 	CIdKey TranKey;
@@ -3257,19 +3599,19 @@ int Cssh::SSH2MsgKexRsaPubkey(CBuffer *bp)
 	m_RsaHostBlob = tmp;
 
 	if ( !m_HostKey.GetBlob(&tmp) )
-		return TRUE;
+		return (-1);
 
 	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, this) )
-		return TRUE;
+		return (-1);
 
 	bp->GetBuf(&tmp);
 	m_RsaTranBlob = tmp;
 		
 	if ( !TranKey.GetBlob(&tmp) )
-		return TRUE;
+		return (-1);
 
 	if ( TranKey.m_Type != IDKEY_RSA2 )
-		return TRUE;
+		return (-1);
 
 	m_RsaSharedKey.Clear();
 	m_RsaOaepSecret.Clear();
@@ -3323,7 +3665,7 @@ int Cssh::SSH2MsgKexRsaPubkey(CBuffer *bp)
 	tmp.PutBuf(m_RsaOaepSecret.GetPtr(), m_RsaOaepSecret.GetSize());
 	SendPacket2(&tmp);
 
-	ret = FALSE;
+	ret = 0;
 
 ENDRET:
 	if ( shared_secret != NULL )
@@ -3365,18 +3707,21 @@ int Cssh::SSH2MsgKexRsaDone(CBuffer *bp)
 		evp_md = EVP_sha512();
 
 	if ( HostVerifyKey(&sign, &addb, &m_RsaSharedKey, evp_md) )
-		return TRUE;
+		return (-1);
 
-	return FALSE;
+	return 0;
 }
+
+//////////////////////////////////////////////////////////////////////
+
 int Cssh::SSH2MsgNewKeys(CBuffer *bp)
 {
 	if ( !m_DecCip.Init(m_VProp[PROP_ENC_ALGS_STOC], MODE_DEC, m_VKey[3], (-1), m_VKey[1]) ||
 		 !m_DecMac.Init(m_VProp[PROP_MAC_ALGS_STOC], m_VKey[5], (-1)) ||
 		 !m_DecCmp.Init(m_VProp[PROP_COMP_ALGS_STOC], MODE_DEC, COMPLEVEL) )
-		return TRUE;
+		return (-1);
 
-	return FALSE;
+	return 0;
 }
 int Cssh::SSH2MsgExtInfo(CBuffer *bp)
 {
@@ -3426,8 +3771,11 @@ int Cssh::SSH2MsgExtInfo(CBuffer *bp)
 		m_ExtInfo[MbsToTstr(name)] = MbsToTstr(value);
 	}
 
-	return FALSE;
+	return 0;
 }
+
+//////////////////////////////////////////////////////////////////////
+
 int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
 {
 	int n;
@@ -3439,7 +3787,7 @@ int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
 	bp->GetBuf(&blob);
 
 	if ( !ReqKey.GetBlob(&blob) )
-		return FALSE;
+		return (-1);
 
 	for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
 		if ( ReqKey.Compere(&(m_IdKeyTab[n])) != 0 )
@@ -3453,7 +3801,7 @@ int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
 	}
 
 	SendMsgUserAuthRequest(NULL);
-	return TRUE;
+	return 0;
 }
 int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 {
@@ -3514,12 +3862,12 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 
 	tmp.PutStr(m_pDocument->RemoteStr(pass));
 	SendPacket2(&tmp);
-	return TRUE;
+	return 0;
 
 NEXTAUTH:
 	UserAuthNextState();
 	SendMsgUserAuthRequest(NULL);
-	return TRUE;
+	return 0;
 }
 int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 {
@@ -3562,7 +3910,7 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 			if ( dlg.DoModal() != IDOK ) {
 				UserAuthNextState();
 				SendMsgUserAuthRequest(NULL);
-				return TRUE;
+				return 0;
 			}
 
 			tmp.PutStr(m_pDocument->RemoteStr(dlg.m_Edit));
@@ -3577,7 +3925,7 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 		AddAuthLog(_T("keyboard-interactive(%s%s)"), m_pDocument->m_ServerEntry.m_UserName, (bAutoPass ? _T(":auto"): _T("")));
 
 	SendPacket2(&tmp);
-	return TRUE;
+	return 0;
 }
 int Cssh::SSH2MsgUserAuthGssapiProcess(CBuffer *bp, int type)
 {
@@ -3595,7 +3943,7 @@ int Cssh::SSH2MsgUserAuthGssapiProcess(CBuffer *bp, int type)
 	long status;
 
 	if ( (m_SSH2Status & SSH2_STAT_AUTHGSSAPI) == 0 )
-		return FALSE;
+		return (-1);
 
 	switch(type) {
 	case SSH2_MSG_USERAUTH_GSSAPI_RESPONSE:
@@ -3666,7 +4014,7 @@ int Cssh::SSH2MsgUserAuthGssapiProcess(CBuffer *bp, int type)
 	}
 
 	if ( status == SEC_I_CONTINUE_NEEDED )
-		return TRUE;
+		return 0;
 	else if ( status != SEC_E_OK )
 		goto RETRYAUTH;
 
@@ -3709,7 +4057,7 @@ int Cssh::SSH2MsgUserAuthGssapiProcess(CBuffer *bp, int type)
 	FreeCredentialsHandle(&m_SSPI_hCredential);
 	m_SSH2Status &= ~SSH2_STAT_AUTHGSSAPI;
 
-	return TRUE;
+	return 0;
 
 RETRYAUTH:
 	if ( m_SSPI_phContext != NULL ) {
@@ -3721,38 +4069,43 @@ RETRYAUTH:
 	m_SSH2Status &= ~SSH2_STAT_AUTHGSSAPI;
 
 	SendMsgUserAuthRequest(NULL);
-	return TRUE;
+	return 0;
 }
+
+//////////////////////////////////////////////////////////////////////
 
 int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 {
-	int n, i, id;
+	int i, id;
 	CBuffer tmp;
 	CStringA type, mbs;
 	CString host[2];
 	int port[2];
 	LPCTSTR p;
-	CChannel *cp;
+	CFifoChannel *pChan;
 
 	bp->GetStr(type);
 	id = bp->Get32Bit();
 
-	if ( (n = ChannelOpen()) < 0 )
+	if ( (pChan = GetFifoChannel(-1)) == NULL )
 		goto FAILURE;
-	cp = (CChannel *)m_pChan[n];
-	cp->m_TypeName   = type;
-	cp->m_RemoteID   = id;
-	cp->m_RemoteWind = bp->Get32Bit();
-	cp->m_RemoteMax  = bp->Get32Bit();
-	cp->m_LocalComs  = 0;
+
+	pChan->m_TypeName    = type;
+	pChan->m_RemoteID    = id;
+	pChan->m_RemoteComs  = bp->Get32Bit();
+	pChan->m_RemotePacks = bp->Get32Bit();
+	pChan->m_LocalComs   = 0;
 
 	if ( type.CompareNoCase("auth-agent@openssh.com") == 0 ) {
-		cp->m_pFilter = new CAgent;
-		cp->m_pFilter->m_pChan = cp;
-		cp->m_Status |= CHAN_OPEN_REMOTE;
-		SendMsgChannelOpenConfirmation(n);
-		SendMsgChannelData(n);
-		return FALSE;
+		pChan->m_Type = SSHFT_AGENT;
+		pChan->m_Status |= (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE);
+		pChan->m_pFifoBase = new CFifoAgent(m_pDocument, this, pChan);
+
+		CFifoBase::Link(m_pFifoMid, IdToFdIn(pChan->m_LocalID), pChan->m_pFifoBase, FIFO_STDIN);
+
+		SendMsgChannelOpenConfirmation(pChan->m_LocalID);
+		return 0;
+
 
 	} else if ( type.CompareNoCase("x11") == 0 ) {
 		bp->GetStr(mbs);
@@ -3779,21 +4132,25 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 		if ( host[1].IsEmpty() || host[1].CompareNoCase(_T("unix")) == 0 )
 			host[1] = _T("127.0.0.1");
 
-		cp->m_pFilter = new CX11Filter;
-		cp->m_pFilter->m_pChan = cp;
+		pChan->m_Type = SSHFT_X11;
+		pChan->m_Status |= CHAN_OPEN_REMOTE;
+		pChan->m_lHost = host[1];
+		pChan->m_lPort = 6000 + port[1];
+		pChan->m_rHost = host[0];
+		pChan->m_rPort = port[0];
 
-		cp->m_Status |= CHAN_OPEN_REMOTE;
-		cp->m_lHost = host[1];
-		cp->m_lPort = 6000 + port[1];
-		cp->m_rHost = host[0];
-		cp->m_rPort = port[0];
+		pChan->m_pFifoBase = new CFifoSocket(m_pDocument, this);
+		CFifoX11 *pFifoX11 = new CFifoX11(m_pDocument, this, pChan);
 
-		if ( !cp->Open(host[1], 6000 + port[1]) ) {
-			LogIt(_T("x11 Open Failure #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
+		CFifoBase::MidLink(m_pFifoMid, IdToFdIn(pChan->m_LocalID), pFifoX11, FIFO_STDIN, pChan->m_pFifoBase, FIFO_STDIN);
+
+		if ( !((CFifoSocket *)pChan->m_pFifoBase)->Open(host[1], pChan->m_lPort) ) {
+			LogIt(_T("x11 Open Failure #%d %s:%d -> %s:%d"), id, pChan->m_lHost, pChan->m_lPort, pChan->m_rHost, pChan->m_rPort);
+			CFifoBase::UnLink(pFifoX11, FIFO_STDIN, TRUE);
 			goto FAILURE;
 		}
 
-		return FALSE;
+		return 0;
 
 	} else if ( type.CompareNoCase("forwarded-tcpip") == 0 ) {
 		bp->GetStr(mbs);
@@ -3809,32 +4166,42 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 		}
 
 		if ( i >=  m_Permit.GetSize() ) {
-			LogIt(_T("forwarded-tcpip Permit Failure #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
+			LogIt(_T("forwarded-tcpip Permit Failure #%d %s:%d -> %s:%d"), id, pChan->m_lHost, pChan->m_lPort, pChan->m_rHost, pChan->m_rPort);
 			goto FAILURE;
 		}
 		
-		cp->m_Status |= CHAN_OPEN_REMOTE;
-		cp->m_lHost = host[1];
-		cp->m_lPort = port[1];
-		cp->m_rHost = host[0];
-		cp->m_rPort = port[0];
+		pChan->m_Status |= CHAN_OPEN_REMOTE;
+		pChan->m_lHost = host[1];
+		pChan->m_lPort = port[1];
+		pChan->m_rHost = host[0];
+		pChan->m_rPort = port[0];
 
 		if ( m_Permit[i].m_Type == PFD_RSOCKS ) {
-			cp->m_Status |= CHAN_REMOTE_SOCKS;
-			SendMsgChannelOpenConfirmation(cp->m_LocalID);
+			pChan->m_Type = SSHFT_REMOTE_SOCKS;
+			pChan->m_pFifoBase = new CFifoSocks(m_pDocument, this, pChan);
+
+			((CFifoSocks *)pChan->m_pFifoBase)->m_rFd = FIFO_STDIN;
+			((CFifoSocks *)pChan->m_pFifoBase)->m_wFd = FIFO_STDOUT;
+
+			CFifoBase::Link(m_pFifoMid, IdToFdIn(pChan->m_LocalID), pChan->m_pFifoBase, FIFO_STDIN);
+			SendMsgChannelOpenConfirmation(pChan->m_LocalID);
+
 		} else {
-			if ( !cp->AsyncOpen(m_Permit[i].m_lHost, m_Permit[i].m_lPort) ) {
-				LogIt(_T("forwarded-tcpip Open Failure #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
+			pChan->m_Type = SSHFT_SOCKET_REMOTE;
+
+			if ( !ChannelOpen(pChan->m_LocalID, m_Permit[i].m_lHost, m_Permit[i].m_lPort) ) {
+				LogIt(_T("forwarded-tcpip Open Failure #%d %s:%d -> %s:%d"), id, pChan->m_lHost, pChan->m_lPort, pChan->m_rHost, pChan->m_rPort);
 				goto FAILURE;
 			}
 		}
 
-		return FALSE;
+		return 0;
 	}
 
 FAILURE:
-	if ( n >= 0 )
-		ChannelClose(n);
+	if ( pChan != NULL )
+		ChannelClose(pChan->m_LocalID);
+
 	tmp.Clear();
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN_FAILURE);
 	tmp.Put32Bit(id);
@@ -3842,128 +4209,144 @@ FAILURE:
 	tmp.PutStr("open failed");
 	tmp.PutStr("");
 	SendPacket2(&tmp);
-	return FALSE;
+	return 0;
 }
 int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 {
 	int id = bp->Get32Bit();
-	CChannel *cp;
+	CFifoChannel *pChan;
 
-	if ( id < 0 || id >= m_pChan.GetSize() || ((CChannel *)m_pChan[id])->m_Status != CHAN_OPEN_LOCAL )
-		return TRUE;
-	cp = (CChannel *)m_pChan[id];
+	if ( id < 0 || (pChan = GetFifoChannel(id)) == NULL || (pChan->m_Status & CHAN_OPEN_LOCAL) == 0 )
+		return (-1);
 
 	if ( type == SSH2_MSG_CHANNEL_OPEN_FAILURE ) {
-		if ( cp->m_pFilter != NULL )
+		if ( pChan->m_Type != SSHFT_NONE )
 			LogIt(_T("Open Failure #%d Filter"), id);
 		else
-			LogIt(_T("Open Failure #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
+			LogIt(_T("Open Failure #%d %s:%d -> %s:%d"), id, pChan->m_lHost, pChan->m_lPort, pChan->m_rHost, pChan->m_rPort);
 		ChannelClose(id);
-		return (id == m_StdChan ? TRUE : FALSE);
+		return (id == FdToId(FIFO_EXTIN) ? (-1) : 0);
 	}
 
-	cp->m_Status     |= CHAN_OPEN_REMOTE;
-	cp->m_RemoteID    = bp->Get32Bit();
-	cp->m_RemoteWind  = bp->Get32Bit();
-	cp->m_RemoteMax   = bp->Get32Bit();
-	cp->m_ConnectTime = CTime::GetCurrentTime();
-	m_OpenChanCount++;
-	
-//	while ( cp->OnIdle() );	// Channel Receive data check XXXXXX
+	pChan->m_Status     |= CHAN_OPEN_REMOTE;
+	pChan->m_RemoteID    = bp->Get32Bit();
+	pChan->m_RemoteComs  = bp->Get32Bit();
+	pChan->m_RemotePacks = bp->Get32Bit();
 
-	if ( cp->m_pFilter != NULL ) {
-		switch(cp->m_pFilter->m_Type) {
-		case SSHFT_STDIO:
-			LogIt(_T("Connect #%d stdio"), id);
-			if ( (m_SSH2Status & SSH2_STAT_HAVESHELL) == 0 )
-				SendMsgChannelRequesstShell(id);
-			break;
-		case SSHFT_SFTP:
-			LogIt(_T("Connect #%d sftp"), id);
-			SendMsgChannelRequesstSubSystem(id, "sftp");
-			break;
-		case SSHFT_AGENT:
-			LogIt(_T("Connect #%d agent"), id);
-			break;
-		case SSHFT_RCP:
-			LogIt(_T("Connect #%d rcp"), id);
-			SendMsgChannelRequesstExec(id);
-			break;
-		case SSHFT_X11:
-			LogIt(_T("Connect #%d x11"), id);
-			break;
-		}
-	} else
-		LogIt(_T("Connect #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
+	switch(pChan->m_Type) {
+	case SSHFT_NONE:
+		LogIt(_T("Connect #%d %s:%d -> %s:%d"), id, pChan->m_lHost, pChan->m_lPort, pChan->m_rHost, pChan->m_rPort);
+//		ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
+		break;
+	case SSHFT_STDIO:
+		LogIt(_T("Connect #%d stdio"), id);
+		if ( (m_SSH2Status & SSH2_STAT_HAVESHELL) == 0 ) {
+			SendMsgChannelRequesstShell(id);
+		} else
+			ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
+		break;
+	case SSHFT_SFTP:
+		LogIt(_T("Connect #%d sftp"), id);
+		SendMsgChannelRequesstSubSystem(id, "sftp");
+		break;
+	case SSHFT_AGENT:
+		LogIt(_T("Connect #%d agent"), id);
+		ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
+		break;
+	case SSHFT_RCP:
+		LogIt(_T("Connect #%d rcp"), id);
+		SendMsgChannelRequesstExec(id, m_pDocument->RemoteStr(pChan->m_rHost));
+		break;
+	case SSHFT_X11:
+		LogIt(_T("Connect #%d x11"), id);
+		ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
+		break;
+	case SSHFT_SOCKET_LOCAL:
+	case SSHFT_SOCKET_REMOTE:
+		LogIt(_T("Connect #%d %s:%d -> %s:%d"), id, pChan->m_lHost, pChan->m_lPort, pChan->m_rHost, pChan->m_rPort);
+		ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
+		break;
+	}
 
-	SendMsgChannelData(id);
-	return FALSE;
+	return 0;
 }
 int Cssh::SSH2MsgChannelClose(CBuffer *bp)
 {
 	int id = bp->Get32Bit();
+	CFifoChannel *pChan = GetFifoChannel(id);
 
-	if ( id < 0 || id >= m_pChan.GetSize() )
-		return TRUE;
+	if ( pChan == NULL || (pChan->m_Status & CHAN_OPEN_LOCAL) == 0 )
+		return (-1);
+	
+	ChannelClose(id, CHAN_CLOSE_REMOTE);
 
-	((CChannel *)m_pChan[id])->m_Eof |= CEOF_ICLOSE;
-	ChannelCheck(id);
-
-	return FALSE;
+	return 0;
 }
 int Cssh::SSH2MsgChannelData(CBuffer *bp, int type)
 {
-	CBuffer tmp;
 	int id = bp->Get32Bit();
-	CChannel *cp;
+	CFifoChannel *pChan = GetFifoChannel(id);
+	CBuffer tmp;
 
-	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) )
-		return TRUE;
-
-	cp = (CChannel *)m_pChan[id];
+	if ( pChan == NULL || (pChan->m_Status & CHAN_OPEN_LOCAL) == 0 )
+		return (-1);
 
 	bp->GetBuf(&tmp);
-	cp->m_LocalComs += tmp.GetSize();
+	pChan->m_LocalComs += tmp.GetSize();
 
-	if ( type == SSH2_MSG_CHANNEL_DATA ) {
-		if ( (cp->m_Status & CHAN_REMOTE_SOCKS) != 0 ) {
-			cp->m_Input.Apend(tmp.GetPtr(), tmp.GetSize());
-			DecodeProxySocks(id, cp->m_Input);
-		} else
-			cp->Send(tmp.GetPtr(), tmp.GetSize());
-	}
+	ChannelCheck(IdToFdOut(id), FD_READ, (void *)&tmp);
 
-	ChannelPolling(id);
-	return FALSE;
+	return 0;
 }
 int Cssh::SSH2MsgChannelEof(CBuffer *bp)
 {
 	int id = bp->Get32Bit();
+	CFifoChannel *pChan = GetFifoChannel(id);
 
-	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) )
-		return TRUE;
+	if ( pChan == NULL || (pChan->m_Status & CHAN_OPEN_LOCAL) == 0 )
+		return (-1);
+		
+	ChannelClose(id, CHAN_ENDOF_REMOTE);
 
-	((CChannel *)m_pChan[id])->m_Eof |= CEOF_IEOF;
-	ChannelCheck(id);
 	return FALSE;
 }
+int Cssh::SSH2MsgChannelAdjust(CBuffer *bp)
+{
+	int len;
+	int id = bp->Get32Bit();
+	CFifoChannel *pChan = GetFifoChannel(id);
+
+	if ( pChan == NULL || (pChan->m_Status & CHAN_OPEN_LOCAL) == 0 )
+		return (-1);
+
+	if ( (len = bp->Get32Bit()) < 0 )
+		return (-1);
+
+	pChan->m_RemoteComs += len;
+
+	ChannelCheck(IdToFdOut(id), FD_WRITE, NULL);
+
+	return 0;
+}
+
 int Cssh::SSH2MsgChannelRequesst(CBuffer *bp)
 {
+	int id = bp->Get32Bit();
+	CFifoChannel *pChan = GetFifoChannel(id);
 	int reply;
 	CStringA str;
 	CBuffer tmp;
-	int id = bp->Get32Bit();
 	BOOL success = FALSE;
 
-	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) )
-		return TRUE;
+	if ( pChan == NULL || (pChan->m_Status & CHAN_OPEN_LOCAL) == 0 )
+		return (-1);
 
 	bp->GetStr(str);
 	reply = bp->Get8Bit();
 
 	if ( str.Compare("exit-status") == 0 ) {
 		bp->Get32Bit();
-		if ( id == m_StdChan )
+		if ( id == FdToId(FIFO_EXTIN) )
 			m_SSH2Status &= ~SSH2_STAT_HAVESHELL;
 		success = TRUE;
 	
@@ -3972,7 +4355,7 @@ int Cssh::SSH2MsgChannelRequesst(CBuffer *bp)
 		bp->Get8Bit();
 		bp->GetStr(str);
 		bp->GetStr(str);
-		if ( id == m_StdChan )
+		if ( id == FdToId(FIFO_EXTIN) )
 			m_SSH2Status &= ~SSH2_STAT_HAVESHELL;
 		success = TRUE;
 
@@ -3986,7 +4369,7 @@ int Cssh::SSH2MsgChannelRequesst(CBuffer *bp)
 		tmp.Put32Bit(id);
 		SendPacket2(&tmp);
 	}
-	return FALSE;
+	return 0;
 }
 int Cssh::SSH2MsgChannelRequestReply(CBuffer *bp, int type)
 {
@@ -3994,67 +4377,49 @@ int Cssh::SSH2MsgChannelRequestReply(CBuffer *bp, int type)
 	int id = bp->Get32Bit();
 
 	if ( m_ChnReqMap.GetSize() <= 0 )
-		return FALSE;
+		return 0;
 	num = m_ChnReqMap.GetAt(0);
 	m_ChnReqMap.RemoveAt(0);
 
 	switch(num) {
 	case CHAN_REQ_PTY:		// pty-req
 		if ( type == SSH2_MSG_CHANNEL_FAILURE )
-			return TRUE;
+			return (-1);
 		m_SSH2Status |= SSH2_STAT_HAVESTDIO;
-		//CExtSocket::OnConnect();
-		if ( m_pDocument != NULL ) {
-			m_bConnect = TRUE;
-			m_pDocument->OnSocketConnect();
-		}
 		break;
 	case CHAN_REQ_SHELL:	// shell
 		if ( type == SSH2_MSG_CHANNEL_FAILURE )
-			return TRUE;
+			return (-1);
 		m_SSH2Status |= SSH2_STAT_HAVESHELL;
-		if ( m_StdInRes.GetSize() > 0 && CHAN_OK(m_StdChan) ) {
-			((CChannel *)m_pChan[m_StdChan])->m_pFilter->Send(m_StdInRes.GetPtr(), m_StdInRes.GetSize());
-			m_StdInRes.Clear();
-		}
+		ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
 		break;
 	case CHAN_REQ_SUBSYS:	// subsystem
 	case CHAN_REQ_EXEC:		// exec
-		if ( type == SSH2_MSG_CHANNEL_FAILURE ) {
-			((CChannel *)m_pChan[id])->m_Eof |= CEOF_DEAD;
-			ChannelCheck(id);
-		} else if ( ((CChannel *)m_pChan[id])->m_pFilter != NULL )
-			((CChannel *)m_pChan[id])->m_pFilter->OnConnect();
+		if ( type == SSH2_MSG_CHANNEL_FAILURE )
+			ChannelClose(id);
+		else
+			ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
 		break;
 	case CHAN_REQ_X11:		// x11-req
-		if ( type == SSH2_MSG_CHANNEL_FAILURE )
+		if ( type == SSH2_MSG_CHANNEL_FAILURE ) {
 			AfxMessageBox(_T("X11-req Failure"));
+			ChannelClose(id);
+		} else
+			ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
 		break;
 	case CHAN_REQ_ENV:		// env
-		if ( type == SSH2_MSG_CHANNEL_FAILURE )
+		if ( type == SSH2_MSG_CHANNEL_FAILURE ) {
 			AfxMessageBox(_T("env Failure"));
+			ChannelClose(id);
+		} else
+			ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
 		break;
 	}
-	return FALSE;
+	return 0;
 }
-int Cssh::SSH2MsgChannelAdjust(CBuffer *bp)
-{
-	int len;
-	int id = bp->Get32Bit();
 
-	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) )
-		return TRUE;
+//////////////////////////////////////////////////////////////////////
 
-	if ( (len = bp->Get32Bit()) < 0 )
-		return TRUE;
-
-	((CChannel *)m_pChan[id])->m_RemoteWind += len;
-
-	if ( ((CChannel *)m_pChan[id])->m_Output.GetSize() > 0 )
-		SendMsgChannelData(id);
-
-	return FALSE;
-}
 int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
 {
 	int n, i;
@@ -4182,7 +4547,7 @@ int Cssh::SSH2MsgGlobalRequest(CBuffer *bp)
 		tmp.Put8Bit(success ? SSH2_MSG_REQUEST_SUCCESS : SSH2_MSG_REQUEST_FAILURE);
 		SendPacket2(&tmp);
 	}
-	return FALSE;
+	return 0;
 }
 int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 {
@@ -4191,7 +4556,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 
 	if ( m_GlbReqMap.GetSize() <= 0 ) {
 		AfxMessageBox(CStringLoad(IDE_SSHGLOBALREQERROR));
-		return FALSE;
+		return 0;
 	}
 	num = m_GlbReqMap.GetAt(0);
 	m_GlbReqMap.RemoveAt(0);
@@ -4199,7 +4564,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 	if ( (WORD)num == 0xFFFF ) {	// KeepAlive Reply
 		if ( ++m_KeepAliveReplyCount < 0 )
 			m_KeepAliveReplyCount = 0;
-		return FALSE;
+		return 0;
 	}
 
 	if ( m_bPfdConnect > 0 && --m_bPfdConnect <= 0 ) {
@@ -4214,8 +4579,11 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 		m_Permit.RemoveAt(num);
 	}
 
-	return FALSE;
+	return 0;
 }
+
+//////////////////////////////////////////////////////////////////////
+
 void Cssh::ReceivePacket2(CBuffer *bp)
 {
 	DEBUGLOG("ReceivePacket2 %d(%d) Seq=%d", bp->PTR8BIT(bp->GetPtr()), bp->GetSize(), m_RecvPackSeq);
@@ -4347,6 +4715,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 				m_EncCmp.Init(NULL, MODE_ENC, COMPLEVEL);
 			if ( m_DecCmp.m_Mode == 4 )
 				m_DecCmp.Init(NULL, MODE_DEC, COMPLEVEL);
+			DelayedCheckExec();
 		}
 		break;
 	case SSH2_MSG_SERVICE_ACCEPT:
@@ -4384,15 +4753,11 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFTPORY) )
 			OpenSFtpChannel();
 		if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) && (m_SSH2Status & SSH2_STAT_HAVESTDIO) == 0 ) {
-			if ( (m_StdChan = ChannelOpen()) >= 0 ) {
-				CChannel *cp = (CChannel *)m_pChan[m_StdChan];
-				cp->m_pFilter = new CStdIoFilter;
-				cp->m_pFilter->m_pChan = cp;
-				cp->m_LocalPacks = m_pDocument->m_ParamTab.m_StdIoBufSize * 1024;
-				cp->m_LocalWind  = cp->m_LocalPacks;
-				SendMsgChannelOpen(m_StdChan, "session");
-			}
-		}
+			CFifoChannel *pChan = GetFifoChannel(-2);
+			if ( pChan != NULL )
+				SendMsgChannelOpen(pChan->m_LocalID, "session");
+		} else
+			GetFifoChannel(-2);
 		if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_SshKeepAlive > 0 )
 			m_KeepAliveTiimerId = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
 		break;
@@ -4416,19 +4781,19 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 			goto DISCONNECT;
 		switch(m_AuthMode) {
 		case AUTH_MODE_PUBLICKEY:
-			if ( !SSH2MsgUserAuthPkOk(bp) )
+			if ( SSH2MsgUserAuthPkOk(bp) )
 				goto DISCONNECT;
 			break;
 		case AUTH_MODE_PASSWORD:
-			if ( !SSH2MsgUserAuthPasswdChangeReq(bp) )
+			if ( SSH2MsgUserAuthPasswdChangeReq(bp) )
 				goto DISCONNECT;
 			break;
 		case AUTH_MODE_KEYBOARD:
-			if ( !SSH2MsgUserAuthInfoRequest(bp) )
+			if ( SSH2MsgUserAuthInfoRequest(bp) )
 				goto DISCONNECT;
 			break;
 		case AUTH_MODE_GSSAPI:
-			if ( !SSH2MsgUserAuthGssapiProcess(bp, type) )
+			if ( SSH2MsgUserAuthGssapiProcess(bp, type) )
 				goto DISCONNECT;
 			break;
 		default:
@@ -4439,7 +4804,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 	case SSH2_MSG_USERAUTH_GSSAPI_TOKEN:
 	case SSH2_MSG_USERAUTH_GSSAPI_ERROR:
 	case SSH2_MSG_USERAUTH_GSSAPI_ERRTOK:
-		if ( !SSH2MsgUserAuthGssapiProcess(bp, type) )
+		if ( SSH2MsgUserAuthGssapiProcess(bp, type) )
 			goto DISCONNECT;
 		break;
 

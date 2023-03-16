@@ -19,17 +19,12 @@
 #define	THCMD_DLGCLOSE			3
 #define	THCMD_DLGMESSAGE		4
 #define	THCMD_DLGRANGE			5
-#define	THCMD_DLGPOS			6
-#define	THCMD_SENDBUF			7
-#define	THCMD_CHECKPATH			8
-#define	THCMD_YESNO				9
-#define	THCMD_XONXOFF			10
-#define	THCMD_SENDSTR			11
-#define	THCMD_SENDSCRIPT		12
-#define	THCMD_SENDSYNC			13
-#define	TGCMD_MESSAGE			14
-#define	TGCMD_NOWAITMESSAGE		15
-#define	THCMD_ECHOBUFFER		16
+#define	THCMD_CHECKPATH			6
+#define	THCMD_YESNO				7
+#define	THCMD_XONXOFF			8
+#define	THCMD_SENDSTR			9
+#define	THCMD_SENDSCRIPT		10
+#define	TGCMD_MESSAGE			11
 
 #define	CHKFILENAME_SAVE		000
 #define	CHKFILENAME_OPEN		001
@@ -41,38 +36,34 @@ extern const unsigned long  crc32tab[];
 class CSyncSock : public CObject  
 {
 public:
-	CWnd *m_pWnd;
 	class CRLoginDoc *m_pDoc;
-	CWnd *m_pView;
+	CWnd *m_pMainWnd;
+	CWnd *m_pViewWnd;
 	LPCTSTR m_ProtoName;
+	int m_DoCommand;
 
-	BOOL m_ThreadFlag;
-	BOOL m_DoAbortFlag;
-	int m_ThreadMode;
-	CEvent *m_pThreadEvent;
+	volatile enum { THREAD_NONE = 0, THREAD_RUN, THREAD_DOEND, THREAD_ENDOF } m_ThreadMode;
+	CWinThread *m_pSyncThread;
 
 	CBuffer m_RecvBuf;
-	CBuffer m_SendBuf, m_EchoBuf, m_SwapBuf;
-	CSemaphore m_SendSema;
-	BOOL m_EchoPostReq;
+	CBuffer m_SendBuf;
 	BOOL m_bInitDone;
 
-	class CProgDlg m_ProgDlg;
+	BOOL m_AbortFlag;
+	class CProgDlg *m_pProgDlg;
+
 	BOOL m_ResvDoit;
 	BOOL m_MultiFile;
 	CStringList m_ResvPath;
+	int m_ExtFileDlgMode;
+
 	CString m_PathName;
 	CStringA m_FileName;
 	CStringA m_Message;
 	DWORD m_Param;
-	CSemaphore m_ProgSema;
-	BOOL m_bUpdateReq;
-	LONGLONG m_Size;
-	LONGLONG m_RemSize;
-	CEvent *m_pParamEvent;
-	CBuffer m_LogBuffer;
 
-	int m_ExtFileDlgMode;
+	CBuffer m_LogBuffer;
+	LONGLONG m_pLongLong[2];
 
 #ifdef	USE_DEBUGLOG
 	void DebugMsg(LPCSTR fmt, ...);
@@ -82,11 +73,12 @@ public:
 	#define DebugDump(...)
 #endif
 
+	inline BOOL IsOpen() { return (m_ThreadMode == THREAD_RUN ? TRUE : FALSE); }
+
 	void Bufferd_Send(int c);
 	void Bufferd_SendBuf(char *buf, int len);
 	void Bufferd_Flush();
 	void Bufferd_Clear();
-	void Bufferd_Sync();
 	int Bufferd_Receive(int sec, int msec = 0);
 	BOOL Bufferd_ReceiveBuf(char *buf, int len, int sec, int msec = 0);
 	void Bufferd_ReceiveBack(char *buf, int len);
@@ -95,7 +87,7 @@ public:
 
 	BOOL CheckFileName(int mode, LPCSTR file, int extmode = 0);
 	int YesOrNo(LPCSTR msg);
-	int AbortCheck();
+	inline int AbortCheck() { return m_AbortFlag; }
 	void SendEcho(int ch);
 	void SendEchoBuffer(char *buf, int len);
 	void SendString(LPCWSTR str);
@@ -123,8 +115,10 @@ public:
 	void UpDownInit(LONGLONG size, LONGLONG rems = 0L);
 	void UpDownStat(LONGLONG size);
 
+	LPCSTR PathNameToFileName(LPCTSTR pathName);
+	BOOL FileDlgProc();
 	void ThreadCommand(int cmd);
-	void DoAbort();
+	void DoAbort(BOOL bClose = TRUE);
 	void StatusMsg(int ids);
 
 	virtual void DoProc(int cmd);

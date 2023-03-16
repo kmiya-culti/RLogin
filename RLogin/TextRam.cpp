@@ -1774,7 +1774,6 @@ CTextRam::CTextRam()
 	m_CaretColor = m_DefCaretColor;
 	m_UpdateRect.SetRectEmpty();
 	m_UpdateFlag = FALSE;
-	m_UpdateClock = clock();
 	m_DelayUSecChar = DELAY_CHAR_USEC;
 	m_DelayMSecLine = DELAY_LINE_MSEC;
 	m_DelayMSecRecv = DELAY_RECV_MSEC;
@@ -9071,15 +9070,8 @@ void CTextRam::ONEINDEX()
 				FORSCROLL(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
 				m_LineEditIndex++;
 
-#ifdef	USE_FIFOBUF
 				if ( IsOptEnable(TO_DECSCLM) && m_pDocument != NULL && m_pDocument->m_pSock != NULL && m_pDocument->m_pSock->GetRecvProcSize() < RECVDEFSIZ )
 					m_UpdateFlag = TRUE;
-#else
-				if ( IsOptEnable(TO_DECSCLM) && ((m_pDocument != NULL && m_pDocument->m_pSock != NULL && m_pDocument->m_pSock->GetRecvProcSize() < RECVDEFSIZ) || (clock() - m_UpdateClock) > 20) ) {
-					m_UpdateClock = clock();
-					m_UpdateFlag = TRUE;
-				}
-#endif
 
 				if ( m_iTerm2Mark != 0 ) {
 					m_iTerm2MaekPos[0].y--;

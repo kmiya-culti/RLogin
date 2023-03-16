@@ -67,7 +67,7 @@
 #define SSH2_FX_CONNECTION_LOST         7
 #define SSH2_FX_OP_UNSUPPORTED          8
 
-#define	SSH2_FX_TRANSBUFLEN				(32 * 1024)
+#define	SSH2_FX_TRANSBUFLEN				(31 * 1024)
 #define	SSH2_FX_TRANSMINMSEC			20
 #define	SSH2_FX_TRANSTYPMSEC			25
 #define	SSH2_FX_TRANSMAXMSEC			30
@@ -90,6 +90,8 @@
 #define	ENDCMD_PASSFILE					1
 #define	ENDCMD_GROUPFILE				2
 #define	ENDCMD_MOVEFILE					3
+
+#define	SFTP_TIMERID					1120
 
 /////////////////////////////////////////////////////////////////////////////
 // CSFtp ウィンドウ
@@ -205,6 +207,7 @@ public:
 	CProgressCtrl	m_UpDownProg;
 	CStatic	m_UpDownStat[4];
 	CString m_LastErrorMsg;
+	class CFifoBase *m_pFifoSftp;
 
 // クラスデータ
 public:
@@ -248,7 +251,6 @@ public:
 #endif
 
 	void OnConnect();
-	int OnReceive(const void *lpBuf, int nBufLen);
 
 	void Close();
 	void Send(LPBYTE buf, int len);

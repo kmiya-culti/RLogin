@@ -321,6 +321,7 @@ void CSerEntPage::OnComconfig()
 {
 	int Port = (-1);
 	CComSock com(NULL);
+	CComboBox *pCombo;
 
 	UpdateData(TRUE);
 
@@ -333,6 +334,9 @@ void CSerEntPage::OnComconfig()
 	m_PortName.Format(_T("COM%d"), Port);
 
 	UpdateData(FALSE);
+
+	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SERVERNAME)) != NULL )
+		pCombo->SetWindowText(m_HostName);
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_ENTRY;

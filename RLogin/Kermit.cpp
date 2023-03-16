@@ -134,12 +134,13 @@ RETRY:
 				break;
 			}
 			m_InPkt.Len = pos = 0;
+			continue;
 		}
 
 		if ( ch == m_MarkCh ) {
 			pos = 0;
 		} else if ( pos == 0 ) {
-			if ( m_MyPadCh == 0 || m_MyPadCh != ch )
+			if ( (m_MyPadCh == 0 || m_MyPadCh != ch) )
 				SendEcho(ch);
 			continue;
 		} else if ( pos == 1 ) {

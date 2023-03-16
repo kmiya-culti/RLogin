@@ -114,9 +114,7 @@ CRLoginDoc::CRLoginDoc()
 	m_CmdsPath.Empty();
 	m_bExitPause = FALSE;
 	m_bSleepDisable = FALSE;
-#ifdef	USE_FIFOBUF
 	m_SockSyncChar = (-1);
-#endif
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -924,7 +922,7 @@ void CRLoginDoc::EnvironText(CString &env, CString &str)
 	int n;
 	TCHAR c = _T('\0');
 	DWORD size;
-	TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
+	TCHAR buf[MAX_COMPUTERNAME];
 	CString work, src, dis;
 	LPCTSTR s;
 
@@ -944,12 +942,12 @@ void CRLoginDoc::EnvironText(CString &env, CString &str)
 
 	if ( (s = _tgetenv(env)) == NULL ) {
 		if ( env.CompareNoCase(_T("USER")) == 0 || env.CompareNoCase(_T("USERNAME")) == 0 ) {
-			size = MAX_COMPUTERNAME_LENGTH;
+			size = MAX_COMPUTERNAME;
 			if ( !GetUserName(buf, &size) )
 				return;
 			s = buf;
 		} else if ( env.CompareNoCase(_T("COMPUTER")) == 0 || env.CompareNoCase(_T("COMPUTERNAME")) == 0 ) {
-			size = MAX_COMPUTERNAME_LENGTH;
+			size = MAX_COMPUTERNAME;
 			if ( !GetComputerName(buf, &size) )
 				return;
 			s = buf;
@@ -1055,7 +1053,7 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match, BOOL bCtrl)
 	LPCTSTR str = name;
 	BOOL st = FALSE;
 	DWORD size;
-	TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
+	TCHAR buf[MAX_COMPUTERNAME];
 	CString work, env, src, dis;
 	LPCTSTR s;
 
@@ -1137,13 +1135,13 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match, BOOL bCtrl)
 				st = TRUE;
 				break;
 			case _T('u'):
-				size = MAX_COMPUTERNAME_LENGTH;
+				size = MAX_COMPUTERNAME;
 				if ( GetUserName(buf, &size) )
 					tmp += buf;
 				st = TRUE;
 				break;
 			case _T('h'):
-				size = MAX_COMPUTERNAME_LENGTH;
+				size = MAX_COMPUTERNAME;
 				if ( GetComputerName(buf, &size) )
 					tmp += buf;
 				st = TRUE;
@@ -1301,7 +1299,7 @@ int CRLoginDoc::DelaySend()
 		if ( (ch = m_DelayBuf.GetAt(n++)) == '\r' || ch == '\n' ) {
 			if ( ch == '\r' && n < m_DelayBuf.GetSize() && m_DelayBuf.GetAt(n) == '\n' )
 				n++;
-			m_pSock->Send(m_DelayBuf.GetPtr(), n, 0);
+			m_pSock->SendProtocol(m_DelayBuf.GetPtr(), n, 0);
 			m_DelayBuf.Consume(n);
 			m_DelayFlag = DELAY_WAIT;
 			m_DelayLen += n;
@@ -1313,7 +1311,7 @@ int CRLoginDoc::DelaySend()
 		}
 	}
 	if ( n > 0 ) {
-		m_pSock->Send(m_DelayBuf.GetPtr(), m_DelayBuf.GetSize(), 0);
+		m_pSock->SendProtocol(m_DelayBuf.GetPtr(), m_DelayBuf.GetSize(), 0);
 		m_DelayBuf.Clear();
 		m_bDelayPast = FALSE;
 		m_DelayLen += n;
@@ -1925,7 +1923,6 @@ void CRLoginDoc::OnSocketClose()
 		OnFileClose();
 }
 
-#ifdef	USE_FIFOBUF
 BOOL CRLoginDoc::SocketSyncMode()
 {
 	if ( m_SockSyncChar == (-1) )
@@ -1950,8 +1947,6 @@ BOOL CRLoginDoc::SocketSyncMode()
 	m_SockSyncChar = (-1);
 	return TRUE;
 }
-#endif
-
 int CRLoginDoc::OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags)
 {
 	int n;
@@ -1982,7 +1977,6 @@ int CRLoginDoc::OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags)
 
 	n = m_TextRam.Write(lpBuf, (nBufLen < RECVDEFSIZ ? nBufLen : RECVDEFSIZ), &sync);
 
-#ifdef	USE_FIFOBUF
 	if ( sync ) {
 		if ( m_pSock->IsSyncMode() ) {
 			// ‚·‚Å‚ÉSyncMode‚È‚ç–³Ž‹‚·‚é
@@ -1991,32 +1985,6 @@ int CRLoginDoc::OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags)
 			m_SockSyncChar = lpBuf[n];
 		}
 	}
-#else
-	if ( sync ) {
-		if ( m_pSock->IsSyncMode() ) {
-			// ‚·‚Å‚ÉSyncMode‚È‚ç–³Ž‹‚·‚é
-			n++;
-		} else {
-			m_pSock->SetRecvSyncMode(TRUE);
-			if ( lpBuf[n] == 0x18 ) {	// CAN
-				if ( m_pZModem == NULL )
-					m_pZModem = new CZModem(this, AfxGetMainWnd());
-				m_pZModem->DoProc(7);	// ZMODEM UpDown
-			} else if ( lpBuf[n] == 0x01 ) {
-				if ( m_pKermit == NULL )
-					m_pKermit = new CKermit(this, AfxGetMainWnd());
-				m_pKermit->DoProc(0);	// Kermit DownLoad
-			} else {
-				if ( m_pBPlus == NULL )
-					m_pBPlus = new CBPlus(this, AfxGetMainWnd());
-				m_pBPlus->DoProc(lpBuf[n]);
-			}
-		}
-	}
-
-	if ( (nBufLen - n + m_pSock->GetRecvProcSize()) > 0 )
-		((CMainFrame *)::AfxGetMainWnd())->PostIdleMessage();		// OnIdle‚Ì—U”­
-#endif
 
 	nBufLen = n;
 
@@ -2188,7 +2156,7 @@ SKIPINPUT:
 			m_ServerEntry.m_ProxyUser, m_ServerEntry.m_ProxyPass, m_ServerEntry.m_HostName,
 			CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
 	else 
-		rt = m_pSock->AsyncOpen(m_ServerEntry.m_HostName,
+		rt = m_pSock->Open(m_ServerEntry.m_HostName,
 			CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
 
 	if ( !rt ) {
@@ -2220,12 +2188,6 @@ void CRLoginDoc::SocketClose()
 	m_pSock = NULL;
 	m_TextRam.OnClose();
 }
-int CRLoginDoc::SocketReceive(void *lpBuf, int nBufLen)
-{
-	if ( m_pSock == NULL )
-		return 0;
-	return m_pSock->Receive(lpBuf, nBufLen, 0);
-}
 void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen, BOOL delaySend)
 {
 	if ( m_pSock == NULL )
@@ -2237,11 +2199,7 @@ void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen, BOOL delaySend)
 		if ( m_DelayFlag == DELAY_NON )
 			DelaySend();
 	} else 
-#ifdef	USE_FIFOBUF
-		m_pSock->PreSend(lpBuf, nBufLen);
-#else
-		m_pSock->Send(lpBuf, nBufLen);
-#endif
+		m_pSock->SendProtocol(lpBuf, nBufLen);
 
 	if ( m_pLogFile != NULL && m_TextRam.m_LogMode == LOGMOD_DEBUG )
 		LogWrite((LPBYTE)lpBuf, nBufLen, LOGDEBUG_SEND);
@@ -2475,13 +2433,13 @@ void CRLoginDoc::OnScreenReset(UINT nID)
 
 	if ( (mode & RESET_TRANSMIT) != 0 ) {
 		if ( m_pBPlus != NULL )
-			m_pBPlus->DoAbort();
+			m_pBPlus->DoAbort(FALSE);
 		if ( m_pZModem != NULL )
-			m_pZModem->DoAbort();
+			m_pZModem->DoAbort(FALSE);
 		if ( m_pKermit != NULL )
-			m_pKermit->DoAbort();
+			m_pKermit->DoAbort(FALSE);
 		if ( m_pFileUpDown != NULL )
-			m_pFileUpDown->DoAbort();
+			m_pFileUpDown->DoAbort(FALSE);
 	}
 }
 

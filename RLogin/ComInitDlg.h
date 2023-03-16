@@ -4,6 +4,14 @@
 
 // CComInitDlg ダイアログ
 
+#define	COMMPROP_TYPE_BAUD		0
+#define	COMMPROP_TYPE_DATABITS	1
+#define	COMMPROP_TYPE_PARITY	2
+#define	COMMPROP_TYPE_STOPBITS	3
+
+extern const LPCTSTR ParityBitsName[];
+extern const LPCTSTR StopBitsName[];
+
 class CComInitDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CComInitDlg)
@@ -19,9 +27,9 @@ public:
 	class CComSock *m_pSock;
 	int m_ComIndex;
 	CString m_BaudRate;
-	int m_DataBits;
-	int m_ParityBit;
-	int m_StopBits;
+	CString m_DataBits;
+	CString m_ParityBit;
+	CString m_StopBits;
 	int m_FlowCtrl;
 	CString m_UserDef;
 	WORD m_XoffLim;
@@ -31,6 +39,9 @@ public:
 	int m_SendWait[2];
 	CStringIndex m_ComDevList;
 
+	static void CommPropCombo(int Type, CComboBox *pCombo, COMMPROP *pCommProp);
+
+	void CommPropCheck();
 	BOOL CComInitDlg::GetComDeviceList();
 
 protected:

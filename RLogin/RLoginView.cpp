@@ -3713,7 +3713,7 @@ BOOL CRLoginView::SetDropFile(LPCTSTR FileName, BOOL &doCmd, BOOL &doSub)
 	if ( pDoc->m_TextRam.m_DropFileMode == 1 ) {
 		if ( pDoc->m_pBPlus == NULL )
 			pDoc->m_pBPlus = new CBPlus(pDoc, AfxGetMainWnd());
-		if ( pDoc->m_pBPlus->m_ResvPath.IsEmpty() && !pDoc->m_pBPlus->m_ThreadFlag )
+		if ( pDoc->m_pBPlus->m_ResvPath.IsEmpty() && !pDoc->m_pBPlus->IsOpen() )
 			doCmd = TRUE;
 		pDoc->m_pBPlus->m_ResvPath.AddTail(FileName);
 	} else if ( pDoc->m_TextRam.m_DropFileMode == 5 ) {
@@ -3722,19 +3722,19 @@ BOOL CRLoginView::SetDropFile(LPCTSTR FileName, BOOL &doCmd, BOOL &doSub)
 	} else if ( pDoc->m_TextRam.m_DropFileMode == 6 ) {
 		if ( pDoc->m_pKermit == NULL )
 			pDoc->m_pKermit = new CKermit(pDoc, AfxGetMainWnd());
-		if ( pDoc->m_pKermit->m_ResvPath.IsEmpty() && !pDoc->m_pKermit->m_ThreadFlag )
+		if ( pDoc->m_pKermit->m_ResvPath.IsEmpty() && !pDoc->m_pKermit->IsOpen() )
 			doCmd = TRUE;
 		pDoc->m_pKermit->m_ResvPath.AddTail(FileName);
 	} else if ( pDoc->m_TextRam.m_DropFileMode == 7 ) {
 		if ( pDoc->m_pFileUpDown == NULL )
 			pDoc->m_pFileUpDown = new CFileUpDown(pDoc, AfxGetMainWnd());
-		if ( pDoc->m_pFileUpDown->m_ResvPath.IsEmpty() && !pDoc->m_pFileUpDown->m_ThreadFlag )
+		if ( pDoc->m_pFileUpDown->m_ResvPath.IsEmpty() && !pDoc->m_pFileUpDown->IsOpen() )
 			doCmd = TRUE;
 		pDoc->m_pFileUpDown->m_ResvPath.AddTail(FileName);
 	} else if ( pDoc->m_TextRam.m_DropFileMode >= 2 ) {
 		if ( pDoc->m_pZModem == NULL )
 			pDoc->m_pZModem = new CZModem(pDoc, AfxGetMainWnd());
-		if ( pDoc->m_pZModem->m_ResvPath.IsEmpty() && !pDoc->m_pZModem->m_ThreadFlag )
+		if ( pDoc->m_pZModem->m_ResvPath.IsEmpty() && !pDoc->m_pZModem->IsOpen() )
 			doCmd = TRUE;
 		pDoc->m_pZModem->m_ResvPath.AddTail(FileName);
 	}

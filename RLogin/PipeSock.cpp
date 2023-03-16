@@ -1,13 +1,27 @@
+//////////////////////////////////////////////////////////////////////
+// PipeSock.cpp : ŽÀ‘•ƒtƒ@ƒCƒ‹
+//
+
 #include "StdAfx.h"
 #include "rlogin.h"
 #include "MainFrm.h"
 #include "RLoginDoc.h"
 #include "RLoginView.h"
+#include "ExtSocket.h"
 #include "PipeSock.h"
 
-CPipeSock::CPipeSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
+#ifdef _DEBUG
+#undef THIS_FILE
+static char THIS_FILE[]=__FILE__;
+#define new DEBUG_NEW
+#endif
+
+///////////////////////////////////////////////////////
+// CPipeSock
+
+CFifoPipe::CFifoPipe(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoASync(pDoc, pSock)
 {
-	m_Type = ESCT_PIPE;
+	m_Type = FIFO_TYPE_PIPE;
 
 	m_hIn[0] =  m_hIn[1]  = NULL;
 	m_hOut[0] = m_hOut[1] = NULL;
@@ -18,58 +32,90 @@ CPipeSock::CPipeSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_InThread = NULL;
 	m_OutThread = NULL;
 
-	m_pInEvent   = new CEvent(FALSE, TRUE);
-	m_pOutEvent  = new CEvent(FALSE, TRUE);
-	m_pSendEvent = new CEvent(FALSE, TRUE);
-
 	memset(&m_proInfo, 0, sizeof(PROCESS_INFORMATION));
-
-	memset(&m_ReadOverLap,  0, sizeof(OVERLAPPED));
-	memset(&m_WriteOverLap, 0, sizeof(OVERLAPPED));
-
-	m_ReadOverLap.hEvent  = CreateEvent(NULL, TRUE, FALSE, NULL);
-	m_WriteOverLap.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 }
-
-CPipeSock::~CPipeSock(void)
+CFifoPipe::~CFifoPipe()
 {
 	Close();
+}
+void CFifoPipe::OnUnLinked(int nFd, BOOL bMid)
+{
+	Close();
+	CFifoBase::OnUnLinked(nFd, bMid);
+}
+BOOL CFifoPipe::FlowCtrlCheck(int nFd)
+{
+	BOOL bRet = FALSE;
+	CFifoBuffer *pFifo;
 
-	delete m_pInEvent;
-	delete m_pOutEvent;
-	delete m_pSendEvent;
+	if ( (pFifo = GetFifo(nFd)) != NULL ) {
+		if ( (nFd & 1) == 0 ) {		// STDIN/EXTIN
+			if ( !pFifo->m_bEndOf && pFifo->GetSize() == 0 ) {
+				GetEvent(nFd)->ResetEvent();
+				bRet = TRUE;
+			}
+		} else {					// STDOUT/EXTOUT
+			if ( !pFifo->m_bEndOf && pFifo->GetSize() >= FIFO_BUFUPPER ) {
+				GetEvent(nFd)->ResetEvent();
+				bRet = TRUE;
+			}
+		}
+		RelFifo(pFifo);
+	}
 
-	CloseHandle(m_ReadOverLap.hEvent);
-	CloseHandle(m_WriteOverLap.hEvent);
+	return bRet;
+}
+BOOL CFifoPipe::WaitForEvent(int nFd, HANDLE hAbortEvent)
+{
+	DWORD n;
+	HANDLE HandleTab[2];
+
+	if ( !FlowCtrlCheck(nFd) )
+		return TRUE;
+
+	HandleTab[0] = GetEvent(nFd)->m_hObject;
+	HandleTab[1] = hAbortEvent;
+
+	if ( (n = WaitForMultipleObjects(2, HandleTab, FALSE, INFINITE)) == WAIT_FAILED )
+		return FALSE;
+	else if ( n == WAIT_OBJECT_0 )	// GetEvent(nFd)->m_hObject
+		return TRUE;
+	else
+		return FALSE;
+}
+
+static UINT ProcessThread(LPVOID pParam)
+{
+	CFifoPipe *pThis = (CFifoPipe *)pParam;
+
+	pThis->OnProcWait();
+	return 0;
 }
 static UINT PipeInThread(LPVOID pParam)
 {
-	CPipeSock *pThis = (CPipeSock *)pParam;
+	CFifoPipe *pThis = (CFifoPipe *)pParam;
 
 	pThis->OnReadProc();
-	pThis->m_pInEvent->SetEvent();
 	pThis->m_InThreadMode = 0;
 	return 0;
 }
 static UINT PipeOutThread(LPVOID pParam)
 {
-	CPipeSock *pThis = (CPipeSock *)pParam;
+	CFifoPipe *pThis = (CFifoPipe *)pParam;
 
 	pThis->OnWriteProc();
-	pThis->m_pOutEvent->SetEvent();
 	pThis->m_OutThreadMode = 0;
 	return 0;
 }
 static UINT PipeInOutThread(LPVOID pParam)
 {
-	CPipeSock *pThis = (CPipeSock *)pParam;
+	CFifoPipe *pThis = (CFifoPipe *)pParam;
 
 	pThis->OnReadWriteProc();
-	pThis->m_pOutEvent->SetEvent();
 	pThis->m_OutThreadMode = 0;
 	return 0;
 }
-BOOL CPipeSock::IsPipeName(LPCTSTR path)
+BOOL CFifoPipe::IsPipeName(LPCTSTR path)
 {
 	// \\.\pipe\NAME
 	// \\server\pipe\NAME
@@ -97,19 +143,18 @@ BOOL CPipeSock::IsPipeName(LPCTSTR path)
 
 	return TRUE;
 }
-BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
+BOOL CFifoPipe::Open(LPCTSTR pCommand)
 {
 	Close();
 
-	if ( IsPipeName(lpszHostAddress) ) {
+	if ( IsPipeName(pCommand) ) {
 
-		if ( (m_hIn[0] = CreateFile(lpszHostAddress, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE ) {
-			::AfxMessageBox(GetFormatErrorMessage(m_pDocument->m_ServerEntry.m_EntryName, lpszHostAddress, 0, _T("OpenPipe"), ::GetLastError()), MB_ICONSTOP);
+		if ( (m_hIn[0] = CreateFile(pCommand, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE ) {
+			m_nLastError = GetLastError();
 			return FALSE;
 		}
 
 		m_OutThreadMode = 1;
-		m_pOutEvent->ResetEvent();
 		m_OutThread = AfxBeginThread(PipeInOutThread, this, THREAD_PRIORITY_BELOW_NORMAL);
 
 	} else {
@@ -122,7 +167,7 @@ BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, 
 		secAtt.bInheritHandle = TRUE;
 
 		if ( !CreatePipe(&(m_hIn[0]), &(m_hIn[1]), &secAtt, 0) ) {
-			::AfxMessageBox(GetFormatErrorMessage(m_pDocument->m_ServerEntry.m_EntryName, NULL, 0, _T("CreatePipe"), ::GetLastError()), MB_ICONSTOP);
+			m_nLastError = GetLastError();
 			return FALSE;
 		}
 
@@ -131,7 +176,7 @@ BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, 
 		secAtt.bInheritHandle = TRUE;
 
 		if ( !CreatePipe(&(m_hOut[0]), &(m_hOut[1]), &secAtt, 0) ) {
-			::AfxMessageBox(GetFormatErrorMessage(m_pDocument->m_ServerEntry.m_EntryName, NULL, 0, _T("CreatePipe"), ::GetLastError()), MB_ICONSTOP);
+			m_nLastError = GetLastError();
 			return FALSE;
 		}
 
@@ -143,65 +188,57 @@ BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, 
 		startInfo.hStdOutput = m_hIn[1];
 		startInfo.hStdError  = m_hIn[1];
 
-		if ( !CreateProcess(NULL, (LPTSTR)(LPCTSTR)lpszHostAddress, NULL, NULL, TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &startInfo, &m_proInfo) ) {
-			::AfxMessageBox(GetFormatErrorMessage(m_pDocument->m_ServerEntry.m_EntryName, lpszHostAddress, 0, _T("CreateProcess"), ::GetLastError()), MB_ICONSTOP);
+		if ( !CreateProcess(NULL, (LPTSTR)(LPCTSTR)pCommand, NULL, NULL, TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &startInfo, &m_proInfo) ) {
+			m_nLastError = GetLastError();
 			return FALSE;
 		}
 
+		m_ProcThread = AfxBeginThread(ProcessThread, this, THREAD_PRIORITY_BELOW_NORMAL);
+
 		m_InThreadMode = 1;
-		m_pInEvent->ResetEvent();
 		m_InThread = AfxBeginThread(PipeInThread, this, THREAD_PRIORITY_BELOW_NORMAL);
 
 		m_OutThreadMode = 1;
-		m_pOutEvent->ResetEvent();
 		m_OutThread = AfxBeginThread(PipeOutThread, this, THREAD_PRIORITY_BELOW_NORMAL);
 	}
 
-	GetApp()->AddIdleProc(IDLEPROC_SOCKET, this);
-	GetMainWnd()->SetAsyncSelect((SOCKET)m_hIn[0], this, 0);
-
-//	CExtSocket::OnConnect();
-	PostMessage((WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_CONNECT, 0));
+	SendFdEvents(FIFO_STDOUT, FD_CONNECT, NULL);
 
 	return TRUE;
 }
-BOOL CPipeSock::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
+void CFifoPipe::Close()
 {
-	return Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType);
-}
-void CPipeSock::Close()
-{
-	if ( m_hIn[0] != NULL )
-		GetMainWnd()->DelAsyncSelect((SOCKET)m_hIn[0], this, FALSE);
-
 	if ( m_proInfo.hProcess != NULL ) {
-		DWORD ec;
-		if ( GetExitCodeProcess(m_proInfo.hProcess, &ec) ) {
-			if ( ec == STILL_ACTIVE )
-				TerminateProcess(m_proInfo.hProcess, 0);
-		}
+		m_AbortEvent[0].SetEvent();
+		WaitForSingleObject(m_ProcThread, INFINITE);
+
+		TerminateProcess(m_proInfo.hProcess, 0);
 		WaitForSingleObject(m_proInfo.hProcess, INFINITE);
+
 		CloseHandle(m_proInfo.hProcess);
 		CloseHandle(m_proInfo.hThread);
 		m_proInfo.hProcess = NULL;
-	}
 
-	if ( m_hIn[1] != NULL )
-	   CloseHandle(m_hIn[1]);
-	if ( m_hOut[0] != NULL )
-	   CloseHandle(m_hOut[0]);
+		if ( m_hIn[1] != NULL )
+		   CloseHandle(m_hIn[1]);
+		if ( m_hOut[0] != NULL )
+		   CloseHandle(m_hOut[0]);
+
+		m_hIn[1] = m_hOut[0] = NULL;
+	}
 
 	if ( m_InThreadMode != 0 ) {
 		m_InThreadMode = 2;
+		m_AbortEvent[1].SetEvent();
 		CancelIoEx(m_hIn[0], NULL);
-		WaitForSingleObject(m_pInEvent->m_hObject, INFINITE);
+		WaitForSingleObject(m_InThread, INFINITE);
 	}
+
 	if ( m_OutThreadMode != 0 ) {
 		m_OutThreadMode = 2;
-		m_pSendEvent->SetEvent();
-		SetEvent(m_ReadOverLap.hEvent);
-		SetEvent(m_WriteOverLap.hEvent);
-		WaitForSingleObject(m_pOutEvent->m_hObject, INFINITE);
+		m_AbortEvent[2].SetEvent();
+		CancelIoEx(m_hOut[1], NULL);
+		WaitForSingleObject(m_OutThread, INFINITE);
 	}
 
 	if ( m_hIn[0] != NULL )
@@ -211,303 +248,299 @@ void CPipeSock::Close()
 
 	m_hIn[0] =  m_hIn[1]  = NULL;
 	m_hOut[0] = m_hOut[1] = NULL;
-
-	GetApp()->DelIdleProc(IDLEPROC_SOCKET, this);
-
-	m_SendBuff.Clear();
-	m_pSendEvent->ResetEvent();
-
-	CExtSocket::Close();
 }
-void CPipeSock::SendBreak(int opt)
+void CFifoPipe::SendBreak(int opt)
 {
-	if ( m_proInfo.hProcess == NULL )
-		return;
-	GenerateConsoleCtrlEvent((opt ? CTRL_BREAK_EVENT : CTRL_C_EVENT), m_proInfo.dwProcessId);
-}
-int CPipeSock::Send(const void* lpBuf, int nBufLen, int nFlags)
-{
-	if ( lpBuf == NULL || nBufLen <= 0 )
-		return 0;
-	m_SendSema.Lock();
-	m_SendBuff.Apend((LPBYTE)lpBuf, nBufLen);
-	m_pSendEvent->SetEvent();
-	m_SendSema.Unlock();
-	return nBufLen;
-}
-int CPipeSock::GetRecvSize()
-{
-	int len = CExtSocket::GetRecvSize();
-	
-	m_RecvSema.Lock();
-	len += m_RecvBuff.GetSize();
-	m_RecvSema.Unlock();
-
-	return len;
-}
-int CPipeSock::GetSendSize()
-{
-	int len = CExtSocket::GetSendSize();
-
-	m_SendSema.Lock();
-	len += m_SendBuff.GetSize();
-	m_SendSema.Unlock();
-
-	return len;
+	if ( m_proInfo.hProcess != NULL )
+		GenerateConsoleCtrlEvent((opt ? CTRL_BREAK_EVENT : CTRL_C_EVENT), m_proInfo.dwProcessId);
 }
 
-void CPipeSock::OnReceive(int nFlags)
+void CFifoPipe::OnProcWait()
 {
-	int n;
-	BYTE buff[1024];
+	DWORD n;
+	HANDLE HandleTab[3];
 
-	m_RecvSema.Lock();
-	while ( (n = m_RecvBuff.GetSize()) > 0 ) {
-		if ( n > 1024 )
-			n = 1024;
-		memcpy(buff, m_RecvBuff.GetPtr(), n);
-		m_RecvBuff.Consume(n);
-		m_RecvSema.Unlock();
-		OnReceiveCallBack(buff, n, nFlags);
-		m_RecvSema.Lock();
-	}
-	m_RecvSema.Unlock();
-}
-void CPipeSock::OnSend()
-{
-	// PostMessage((WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_WRITE, 0));
-	// Send Empty Call
+	for ( ; ; ) {
+		HandleTab[0] = m_AbortEvent[0];
+		HandleTab[1] = m_proInfo.hProcess;
+		HandleTab[2] = m_MsgEvent;
 
-	CExtSocket::OnSendEmpty();
-}
-int CPipeSock::OnIdle()
-{
-	if ( CExtSocket::OnIdle() )
-		return TRUE;
+		if ( (n = WaitForMultipleObjects(2, HandleTab, FALSE, INFINITE)) == WAIT_FAILED ) {
+			break;
+		} else if ( n == WAIT_OBJECT_0 ) {			// m_AbortEvent
+			break;
 
-	if ( m_proInfo.hProcess != NULL ) {
-		DWORD ec;
-		if ( GetExitCodeProcess(m_proInfo.hProcess, &ec) ) {
-			if ( ec != STILL_ACTIVE )
-				OnClose();
+		} else if ( n == (WAIT_OBJECT_0 + 1) ) {	// hProcess
+			CloseHandle(m_proInfo.hProcess);
+			CloseHandle(m_proInfo.hThread);
+			m_proInfo.hProcess = NULL;
+
+			if ( m_hIn[1] != NULL )
+			   CloseHandle(m_hIn[1]);
+			if ( m_hOut[0] != NULL )
+			   CloseHandle(m_hOut[0]);
+
+			m_hIn[1] = m_hOut[0] = NULL;
+			break;
+
+		} else if ( n == (WAIT_OBJECT_0 + 2) ) {	// m_MsgEvent
+			m_MsgSemaphore.Lock();
+			while ( !m_MsgList.IsEmpty() ) {
+				FifoMsg *pFifoMsg = m_MsgList.RemoveHead();
+				m_MsgSemaphore.Unlock();
+
+				switch(pFifoMsg->cmd) {
+				case FIFO_CMD_FDEVENTS:
+					switch(pFifoMsg->msg) {
+					case FD_CLOSE:
+						m_nLastError = (int)pFifoMsg->buffer;
+						Read(FIFO_STDIN, NULL, 0);
+						break;
+					}
+					break;
+
+				case FIFO_CMD_MSGQUEIN:
+					switch(pFifoMsg->param) {
+					case FIFO_QCMD_SENDBREAK:
+						// SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SENDBREAK, opt);
+						SendBreak(pFifoMsg->msg);
+						break;
+					}
+					break;
+				}
+
+				DeleteMsg(pFifoMsg);
+				m_MsgSemaphore.Lock();
+			}
+			m_MsgSemaphore.Unlock();
+
+		} else {
+			break;
 		}
 	}
-
-	return FALSE;
 }
-
-void CPipeSock::OnReadProc()
+void CFifoPipe::OnReadProc()
 {
 	DWORD n;
 	BYTE buff[1024];
 
 	while ( m_InThreadMode == 1 ) {
-		if ( !ReadFile(m_hIn[0], buff, 1024, &n, NULL) )
+		if ( !ReadFile(m_hIn[0], buff, 1024, &n, NULL) ) {
+			SendFdEvents(FIFO_STDOUT, FD_CLOSE, NULL);
+			Write(FIFO_STDOUT, NULL, 0);
 			break;
-		if ( n > 0 ) {
-			m_RecvSema.Lock();
-			m_RecvBuff.Apend(buff, n);
-			m_RecvSema.Unlock();
-			PostMessage((WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_READ, 0));
-		}
+		} else if ( n == 0 )
+			continue;
+		else if ( Write(FIFO_STDOUT, buff, (int)n) < 0 )
+			break;
+		else if ( !WaitForEvent(FIFO_STDOUT, m_AbortEvent[1]) )
+			break;
 	}
 }
-void CPipeSock::OnWriteProc()
+void CFifoPipe::OnWriteProc()
 {
-	DWORD n;
-	CBuffer tmp;
+	int len;
+	BYTE buf[1024];
 
 	while ( m_OutThreadMode == 1 ) {
-		m_SendSema.Lock();
-		if ( m_SendBuff.GetSize() > 0 ) {
-			tmp.Apend(m_SendBuff.GetPtr(), m_SendBuff.GetSize());
-			m_SendBuff.Clear();
-			m_SendSema.Unlock();
-			while ( tmp.GetSize() > 0 ) {
-				if ( !WriteFile(m_hOut[1], tmp.GetPtr(), tmp.GetSize(), &n, NULL) )
-					return;
-				tmp.Consume(n);
-			}
-			FlushFileBuffers(m_hOut[1]);
-		} else {
-			m_pSendEvent->ResetEvent();
-			m_SendSema.Unlock();
-			WaitForSingleObject(m_pSendEvent->m_hObject, INFINITE);
+		if ( !WaitForEvent(FIFO_STDIN, m_AbortEvent[2]) )
+			break;
+		else if ( (len = Read(FIFO_STDIN, buf, 1024)) < 0 )
+			break;
+
+		while ( len > 0 ) {
+			DWORD n = 0;
+			if ( !WriteFile(m_hOut[1], buf, (DWORD)len, &n, NULL) )
+				return;
+			len -= (int)n;
 		}
 	}
 }
-void CPipeSock::OnReadWriteProc()
+void CFifoPipe::OnReadWriteProc()
 {
-	DWORD n;
-	int HandleCount = 0;
-	HANDLE HandleTab[4];
-	BOOL bReadOverLap   = FALSE;
-	BOOL bWriteOverLap  = FALSE;
-	BOOL bHaveRecvData  = TRUE;
-	BOOL bHaveSendData  = TRUE;
-	BOOL bHaveSendReady = TRUE;
-	DWORD HaveError = 0;
-	DWORD ReadByte  = 0;
-	DWORD WriteByte = 0;
-	DWORD WriteTop = 0;
+	int len;
+
+	DWORD dw;
+	BOOL bRes;
 	BYTE ReadBuf[1024];
 	BYTE WriteBuf[1024];
-	CEvent TimerEvent(FALSE, TRUE);
+
+	OVERLAPPED ReadOverLap;
+	OVERLAPPED WriteOverLap;
+
+	int HandleCount;
+	HANDLE HandleTab[10];
+
+	DWORD WriteDone = 0;
+	DWORD WriteByte = 0;
+
+	enum { READ_GETDATA, READ_OVERLAP, READ_OVERWAIT, READ_EVENTWAIT } ReadStat = READ_GETDATA;
+	enum { WRITE_GETDATA, WRITE_HAVEDATA, WRITE_OVERLAP, WRITE_OVERWAIT, WRITE_EVENTWAIT } WriteStat = WRITE_GETDATA;
+
+	memset(&ReadOverLap, 0 , sizeof(ReadOverLap));
+	memset(&WriteOverLap, 0 , sizeof(WriteOverLap));
+
+	ReadOverLap.hEvent  = CreateEvent(NULL, TRUE, FALSE, NULL);
+	WriteOverLap.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	while ( m_OutThreadMode == 1 ) {
 
+		// Init HandleTab conter
 		HandleCount = 0;
 
-		// ReadOverLap
-		if ( bReadOverLap ) {
-			if ( GetOverlappedResult(m_hIn[0], &m_ReadOverLap, &n, FALSE) ) {
-				if ( n > 0 ) {
-					ReadByte += n;
-					m_RecvSema.Lock();
-					m_RecvBuff.Apend(ReadBuf, n);
-					m_RecvSema.Unlock();
-				} else
-					bHaveRecvData = FALSE;
-				bReadOverLap = FALSE;
-			} else if ( (n = ::GetLastError()) == ERROR_IO_INCOMPLETE || n == ERROR_IO_PENDING ) {
-				HandleTab[HandleCount++] = m_ReadOverLap.hEvent;
-				bReadOverLap = TRUE;
+		// ReadFile or ReadOverLap
+		for ( ; ; ) {
+			if ( ReadStat == READ_GETDATA  ) {
+				bRes = ReadFile(m_hIn[0], ReadBuf, 1024, &dw, &ReadOverLap);
+			} else if ( ReadStat == READ_OVERLAP ) {
+				bRes = GetOverlappedResult(m_hIn[0], &ReadOverLap, &dw, FALSE);
 			} else {
-				HaveError = n;
-				goto ERRENDOF;
+				if ( ReadStat == READ_OVERWAIT )
+					HandleTab[HandleCount++] = ReadOverLap.hEvent;
+				else if ( ReadStat == READ_EVENTWAIT )
+					HandleTab[HandleCount++] = GetEvent(FIFO_STDOUT)->m_hObject;
+				break;
 			}
-		}
 
-		// ReadFile
-		if ( !bReadOverLap && bHaveRecvData ) {
-			if ( ReadFile(m_hIn[0], ReadBuf, 1024, &n, &m_ReadOverLap) ) {
-				if ( n > 0 ) {
-					ReadByte += n;
-					m_RecvSema.Lock();
-					m_RecvBuff.Apend(ReadBuf, n);
-					m_RecvSema.Unlock();
-				} else
-					bHaveRecvData = FALSE;
-			} else if ( (n = ::GetLastError()) == ERROR_IO_PENDING ) {
-				HandleTab[HandleCount++] = m_ReadOverLap.hEvent;
-				bReadOverLap = TRUE;
-			} else {
-				HaveError = n;
-				goto ERRENDOF;
-			}
-		}
-
-		// PostMsg Call OnReceive
-		if ( ReadByte > 0 ) {
-			ReadByte = 0;
-			PostMessage((WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_READ, 0));
-		}
-
-		// WriteOverLap
-		if ( bWriteOverLap ) {
-			if ( GetOverlappedResult(m_hIn[0], &m_WriteOverLap, &n, FALSE) ) {
-				if ( n > 0 )
-					WriteTop += n;
-				else
-					bHaveSendReady = FALSE;
-				bWriteOverLap = FALSE;
-			} else if ( (n = ::GetLastError()) == ERROR_IO_INCOMPLETE || n == ERROR_IO_PENDING ) {
-				HandleTab[HandleCount++] = m_WriteOverLap.hEvent;
-				bWriteOverLap = TRUE;
-			} else {
-				HaveError = n;
-				goto ERRENDOF;
-			}
-		}
-
-		// Check WriteData
-		if ( !bWriteOverLap && bHaveSendData && WriteTop >= WriteByte ) {
-			WriteTop = 0;
-			m_SendSema.Lock();
-			if ( (WriteByte = m_SendBuff.GetSize()) > 0 ) {
-				if ( WriteByte > 1024 )
-					WriteByte = 1024;
-				memcpy(WriteBuf, m_SendBuff.GetPtr(), WriteByte);
-				m_SendBuff.Consume(WriteByte);
-				if ( m_SendBuff.GetSize() == 0 )
-					PostMessage((WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_WRITE, 0));
-				m_SendSema.Unlock();
-			} else {
-				m_pSendEvent->ResetEvent();
-				m_SendSema.Unlock();
-				bHaveSendData = FALSE;
-			}
-		}
-
-		// WriteFile
-		if ( !bWriteOverLap && bHaveSendReady && WriteTop < WriteByte ) {
-			while ( WriteTop < WriteByte ) {
-				if ( WriteFile(m_hIn[0], WriteBuf + WriteTop, WriteByte - WriteTop, &n, &m_WriteOverLap) ) {
-					if ( n > 0 ) {
-						WriteTop += n;
-					}else {
-						bHaveSendReady = FALSE;
-						break;
-					}
-				} else if ( (n = ::GetLastError()) == ERROR_IO_PENDING ) {
-					HandleTab[HandleCount++] = m_WriteOverLap.hEvent;
-					bWriteOverLap = TRUE;
-					break;
-				} else {
-					HaveError = n;
+			if ( bRes ) {
+				if ( Write(FIFO_STDOUT, ReadBuf, (int)dw) < 0 )
 					goto ERRENDOF;
+				ReadStat = FlowCtrlCheck(FIFO_STDOUT) ? READ_EVENTWAIT : READ_GETDATA;
+			} else if ( (dw = ::GetLastError()) == ERROR_IO_INCOMPLETE || dw == ERROR_IO_PENDING ) {
+				ReadStat = READ_OVERWAIT;
+			} else {
+				m_nLastError = (int)dw;
+				goto ERRENDOF;
+			}
+		}
+
+		// WriteFile or WriteOverLap
+		for ( ; ; ) {
+			if ( WriteStat == WRITE_GETDATA ) {
+				if ( (len = Peek(FIFO_STDIN, WriteBuf, 1024)) < 0 ) {
+					goto ERRENDOF;
+				} else if ( len == 0 ) {
+					WriteStat = WRITE_EVENTWAIT;
+				} else {
+					Consume(FIFO_STDIN, len);
+
+					WriteDone = 0;
+					WriteByte = (DWORD)len;
+					WriteStat = WRITE_HAVEDATA;
 				}
 			}
+
+			if ( WriteStat == WRITE_HAVEDATA ) {
+				bRes = WriteFile(m_hIn[0], WriteBuf + WriteDone, WriteByte - WriteDone, &dw, &WriteOverLap);
+			} else if ( WriteStat == WRITE_OVERLAP ) {
+				bRes = GetOverlappedResult(m_hIn[0], &WriteOverLap, &dw, FALSE);
+			} else {
+				if ( WriteStat == WRITE_OVERWAIT )
+					HandleTab[HandleCount++] = WriteOverLap.hEvent;
+				else if ( WriteStat == WRITE_EVENTWAIT )
+					HandleTab[HandleCount++] = GetEvent(FIFO_STDIN)->m_hObject;
+				break;
+			}
+
+			if ( bRes ) {
+				if ( (WriteDone += dw) >= WriteByte )
+					WriteStat = WRITE_GETDATA;
+				else
+					WriteStat = WRITE_HAVEDATA;
+			} else if ( (dw = ::GetLastError()) == ERROR_IO_INCOMPLETE || dw == ERROR_IO_PENDING ) {
+				WriteStat = WRITE_OVERWAIT;
+			} else {
+				m_nLastError = (int)dw;
+				goto ERRENDOF;
+			}
 		}
-
-		// ReadData Loop Check
-		if ( !bReadOverLap && bHaveRecvData ) {
-			if ( !bWriteOverLap && !bHaveSendData && bHaveSendReady )
-				bHaveSendData = TRUE;
-			continue;
-		}
-
-		// WriteData Loop Check
-		if ( !bWriteOverLap && bHaveSendData && bHaveSendReady ) {
-			if ( !bReadOverLap && !bHaveRecvData )
-				bHaveRecvData = TRUE;
-			continue;
-		}
-
-		// NoOverLap or NotSendReady Timer Set
-		if ( HandleCount == 0 || !bHaveSendReady ) {
-			TimerEvent.ResetEvent();
-			timeSetEvent(300, 10, (LPTIMECALLBACK)(TimerEvent.m_hObject), 0, TIME_ONESHOT | TIME_CALLBACK_EVENT_SET);
-			HandleTab[HandleCount++] = TimerEvent.m_hObject;
-		}
-
-		// SendData Event Add
-		if ( !bHaveSendData )
-			HandleTab[HandleCount++] = m_pSendEvent->m_hObject;
-
-		TRACE("PipeThredProc ReadOverLap=%d, WriteOverLap=%d, HaveSendData=%d, HaveRecvData=%d, WaitFor=%d\n",
-			bReadOverLap, bWriteOverLap, bHaveSendData, bHaveRecvData, HandleCount);
 
 		// Wait For Event
 		ASSERT(HandleCount > 0);
-		n = WaitForMultipleObjects(HandleCount, HandleTab, FALSE, INFINITE);
-		if ( n >= WAIT_OBJECT_0 && (n -= WAIT_OBJECT_0) < (DWORD)HandleCount ) {
-			if ( HandleTab[n] == m_pSendEvent->m_hObject )
-				bHaveSendData = TRUE;
-			else if ( HandleTab[n] == TimerEvent.m_hObject ) {
-				bHaveRecvData  = TRUE;
-				bHaveSendReady = TRUE;
+
+		HandleTab[HandleCount++] = m_AbortEvent[2];
+		HandleTab[HandleCount++] = m_MsgEvent;
+
+		if ( (dw = WaitForMultipleObjects(HandleCount, HandleTab, FALSE, INFINITE)) == WAIT_FAILED ) {
+			m_nLastError = GetLastError();
+			goto ERRENDOF;
+		} if ( dw < WAIT_OBJECT_0 || (dw -= WAIT_OBJECT_0) >= (DWORD)HandleCount )
+			goto ERRENDOF;
+
+		if ( HandleTab[dw] == GetEvent(FIFO_STDOUT)->m_hObject )
+			ReadStat = READ_GETDATA;
+		else if ( HandleTab[dw] ==  ReadOverLap.hEvent )
+			ReadStat = READ_OVERLAP;
+
+		else if ( HandleTab[dw] == GetEvent(FIFO_STDIN)->m_hObject )
+			WriteStat = WRITE_GETDATA;
+		else if ( HandleTab[dw] == WriteOverLap.hEvent )
+			WriteStat = WRITE_OVERLAP;
+
+		else if ( HandleTab[dw] == m_AbortEvent[2] )
+			goto ERRENDOF;
+
+		else if ( HandleTab[dw] == m_MsgEvent ) {
+			m_MsgSemaphore.Lock();
+			while ( !m_MsgList.IsEmpty() ) {
+				FifoMsg *pFifoMsg = m_MsgList.RemoveHead();
+				m_MsgSemaphore.Unlock();
+
+				switch(pFifoMsg->cmd) {
+				case FIFO_CMD_FDEVENTS:
+					switch(pFifoMsg->msg) {
+					case FD_CLOSE:
+						m_nLastError = (int)pFifoMsg->buffer;
+						Read(FIFO_STDIN, NULL, 0);
+						break;
+					}
+					break;
+				}
+
+				DeleteMsg(pFifoMsg);
+				m_MsgSemaphore.Lock();
 			}
+			m_MsgSemaphore.Unlock();
 		}
 	}
 
 ERRENDOF:
-	if ( HaveError != 0 )
-		PostMessage((WPARAM)m_hIn[0], WSAMAKESELECTREPLY(0, HaveError));
+	SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)m_nLastError);
+	Write(FIFO_STDOUT, NULL, 0);
 
-	if ( bReadOverLap || bWriteOverLap )
-		CancelIo(m_hIn[0]);
+	CloseHandle(ReadOverLap.hEvent);
+	CloseHandle(WriteOverLap.hEvent);
 }
+
+///////////////////////////////////////////////////////
+// CPipeSock
+
+CPipeSock::CPipeSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
+{
+	m_Type = ESCT_PIPE;
+}
+CPipeSock::~CPipeSock(void)
+{
+}
+void CPipeSock::FifoLink()
+{
+	FifoUnlink();
+
+	ASSERT(m_pFifoLeft == NULL && m_pFifoMid == NULL && m_pFifoRight == NULL);
+
+	m_pFifoLeft   = new CFifoPipe(m_pDocument, this);
+	m_pFifoMid    = new CFifoWnd(m_pDocument, this);
+	m_pFifoRight  = new CFifoDocument(m_pDocument, this);
+
+	CFifoBase::MidLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
+}
+void CPipeSock::SendBreak(int opt)
+{
+	ASSERT(m_pFifoLeft != NULL && m_pFifoLeft->m_Type == FIFO_TYPE_PIPE);
+
+	m_pFifoLeft->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SENDBREAK, opt);
+}
+
 void CPipeSock::GetPathMaps(CStringMaps &maps)
 {
 	int i, a;

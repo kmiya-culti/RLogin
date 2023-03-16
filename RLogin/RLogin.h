@@ -1,5 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 // CRLogin
+//
 
 #pragma once
 
@@ -13,14 +14,12 @@
 #include "ExtFileDialog.h"
 
 // CMainFrame
-#define	WM_SOCKSEL			(WM_APP + 0)
-#define WM_GETHOSTADDR		(WM_APP + 1)
-#define	WM_ICONMSG			(WM_APP + 2)
-#define WM_THREADCMD		(WM_APP + 3)
-#define WM_AFTEROPEN		(WM_APP + 4)
-#define WM_GETCLIPBOARD		(WM_APP + 5)
-#define	WM_FIFOMSG			(WM_APP + 6)
-#define	WM_DOCUMENTMSG		(WM_APP + 7)
+#define	WM_ICONMSG			(WM_APP + 0)
+#define WM_THREADCMD		(WM_APP + 1)
+#define WM_AFTEROPEN		(WM_APP + 2)
+#define WM_GETCLIPBOARD		(WM_APP + 3)
+#define	WM_FIFOMSG			(WM_APP + 4)
+#define	WM_DOCUMENTMSG		(WM_APP + 5)
 
 // CResTransDlg
 #define WM_HTTPREQUEST		(WM_APP + 20)
@@ -41,11 +40,13 @@
 // CCmdHisDlg
 #define	WM_ADDCMDHIS		(WM_APP + 28)
 
-#define	IDLEPROC_SOCKET		0
-#define	IDLEPROC_ENCRYPT	1
-#define	IDLEPROC_SCRIPT		2
-#define	IDLEPROC_VIEW		3
-#define	IDLEPROC_FIFODOC	4
+// CProgDlg
+#define	WM_PROGUPDATE		(WM_APP + 29)
+
+#define	IDLEPROC_ENCRYPT	0
+#define	IDLEPROC_SCRIPT		1
+#define	IDLEPROC_VIEW		2
+#define	IDLEPROC_FIFODOC	3
 
 #define	INUSE_NONE			0
 #define	INUSE_ACTWIN		1
@@ -57,6 +58,8 @@
 #define	SLEEPREQ_DISABLE	0
 #define	SLEEPREQ_ENABLE		1
 #define	SLEEPREQ_RESET		2
+
+#define	MAX_COMPUTERNAME	64		// MAX_COMPUTERNAME_LENGTH = 15 == MIN_COMPUTERNAME_LENGTH ?
 
 //////////////////////////////////////////////////////////////////////
 // CCommandLineInfoEx
@@ -300,6 +303,7 @@ public:
 };
 
 extern CRLoginApp theApp;
+extern BOOL CompNameLenBugFix;
 
 extern BOOL ExDwmEnable;
 extern void ExDwmEnableWindow(HWND hWnd, BOOL bEnable);

@@ -1,12 +1,13 @@
-// ComSock.cpp: CComSock クラスのインプリメンテーション
-//
 //////////////////////////////////////////////////////////////////////
+// ComSock.cpp : 実装ファイル
+//
 
 #include "stdafx.h"
 #include "rlogin.h"
 #include "MainFrm.h"
 #include "RLoginDoc.h"
 #include "RLoginView.h"
+#include "ExtSocket.h"
 #include "ComSock.h"
 #include "ComMoniDlg.h"
 #include "ComInitDlg.h"
@@ -20,46 +21,451 @@ static char THIS_FILE[]=__FILE__;
 #endif
 
 //////////////////////////////////////////////////////////////////////
-// 構築/消滅
+// CFifoCom
+
+CFifoCom::CFifoCom(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoASync(pDoc, pSock)
+{
+	m_Type = FIFO_TYPE_COM;
+	m_nBufSize = COMBUFSIZE;
+
+	m_hCom = INVALID_HANDLE_VALUE;
+
+	m_ThreadMode = THREAD_NONE;
+	m_pComThread = NULL;
+
+	m_SendWait[0] = m_SendWait[1] = 0;
+	m_SendCrLf = '\r';
+}
+CFifoCom::~CFifoCom()
+{
+	Close();
+}
+void CFifoCom::OnUnLinked(int nFd, BOOL bMid)
+{
+	Close();
+	CFifoBase::OnUnLinked(nFd, bMid);
+}
+static UINT ComEventThread(LPVOID pParam)
+{
+	CFifoCom *pThis = (CFifoCom *)pParam;
+
+	pThis->OnReadWriteProc();
+	pThis->m_ThreadMode = CFifoCom::THREAD_NONE;
+	return 0;
+}
+BOOL CFifoCom::Open(HANDLE hCom)
+{
+	if ( (m_hCom = hCom) == INVALID_HANDLE_VALUE )
+		return FALSE;
+
+	m_ThreadMode = THREAD_RUN;
+	m_pComThread = AfxBeginThread(ComEventThread, this, THREAD_PRIORITY_NORMAL);
+
+	return TRUE;
+}
+void CFifoCom::Close()
+{
+	if ( m_ThreadMode == THREAD_RUN && m_pComThread != NULL ) {
+		m_ThreadMode = THREAD_ENDOF;
+		m_AbortEvent.SetEvent();
+		WaitForSingleObject(m_pComThread, INFINITE);
+	}
+	m_pComThread = NULL;
+}
+BOOL CFifoCom::FlowCtrlCheck(int nFd)
+{
+	BOOL bRet = FALSE;
+	CFifoBuffer *pFifo;
+
+	if ( (pFifo = GetFifo(nFd)) != NULL ) {
+		if ( (nFd & 1) == 0 ) {		// STDIN/EXTIN
+			if ( !pFifo->m_bEndOf && pFifo->GetSize() == 0 ) {
+				GetEvent(nFd)->ResetEvent();
+				bRet = TRUE;
+			}
+		} else {					// STDOUT/EXTOUT
+			if ( !pFifo->m_bEndOf && pFifo->GetSize() >= FIFO_BUFUPPER ) {
+				GetEvent(nFd)->ResetEvent();
+				bRet = TRUE;
+			}
+		}
+		RelFifo(pFifo);
+	}
+
+	return bRet;
+}
+int CFifoCom::CalcReadByte()
+{
+	ASSERT(m_pSock != NULL && m_pSock->m_Type == ESCT_COMDEV);
+
+	int ByteSec = ((CComSock *)m_pSock)->GetByteSec();
+
+	ByteSec = (ByteSec * 50 / 1000);	// Byte per 50ms
+
+	if ( ByteSec < 1 )					// < 300 baud
+		ByteSec = 1;
+	else if ( ByteSec > COMBUFSIZE )	// >= 230400 baud (1152 byte/50ms)
+		ByteSec = COMBUFSIZE;
+
+	return ByteSec;
+}
+void CFifoCom::OnReadWriteProc()
+{
+	int len, pos;
+
+	DWORD dw;
+	BOOL bRes;
+	BYTE ReadBuf[COMBUFSIZE];
+	BYTE WriteBuf[COMBUFSIZE];
+
+	OVERLAPPED ReadOverLap;
+	OVERLAPPED WriteOverLap;
+	OVERLAPPED CommOverLap;
+
+	int HandleCount;
+	HANDLE HandleTab[10];
+
+	int ReadByte = COMBUFSIZE;
+
+	DWORD WriteDone;
+	DWORD WriteByte;
+	int WriteWaitMsec;
+	clock_t WriteReqClock = clock();
+	CEvent WriteTimerEvent;
+	UINT WriteTimerId = 0;
+
+	DWORD ComEvent = 0;
+	DWORD LastModemStatus;
+
+	BOOL bDsrSensitivity = FALSE;
+	BOOL bOutxDsrFlow = FALSE;
+	BOOL bOutxCtsFlow = FALSE;
+
+	enum { READ_GETDATA, READ_OVERLAP, READ_OVERWAIT, READ_EVENTWAIT } ReadStat = READ_GETDATA;
+	enum { WRITE_GETDATA, WRITE_HAVEDATA, WRITE_OVERLAP, WRITE_OVERWAIT, WRITE_EVENTWAIT, WRITE_TIMERWAIT, WRITE_FLOWCTRL } WriteStat = WRITE_GETDATA;
+	enum { COM_GETDATA, COM_OVERLAP, COM_OVERWAIT } ComStat = COM_GETDATA;
+
+	ASSERT(m_pSock != NULL && m_pSock->m_Type == ESCT_COMDEV);
+	CComSock *pSock = (CComSock *)m_pSock;
+
+	memset(&ReadOverLap, 0 , sizeof(ReadOverLap));
+	memset(&WriteOverLap, 0 , sizeof(WriteOverLap));
+	memset(&CommOverLap, 0 , sizeof(CommOverLap));
+
+	ReadOverLap.hEvent  = CreateEvent(NULL, TRUE, FALSE, NULL);
+	WriteOverLap.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	CommOverLap.hEvent  = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+	if ( pSock->m_pComConf != NULL ) {
+		if ( pSock->m_pComConf->dcb.fDsrSensitivity != 0 )
+			bDsrSensitivity = TRUE;
+		if ( pSock->m_pComConf->dcb.fOutxDsrFlow != 0 )
+			bOutxDsrFlow = TRUE;
+		if ( pSock->m_pComConf->dcb.fOutxCtsFlow != 0 )
+			bOutxCtsFlow = TRUE;
+
+		ReadByte = CalcReadByte();
+	}
+
+	LastModemStatus = pSock->m_ModemStatus;
+
+	while ( m_ThreadMode == THREAD_RUN ) {
+
+		// Init HandleTab conter
+		HandleCount = 0;
+
+		// WaitCommEvent or CommOverLap
+		// GETDATA->OVERLAP->OVERWAIT->GETDATA
+		for ( ; ; ) {
+			if ( ComStat == COM_GETDATA ) {
+				bRes = WaitCommEvent(m_hCom, &ComEvent, &CommOverLap);
+			} else if ( ComStat == COM_OVERLAP ) {
+				bRes = GetOverlappedResult(m_hCom, &CommOverLap, &dw, FALSE);
+			} else {
+				// Com Event set
+				if ( ComStat == COM_OVERWAIT )
+					HandleTab[HandleCount++] = CommOverLap.hEvent;
+				break;
+			}
+
+			if ( bRes ) {
+				GetCommModemStatus(m_hCom, &pSock->m_ModemStatus);
+				ClearCommError(m_hCom, &dw, &(pSock->m_ComStat)); pSock->m_CommError |= dw;
+
+				if ( pSock->m_pComMoni != NULL && pSock->m_pComMoni->m_hWnd != NULL && pSock->m_pComMoni->m_bActive )
+					pSock->m_pComMoni->PostMessage(WM_COMMAND, (WPARAM)ID_COMM_EVENT_MONI);
+
+				if ( bDsrSensitivity && (ComEvent & EV_DSR) != 0 && (LastModemStatus & MS_DSR_ON) != 0 )
+					goto ERRENDOF;
+
+				if ( (ComEvent & (EV_CTS | EV_DSR)) != 0 && WriteStat == WRITE_FLOWCTRL )
+					WriteStat = WRITE_GETDATA;
+
+				LastModemStatus = pSock->m_ModemStatus;
+				ComStat = COM_GETDATA;
+
+			} else if ( (dw = ::GetLastError()) == ERROR_IO_INCOMPLETE || dw == ERROR_IO_PENDING ) {
+				ComStat = COM_OVERWAIT;
+			} else {
+				m_nLastError = (int)dw;
+				goto ERRENDOF;
+			}
+		}
+
+		// ReadFile or ReadOverLap
+		// GETDATA->OVERLAP->OVERWAIT->GETDATA
+		for ( ; ; ) {
+			if ( ReadStat == READ_GETDATA  ) {
+				bRes = ReadFile(m_hCom, ReadBuf, ReadByte, &dw, &ReadOverLap);
+			} else if ( ReadStat == READ_OVERLAP ) {
+				bRes = GetOverlappedResult(m_hCom, &ReadOverLap, &dw, FALSE);
+			} else {
+				// Read Event set
+				if ( ReadStat == READ_OVERWAIT )
+					HandleTab[HandleCount++] = ReadOverLap.hEvent;
+				else if ( ReadStat == READ_EVENTWAIT )
+					HandleTab[HandleCount++] = GetEvent(FIFO_STDOUT)->m_hObject;
+				break;
+			}
+
+			if ( bRes ) {
+				// ReadFile done
+				if ( dw == 0 ) {
+					ReadStat = READ_GETDATA;
+				} else if ( Write(FIFO_STDOUT, ReadBuf, (int)dw) < 0 ) {
+					goto ERRENDOF;
+				} else {
+					// Write STDOUT Overflow check
+					pSock->m_RecvByteSec += (int)dw;
+					ReadStat = FlowCtrlCheck(FIFO_STDOUT) ? READ_EVENTWAIT : READ_GETDATA;
+				}
+			} else if ( (dw = ::GetLastError()) == ERROR_IO_INCOMPLETE || dw == ERROR_IO_PENDING ) {
+				// ReadFile to overlap
+				ReadStat = READ_OVERWAIT;
+			} else {
+				// ReadFile error
+				m_nLastError = (int)dw;
+				goto ERRENDOF;
+			}
+		}
+
+		// WriteFile or WriteOverLap
+		// GETDATA->HAVEDATA->OVERLAP->OVERWAIT->TIMERWAIT->GETDATA
+		for ( ; ; ) {
+			if ( WriteStat == WRITE_GETDATA ) {
+				// Com DSR/CTS flow ctrl check
+				if ( (bOutxDsrFlow && (pSock->m_ModemStatus & MS_DSR_ON) == 0) ||
+					 (bOutxCtsFlow && (pSock->m_ModemStatus & MS_CTS_ON) == 0) ) {
+					WriteStat = WRITE_FLOWCTRL;
+					break;
+				}
+
+				// Read STDIN
+				if ( (len = Peek(FIFO_STDIN, WriteBuf, COMBUFSIZE)) < 0 ) {
+					goto ERRENDOF;
+				} else if ( len == 0 ) {
+					WriteStat = WRITE_EVENTWAIT;
+				} else {
+					// m_SendWait[0] = WC = msec/byte
+					// m_SendWait[1] = WC = msec/byte
+					if ( m_SendWait[1] != 0 ) {
+						WriteWaitMsec = 0;
+						for ( pos = 0 ; pos < len ; ) {
+							if ( WriteBuf[pos++] == m_SendCrLf ) {
+								WriteWaitMsec += m_SendWait[1];
+								break;
+							} else if ( m_SendWait[0] != 0 )
+								WriteWaitMsec += m_SendWait[0];
+						}
+						len = pos;
+					} else if ( m_SendWait[0] != 0 ) {
+						WriteWaitMsec = len * m_SendWait[0];
+					} else {
+						WriteWaitMsec = 0;
+					}
+
+					Consume(FIFO_STDIN, len);
+					pSock->m_SendByteSec += len;
+
+					WriteDone = 0;
+					WriteByte = (DWORD)len;
+					WriteReqClock = clock();
+					WriteStat = WRITE_HAVEDATA;
+				}
+			}
+
+			if ( WriteStat == WRITE_HAVEDATA ) {
+				// WriteFile start
+				bRes = WriteFile(m_hCom, WriteBuf + WriteDone, WriteByte - WriteDone, &dw, &WriteOverLap);
+			} else if ( WriteStat == WRITE_OVERLAP ) {
+				bRes = GetOverlappedResult(m_hCom, &WriteOverLap, &dw, FALSE);
+			} else {
+				// Write Event set
+				if ( WriteStat == WRITE_OVERWAIT )
+					HandleTab[HandleCount++] = WriteOverLap.hEvent;
+				else if ( WriteStat == WRITE_EVENTWAIT )
+					HandleTab[HandleCount++] = GetEvent(FIFO_STDIN)->m_hObject;
+				else if ( WriteStat == WRITE_TIMERWAIT ) {
+					if ( WriteTimerId == 0 ) {
+						if ( (len = (int)(WriteReqClock + (clock_t)WriteWaitMsec * CLOCKS_PER_SEC / 1000 - clock())) <= 0 ) {
+							WriteStat = WRITE_GETDATA;
+							continue;
+						}
+						WriteTimerId = timeSetEvent((UINT)(len * 1000 / CLOCKS_PER_SEC), 0, (LPTIMECALLBACK)(WriteTimerEvent.m_hObject), 0, TIME_ONESHOT | TIME_CALLBACK_EVENT_SET | TIME_KILL_SYNCHRONOUS);
+					}
+					HandleTab[HandleCount++] = WriteTimerEvent;
+				}
+				// WRITE_FLOWCTRLはWaitComEventで監視
+				break;
+			}
+
+			if ( bRes ) {
+				// WriteFile done
+				if ( (WriteDone += dw) >= WriteByte )
+					WriteStat = (WriteWaitMsec > 0 ? WRITE_TIMERWAIT : WRITE_GETDATA);
+				else
+					WriteStat = WRITE_HAVEDATA;
+			} else if ( (dw = ::GetLastError()) == ERROR_IO_INCOMPLETE || dw == ERROR_IO_PENDING ) {
+				// WriteFile to overlap
+				WriteStat = WRITE_OVERWAIT;
+			} else {
+				// WriteFile error
+				m_nLastError = (int)dw;
+				goto ERRENDOF;
+			}
+		}
+
+		//TRACE("ComThredProc ReadStat=%d, WriteStat=%d, ComStat=%d, WaitFor=%d, CommEvent=%04x, CommError=%04x\n",
+		//	ReadStat, WriteStat, ComStat, HandleCount, ComEvent, pSock->m_CommError);
+
+		// Wait For Event
+		ASSERT(HandleCount > 0);
+
+		HandleTab[HandleCount++] = m_AbortEvent;
+		HandleTab[HandleCount++] = m_MsgEvent;
+
+		if ( (dw = WaitForMultipleObjects(HandleCount, HandleTab, FALSE, INFINITE)) == WAIT_FAILED ) {
+			m_nLastError = GetLastError();
+			goto ERRENDOF;
+		} if ( dw < WAIT_OBJECT_0 || (dw -= WAIT_OBJECT_0) >= (DWORD)HandleCount )
+			goto ERRENDOF;
+
+		if ( HandleTab[dw] == GetEvent(FIFO_STDOUT)->m_hObject )
+			ReadStat = READ_GETDATA;
+		else if ( HandleTab[dw] ==  ReadOverLap.hEvent )
+			ReadStat = READ_OVERLAP;
+
+		else if ( HandleTab[dw] == GetEvent(FIFO_STDIN)->m_hObject )
+			WriteStat = WRITE_GETDATA;
+		else if ( HandleTab[dw] == WriteOverLap.hEvent )
+			WriteStat = WRITE_OVERLAP;
+		else if ( HandleTab[dw] == WriteTimerEvent.m_hObject ) {
+			WriteStat = WRITE_GETDATA;
+			WriteTimerId = 0;
+
+		} else if ( HandleTab[dw] == CommOverLap.hEvent )
+			ComStat = COM_OVERLAP;
+
+		else if ( HandleTab[dw] == m_AbortEvent )
+			goto ERRENDOF;
+
+		else if ( HandleTab[dw] == m_MsgEvent ) {
+			// Fifo Command
+			m_MsgSemaphore.Lock();
+			while ( !m_MsgList.IsEmpty() ) {
+				FifoMsg *pFifoMsg = m_MsgList.RemoveHead();
+				m_MsgSemaphore.Unlock();
+
+				switch(pFifoMsg->cmd) {
+				case FIFO_CMD_FDEVENTS:
+					switch(pFifoMsg->msg) {
+					case FD_CLOSE:
+						m_nLastError = (int)pFifoMsg->buffer;
+						Read(FIFO_STDIN, NULL, 0);
+						break;
+					}
+					break;
+
+				case FIFO_CMD_MSGQUEIN:
+					bRes = FALSE;
+					switch(pFifoMsg->param) {
+					case FIFO_QCMD_SENDBREAK:
+						// SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SENDBREAK, opt);
+						bRes = SetCommBreak(m_hCom);
+						Sleep(pFifoMsg->msg);
+						ClearCommBreak(m_hCom);
+						break;
+					case FIFO_QCMD_COMMSTATE:
+						// SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_COMMSTATE);
+						if ( pSock->m_pComConf != NULL ) {
+							bRes = SetCommState(m_hCom, &(pSock->m_pComConf->dcb));
+							if ( pSock->m_pComConf->dcb.fDtrControl == DTR_CONTROL_DISABLE )
+								EscapeCommFunction(m_hCom, CLRDTR);
+							else if ( pSock->m_pComConf->dcb.fDtrControl == DTR_CONTROL_ENABLE )
+								EscapeCommFunction(m_hCom, SETDTR);
+							if ( pSock->m_pComConf->dcb.fDtrControl == RTS_CONTROL_DISABLE )
+								EscapeCommFunction(m_hCom, CLRRTS);
+							else if ( pSock->m_pComConf->dcb.fDtrControl == RTS_CONTROL_ENABLE )
+								EscapeCommFunction(m_hCom, SETRTS);
+							m_SendWait[0] = pSock->m_SendWait[0];
+							m_SendWait[1] = pSock->m_SendWait[1];
+							m_SendCrLf    = pSock->m_SendCrLf;
+							bDsrSensitivity = (pSock->m_pComConf->dcb.fDsrSensitivity != 0 ? TRUE : FALSE);
+							bOutxDsrFlow = (pSock->m_pComConf->dcb.fOutxDsrFlow != 0 ? TRUE : FALSE);
+							bOutxCtsFlow = (pSock->m_pComConf->dcb.fOutxCtsFlow != 0 ? TRUE : FALSE);
+							ReadByte = CalcReadByte();
+						}
+						break;
+					case FIFO_QCMD_SETDTRRTS:
+						// SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SETDTRRTS, sw);
+						bRes = EscapeCommFunction(m_hCom, (DWORD)pFifoMsg->msg);
+						break;
+					}
+					if ( pFifoMsg->pResult != NULL )
+						*(pFifoMsg->pResult) = bRes;
+					break;
+				}
+
+				DeleteMsg(pFifoMsg);
+				m_MsgSemaphore.Lock();
+			}
+			m_MsgSemaphore.Unlock();
+		}
+	}
+
+ERRENDOF:
+	SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)m_nLastError);
+	Write(FIFO_STDOUT, NULL, 0);
+
+	CancelIo(m_hCom);
+
+	CloseHandle(ReadOverLap.hEvent);
+	CloseHandle(WriteOverLap.hEvent);
+	CloseHandle(CommOverLap.hEvent);
+}
+
 //////////////////////////////////////////////////////////////////////
+// CComSock
 
 CComSock::CComSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 {
 	m_Type     = ESCT_COMDEV;
 
 	m_hCom     = INVALID_HANDLE_VALUE;
-	m_ComPort = (-1);
+	m_ComPort  = (-1);
 	m_pComConf = NULL;
+	m_pComMoni = NULL;
 
 	m_SendWait[0] = 0;
 	m_SendWait[1] = 0;
-	m_MsecByte = 0;
 
-	m_ThreadMode  = THREAD_NONE;
-	m_pThreadEvent = new CEvent(FALSE, TRUE);
-	m_pSendEvent   = new CEvent(FALSE, TRUE);
-	m_pRecvEvent   = new CEvent(FALSE, TRUE);
-	m_pStatEvent   = new CEvent(FALSE, TRUE);
-
-	memset(&m_ReadOverLap,  0, sizeof(OVERLAPPED));
-	memset(&m_WriteOverLap, 0, sizeof(OVERLAPPED));
-	memset(&m_CommOverLap,  0, sizeof(OVERLAPPED));
-
-	m_ReadOverLap.hEvent  = CreateEvent(NULL, TRUE, FALSE, NULL);
-	m_WriteOverLap.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-	m_CommOverLap.hEvent  = CreateEvent(NULL, TRUE, FALSE, NULL);
-
-	m_SendBreak = 0;
-	m_bCommState = FALSE;
-	m_ComCtrl = 0;
-
-	m_CommError = 0;
+	m_ComEvent    = 0;
+	m_CommError   = 0;
 	m_ModemStatus = 0;
-	m_bGetStatus = FALSE;
 
-	m_pComMoni = NULL;
-	m_RecvByteSec = 0;
-	m_SendByteSec = 0;
+	m_RecvByteSec  = 0;
+	m_SendByteSec  = 0;
+
 	m_fInXOutXMode = 0;
 
 	SetRecvBufSize(COMBUFSIZE);
@@ -68,91 +474,87 @@ CComSock::~CComSock()
 {
 	Close();
 
-	delete m_pThreadEvent;
-	delete m_pSendEvent;
-	delete m_pRecvEvent;
-	delete m_pStatEvent;
-
-	CloseHandle(m_ReadOverLap.hEvent);
-	CloseHandle(m_WriteOverLap.hEvent);
-	CloseHandle(m_CommOverLap.hEvent);
-
 	if ( m_pComConf != NULL )
 		delete m_pComConf;
 }
-
-static UINT ComEventThread(LPVOID pParam)
+void CComSock::FifoLink()
 {
-	CComSock *pThis = (CComSock *)pParam;
+	FifoUnlink();
 
-	pThis->OnReadWriteProc();
-	pThis->m_pThreadEvent->SetEvent();
-	pThis->m_ThreadMode = CComSock::THREAD_DONE;
-	return 0;
+	ASSERT(m_pFifoLeft == NULL && m_pFifoMid == NULL && m_pFifoRight == NULL);
+
+	m_pFifoLeft   = new CFifoCom(m_pDocument, this);
+	m_pFifoMid    = new CFifoWnd(m_pDocument, this);
+	m_pFifoRight  = new CFifoDocument(m_pDocument, this);
+
+	CFifoBase::MidLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
 }
-
 BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
+	int n;
 	COMMTIMEOUTS ComTime;
 
 	if ( m_hCom != INVALID_HANDLE_VALUE )
 		return FALSE;
+
+	FifoLink();
 
 	if ( !LoadComConf(lpszHostAddress, nHostPort, TRUE) ) {
 		::AfxMessageBox(GetFormatErrorMessage(m_pDocument->m_ServerEntry.m_EntryName, lpszHostAddress, nHostPort, _T("GetCommConfig"), ::GetLastError()), MB_ICONSTOP);
 		return FALSE;
 	}
 
-	SetCommState(m_hCom, &(m_pComConf->dcb));
+	if ( !SetCommState(m_hCom, &(m_pComConf->dcb)) ) {
+		::AfxMessageBox(GetFormatErrorMessage(m_pDocument->m_ServerEntry.m_EntryName, lpszHostAddress, nHostPort, _T("SetCommState"), ::GetLastError()), MB_ICONSTOP);
+		return FALSE;
+	}
+
 	SetupComm(m_hCom, COMQUEUESIZE, COMQUEUESIZE);
 	PurgeComm(m_hCom, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);
 
-	EscapeCommFunction(m_hCom, m_pComConf->dcb.fDtrControl == DTR_CONTROL_DISABLE ? CLRDTR : SETDTR);
-	EscapeCommFunction(m_hCom, m_pComConf->dcb.fRtsControl == RTS_CONTROL_DISABLE ? CLRRTS : SETRTS);
+	if ( (n = 1000 * 2 / GetByteSec()) <= 0 )			// 1 Byte Read Time = msec * 2
+		n = 1;
 
 	GetCommTimeouts(m_hCom, &ComTime);
-	ComTime.ReadIntervalTimeout         = 10;
+	ComTime.ReadIntervalTimeout         = (DWORD)n;
 	ComTime.ReadTotalTimeoutMultiplier  = 0;
-	ComTime.ReadTotalTimeoutConstant    = 50;
-	ComTime.WriteTotalTimeoutMultiplier = (m_MsecByte <= 0 ? 1 : m_MsecByte);
-	ComTime.WriteTotalTimeoutConstant   = 50;
+	ComTime.ReadTotalTimeoutConstant    = 0;
+	ComTime.WriteTotalTimeoutMultiplier = 0;
+	ComTime.WriteTotalTimeoutConstant   = 0;
 	SetCommTimeouts(m_hCom, &ComTime);
 
 	GetCommModemStatus(m_hCom, &m_ModemStatus);
-	SetCommMask(m_hCom, EV_RXCHAR | EV_RX80FULL | EV_DSR | EV_TXEMPTY | EV_CTS | EV_RING | EV_RLSD | EV_ERR);
+	SetCommMask(m_hCom, EV_CTS | EV_DSR | EV_RLSD | EV_BREAK | EV_ERR | EV_RING);
 
-	GetMainWnd()->SetAsyncSelect((SOCKET)m_hCom, this, 0);
+	ASSERT(m_pFifoLeft != NULL && m_pFifoLeft->m_Type == FIFO_TYPE_COM);
 
-	m_ThreadMode = THREAD_RUN;
-	m_pThreadEvent->ResetEvent();
-	AfxBeginThread(ComEventThread, this, THREAD_PRIORITY_NORMAL);
+	((CFifoCom *)m_pFifoLeft)->m_SendCrLf    = (m_pDocument->m_TextRam.m_SendCrLf == 0 ? '\r' : '\n');
+	((CFifoCom *)m_pFifoLeft)->m_SendWait[0] = m_SendWait[0];
+	((CFifoCom *)m_pFifoLeft)->m_SendWait[1] = m_SendWait[1];
 
-	PostMessage((WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_CONNECT, 0));
+	if ( m_pComConf->dcb.fDtrControl == DTR_CONTROL_DISABLE )
+		EscapeCommFunction(m_hCom, CLRDTR);
+	else if ( m_pComConf->dcb.fDtrControl == DTR_CONTROL_ENABLE )
+		EscapeCommFunction(m_hCom, SETDTR);
+	if ( m_pComConf->dcb.fDtrControl == RTS_CONTROL_DISABLE )
+		EscapeCommFunction(m_hCom, CLRRTS);
+	else if ( m_pComConf->dcb.fDtrControl == RTS_CONTROL_ENABLE )
+		EscapeCommFunction(m_hCom, SETRTS);
+
+	if ( !((CFifoCom *)m_pFifoLeft)->Open(m_hCom) )
+		return FALSE;
+
+	m_pFifoLeft->SendFdEvents(FIFO_STDOUT, FD_CONNECT, NULL);
+
 	return TRUE;
-}
-BOOL CComSock::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
-{
-	return Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType);
 }
 void CComSock::Close()
 {
 	if ( m_hCom == INVALID_HANDLE_VALUE )
 		return;
 
-	//	GetApp()->DelSocketIdle(this);
-	GetMainWnd()->DelAsyncSelect((SOCKET)m_hCom, this, FALSE);
-
-	if ( m_ThreadMode == THREAD_RUN ) {
-		m_ThreadMode = THREAD_ENDOF;
-		CancelIo(m_hCom);
-		m_pSendEvent->SetEvent();
-		m_pRecvEvent->SetEvent();
-		SetEvent(m_ReadOverLap.hEvent);
-		SetEvent(m_WriteOverLap.hEvent);
-		SetEvent(m_CommOverLap.hEvent);
-		WaitForSingleObject(m_pThreadEvent->m_hObject, INFINITE);
-		m_ThreadMode = THREAD_NONE;
-	}
+	if ( m_pFifoLeft != NULL && m_pFifoLeft->m_Type == FIFO_TYPE_COM )
+		((CFifoCom *)m_pFifoLeft)->Close();
 
 	SetCommMask(m_hCom, 0);
 	PurgeComm(m_hCom, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);
@@ -171,43 +573,44 @@ void CComSock::SendBreak(int opt)
 	if ( m_hCom == INVALID_HANDLE_VALUE )
 		return;
 
-	m_SendSema.Lock();
-	m_SendBreak = (opt != 0 ? 300 : 100);
-	m_pSendEvent->SetEvent();
-	m_SendSema.Unlock();
+	if ( m_pFifoLeft != NULL && m_pFifoLeft->m_Type == FIFO_TYPE_COM )
+		m_pFifoLeft->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SENDBREAK, (opt != 0 ? 300 : 100));
 }
-int CComSock::Send(const void* lpBuf, int nBufLen, int nFlags)
+
+int CComSock::GetByteSec()
 {
-	if ( lpBuf == NULL || nBufLen <= 0 )
-		return 0;
+	int bits;
 
-	m_SendSema.Lock();
-	m_SendBuff.Apend((LPBYTE)lpBuf, nBufLen);
-	m_pSendEvent->SetEvent();
-	m_SendSema.Unlock();
+	if ( m_pComConf == NULL )
+		return 960;							// Dumy 9600bps
 
-	return nBufLen;
+	bits = 10;								// Start bit 1 * 10
+
+	bits += m_pComConf->dcb.ByteSize * 10;	// Data bits * 10
+
+	if ( m_pComConf->dcb.Parity != 0 )		// !NonParty ? 1 * 10
+		bits += 10;
+
+	switch(m_pComConf->dcb.StopBits) {
+	case 0: bits += 10; break;				// 1 Stop bits * 10
+	case 1: bits += 15; break;				// 1.5 Stop bits * 10
+	case 2: bits += 20; break;				// 2 Stop bits * 10
+	}
+
+	return (m_pComConf->dcb.BaudRate * 10 / bits);	// Byte/Sec
 }
 BOOL CComSock::SetComConf()
 {
-	if ( m_hCom == INVALID_HANDLE_VALUE || m_pComConf == NULL )
+	if ( m_hCom == INVALID_HANDLE_VALUE || m_pComConf == NULL || m_pFifoLeft == NULL || m_pFifoLeft->m_Type != FIFO_TYPE_COM )
 		return FALSE;
 
-	m_SendSema.Lock();
-	m_pStatEvent->ResetEvent();
-	m_bRetCode = FALSE;
-	m_bCommState = TRUE;
-	m_pSendEvent->SetEvent();
-	m_SendSema.Unlock();
+	m_SendCrLf = (m_pDocument->m_TextRam.m_SendCrLf == 0 ? '\r' : '\n');
 
-	if ( m_ThreadMode == THREAD_RUN )
-		WaitForSingleObject(m_pStatEvent->m_hObject, INFINITE);
-
-	return m_bRetCode;
+	return m_pFifoLeft->SendCmdWait(FIFO_CMD_MSGQUEIN, FIFO_QCMD_COMMSTATE);
 }
 void CComSock::SetXonXoff(int sw)
 {
-	if ( m_hCom == INVALID_HANDLE_VALUE || m_pComConf == NULL )
+	if ( m_hCom == INVALID_HANDLE_VALUE || m_pComConf == NULL || m_pFifoLeft == NULL || m_pFifoLeft->m_Type != FIFO_TYPE_COM )
 		return;
 
 	if ( sw ) {		// OFF->ON
@@ -228,83 +631,38 @@ void CComSock::SetXonXoff(int sw)
 }
 BOOL CComSock::SetComCtrl(DWORD ctrl)
 {
-	m_SendSema.Lock();
-	m_pStatEvent->ResetEvent();
-	m_bRetCode = FALSE;
-	m_ComCtrl = ctrl;
-	m_pSendEvent->SetEvent();
-	m_SendSema.Unlock();
+	if ( m_hCom == INVALID_HANDLE_VALUE || m_pComConf == NULL || m_pFifoLeft == NULL || m_pFifoLeft->m_Type != FIFO_TYPE_COM )
+		return FALSE;
 
-	if ( m_ThreadMode == THREAD_RUN )
-		WaitForSingleObject(m_pStatEvent->m_hObject, INFINITE);
-
-	return m_bRetCode;
-}
-int CComSock::GetRecvSize()
-{
-	int len = CExtSocket::GetRecvSize();
-	
-	m_RecvSema.Lock();
-	len += m_RecvBuff.GetSize();
-	m_RecvSema.Unlock();
-
-	return len;
-}
-int CComSock::GetSendSize()
-{
-	int len = CExtSocket::GetSendSize();
-
-	m_SendSema.Lock();
-	len += m_SendBuff.GetSize();
-	m_SendSema.Unlock();
-
-	return len;
+	return m_pFifoLeft->SendCmdWait(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SETDTRRTS, ctrl);
 }
 void CComSock::GetRecvSendByteSec(int &recvByte, int &sendByte)
 {
-	m_RecvSema.Lock();
 	recvByte = m_RecvByteSec;
-	m_RecvByteSec = 0;
-	m_RecvSema.Unlock();
-
-	m_SendSema.Lock();
 	sendByte = m_SendByteSec;
-	m_SendByteSec = 0;
-	m_SendSema.Unlock();
+
+	m_RecvByteSec = m_SendByteSec = 0;
 }
 
 void CComSock::GetStatus(CString &str)
 {
-	int n;
 	CString tmp;
 
 	CExtSocket::GetStatus(str);
 
+	if ( m_pFifoLeft == NULL || m_pFifoLeft->m_Type != FIFO_TYPE_COM )
+		return;
+
 	str += _T("\r\n");
 
-	m_RecvSema.Lock();
-	n = m_RecvBuff.GetSize();
-	m_RecvSema.Unlock();
-	tmp.Format(_T("Receive Buffer: %d Bytes\r\n"), n);
+	tmp.Format(_T("Receive Buffer: %d Bytes\r\n"), m_pFifoLeft->GetDataSize(FIFO_STDOUT));
 	str += tmp;
 
-	m_SendSema.Lock();
-	n = m_SendBuff.GetSize();
-	m_SendSema.Unlock();
-	tmp.Format(_T("Send Buffer: %d Bytes\r\n"), n);
+	tmp.Format(_T("Send Buffer: %d Bytes\r\n"), m_pFifoLeft->GetDataSize(FIFO_STDIN));
 	str += tmp;
 
-	tmp.Format(_T("Thread Status: %d\r\n"), m_ThreadMode);
+	tmp.Format(_T("Thread Status: %d\r\n"), ((CFifoCom *)m_pFifoLeft)->m_ThreadMode);
 	str += tmp;
-
-	m_SendSema.Lock();
-	m_pStatEvent->ResetEvent();
-	m_bGetStatus = TRUE;
-	m_pSendEvent->SetEvent();
-	m_SendSema.Unlock();
-
-	if ( m_ThreadMode == THREAD_RUN )
-		WaitForSingleObject(m_pStatEvent->m_hObject, INFINITE);
 
 	str += _T("\r\n");
 
@@ -346,389 +704,14 @@ void CComSock::ComMoniter()
 		m_pComMoni->DestroyWindow();
 }
 
-void CComSock::OnReceive(int nFlags)
-{
-	int n;
-	BYTE buff[COMBUFSIZE];
-
-	m_RecvSema.Lock();
-
-	while ( (n = m_RecvBuff.GetSize()) > 0 ) {
-		if ( n > COMBUFSIZE )
-			n = COMBUFSIZE;
-		memcpy(buff, m_RecvBuff.GetPtr(), n);
-		m_RecvBuff.Consume(n);
-		m_RecvSema.Unlock();
-
-		OnReceiveCallBack(buff, n, nFlags);
-		m_RecvSema.Lock();
-	}
-
-	m_RecvSema.Unlock();
-}
-void CComSock::OnRecvEmpty()
-{
-	m_RecvSema.Lock();
-	m_pRecvEvent->SetEvent();
-	m_RecvSema.Unlock();
-}
-void CComSock::OnSend()
-{
-	// PostMessage((WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_WRITE, 0));
-	// Send Empty Call
-
-	CExtSocket::OnSendEmpty();
-}
-
-void CComSock::OnReadWriteProc()
-{
-	DWORD n;
-	BOOL bRes;
-	BOOL bSendWait = FALSE;
-	int HandleCount = 0;
-	HANDLE HandleTab[6];
-	DWORD HaveError = 0;
-	DWORD ComEvent  = 0;
-	DWORD ReadByte  = 0;
-	DWORD WriteByte = 0;
-	DWORD WriteTop = 0;
-	DWORD WriteDone = 0;
-	BYTE *ReadBuf  = new BYTE[COMBUFSIZE];
-	BYTE *WriteBuf = new BYTE[COMBUFSIZE];
-	CEvent ReadTimerEvent(FALSE, TRUE);
-	CEvent WriteTimerEvent(FALSE, TRUE);
-	MMRESULT WriteTimerHandle = NULL;
-	BOOL bCommOverLap = FALSE;
-	int WriteWaitMsec = 0;
-	int TimerWaitMsec = 0;
-	clock_t WriteReqClock = clock();
-	clock_t WriteNextClock = clock();
-	DWORD LastModemStatus;
-	enum { READ_HAVE_DATA = 0, READ_RX_WAIT, READ_OVERLAP, READ_EVENT_WAIT } ReadStat = READ_HAVE_DATA;
-	enum { WRITE_CHECK_DATA = 0, WRITE_TX_WAIT, WRITE_OVERLAP, WRITE_EVENT_WAIT, WRITE_TIMER_WAIT } WriteStat = WRITE_CHECK_DATA;
-
-	GetCommModemStatus(m_hCom, &LastModemStatus);
-
-	while ( m_ThreadMode == THREAD_RUN ) {
-
-		// WaitCommEvent or CommOverLap
-		for ( ; ; ) {
-			if ( bCommOverLap )
-				bRes = GetOverlappedResult(m_hCom, &m_CommOverLap, &n, FALSE);
-			else
-				bRes = WaitCommEvent(m_hCom, &ComEvent, &m_CommOverLap);
-
-			if ( bRes ) {
-				if ( ReadStat == READ_RX_WAIT && (ComEvent & (EV_RXCHAR | EV_RX80FULL | EV_DSR | EV_CTS | EV_RING | EV_RLSD)) != 0 )
-					ReadStat = READ_HAVE_DATA;
-
-				if ( WriteStat == WRITE_TX_WAIT && (ComEvent & (EV_TXEMPTY | EV_DSR | EV_CTS | EV_RLSD)) != 0 )
-					WriteStat = WRITE_CHECK_DATA;
-
-				if ( (ComEvent & (EV_CTS | EV_DSR | EV_RLSD | EV_BREAK | EV_ERR | EV_RING)) != 0 ) {
-					ClearCommError(m_hCom, &n, NULL); m_CommError |= n;
-					GetCommModemStatus(m_hCom, &m_ModemStatus);
-
-					if ( m_pComMoni != NULL && m_pComMoni->m_hWnd != NULL && m_pComMoni->m_bActive )
-						m_pComMoni->PostMessage(WM_COMMAND, (WPARAM)ID_COMM_EVENT_MONI);
-
-					if ( (m_ModemStatus & MS_DSR_ON) == 0 && (LastModemStatus & MS_DSR_ON) != 0 && m_pComConf->dcb.fDsrSensitivity != 0 )
-						PostMessage((WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_CLOSE, 0));
-
-					LastModemStatus = m_ModemStatus;
-				}
-
-				if ( !bCommOverLap )
-					break;
-
-				bCommOverLap = FALSE;
-
-			} else if ( (n = ::GetLastError()) == ERROR_IO_INCOMPLETE || n == ERROR_IO_PENDING ) {
-				bCommOverLap = TRUE;
-				break;
-
-			} else {
-				HaveError = n;
-				goto ERRENDOF;
-			}
-		}
-
-		// ReadFile or ReadOverLap
-		for ( ; ; ) {
-			if ( ReadStat == READ_OVERLAP )
-				bRes = GetOverlappedResult(m_hCom, &m_ReadOverLap, &n, FALSE);
-			else if ( ReadStat == READ_HAVE_DATA  ) {
-				ClearCommError(m_hCom, &n, NULL);
-				bRes = ReadFile(m_hCom, ReadBuf, COMBUFSIZE, &n, &m_ReadOverLap);
-			} else
-				break;
-
-			if ( bRes ) {
-				if ( n > 0 ) {
-					ReadByte += n;
-					m_RecvSema.Lock();
-					m_RecvByteSec += n;
-					m_RecvBuff.Apend(ReadBuf, n);
-					if ( (CExtSocket::GetRecvSize() + m_RecvBuff.GetSize()) > (COMBUFSIZE * 4) ) {
-						m_pRecvEvent->ResetEvent();
-						ReadStat = READ_EVENT_WAIT;
-					} else
-						ReadStat = READ_HAVE_DATA;
-					m_RecvSema.Unlock();
-				} else
-					ReadStat = READ_RX_WAIT;
-
-			} else if ( (n = ::GetLastError()) == ERROR_IO_INCOMPLETE || n == ERROR_IO_PENDING ) {
-				ReadStat = READ_OVERLAP;
-				break;
-
-			} else {
-				HaveError = n;
-				goto ERRENDOF;
-			}
-		}
-
-		// PostMsg Call OnReceive
-		if ( ReadByte > 0 ) {
-			ReadByte = 0;
-			PostMessage((WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_READ, 0));
-		}
-
-		// WriteOverLap
-		if ( WriteStat == WRITE_OVERLAP ) {
-			if ( GetOverlappedResult(m_hCom, &m_WriteOverLap, &n, FALSE) ) {
-				if ( n > 0 && (WriteTop += n) >= WriteByte && bSendWait ) {
-					// COMデバイスにより完了タイミングが異なる
-					// UARTデバイスはFIFOのようでm_MsecByte * (WriteByte - FifoSize)
-					// USBシリアルはメインメモリのようで0msec
-					// EV_TXEMPTYも同様で実送信完了は、判断できない
-					// 送信途中にCTSコントールがあった場合を考慮して論理時間以上の場合は、
-					// この完了から送信遅延を行う
-					clock_t now = clock();
-					if ( (now - WriteReqClock) < (m_MsecByte * (int)WriteByte) )
-						WriteNextClock = WriteReqClock + m_MsecByte * WriteByte + WriteWaitMsec;
-					else
-						WriteNextClock = now + WriteWaitMsec;
-				}
-				WriteStat = WRITE_CHECK_DATA;
-			} else if ( (n = ::GetLastError()) == ERROR_IO_INCOMPLETE || n == ERROR_IO_PENDING ) {
-				WriteStat = WRITE_OVERLAP;
-			} else {
-				HaveError = n;
-				goto ERRENDOF;
-			}
-		}
-
-		// Check ThreadCommand and WriteData
-		if ( WriteStat == WRITE_CHECK_DATA ) {
-			// SendBreak
-			if ( m_SendBreak != 0 ) {
-				m_bRetCode = SetCommBreak(m_hCom);
-				Sleep(m_SendBreak);
-				ClearCommBreak(m_hCom);
-
-				m_SendSema.Lock();
-				m_SendBreak = 0;
-				m_SendSema.Unlock();
-			}
-
-			// CommState
-			if ( m_bCommState ) {
-				if ( m_pComConf != NULL ) {
-					m_bRetCode = SetCommState(m_hCom, &(m_pComConf->dcb));
-					EscapeCommFunction(m_hCom, m_pComConf->dcb.fDtrControl == DTR_CONTROL_DISABLE ? CLRDTR : SETDTR);
-					EscapeCommFunction(m_hCom, m_pComConf->dcb.fRtsControl == RTS_CONTROL_DISABLE ? CLRRTS : SETRTS);
-				} else
-					m_bRetCode = FALSE;
-
-				m_SendSema.Lock();
-				m_bCommState = FALSE;
-				m_pStatEvent->SetEvent();
-				m_SendSema.Unlock();
-			}
-
-			// GetStatus
-			if ( m_bGetStatus ) {
-				m_bRetCode = GetCommModemStatus(m_hCom, &m_ModemStatus);
-
-				m_SendSema.Lock();
-				m_bGetStatus = FALSE;
-				m_pStatEvent->SetEvent();
-				m_SendSema.Unlock();
-			}
-
-			// Set Com DTR/RTS
-			if ( m_ComCtrl != 0 ) {
-				m_bRetCode = EscapeCommFunction(m_hCom, m_ComCtrl);
-
-				m_SendSema.Lock();
-				m_ComCtrl = 0;
-				m_pStatEvent->SetEvent();
-				m_SendSema.Unlock();
-			}
-		}
-
-		// WriteFile Loop
-		while ( WriteStat == WRITE_CHECK_DATA ) {
-			if ( WriteTop >= WriteByte ) {
-				WriteDone = WriteByte;
-				WriteTop = WriteByte = 0;
-				WriteWaitMsec = 0;
-				m_SendSema.Lock();
-				if ( m_SendBuff.GetSize() > 0 ) {
-					WriteReqClock = clock();
-					if ( bSendWait && WriteNextClock > WriteReqClock ) {
-						m_SendSema.Unlock();
-						TimerWaitMsec =  (WriteNextClock - WriteReqClock) * 1000 / CLOCKS_PER_SEC;
-						WriteStat = WRITE_TIMER_WAIT;
-						break;
-					}
-
-					if ( (WriteByte = m_SendBuff.GetSize()) > COMBUFSIZE )
-						WriteByte = COMBUFSIZE;
-					memcpy(WriteBuf, m_SendBuff.GetPtr(), WriteByte);
-
-					BYTE CrLf = (m_pDocument->m_TextRam.m_SendCrLf == 0 ? '\r' : '\n');
-
-					if ( m_SendWait[0] != 0 ) {
-						if ( m_SendWait[1] != 0 && WriteBuf[0] == CrLf )
-							WriteWaitMsec = m_SendWait[1];
-						else
-							WriteWaitMsec = m_SendWait[0];
-
-						WriteByte = 1;
-						bSendWait = TRUE;
-					} else if ( m_SendWait[1] != 0 ) {
-						for ( n = 0 ; n < WriteByte ; ) {
-							if ( WriteBuf[n++] == CrLf ) {
-								WriteWaitMsec = m_SendWait[1];
-								break;
-							}
-						}
-
-						WriteByte = n;
-						bSendWait = TRUE;
-					} else
-						bSendWait = FALSE;
-
-					m_SendBuff.Consume(WriteByte);
-					m_SendByteSec += WriteByte;
-					m_SendSema.Unlock();
-
-				} else {
-					m_pSendEvent->ResetEvent();
-					m_SendSema.Unlock();
-					if ( WriteDone > 0 )
-						PostMessage((WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_WRITE, 0));
-					WriteStat = WRITE_EVENT_WAIT;
-					break;
-				}
-			}
-
-			ClearCommError(m_hCom, &n, NULL);
-			if ( WriteFile(m_hCom, WriteBuf + WriteTop, WriteByte - WriteTop, &n, &m_WriteOverLap) ) {
-				if ( n > 0 ) {
-					if ( (WriteTop += n) >= WriteByte && bSendWait ) {
-						clock_t now = clock();
-						if ( (now - WriteReqClock) < (m_MsecByte * (int)WriteByte) )
-							WriteNextClock = WriteReqClock + m_MsecByte * WriteByte + WriteWaitMsec;
-						else
-							WriteNextClock = now + WriteWaitMsec;
-					}
-				} else
-					WriteStat = WRITE_TX_WAIT;
-
-			} else if ( (n = ::GetLastError()) == ERROR_IO_PENDING ) {
-				WriteStat = WRITE_OVERLAP;
-
-			} else {
-				HaveError = n;
-				goto ERRENDOF;
-			}
-		}
-
-		// Event Set
-		HandleCount = 0;
-
-		switch(ReadStat) {
-		case READ_EVENT_WAIT:
-			HandleTab[HandleCount++] = m_pRecvEvent->m_hObject;
-			break;
-		case READ_OVERLAP:
-			HandleTab[HandleCount++] = m_ReadOverLap.hEvent;
-			break;
-		case READ_RX_WAIT:
-			// CommEvent EV_RXCHAR Recovery Timer
-			ReadTimerEvent.ResetEvent();
-			timeSetEvent(500, 50, (LPTIMECALLBACK)(ReadTimerEvent.m_hObject), 0, TIME_ONESHOT | TIME_CALLBACK_EVENT_SET);
-			HandleTab[HandleCount++] = ReadTimerEvent.m_hObject;
-			break;
-		}
-
-		switch(WriteStat) {
-		case WRITE_EVENT_WAIT:
-			HandleTab[HandleCount++] = m_pSendEvent->m_hObject;
-			break;
-		case WRITE_OVERLAP:
-			HandleTab[HandleCount++] = m_WriteOverLap.hEvent;
-			break;
-		case WRITE_TX_WAIT:
-			// CommEvent EV_TXEMPTY Recovery Timer
-			WriteTimerEvent.ResetEvent();
-			timeSetEvent(500, 50, (LPTIMECALLBACK)(WriteTimerEvent.m_hObject), 0, TIME_ONESHOT | TIME_CALLBACK_EVENT_SET);
-			HandleTab[HandleCount++] = WriteTimerEvent.m_hObject;
-			break;
-		case WRITE_TIMER_WAIT:
-			if ( WriteTimerHandle == NULL ) {
-				WriteTimerEvent.ResetEvent();
-				WriteTimerHandle = timeSetEvent(TimerWaitMsec, 0, (LPTIMECALLBACK)(WriteTimerEvent.m_hObject), 0, TIME_ONESHOT | TIME_CALLBACK_EVENT_SET);
-			}
-			HandleTab[HandleCount++] = WriteTimerEvent.m_hObject;
-			break;
-		}
-
-		if ( bCommOverLap )
-			HandleTab[HandleCount++] = m_CommOverLap.hEvent;
-
-		TRACE("ComThredProc CommOverLap=%d, ReadStat=%d, WriteStat=%d, WaitFor=%d, CommEvent=%04x, CommError=%04x\n",
-			bCommOverLap, ReadStat, WriteStat, HandleCount, ComEvent, m_CommError);
-
-		// Wait For Event
-		ASSERT(HandleCount > 0);
-		n = WaitForMultipleObjects(HandleCount, HandleTab, FALSE, INFINITE);
-		if ( n >= WAIT_OBJECT_0 && (n -= WAIT_OBJECT_0) < (DWORD)HandleCount ) {
-			if ( HandleTab[n] == m_pRecvEvent->m_hObject && ReadStat == READ_EVENT_WAIT )
-				ReadStat = READ_HAVE_DATA;
-			else if ( HandleTab[n] == ReadTimerEvent.m_hObject && ReadStat == READ_RX_WAIT )
-				ReadStat = READ_HAVE_DATA;
-			else if ( HandleTab[n] == m_pSendEvent->m_hObject && WriteStat == WRITE_EVENT_WAIT )
-				WriteStat = WRITE_CHECK_DATA;
-			else if ( HandleTab[n] == WriteTimerEvent.m_hObject && WriteStat == WRITE_TX_WAIT )
-				WriteStat = WRITE_CHECK_DATA;
-			else if ( HandleTab[n] == WriteTimerEvent.m_hObject && WriteStat == WRITE_TIMER_WAIT ) {
-				WriteTimerHandle = NULL;
-				WriteStat = WRITE_CHECK_DATA;
-			}
-		}
-	}
-
-ERRENDOF:
-	if ( HaveError != 0 )
-		PostMessage((WPARAM)m_hCom, WSAMAKESELECTREPLY(0, HaveError));
-
-	if ( ReadStat == READ_OVERLAP || WriteStat == WRITE_OVERLAP || bCommOverLap )
-		CancelIo(m_hCom);
-
-	delete [] ReadBuf;
-	delete [] WriteBuf;
-}
-
 static struct _ComTab {
 		LPCTSTR	name;
 		int		mode;
 		int		value;
 	} ComTab[] = {
+		{	_T("75"),		1,	75			},
 		{	_T("110"),		1,	CBR_110		},
+		{	_T("150"),		1,	150		},
 		{	_T("300"),		1,	CBR_300		},
 		{	_T("600"),		1,	CBR_600		},
 		{	_T("1200"),		1,	CBR_1200	},
@@ -910,8 +893,13 @@ BOOL CComSock::LoadComConf(LPCTSTR ComSetStr, int ComPort, BOOL bOpen)
 	//			XonChar が送信され、 受信可能であることを示します。  
 	m_pComConf->dcb.XonLim   = COMQUEUESIZE * 25 / 100;
 
-	m_pComConf->dcb.XonChar  = 0x11;	// ^Q
-	m_pComConf->dcb.XoffChar = 0x13;	// ^S
+	m_pComConf->dcb.fAbortOnError = 0;	/* Abort all reads and writes on Error */
+	m_pComConf->dcb.XonChar  = 0x11;	/* Tx and Rx X-ON character        */
+	m_pComConf->dcb.XoffChar = 0x13;	/* Tx and Rx X-OFF character       */
+	m_pComConf->dcb.ErrorChar = 0;		/* Error replacement char          */
+    m_pComConf->dcb.EofChar = 0;		/* End of Input character          */
+    m_pComConf->dcb.EvtChar = 0;		/* Received Event character        */
+
 	m_SendWait[0] = 0;
 	m_SendWait[1] = 0;
 

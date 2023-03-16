@@ -245,7 +245,7 @@ void CFileUpDown::DownLoad()
 	UpDownInit(0, 0);
 	TranSize = 0;
 
-	while ( !m_DoAbortFlag ) {
+	while ( !AbortCheck() ) {
 		tmp.Clear();
 		if ( (ch = Bufferd_Receive(m_bDownWait ? m_DownSec : 300)) < 0 )
 			break;
@@ -896,7 +896,7 @@ RECHECK:
 	nWaitCrLf = 0;
 	maxMsec = minMsec = reqMsec = watMsec = 0;
 
-	while ( !m_DoAbortFlag ) {
+	while ( !AbortCheck() ) {
 		switch(m_SendMode) {
 		case SENDMODE_NONE:
 			bHaveData = ReadSize(pProc, tmp, 1024);
@@ -921,7 +921,7 @@ RECHECK:
 			break;
 
 		Bufferd_SendBuf((char *)tmp.GetPtr(), tmp.GetSize());
-		Bufferd_Sync();
+		Bufferd_Flush();
 
 		st = clock();
 		do {
@@ -984,6 +984,6 @@ RECHECK:
 	}
 
 	// m_MultiFile‚Ìˆµ‚¢‚É’ˆÓ
-	if ( m_MultiFile && !m_DoAbortFlag && !m_ResvPath.IsEmpty() )
+	if ( m_MultiFile && !AbortCheck() && !m_ResvPath.IsEmpty() )
 		goto RECHECK;
 }
