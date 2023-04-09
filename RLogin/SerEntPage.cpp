@@ -56,19 +56,19 @@ void CSerEntPage::DoDataExchange(CDataExchange* pDX)
 	CTreePage::DoDataExchange(pDX);
 
 	DDX_Text(pDX, IDC_ENTRYNAME, m_EntryName);
-	DDX_CBString(pDX, IDC_SERVERNAME, m_HostName);
-	DDX_CBString(pDX, IDC_SOCKNO, m_PortName);
-	DDX_CBString(pDX, IDC_LOGINNAME, m_UserName);
+	DDX_CBStringExact(pDX, IDC_SERVERNAME, m_HostName);
+	DDX_CBStringExact(pDX, IDC_SOCKNO, m_PortName);
+	DDX_CBStringExact(pDX, IDC_LOGINNAME, m_UserName);
 	DDX_Text(pDX, IDC_PASSWORD, m_PassName);
-	DDX_CBString(pDX, IDC_TERMNAME, m_TermName);
+	DDX_CBStringExact(pDX, IDC_TERMNAME, m_TermName);
 	DDX_Radio(pDX, IDC_KANJICODE1, m_KanjiCode);
 	DDX_Radio(pDX, IDC_PROTO1, m_ProtoType);
 	DDX_Text(pDX, IDC_ENTRYMEMO, m_Memo);
-	DDX_CBString(pDX, IDC_GROUP, m_Group);
-	DDX_CBString(pDX, IDC_BEFORE, m_BeforeEntry);
+	DDX_CBStringExact(pDX, IDC_GROUP, m_Group);
+	DDX_CBStringExact(pDX, IDC_BEFORE, m_BeforeEntry);
 	DDX_Check(pDX, IDC_CHECK1, m_UsePassDlg);
 	DDX_Check(pDX, IDC_CHECK2, m_bOptFixed);
-	DDX_CBString(pDX, IDC_OPTFIXENTRY, m_OptFixEntry);
+	DDX_CBStringExact(pDX, IDC_OPTFIXENTRY, m_OptFixEntry);
 }
 
 BEGIN_MESSAGE_MAP(CSerEntPage, CTreePage)
@@ -141,6 +141,7 @@ void CSerEntPage::DoInit()
 	m_ProxyPort   = m_pSheet->m_pEntry->m_ProxyPortProvs;
 	m_ProxyUser   = m_pSheet->m_pEntry->m_ProxyUserProvs;
 	m_ProxyPass   = m_pSheet->m_pEntry->m_ProxyPassProvs;
+	m_ProxyCmd    = m_pSheet->m_pEntry->m_ProxyCmd;
 	m_SSL_Keep    = m_pSheet->m_pEntry->m_ProxySSLKeep;
 	m_Memo        = m_pSheet->m_pEntry->m_Memo;
 	m_Group       = m_pSheet->m_pEntry->m_Group;
@@ -253,7 +254,6 @@ BOOL CSerEntPage::OnInitDialog()
 		pCheck->EnableWindow(FALSE);
 
 	DoInit();
-
 	SetEnableWind();
 
 	SubclassComboBox(IDC_SERVERNAME);
@@ -286,6 +286,7 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pEntry->m_ProxyPort = m_ProxyPort;
 	m_pSheet->m_pEntry->m_ProxyUser = m_ProxyUser;
 	m_pSheet->m_pEntry->m_ProxyPass = m_ProxyPass;
+	m_pSheet->m_pEntry->m_ProxyCmd  = m_ProxyCmd;
 	m_pSheet->m_pEntry->m_Memo      = m_Memo;
 	m_pSheet->m_pEntry->m_Group     = m_Group;
 	m_pSheet->m_pEntry->m_HostNameProvs  = m_HostName;
@@ -431,6 +432,7 @@ void CSerEntPage::OnProxySet()
 	dlg.m_PassWord   = m_ProxyPass;
 	dlg.m_SSL_Keep   = m_SSL_Keep;
 	dlg.m_UsePassDlg = m_UseProxyDlg;
+	dlg.m_ProxyCmd   = m_ProxyCmd;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -442,6 +444,7 @@ void CSerEntPage::OnProxySet()
 	m_ProxyPass   = dlg.m_PassWord;
 	m_SSL_Keep    = dlg.m_SSL_Keep;
 	m_UseProxyDlg = dlg.m_UsePassDlg;
+	m_ProxyCmd    = dlg.m_ProxyCmd;
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= (UMOD_ENTRY | UMOD_PARAMTAB);

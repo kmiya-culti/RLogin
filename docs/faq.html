@@ -5,11 +5,11 @@
 <TITLE>RLogin使い方説明</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
+TD {		
 		background-color : #ffffff;
 		font-size : 90%;
 }
-.BOX{
+.BOX{		
 		background-color : silver;
 }
 -->
@@ -508,8 +508,7 @@ fi</PRE>
             <BR>
             認証鍵が用意できれば次にそのペアとなる公開鍵をサーバー側の自分のホームにある設定ファイル「~/.ssh/authorized_keys」に新規・追加する必要があります。<BR>
             <BR>
-            外部ファイルの場合は公開鍵ファイルの形式により異なりますので中身を確認したほうが良いです。単一行でrssh-rsaなどの鍵形式の名前で始まり
-            AAA…==のbase64だけの場合は…<BR>
+            外部ファイルの場合は公開鍵ファイルの形式により異なりますので中身を確認したほうが良いです。単一行でssh-rsaなどの鍵形式の名前で始まり AAA…==のbase64だけの場合は…<BR>
             <BR>
             cat id_rsa.pub &gt;&gt;~/.ssh/authorized_keys<BR>
             <BR>

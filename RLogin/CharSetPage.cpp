@@ -50,12 +50,12 @@ void CCharSetPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_CHARSET1, m_KanjiCode);
 	DDX_Radio(pDX, IDC_BANKGL1, m_CharBankGL);
 	DDX_Radio(pDX, IDC_BANKGR1, m_CharBankGR);
-	DDX_CBString(pDX, IDC_CHARBANK1, m_CharBank1);
-	DDX_CBString(pDX, IDC_CHARBANK2, m_CharBank2);
-	DDX_CBString(pDX, IDC_CHARBANK3, m_CharBank3);
-	DDX_CBString(pDX, IDC_CHARBANK4, m_CharBank4);
+	DDX_CBStringExact(pDX, IDC_CHARBANK1, m_CharBank1);
+	DDX_CBStringExact(pDX, IDC_CHARBANK2, m_CharBank2);
+	DDX_CBStringExact(pDX, IDC_CHARBANK3, m_CharBank3);
+	DDX_CBStringExact(pDX, IDC_CHARBANK4, m_CharBank4);
 	DDX_CBIndex(pDX, IDC_FONTNUM, m_AltFont);
-	DDX_CBString(pDX, IDC_FONTNAME, m_DefFontName);
+	DDX_CBStringExact(pDX, IDC_FONTNAME, m_DefFontName);
 	DDX_Control(pDX, IDC_FONTSAMPLE, m_FontSample);
 }
 

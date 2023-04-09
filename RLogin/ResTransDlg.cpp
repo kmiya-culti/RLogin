@@ -28,8 +28,8 @@ void CResTransDlg::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 	DDX_Text(pDX, IDC_CLIENTID, m_ClientId);
 	DDX_Text(pDX, IDC_CLIENTSECRET, m_ClientSecret);
-	DDX_CBString(pDX, IDC_TRANSFROM, m_TransFrom);
-	DDX_CBString(pDX, IDC_TRANSTO, m_TransTo);
+	DDX_CBStringExact(pDX, IDC_TRANSFROM, m_TransFrom);
+	DDX_CBStringExact(pDX, IDC_TRANSTO, m_TransTo);
 	DDX_Control(pDX, IDC_TRANSPROGRES, m_TransProgress);
 	DDX_Control(pDX, IDC_TRANSEXEC, m_TransExec);
 }

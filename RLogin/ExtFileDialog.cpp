@@ -108,8 +108,8 @@ void CFileDownPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK2, m_bDownWait);
 	DDX_Check(pDX, IDC_CHECK3, m_bWithEcho);
 	DDX_Check(pDX, IDC_CHECK4, m_bFileAppend);
-	DDX_CBString(pDX, IDC_COMBO1, m_DownFrom);
-	DDX_CBString(pDX, IDC_COMBO2, m_DownTo);
+	DDX_CBStringExact(pDX, IDC_COMBO1, m_DownFrom);
+	DDX_CBStringExact(pDX, IDC_COMBO2, m_DownTo);
 	DDX_CBIndex(pDX, IDC_COMBO3, m_DecMode);
 	DDX_CBIndex(pDX, IDC_COMBO4, m_DownCrLfMode);
 	DDX_Text(pDX, IDC_EDIT1, m_DownSec);
@@ -195,8 +195,8 @@ void CFileUpConvPage::DoDataExchange(CDataExchange* pDX)
 
 	DDX_Radio(pDX, IDC_RADIO1, m_UpMode);
 	DDX_Check(pDX, IDC_CHECK1, m_UpCrLf);
-	DDX_CBString(pDX, IDC_COMBO1, m_UpFrom);
-	DDX_CBString(pDX, IDC_COMBO2, m_UpTo);
+	DDX_CBStringExact(pDX, IDC_COMBO1, m_UpFrom);
+	DDX_CBStringExact(pDX, IDC_COMBO2, m_UpTo);
 	DDX_CBIndex(pDX, IDC_COMBO3, m_EncMode);
 	DDX_CBIndex(pDX, IDC_COMBO4, m_UpCrLfMode);
 }

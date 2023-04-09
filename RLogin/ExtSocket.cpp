@@ -31,6 +31,7 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_Fd = (-1);
 	m_RecvBufSize = RECVDEFSIZ;
 
+	m_ProxyCmdMode = FALSE;
 	m_ProxyStatus = PRST_NONE;
 	m_SSL_mode  = 0;
 	m_SSL_pCtx  = NULL;
@@ -57,15 +58,30 @@ void CExtSocket::Destroy()
 
 //////////////////////////////////////////////////////////////////////
 
+CFifoBase *CExtSocket::FifoLinkLeft()
+{
+	if ( m_ProxyCmdMode )
+		return new CFifoPipe(m_pDocument, this);
+	else
+		return new CFifoSocket(m_pDocument, this);
+}
+CFifoBase *CExtSocket::FifoLinkMid()
+{
+	return new CFifoWnd(m_pDocument, this);
+}
+CFifoDocument *CExtSocket::FifoLinkRight()
+{
+	return new CFifoDocument(m_pDocument, this);
+}
 void CExtSocket::FifoLink()
 {
 	FifoUnlink();
 
 	ASSERT(m_pFifoLeft == NULL && m_pFifoMid == NULL && m_pFifoRight == NULL);
 
-	m_pFifoLeft   = new CFifoSocket(m_pDocument, this);
-	m_pFifoMid    = new CFifoWnd(m_pDocument, this);
-	m_pFifoRight  = new CFifoDocument(m_pDocument, this);
+	m_pFifoLeft  = FifoLinkLeft();
+	m_pFifoMid   = FifoLinkMid();
+	m_pFifoRight = FifoLinkRight();
 
 	CFifoBase::MidLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
 }
@@ -106,7 +122,7 @@ void CExtSocket::PostClose(int nLastError)
 {
 	ASSERT(m_pFifoLeft != NULL);
 
-	m_pFifoLeft->SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)nLastError);
+	m_pFifoLeft->SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)nLastError);
 	m_pFifoLeft->Write(FIFO_STDOUT, NULL, 0);
 }
 int CExtSocket::GetFamily()
@@ -159,6 +175,18 @@ BOOL CExtSocket::ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPor
 	}
 
 	return Open(m_RealHostAddr, m_RealHostPort, m_RealRemotePort, m_RealSocketType);
+}
+BOOL CExtSocket::ProxyCommand(LPCTSTR pCommand)
+{
+	CString cmd = pCommand;
+
+	m_ProxyCmdMode = TRUE;
+	m_pDocument->EntryText(cmd);
+
+	if ( cmd.IsEmpty() )
+		return FALSE;
+
+	return Open(cmd, 0);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -308,7 +336,10 @@ int CExtSocket::SyncExtSend(const void *lpBuf, int nBufLen, int mSec, BOOL *pAbo
 	if ( pAbort != NULL && *pAbort )
 		mSec = SYNCABORTTIMEOUT;
 
-	return m_pFifoSync->Write(FIFO_EXTOUT, (BYTE *)lpBuf, nBufLen);
+	if ( (m_pFifoSync->GetDataSize(FIFO_EXTOUT) + nBufLen) >= (m_pFifoSync->m_nBufSize * 4) )
+		return m_pFifoSync->Send(FIFO_EXTOUT, (BYTE *)lpBuf, nBufLen, mSec);
+	else
+		return m_pFifoSync->Write(FIFO_EXTOUT, (BYTE *)lpBuf, nBufLen);
 }
 void CExtSocket::SyncAbort()
 {
@@ -1015,7 +1046,7 @@ BOOL CExtSocket::ProxyCheck()
 	if ( m_ProxyLastError == 0 )
 		m_pFifoProxy->SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
 	else {
-		m_pFifoProxy->SendFdEvents(FIFO_EXTOUT, FD_CLOSE, (void *)m_ProxyLastError);
+		m_pFifoProxy->SendFdEvents(FIFO_EXTOUT, FD_CLOSE, (void *)(UINT_PTR)m_ProxyLastError);
 		m_pFifoProxy->Write(FIFO_EXTOUT, NULL, 0);
 	}
 
@@ -1090,7 +1121,8 @@ BOOL CExtSocket::ProxyFunc()
 					   _T("Connection: keep-alive\r\n")\
 					   _T("\r\n"),
 					   (LPCTSTR)m_ProxyHost, m_ProxyPort, (LPCTSTR)m_ProxyHost);
-			mbs = tmp; m_pFifoProxy->Write(FIFO_STDOUT, (BYTE *)(LPCSTR)mbs, mbs.GetLength());
+			mbs = m_pDocument->RemoteStr(tmp);
+			m_pFifoProxy->Write(FIFO_STDOUT, (BYTE *)(LPCSTR)mbs, mbs.GetLength());
 			DEBUGLOG("ProxyFunc PRST_HTTP_START %s", mbs);
 			m_ProxyStatus = PRST_HTTP_READLINE;
 			m_ProxyStr.Empty();
@@ -1191,7 +1223,8 @@ BOOL CExtSocket::ProxyFunc()
 			break;
 		case PRST_HTTP_BASIC:
 			tmp.Format(_T("%s:%s"), (LPCTSTR)m_ProxyUser, (LPCTSTR)m_ProxyPass);
-			mbs = tmp; buf.Base64Encode((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
+			mbs = m_pDocument->RemoteStr(tmp); 
+			buf.Base64Encode((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
 			tmp.Format(_T("CONNECT %s:%d HTTP/1.1\r\n")\
 					   _T("Host: %s\r\n")\
 					   _T("%sAuthorization: Basic %s\r\n")\
@@ -1199,7 +1232,8 @@ BOOL CExtSocket::ProxyFunc()
 					   (LPCTSTR)m_ProxyHost, m_ProxyPort, (LPCTSTR)m_ProxyHost,
 					   (m_ProxyCode == 407 ? _T("Proxy-") : _T("")),
 					   (LPCTSTR)buf);
-			mbs = tmp; m_pFifoProxy->Write(FIFO_STDOUT, (BYTE *)(LPCSTR)mbs, mbs.GetLength());
+			mbs = m_pDocument->RemoteStr(tmp); 
+			m_pFifoProxy->Write(FIFO_STDOUT, (BYTE *)(LPCSTR)mbs, mbs.GetLength());
 			DEBUGLOG("ProxyFunc PRST_HTTP_BASIC %s", mbs);
 			m_ProxyStatus = PRST_HTTP_READLINE;
 			m_ProxyStr.Empty();
@@ -1249,7 +1283,8 @@ BOOL CExtSocket::ProxyFunc()
 					   (LPCTSTR)m_ProxyAuth[_T("algorithm")], (LPCTSTR)buf,
 					   (LPCTSTR)m_ProxyAuth[_T("qop")], (LPCTSTR)m_ProxyAuth[_T("uri")],
 					   (LPCTSTR)m_ProxyAuth[_T("nc")], (LPCTSTR)m_ProxyAuth[_T("cnonce")]);
-			mbs = tmp; m_pFifoProxy->Write(FIFO_STDOUT, (BYTE *)(LPCSTR)mbs, mbs.GetLength());
+			mbs = m_pDocument->RemoteStr(tmp); 
+			m_pFifoProxy->Write(FIFO_STDOUT, (BYTE *)(LPCSTR)mbs, mbs.GetLength());
 			DEBUGLOG("ProxyFunc PRST_HTTP_DIGEST %s", mbs);
 			m_ProxyStatus = PRST_HTTP_READLINE;
 			m_ProxyStr.Empty();
@@ -1275,7 +1310,8 @@ BOOL CExtSocket::ProxyFunc()
 			buf.Put8Bit(dw >> 8);
 			buf.Put8Bit(dw >> 16);
 			buf.Put8Bit(dw >> 24);
-			mbs = m_ProxyUser; buf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength() + 1);
+			mbs = m_pDocument->RemoteStr(m_ProxyUser); 
+			buf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength() + 1);
 			m_pFifoProxy->Write(FIFO_STDOUT, buf.GetPtr(), buf.GetSize());
 			m_ProxyStatus = PRST_SOCKS4_READMSG;
 			m_ProxyBuff.Clear();
@@ -1326,10 +1362,10 @@ BOOL CExtSocket::ProxyFunc()
 		case PRST_SOCKS5_SENDAUTH:	// SOCKS5_AUTH_USERPASS
 			buf.Clear();
 			buf.Put8Bit(1);
-			mbs = m_ProxyUser;
+			mbs = m_pDocument->RemoteStr(m_ProxyUser);
 			buf.Put8Bit(mbs.GetLength());
 			buf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
-			mbs = m_ProxyPass;
+			mbs = m_pDocument->RemoteStr(m_ProxyPass);
 			buf.Put8Bit(mbs.GetLength());
 			buf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
 
@@ -1351,7 +1387,7 @@ BOOL CExtSocket::ProxyFunc()
 			buf.Put8Bit(1);		// CONNECT
 			buf.Put8Bit(0);		// FLAG
 			buf.Put8Bit(3);		// DOMAIN
-			mbs = m_ProxyHost;
+			mbs = m_pDocument->RemoteStr(m_ProxyHost);
 			buf.Put8Bit(mbs.GetLength());
 			buf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
 			buf.Put8Bit(m_ProxyPort >> 8);
@@ -1408,7 +1444,7 @@ BOOL CExtSocket::ProxyFunc()
 			buf.Put8Bit(0x11);
 			buf.Put8Bit(0x85);		// HMAC-MD5
 			buf.Put8Bit(0x02);
-			mbs = m_ProxyUser;
+			mbs = m_pDocument->RemoteStr(m_ProxyUser);
 			buf.Put8Bit(mbs.GetLength());
 			buf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
 			m_pFifoProxy->Write(FIFO_STDOUT, buf.GetPtr(), buf.GetSize());
@@ -1445,7 +1481,7 @@ BOOL CExtSocket::ProxyFunc()
 					m_ProxyStatus = PRST_SOCKS5_ERROR;
 				break;
 			case 0x03:
-				mbs = m_ProxyPass;
+				mbs = m_pDocument->RemoteStr(m_ProxyPass);
 				n = HMAC_digest(EVP_md5(), (BYTE *)(LPCSTR)mbs, mbs.GetLength(), m_ProxyBuff.GetPtr(), m_ProxyBuff.GetSize(), digest, sizeof(digest));
 
 				buf.Clear();

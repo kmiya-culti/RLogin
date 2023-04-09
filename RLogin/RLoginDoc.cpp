@@ -814,7 +814,7 @@ LPCTSTR CRLoginDoc::GetSpecialFolder(LPCTSTR env)
 	static TCHAR FolderPath[MAX_PATH];
 	static const TCHAR *pszDllFile[] = { _T("shell32.dll"), _T("shfolder.dll"), NULL};
 
-	#define	CSIDLTABMAX		76
+	#define	CSIDLTABMAX		79
 	static const CSIDLTAB CsidlTab[CSIDLTABMAX] = {
 		{ _T("ADMINTOOLS"),					CSIDL_ADMINTOOLS				},
 		{ _T("ALLUSERSADMINTOOLS"),			CSIDL_COMMON_ADMINTOOLS			},
@@ -822,6 +822,7 @@ LPCTSTR CRLoginDoc::GetSpecialFolder(LPCTSTR env)
 		{ _T("ALLUSERSAPPDATA"),			CSIDL_COMMON_APPDATA			},
 		{ _T("ALLUSERSDESKTOPDIRECTORY"),	CSIDL_COMMON_DESKTOPDIRECTORY	},
 		{ _T("ALLUSERSDOCUMENTS"),			CSIDL_COMMON_DOCUMENTS			},
+		{ _T("ALLUSERSDOWNLOAD"),			CSIDL_FLAG_PER_USER_INIT | 0x02	},
 		{ _T("ALLUSERSFAVORITES"),			CSIDL_COMMON_FAVORITES			},
 		{ _T("ALLUSERSMUSIC"),				CSIDL_COMMON_MUSIC				},
 		{ _T("ALLUSERSOEM_LINKS"),			CSIDL_COMMON_OEM_LINKS			},
@@ -840,6 +841,7 @@ LPCTSTR CRLoginDoc::GetSpecialFolder(LPCTSTR env)
 		{ _T("COMMON_APPDATA"),				CSIDL_COMMON_APPDATA			},
 		{ _T("COMMON_DESKTOPDIRECTORY"),	CSIDL_COMMON_DESKTOPDIRECTORY	},
 		{ _T("COMMON_DOCUMENTS"),			CSIDL_COMMON_DOCUMENTS			},
+		{ _T("COMMON_DOWNLOAD"),			CSIDL_FLAG_PER_USER_INIT | 0x02	},
 		{ _T("COMMON_FAVORITES"),			CSIDL_COMMON_FAVORITES			},
 		{ _T("COMMON_MUSIC"),				CSIDL_COMMON_MUSIC				},
 		{ _T("COMMON_OEM_LINKS"),			CSIDL_COMMON_OEM_LINKS			},
@@ -856,6 +858,7 @@ LPCTSTR CRLoginDoc::GetSpecialFolder(LPCTSTR env)
 		{ _T("DESKTOP"),					CSIDL_DESKTOP					},
 		{ _T("DESKTOPDIRECTORY"),			CSIDL_DESKTOPDIRECTORY			},
 		{ _T("DOCUMENTS"),					CSIDL_MYDOCUMENTS				},
+		{ _T("DOWNLOAD"),					CSIDL_FLAG_PER_USER_INIT | 0x01	},
 		{ _T("DRIVES"),						CSIDL_DRIVES					},
 		{ _T("FAVORITES"),					CSIDL_FAVORITES					},
 		{ _T("FONTS"),						CSIDL_FONTS						},
@@ -896,7 +899,20 @@ LPCTSTR CRLoginDoc::GetSpecialFolder(LPCTSTR env)
 	if ( !BinaryFind((void *)(LPCTSTR)str.MakeUpper(), (void *)CsidlTab, sizeof(CSIDLTAB), CSIDLTABMAX, CsidNameComp, &n) )
 		return NULL;
 
-	nId = CsidlTab[n].nid;
+	if ( (CsidlTab[n].nid & 0xFF00) == CSIDL_FLAG_PER_USER_INIT ) {
+		PWSTR pPath;
+		switch(CsidlTab[n].nid & 0x00FF) {
+		case 0x01:
+			ret = SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Downloads, 0, NULL, &pPath)) ? TRUE : FALSE;
+			break;
+		case 0x02:
+			ret = SUCCEEDED(SHGetKnownFolderPath(FOLDERID_PublicDownloads, 0, NULL, &pPath)) ? TRUE : FALSE;
+			break;
+		}
+		return (ret == TRUE ? UniToTstr(pPath) : NULL);
+	}
+
+	nId = (CsidlTab[n].nid & 0x00FF);
 
 	for ( n = 0 ; ret == (-1) && pszDllFile[n] != NULL ; n++ ) {
 		if ( (hDLL = ::LoadLibrary(pszDllFile[n])) != NULL ) {
@@ -2150,7 +2166,9 @@ SKIPINPUT:
 	case PROTO_PIPE:    m_pSock = new CPipeSock(this);   break; // pipe console
 	}
 
-	if ( m_ServerEntry.m_ProxyMode != 0 )
+	if ( m_ServerEntry.m_ProxyMode == 5 )
+		rt = m_pSock->ProxyCommand(m_ServerEntry.m_ProxyCmd);
+	else if ( m_ServerEntry.m_ProxyMode != 0 )
 		rt = m_pSock->ProxyOpen(m_ServerEntry.m_ProxyMode, m_ServerEntry.m_ProxySSLKeep,
 			m_ServerEntry.m_ProxyHost, CExtSocket::GetPortNum(m_ServerEntry.m_ProxyPort),
 			m_ServerEntry.m_ProxyUser, m_ServerEntry.m_ProxyPass, m_ServerEntry.m_HostName,

@@ -613,6 +613,9 @@ void CCipher::BenchMark(CBuffer *out)
 	double d;
 	CStringA str;
 
+	CString msg;
+	clock_t total = clock();
+
 	rand_buf(key, 64);
 	rand_buf(iv, 64);
 	rand_buf(tmp, 1024);
@@ -648,6 +651,10 @@ void CCipher::BenchMark(CBuffer *out)
 		if ( out != NULL )
 			*out += (LPCSTR)str;
 	}
+
+	total = clock() - total;
+	msg.Format(_T("Total %d.%03d sec"), (int)(total / CLOCKS_PER_SEC), (int)(total % CLOCKS_PER_SEC));
+	::AfxMessageBox(msg);
 #endif
 }
 
@@ -1428,7 +1435,7 @@ BOOL CXmssKey::LoadStateFile(LPCTSTR fileName)
 		return TRUE;
 
 	} catch(...) {
-		::AfxMessageBox(_T("xmss state file read error"));
+		AfxMessageBox(_T("xmss state file read error"));
 		return FALSE;
 	}
 }
@@ -2455,6 +2462,44 @@ int CIdKey::ChkOldCertHosts(LPCTSTR host)
 
 	return FALSE;
 }
+BOOL CIdKey::KnownHostsCheck(LPCTSTR dig)
+{
+	int n, i;
+	LPCTSTR p;
+	CStringArrayExt list, entry;
+	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
+	CIdKey key;
+	CString digest;
+
+	pApp->GetProfileKeys(_T("KnownHosts"), list);
+	for ( n = 0 ; n < list.GetSize() ; n++ ) {
+
+		// 古い形式(KnownHosts\host-xxx)
+		if ( (p = _tcsrchr(list[n], _T('-'))) != NULL && (key.GetTypeFromName(p + 1) & IDKEY_TYPE_MASK) != IDKEY_NONE ) {
+			digest = pApp->GetProfileString(_T("KnownHosts"), list[n], _T(""));
+			if ( digest.Compare(dig) == 0 )
+				return TRUE;
+
+		// 新しい形式(KnownHosts\host:nnn)
+		} else if ( (p = _tcsrchr(list[n], _T(':'))) != NULL && IsDigits(p + 1) ) {
+			pApp->GetProfileStringArray(_T("KnownHosts"), list[n], entry);
+			for ( i = 0 ; i < entry.GetSize() ; i++ ) {
+				if ( entry[i].Compare(dig) == 0 )
+					return TRUE;
+			}
+
+		// 古い形式(KnownHosts\host)
+		} else {
+			pApp->GetProfileStringArray(_T("KnownHosts"), list[n], entry);
+			for ( i = 0 ; i < entry.GetSize() ; i++ ) {
+				if ( entry[i].Compare(dig) == 0 )
+					return TRUE;
+			}
+		}
+	}
+
+	return FALSE;
+}
 int CIdKey::HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh)
 {
 	int n, i, found;
@@ -2527,7 +2572,7 @@ int CIdKey::HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh)
 				DnsRecordListFree(rec, DnsFreeRecordList);
 
 				if ( found == 001 ) {
-					if ( MessageBox(NULL, CStringLoad(IDE_DNSDIGESTNOTMATCH), _T("Warning"), MB_ICONWARNING | MB_YESNO) != IDYES )
+					if ( AfxMessageBox(CStringLoad(IDE_DNSDIGESTNOTMATCH), MB_ICONWARNING | MB_YESNO) != IDYES )
 						return FALSE;
 				}
 			}
@@ -2577,6 +2622,12 @@ int CIdKey::HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh)
 	}
 
 	if ( !found ) {
+		// すでに別ホスト：別ポートで登録済みのホスト鍵なら許可するが"hostkeys-00@openssh.com"の処理はしない
+		//if ( KnownHostsCheck(dig) ) {
+		//	pSsh->m_bKnownHostUpdate = FALSE;
+		//	return TRUE;
+		//}
+
 		dlg.m_HostName = host;
 		FingerPrint(dlg.m_Digest);
 		if ( dlg.DoModal() != IDOK )
@@ -2617,7 +2668,7 @@ int CIdKey::XmssSign(CBuffer *bp, LPBYTE buf, int len)
 		CMutexLock mutex(lockName);
 
 		// XMSSの更新をチェック
-		pKey = ((CMainFrame *)::AfxGetMainWnd())->m_IdKeyTab.ReloadUid(m_Uid);
+		pKey = ((CMainFrame *)theApp.m_pMainWnd)->m_IdKeyTab.ReloadUid(m_Uid);
 		if ( pKey != NULL && pKey != this && pKey->m_Type == m_Type ) {
 			if ( Compere(pKey) == 0 && m_SecBlob.Compare(pKey->m_SecBlob) != 0 ) {
 				m_SecBlob = pKey->m_SecBlob;
@@ -2635,10 +2686,10 @@ int CIdKey::XmssSign(CBuffer *bp, LPBYTE buf, int len)
 		m_XmssKey.SetPassBuf(NULL);
 
 		// レジストリの鍵を更新
-		pKey = ((CMainFrame *)::AfxGetMainWnd())->m_IdKeyTab.GetUid(m_Uid);
+		pKey = ((CMainFrame *)theApp.m_pMainWnd)->m_IdKeyTab.GetUid(m_Uid);
 		if ( pKey != NULL && pKey != this && pKey->m_Type == m_Type )
 			pKey->m_SecBlob = m_SecBlob;
-		((CMainFrame *)::AfxGetMainWnd())->m_IdKeyTab.UpdateUid(m_Uid);
+		((CMainFrame *)theApp.m_pMainWnd)->m_IdKeyTab.UpdateUid(m_Uid);
 
 	} else if ( !m_FilePath.IsEmpty() ) {
 		// ファイルベースのXMSS
@@ -2672,9 +2723,27 @@ int CIdKey::XmssSign(CBuffer *bp, LPBYTE buf, int len)
 int CIdKey::Sign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg)
 {
 	if ( m_AgeantType != IDKEY_AGEANT_NONE ) {
+		int flag = 0;
+		int saveNid = m_RsaNid;
 		CBuffer blob;
+		if ( (m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA2 ) {
+			switch(m_RsaNid) {
+			case NID_sha256: flag = SSH_AGENT_RSA_SHA2_256; break;
+			case NID_sha512: flag = SSH_AGENT_RSA_SHA2_512; break;
+			}
+			if ( alg != NULL && *alg != _T('\0') ) {
+				if ( _tcsstr(alg, _T("rsa-sha2-512")) != NULL )
+					flag = SSH_AGENT_RSA_SHA2_512;
+				else if ( _tcsstr(alg, _T("rsa-sha2-256")) != NULL )
+					flag = SSH_AGENT_RSA_SHA2_256;
+				else if ( _tcsstr(alg, _T("ssh-rsa")) != NULL )
+					flag = 0;
+			}
+			m_RsaNid = NID_sha1;
+		}
 		SetBlob(&blob, FALSE);
-		return ((CMainFrame *)AfxGetMainWnd())->AgeantSign(m_AgeantType, &blob, bp, buf, len);
+		m_RsaNid = saveNid;
+		return ((CMainFrame *)theApp.m_pMainWnd)->AgeantSign(m_AgeantType, &blob, bp, buf, len, flag);
 	}
 
 	if ( !m_bSecInit )

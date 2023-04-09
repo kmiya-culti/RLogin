@@ -30,6 +30,8 @@
 #define	FIFO_THREAD_ERROR		2
 
 enum FifoCmd {
+	FIFO_CMD_FDREAD,
+	FIFO_CMD_FDWRITE,
 	FIFO_CMD_FDEVENTS,
 	FIFO_CMD_MSGQUEIN,
 };
@@ -46,8 +48,13 @@ enum FifoMsgQueInCmd {
 	FIFO_QCMD_COMMSTATE,		// CFifoCom
 	FIFO_QCMD_SETDTRRTS,		// CFifoCom
 
-	FIFO_QCMD_SYNCRET,			// CFifoSocks
+	FIFO_QCMD_ENDOFDATA,		// CFifoStdio
+	FIFO_QCMD_RCPDOWNLOAD,		// CFifoStdio
+
+	FIFO_QCMD_SYNCRET,			// CFifoSsh
 	FIFO_QCMD_RCPNEXT,			// CFifoRcp
+	FIFO_QCMD_SENDPACKET,		// CFifoSsh
+	FIFO_QCMD_KEEPALIVE,		// CFifoSsh
 };
 
 class CFifoBuffer : public CObject
@@ -95,6 +102,7 @@ typedef struct _FifoMsg {
 	BYTE *buffer;
 	CEvent *pEvent;
 	BOOL *pResult;
+	struct _FifoMsg *next;
 } FifoMsg;
 
 typedef struct _DocMsg {
@@ -111,11 +119,13 @@ enum DocMsgType {
 	DOCMSG_TYPE_RECT,
 	DOCMSG_TYPE_INTPTR,
 	DOCMSG_TYPE_DWORDPTR,
+	DOCMSG_TYPE_STRPTR,
+	DOCMSG_TYPE_INT,
 };
 
 enum DocMsgCmd {
-	DOCMSG_REMOTESTR,		// CFifoTelnet
-	DOCMSG_LOCALSTR,
+	DOCMSG_REMOTESTR,		// CFifoTelnet CFifoSsh
+	DOCMSG_LOCALSTR,		// CFifoSsh
 
 	DOCMSG_USERNAME,		// CFifoLogin, CFifoTelnet
 	DOCMSG_PASSNAME,		// CFifoTelnet
@@ -126,6 +136,13 @@ enum DocMsgCmd {
 	DOCMSG_LINEMODE,		// CFifoTelnet
 	DOCMSG_TTYMODE,			// CFifoTelnet
 	DOCMSG_KEEPALIVE,		// CFifoTelnet
+
+	DOCMSG_ENTRYTEXT,		// CFifoSsh
+	DOCMSG_LOGIT,			// CFifoSsh
+	DOCMSG_COMMAND,			// CFifoSsh
+	DOCMSG_SETTIMER,		// CFifoSsh
+
+	DOCMSG_MESSAGE,			// AfxMessageBox->CRLoginApp::DoMessageBox
 };
 
 class CFifoBase : public CObject
@@ -141,8 +158,9 @@ public:
 	CDWordArray m_fdPostEvents;
 	CSemaphore m_FifoSemaphore;
 	CEvent m_MsgEvent;
-	BOOL m_bMsgClosed;
-	CList<FifoMsg *, FifoMsg *> m_MsgList;
+	FifoMsg *m_pMsgTop;
+	FifoMsg *m_pMsgLast;
+	FifoMsg *m_pMsgFree;
 	CSemaphore m_MsgSemaphore;
 
 	int m_nBufSize;
@@ -169,13 +187,16 @@ public:
 	void SendFdEvents(int nFd, int msg, void *pParam);
 	BOOL SendCmdWait(int cmd, int param = 0, int msg = 0, int len = 0, void *buf = NULL);
 	void SendFdCommand(int nFd, int cmd, int param = 0, int msg = 0, int len = 0, void *buf = NULL, CEvent *pEvent = NULL, BOOL *pResult = NULL);
-	BOOL PostCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent = NULL, BOOL *pResult = NULL);
+
+	void MsgAddTail(FifoMsg *pFifoMsg);
+	FifoMsg *MsgRemoveHead();
+	void PostCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent = NULL, BOOL *pResult = NULL);
 	void DeleteMsg(FifoMsg *pFifoMsg);
 	void RemoveAllMsg();
 
 	void SetFdEvents(int nFd, DWORD fdEvent);
 	void ResetFdEvents(int nFd, DWORD fdEvent);
-	BOOL IsFdEvents(int nFd, DWORD fdEvent);
+	inline BOOL IsFdEvents(int nFd, DWORD fdEvent) { return ((m_fdAllowEvents[nFd] & fdEvent) != 0); }
 
 	int Consume(int nFd, int nBufLen);
 	int Peek(int nFd, LPBYTE pBuffer, int nBufLen);
@@ -191,7 +212,7 @@ public:
 
 	void SetFifo(int nFd, CFifoBuffer *pFifo);
 	CFifoBuffer *GetFifo(int nFd);
-	void RelFifo(CFifoBuffer *pFifo);
+	inline void RelFifo(CFifoBuffer *pFifo) { pFifo->Unlock(); }
 
 	inline void Lock() { m_FifoSemaphore.Lock(); }
 	inline void Unlock() { m_FifoSemaphore.Unlock(); }
@@ -212,10 +233,14 @@ public:
 	void DocMsgSize(int msg, CSize &size);
 	void DocMsgRect(int msg, CRect &rect);
 	void DocMsgIntPtr(int msg, int *pInt);
+	LPCTSTR DocMsgLocalStr(LPCSTR str, CString &tstr);
 	LPCSTR DocMsgRemoteStr(LPCTSTR str, CStringA &mbs);
 	void DocMsgLineMode(int sw);
 	DWORD DocMsgTtyMode(int mode, DWORD defVal);
 	DWORD DocMsgKeepAlive(void *pThis);
+	void DodMsgStrPtr(int msg, LPCTSTR str);
+	void DocMsgCommand(int cmdId);
+	int DocMsgSetTimer(int msec, int mode, void *pParam);
 	
 public:
 	static void Link(CFifoBase *pLeft, int lFd, CFifoBase *pRight, int rFd);
@@ -241,7 +266,7 @@ public:
 	virtual void OnLinked(int nFd, BOOL bMid);
 	virtual void OnUnLinked(int nFd, BOOL bMid);
 
-	virtual void PostMessage(int cmd, int param, int msg);
+	virtual void PostMessage(int cmd, int param);
 	virtual void FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam);
 	virtual void MsgPump(WPARAM wParam);
 	virtual void SendCommand(int cmd, int param = 0, int msg = 0, int len = 0, void *buf = NULL, CEvent *pEvent = NULL, BOOL *pResult = NULL);
@@ -289,7 +314,7 @@ public:
 	BOOL ThreadOpen();
 	BOOL ThreadClose();
 
-	virtual void PostMessage(int cmd, int param, int msg);
+	virtual void PostMessage(int cmd, int param);
 	virtual BOOL IsOpen();
 	virtual void Destroy();
 

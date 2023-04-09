@@ -258,17 +258,9 @@ CTelnet::~CTelnet()
 	if ( m_KeepAliveTiimerId != 0 )
 		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_KeepAliveTiimerId);
 }
-void CTelnet::FifoLink()
+CFifoBase *CTelnet::FifoLinkMid()
 {
-	FifoUnlink();
-
-	ASSERT(m_pFifoLeft == NULL && m_pFifoMid == NULL && m_pFifoRight == NULL);
-
-	m_pFifoLeft   = new CFifoSocket(m_pDocument, this);
-	m_pFifoMid    = new CFifoTelnet(m_pDocument, this);
-	m_pFifoRight  = new CFifoDocument(m_pDocument, this);
-
-	CFifoBase::MidLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
+	return new CFifoTelnet(m_pDocument, this);
 }
 BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {

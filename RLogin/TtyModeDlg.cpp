@@ -457,7 +457,7 @@ BOOL CKnownHostsDlg::OnInitDialog()
 			m_Data.Add(pData);
 
 		// V‚µ‚¢Œ`Ž®(KnownHosts\host:nnn)
-		} else if ( (p = _tcsrchr(list[n], _T(':'))) != NULL && _tstoi(p + 1) != 0 ) {
+		} else if ( (p = _tcsrchr(list[n], _T(':'))) != NULL && IsDigits(p + 1) ) {
 			pApp->GetProfileStringArray(_T("KnownHosts"), list[n], entry);
 			for ( i = 0 ; i < entry.GetSize() ; i++ ) {
 				pData = new KNOWNHOSTDATA;

@@ -62,7 +62,7 @@ void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SLIDER_CONTRAST, m_SliderConstrast);
 	DDX_Control(pDX, IDC_SLIDER_BRIGHT, m_SliderBright);
 	DDX_Control(pDX, IDC_SLIDER_HUECOL, m_SliderHuecol);
-	DDX_CBString(pDX, IDC_EMOJIFONTNAME, m_EmojiFontName);
+	DDX_CBStringExact(pDX, IDC_EMOJIFONTNAME, m_EmojiFontName);
 	DDX_Text(pDX, IDC_EMOJIIMAGEDIR, m_EmojiImageDir);
 	DDX_Check(pDX, IDC_EMOJICOLENABLE, m_EmojiColorEnable);
 }

@@ -36,7 +36,27 @@ CFifoStdio::CFifoStdio(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoD
 }
 void CFifoStdio::EndOfData(int nFd)
 {
-	SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)m_nLastError);
+	SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)m_nLastError);
+}
+void CFifoStdio::OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult)
+{
+	if ( cmd != FIFO_CMD_MSGQUEIN )
+		return;
+
+	switch(param) {
+	case FIFO_QCMD_ENDOFDATA:
+		if ( msg == 0 ) {
+			m_pSock->OnClose();
+			m_pDocument->OnSocketClose();
+		} else {
+			m_pSock->OnError(msg);
+			m_pDocument->OnSocketError(msg);
+		}
+		break;
+	case FIFO_QCMD_RCPDOWNLOAD:
+		((Cssh *)m_pSock)->OpenRcpDownload(m_pDocument->m_CmdsPath);
+		break;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -49,7 +69,7 @@ CFifoSftp::CFifoSftp(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CSFt
 CFifoSftp::~CFifoSftp()
 {
 	if ( m_pSFtp->m_hWnd != NULL )
-		m_pSFtp->DestroyWindow();
+		m_pSFtp->PostMessage(WM_RECIVEBUFFER, (WPARAM)FD_CLOSE);
 }
 void CFifoSftp::FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam)
 {
@@ -124,7 +144,7 @@ void CFifoSocks::FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pP
 
 	case FD_CLOSE:
 		Abort();
-		m_nLastError = (int)pParam;
+		m_nLastError = (int)(UINT_PTR)pParam;
 		m_fdPostEvents[nFd] |= fdEvent;
 		break;
 	}
@@ -160,7 +180,7 @@ void CFifoSocks::DecodeSocks()
     struct sockaddr_in6 in6;
 	CString host;
 
-#define	SOCKS_TIMEOUT	2000	// 2sec
+#define	SOCKS_TIMEOUT	10000	// 10sec
 
 	if ( RecvBuffer(m_rFd, (BYTE *)&s4_req, 2, SOCKS_TIMEOUT) != 2 )
 		return;
@@ -406,31 +426,31 @@ CFifoAgent::CFifoAgent(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CF
 void CFifoAgent::OnRead(int nFd)
 {
 	int len;
-	CBuffer tmp, recv;
+	CBuffer recv;
 
 	for ( ; ; ) {
-		if ( (len = MoveBuffer(FIFO_STDIN, &tmp)) < 0 ) {
+		if ( (len = MoveBuffer(FIFO_STDIN, &m_RecvBuffer)) < 0 ) {
 			// End of Data
 			ResetFdEvents(nFd, FD_READ);
-			SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)m_nLastError);
+			SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)m_nLastError);
 			break;
 		} else if ( len == 0 ) {
 			// No Data
 			break;
 		} else {
-			while ( tmp.GetSize() >= 4 ) {
-				len = tmp.PTR32BIT(tmp.GetPtr());
+			while ( m_RecvBuffer.GetSize() >= 4 ) {
+				len = m_RecvBuffer.PTR32BIT(m_RecvBuffer.GetPtr());
 				if ( len > (256 * 1024) || len < 0 ) {
 					// Packet Size error
 					ResetFdEvents(nFd, FD_READ);
 					SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)WSAEFAULT);
 					break;
 				}
-				if ( tmp.GetSize() < (len + 4) )
+				if ( m_RecvBuffer.GetSize() < (len + 4) )
 					break;
 				recv.Clear();
-				recv.Apend(tmp.GetPtr() + 4, len);
-				tmp.Consume(len + 4);
+				recv.Apend(m_RecvBuffer.GetPtr() + 4, len);
+				m_RecvBuffer.Consume(len + 4);
 
 				ReceiveBuffer(&recv);
 			}
@@ -449,7 +469,7 @@ void CFifoAgent::OnClose(int nFd, int nLastError)
 	if ( nFd == FIFO_STDIN ) {
 		m_nLastError = nLastError;
 	} else if ( nFd == FIFO_STDOUT ) {
-		SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)nLastError);
+		SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)nLastError);
 		Write(FIFO_STDOUT, NULL, 0);
 	}
 }
@@ -499,6 +519,7 @@ CIdKey *CFifoAgent::GetIdKey(CIdKey *key, LPCTSTR pass)
 }
 void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 {
+	int rc = SSH_AGENT_FAILURE;
 	CBuffer tmp;
 	int type = bp->Get8Bit();
 
@@ -558,7 +579,9 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 				bp->GetBuf(&blob);
 				bp->GetBuf(&data);
 				flag = bp->Get32Bit();
+
 				key.GetBlob(&blob);
+
 				if ( (pkey = GetIdKey(&key, m_pDocument->m_ServerEntry.m_PassName)) != NULL && pkey->Sign(&sig, data.GetPtr(), data.GetSize(), GetRsaSignAlg(pkey, flag)) ) {
 					data.Clear();
 					data.Put8Bit(SSH_AGENT_SIGN_RESPONSE);
@@ -703,6 +726,45 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 			}
 			break;
 
+		case SSH_AGENTC_EXTENSION:
+			{
+				CStringA mbs;
+				bp->GetStr(mbs);
+				if ( mbs.Compare("session-bind@openssh.com") == 0 ) {
+					CIdKey key;
+					CBuffer blob, sid, sig;
+					int fwd;
+					bp->GetBuf(&blob);
+					bp->GetBuf(&sid);
+					bp->GetBuf(&sig);
+					fwd = bp->Get8Bit();
+
+					key.GetBlob(&blob);
+
+					CString kname, dig;
+					CStringArrayExt entry;
+
+					kname.Format(_T("%s:%d"), (LPCTSTR)((Cssh *)m_pSock)->m_HostName, ((Cssh *)m_pSock)->m_HostPort);
+					((CRLoginApp *)AfxGetApp())->GetProfileStringArray(_T("KnownHosts"), kname, entry);
+
+					key.m_Cert = 0;
+					key.WritePublicKey(dig, FALSE);
+
+					for ( int n = 0 ; n < entry.GetSize() ; n++ ) {
+						if ( entry[n].Compare(dig) == 0 ) {
+							if ( key.Verify(&sig, sid.GetPtr(), sid.GetSize()) )
+								rc = SSH_AGENT_SUCCESS;
+							break;
+						}
+					}
+				}
+			}
+			tmp.Put32Bit(1);
+			tmp.Put8Bit(rc);
+			Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
+			break;
+
+
 		default:
 			tmp.Put32Bit(1);
 			tmp.Put8Bit(SSH_AGENT_FAILURE);
@@ -768,7 +830,7 @@ void CFifoX11::OnConnect(int nFd)
 }
 void CFifoX11::OnClose(int nFd, int nLastError)
 {
-	SendFdEvents(GetXFd(nFd), FD_CLOSE, (void *)nLastError);
+	SendFdEvents(GetXFd(nFd), FD_CLOSE, (void *)(UINT_PTR)nLastError);
 
 	CFifoBase::UnLink(this, FIFO_STDIN, TRUE);
 	Destroy();
@@ -913,7 +975,7 @@ UINT CFifoRcp::RcpUpDowndWorker(void *pParam)
 		break;
 	}
 
-	pThis->SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)pThis->m_nLastError);
+	pThis->SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)pThis->m_nLastError);
 	pThis->m_Threadtatus = FIFO_THREAD_NONE;
 	return 0;
 }
@@ -936,7 +998,7 @@ BOOL CFifoRcp::ReadLine(int nFd, CStringA &str)
 }
 LPCTSTR CFifoRcp::MakePath(LPCTSTR base, LPCSTR name, CString &path)
 {
-	CString tmp = m_pDocument->LocalStr(name);
+	CString tmp = ((Cssh *)m_pSock)->LocalStr(name);
 	LPCTSTR p = tmp;
 
 	path = base;

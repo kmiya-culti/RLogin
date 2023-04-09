@@ -44,7 +44,7 @@ void CMousePage::DoDataExchange(CDataExchange* pDX)
 
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_CHECKFAST + n, m_Check[n]);
-	DDX_CBString(pDX, IDC_WHEELSIZE, m_WheelSize);
+	DDX_CBStringExact(pDX, IDC_WHEELSIZE, m_WheelSize);
 	DDX_CBIndex(pDX, IDC_MOUSE_BTN1, m_MouseMode[0]);
 	DDX_CBIndex(pDX, IDC_MOUSE_BTN2, m_MouseMode[1]);
 	DDX_CBIndex(pDX, IDC_MOUSE_KEY1, m_MouseMode[2]);

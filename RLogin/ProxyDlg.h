@@ -21,10 +21,13 @@ public:
 	CString m_PortName;
 	CString m_UserName;
 	CString m_PassWord;
+	int m_ProxyType;
 	int m_ProxyMode;
 	int m_SSLMode;
 	BOOL m_SSL_Keep;
 	BOOL m_UsePassDlg;
+	BOOL m_CmdFlag;
+	CString m_ProxyCmd;
 
 // オーバーライド
 protected:

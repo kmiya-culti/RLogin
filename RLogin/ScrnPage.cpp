@@ -48,7 +48,7 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 	CTreePage::DoDataExchange(pDX);
 
 	DDX_Radio(pDX, IDC_SCRNSIZE1, m_ScrnFont);
-	DDX_CBString(pDX, IDC_SCSZFONT, m_FontSize);
+	DDX_CBStringExact(pDX, IDC_SCSZFONT, m_FontSize);
 	DDX_Text(pDX, IDC_SCSZCOLS, m_ColsMax[0]);
 	DDX_Text(pDX, IDC_SCSZCOLS2, m_ColsMax[1]);
 	DDX_CBIndex(pDX, IDC_VISUALBELL, m_VisualBell);
@@ -59,11 +59,11 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX, IDC_FONTHW, m_FontHw);
 	DDX_Check(pDX, IDC_TERMCHECK1, m_TtlRep);
 	DDX_Check(pDX, IDC_TERMCHECK2, m_TtlCng);
-	DDX_CBString(pDX, IDC_SCRNOFFSLEFT, m_ScrnOffsLeft);
-	DDX_CBString(pDX, IDC_SCRNOFFSRIGHT, m_ScrnOffsRight);
+	DDX_CBStringExact(pDX, IDC_SCRNOFFSLEFT, m_ScrnOffsLeft);
+	DDX_CBStringExact(pDX, IDC_SCRNOFFSRIGHT, m_ScrnOffsRight);
 	DDX_Control(pDX, IDC_CARETCOL, m_ColBox);
 	DDX_Control(pDX, IDC_IMECARETCOL, m_ImeColBox);
-	DDX_CBString(pDX, IDC_TITLENAME, m_TitleName);
+	DDX_CBStringExact(pDX, IDC_TITLENAME, m_TitleName);
 	DDX_CBIndex(pDX, IDC_SLEEPMODE, m_SleepMode);
 }
 

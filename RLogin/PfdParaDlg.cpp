@@ -28,10 +28,10 @@ void CPfdParaDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogExt::DoDataExchange(pDX);
 
-	DDX_CBString(pDX, IDC_LISTENHOST, m_Data.m_ListenHost);
-	DDX_CBString(pDX, IDC_LISTENPORT, m_Data.m_ListenPort);
-	DDX_CBString(pDX, IDC_CONNECTHOST, m_Data.m_ConnectHost);
-	DDX_CBString(pDX, IDC_CONNECTPORT, m_Data.m_ConnectPort);
+	DDX_CBStringExact(pDX, IDC_LISTENHOST, m_Data.m_ListenHost);
+	DDX_CBStringExact(pDX, IDC_LISTENPORT, m_Data.m_ListenPort);
+	DDX_CBStringExact(pDX, IDC_CONNECTHOST, m_Data.m_ConnectHost);
+	DDX_CBStringExact(pDX, IDC_CONNECTPORT, m_Data.m_ConnectPort);
 	DDX_Radio(pDX, IDC_RADIO1, m_Data.m_ListenType);
 }
 

@@ -3763,6 +3763,9 @@ LRESULT CSFtp::OnReceiveBuffer(WPARAM wParam, LPARAM lParam)
 		if ( (int)wParam == FD_CONNECT ) {
 			OnConnect();
 
+		} else if ( (int)wParam == FD_CLOSE ) {
+			DestroyWindow();
+
 		} else if ( m_pFifoSftp != NULL ) {	// FD_READ
 			int n;
 			CBuffer buf;

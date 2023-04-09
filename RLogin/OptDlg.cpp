@@ -379,7 +379,7 @@ BOOL COptDlg::OnInitDialog()
 	CreatePage(10);
 
 	m_toolTip.Create(this, TTS_ALWAYSTIP | TTS_BALLOON);
-    m_toolTip.AddTool(GetDlgItem(IDC_HELPBTN), IDS_OPTIONHELPMSG);
+    m_toolTip.AddTool(GetDlgItem(IDC_HELPBTN), CStringLoad(IDS_OPTIONHELPMSG));
 
 	return FALSE;
 }

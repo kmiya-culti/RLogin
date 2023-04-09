@@ -389,6 +389,7 @@ public:
 
 	LPCTSTR GetName(BOOL bCert = TRUE, BOOL bExtname = FALSE);
 	int GetTypeFromName(LPCTSTR name);
+	BOOL KnownHostsCheck(LPCTSTR dig);
 	int HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh = NULL);
 	int ChkOldCertHosts(LPCTSTR host);
 
@@ -530,7 +531,7 @@ public:
 
 #define	CHAN_MAXCONNECT			200
 
-class CFifoSsh : public CFifoWnd
+class CFifoSsh : public CFifoThread
 {
 public:
 	CFifoSsh(class CRLoginDoc *pDoc, class CExtSocket *pSock);
@@ -554,6 +555,7 @@ public:
 	CFifoStdio(class CRLoginDoc *pDoc, class CExtSocket *pSock);
 
 	virtual void EndOfData(int nFd);
+	virtual void OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult);
 };
 
 class CFifoSftp : public CFifoBase
@@ -594,6 +596,7 @@ class CFifoAgent : public CFifoWnd
 {
 public:
 	class CFifoChannel *m_pChan;
+	CBuffer m_RecvBuffer;
 
 public:
 	CFifoAgent(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CFifoChannel *pChan);
@@ -751,6 +754,7 @@ enum EAuthStat {
 };
 
 typedef struct _DelayedCheck {
+	int type;
 	int	nFd;
 	int fdEvent;
 	void *pParam;
@@ -764,6 +768,7 @@ public:
 	CString m_HostName;
 	UINT m_HostPort;
 
+	CStringA m_ServerPrompt;
 	CString m_ServerVerStr;
 	CString m_ClientVerStr;
 
@@ -882,7 +887,8 @@ public:
 	Cssh(class CRLoginDoc *pDoc);
 	virtual ~Cssh();
 		
-	virtual void FifoLink();
+	virtual CFifoBase *FifoLinkMid();
+	virtual CFifoDocument *FifoLinkRight();
 	virtual BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
 	virtual void Close();
 
@@ -897,6 +903,15 @@ public:
 	virtual void ResetOption();
 
 public:
+	CString m_WorkStr;
+	CStringA m_WorkMbs;
+
+	inline LPCTSTR LocalStr(LPCSTR str) { return m_pFifoMid->DocMsgLocalStr(str, m_WorkStr); }
+	inline LPCSTR RemoteStr(LPCTSTR str) { return m_pFifoMid->DocMsgRemoteStr(str, m_WorkMbs); }
+
+	void FifoCmdSendPacket(int type, CBuffer *bp);
+	void PostSendPacket(int type, CBuffer *bp);
+
 // SSH version 1
 	void SendDisconnect(LPCSTR str);
 	void SendPacket(CBuffer *bp);
@@ -949,6 +964,7 @@ public:
 	void SendMsgServiceRequest(LPCSTR str);
 	int SendMsgUserAuthRequest(LPCSTR str);
 
+	void PostSendMsgChannelOpen(int id, LPCSTR type);
 	int SendMsgChannelOpen(int id, LPCSTR type, LPCTSTR lhost = NULL, int lport = 0, LPCTSTR rhost = NULL, int rport = 0);
 	void SendMsgChannelOpenConfirmation(int id);
 	void SendMsgChannelOpenFailure(int id);

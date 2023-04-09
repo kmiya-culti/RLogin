@@ -47,8 +47,8 @@ void CIdkeySelDLg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_IDKEY_PROG, m_KeyGenProg);
 	DDX_Control(pDX, IDC_IDKEY_LIST, m_List);
 	DDX_CBIndex(pDX, IDC_EXPORT_STYLE, m_ExportStyle);
-	DDX_CBString(pDX, IDC_IDKEY_TYPE, m_Type);
-	DDX_CBString(pDX, IDC_IDKEY_BITS, m_Bits);
+	DDX_CBStringExact(pDX, IDC_IDKEY_TYPE, m_Type);
+	DDX_CBStringExact(pDX, IDC_IDKEY_BITS, m_Bits);
 	DDX_Text(pDX, IDC_IDKEY_NAME, m_Name);
 }
 

@@ -259,6 +259,7 @@ void CFifoPipe::OnProcWait()
 {
 	DWORD n;
 	HANDLE HandleTab[3];
+	FifoMsg *pFifoMsg;
 
 	for ( ; ; ) {
 		HandleTab[0] = m_AbortEvent[0];
@@ -285,15 +286,14 @@ void CFifoPipe::OnProcWait()
 
 		} else if ( n == (WAIT_OBJECT_0 + 2) ) {	// m_MsgEvent
 			m_MsgSemaphore.Lock();
-			while ( !m_MsgList.IsEmpty() ) {
-				FifoMsg *pFifoMsg = m_MsgList.RemoveHead();
+			while ( (pFifoMsg = MsgRemoveHead()) != NULL ) {
 				m_MsgSemaphore.Unlock();
 
 				switch(pFifoMsg->cmd) {
 				case FIFO_CMD_FDEVENTS:
 					switch(pFifoMsg->msg) {
 					case FD_CLOSE:
-						m_nLastError = (int)pFifoMsg->buffer;
+						m_nLastError = (int)(UINT_PTR)pFifoMsg->buffer;
 						Read(FIFO_STDIN, NULL, 0);
 						break;
 					}
@@ -359,6 +359,7 @@ void CFifoPipe::OnWriteProc()
 void CFifoPipe::OnReadWriteProc()
 {
 	int len;
+	FifoMsg *pFifoMsg;
 
 	DWORD dw;
 	BOOL bRes;
@@ -482,15 +483,14 @@ void CFifoPipe::OnReadWriteProc()
 
 		else if ( HandleTab[dw] == m_MsgEvent ) {
 			m_MsgSemaphore.Lock();
-			while ( !m_MsgList.IsEmpty() ) {
-				FifoMsg *pFifoMsg = m_MsgList.RemoveHead();
+			while ( (pFifoMsg = MsgRemoveHead()) != NULL ) {
 				m_MsgSemaphore.Unlock();
 
 				switch(pFifoMsg->cmd) {
 				case FIFO_CMD_FDEVENTS:
 					switch(pFifoMsg->msg) {
 					case FD_CLOSE:
-						m_nLastError = (int)pFifoMsg->buffer;
+						m_nLastError = (int)(UINT_PTR)pFifoMsg->buffer;
 						Read(FIFO_STDIN, NULL, 0);
 						break;
 					}
@@ -505,7 +505,7 @@ void CFifoPipe::OnReadWriteProc()
 	}
 
 ERRENDOF:
-	SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)m_nLastError);
+	SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)m_nLastError);
 	Write(FIFO_STDOUT, NULL, 0);
 
 	CloseHandle(ReadOverLap.hEvent);
@@ -522,17 +522,9 @@ CPipeSock::CPipeSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 CPipeSock::~CPipeSock(void)
 {
 }
-void CPipeSock::FifoLink()
+CFifoBase *CPipeSock::FifoLinkLeft()
 {
-	FifoUnlink();
-
-	ASSERT(m_pFifoLeft == NULL && m_pFifoMid == NULL && m_pFifoRight == NULL);
-
-	m_pFifoLeft   = new CFifoPipe(m_pDocument, this);
-	m_pFifoMid    = new CFifoWnd(m_pDocument, this);
-	m_pFifoRight  = new CFifoDocument(m_pDocument, this);
-
-	CFifoBase::MidLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
+	return new CFifoPipe(m_pDocument, this);
 }
 void CPipeSock::SendBreak(int opt)
 {

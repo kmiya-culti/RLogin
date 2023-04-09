@@ -19,6 +19,7 @@
 
 int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void *, const void *), int *base);
 BOOL IsZeroMemory(void *ptr, int len);
+BOOL IsDigits(LPCTSTR p);
 
 #define	CBUFINITSIZE	32
 #define	CBUFNIMALLOC	256
@@ -673,6 +674,7 @@ public:
 	CString m_ProxyPort;
 	CString m_ProxyUser;
 	CString m_ProxyPass;
+	CString m_ProxyCmd;
 	CString m_Memo;
 	CString m_Group;
 	CString m_ScriptFile;

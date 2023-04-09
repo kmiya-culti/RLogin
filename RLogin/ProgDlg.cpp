@@ -139,16 +139,24 @@ int CProgressWnd::SetPos(int nPos, int nRate)
 		for ( int n = nPos ; n <= m_LastPos ; n++ )
 			m_pDataTab[n] = 0;
 		m_LastPos = nPos;
-		m_pDataTab[nPos] = nRate;
+		m_pDataTab[nPos] = (BYTE)nRate;
 
 	} else {
 		rect.right = rect.left + nPos + 1;
 		rect.left += m_LastPos;
 		InvalidateRect(rect, FALSE);
 
-		while ( m_LastPos < nPos )
-			m_pDataTab[m_LastPos++] = nRate;
-		m_pDataTab[nPos] = nRate;
+		if ( m_LastPos > 0 && (nPos - m_LastPos) > 1 ) {
+			int wd = nPos - m_LastPos;
+			int fd = m_pDataTab[m_LastPos];
+			int hd = nRate - fd;
+			for ( int n = 0 ; m_LastPos < nPos ; n++ )
+				m_pDataTab[m_LastPos++] = (BYTE)(fd + hd * n / wd);
+		} else {
+			while ( m_LastPos < nPos )
+				m_pDataTab[m_LastPos++] = (BYTE)nRate;
+		}
+		m_pDataTab[nPos] = (BYTE)nRate;
 	}
 
 	return m_RangePos;

@@ -174,12 +174,13 @@ CFifoBase::CFifoBase(class CRLoginDoc *pDoc, class CExtSocket *pSock)
 	m_bFlowCtrl = TRUE;
 	m_nBufMax = 0;
 	m_pBuffer = NULL;
-	m_bMsgClosed = FALSE;
+	m_pMsgTop = m_pMsgLast = m_pMsgFree = NULL;
 }
 CFifoBase::~CFifoBase()
 {
 	int n;
 	CFifoBuffer *pFifo;
+	FifoMsg *pFifoMsg;
 
 	for ( n = 0 ; n < m_FifoBuf.GetSize() ; n++ ) {
 		if ( (pFifo = (CFifoBuffer *)m_FifoBuf[n]) == NULL )
@@ -200,6 +201,11 @@ CFifoBase::~CFifoBase()
 	m_EventTab.RemoveAll();
 
 	RemoveAllMsg();
+
+	while ( (pFifoMsg = m_pMsgFree) != NULL ) {
+		m_pMsgFree = pFifoMsg->next;
+		delete pFifoMsg;
+	}
 
 	if ( m_pBuffer != NULL )
 		delete [] m_pBuffer;
@@ -268,10 +274,6 @@ CFifoBuffer *CFifoBase::GetFifo(int nFd)
 
 	return pFifo;
 }
-void CFifoBase::RelFifo(CFifoBuffer *pFifo)
-{
-	pFifo->Unlock();
-}
 
 void CFifoBase::SendFdEvents(int nFd, int msg, void *pParam)
 {
@@ -285,11 +287,39 @@ void CFifoBase::SendFdEvents(int nFd, int msg, void *pParam)
 		RelFifo(pFifo);
 	}
 }
-BOOL CFifoBase::PostCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult)
-{
-	BOOL bRet;
 
-	FifoMsg *pFifoMsg = new FifoMsg;
+void CFifoBase::MsgAddTail(FifoMsg *pFifoMsg)
+{
+	pFifoMsg->next = NULL;
+
+	if ( m_pMsgTop == NULL )
+		m_pMsgTop = m_pMsgLast = pFifoMsg;
+	else {
+		m_pMsgLast->next = pFifoMsg;
+		m_pMsgLast = pFifoMsg;
+	}
+}
+FifoMsg *CFifoBase::MsgRemoveHead()
+{
+	FifoMsg *pFifoMsg;
+
+	if ( (pFifoMsg = m_pMsgTop) != NULL )
+		m_pMsgTop = pFifoMsg->next;
+
+	return pFifoMsg;
+}
+void CFifoBase::PostCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult)
+{
+	FifoMsg *pFifoMsg;
+
+	m_MsgSemaphore.Lock();
+	if ( (pFifoMsg = m_pMsgFree) != NULL ) {
+		m_pMsgFree = pFifoMsg->next;
+		m_MsgSemaphore.Unlock();
+	} else {
+		m_MsgSemaphore.Unlock();
+		pFifoMsg = new FifoMsg;
+	}
 
 	pFifoMsg->cmd     = cmd;
 	pFifoMsg->param   = param;
@@ -307,14 +337,38 @@ BOOL CFifoBase::PostCommand(int cmd, int param, int msg, int len, void *buf, CEv
 	}
 
 	m_MsgSemaphore.Lock();
-	if ( m_MsgList.IsEmpty() )
+	if ( m_pMsgTop == NULL )
 		m_MsgEvent.SetEvent();
-	m_MsgList.AddTail(pFifoMsg);
-	bRet = (m_bMsgClosed ? FALSE : TRUE);
+	MsgAddTail(pFifoMsg);
 	m_MsgSemaphore.Unlock();
-
-	return bRet;
 }
+void CFifoBase::DeleteMsg(FifoMsg *pFifoMsg)
+{
+	if ( pFifoMsg->pEvent != NULL )
+		pFifoMsg->pEvent->SetEvent();
+
+	if ( pFifoMsg->len > 0 && pFifoMsg->buffer != NULL )
+		delete [] pFifoMsg->buffer;
+
+	m_MsgSemaphore.Lock();
+	pFifoMsg->next = m_pMsgFree;
+	m_pMsgFree = pFifoMsg;
+	m_MsgSemaphore.Unlock();
+}
+void CFifoBase::RemoveAllMsg()
+{
+	FifoMsg *pFifoMsg;
+
+	m_MsgSemaphore.Lock();
+	while ( (pFifoMsg = MsgRemoveHead()) != NULL ) {
+		m_MsgSemaphore.Unlock();
+
+		DeleteMsg(pFifoMsg);
+		m_MsgSemaphore.Lock();
+	}
+	m_MsgSemaphore.Unlock();
+}
+
 BOOL CFifoBase::SendCmdWait(int cmd, int param, int msg, int len, void *buf)
 {
 	CEvent waitEvent;
@@ -385,42 +439,6 @@ void CFifoBase::ResetFdEvents(int nFd, DWORD fdEvent)
 		m_fdAllowEvents[nFd] &= ~fdEvent; 
 		RelFifo(pFifo);
 	}
-}
-BOOL CFifoBase::IsFdEvents(int nFd, DWORD fdEvent)
-{
-#if 1
-	return ((m_fdAllowEvents[nFd] & fdEvent) != 0);
-#else
-	BOOL bAllow = FALSE;
-	CFifoBuffer *pFifo;
-
-	if ( (pFifo = GetFifo(nFd)) != NULL ) {
-		bAllow = ((m_fdAllowEvents[nFd] & fdEvent) != 0 ? TRUE : FALSE);
-		RelFifo(pFifo);
-	}
-	return bAllow;
-#endif
-}
-
-void CFifoBase::DeleteMsg(FifoMsg *pFifoMsg)
-{
-	if ( pFifoMsg->pEvent != NULL )
-		pFifoMsg->pEvent->SetEvent();
-
-	if ( pFifoMsg->len > 0 && pFifoMsg->buffer != NULL )
-		delete [] pFifoMsg->buffer;
-
-	delete pFifoMsg;
-}
-void CFifoBase::RemoveAllMsg()
-{
-	m_MsgSemaphore.Lock();
-	m_bMsgClosed = TRUE;
-	while ( !m_MsgList.IsEmpty() ) {
-		FifoMsg *pFifoMsg = m_MsgList.RemoveHead();
-		DeleteMsg(pFifoMsg);
-	}
-	m_MsgSemaphore.Unlock();
 }
 
 int CFifoBase::Consume(int nFd, int nBufLen)
@@ -575,64 +593,76 @@ LPCSTR CFifoBase::DocMsgStrA(int msg, CStringA &str)
 {
 	DocMsg docMsg;
 
-	docMsg.doc = m_pDocument;
+	docMsg.doc  = m_pDocument;
 	docMsg.type = DOCMSG_TYPE_STRINGA;
 	docMsg.pOut = (void *)&str;
 
-	::AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
 	return str;
 }
 LPCWSTR CFifoBase::DocMsgStrW(int msg, CStringW &str)
 {
 	DocMsg docMsg;
 
-	docMsg.doc = m_pDocument;
+	docMsg.doc  = m_pDocument;
 	docMsg.type = DOCMSG_TYPE_STRINGW;
 	docMsg.pOut = (void *)&str;
 
-	::AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
 	return str;
 }
 void CFifoBase::DocMsgSize(int msg, CSize &size)
 {
 	DocMsg docMsg;
 
-	docMsg.doc = m_pDocument;
+	docMsg.doc  = m_pDocument;
 	docMsg.type = DOCMSG_TYPE_SIZE;
 	docMsg.pOut = (void *)&size;
 
-	::AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
 }
 void CFifoBase::DocMsgRect(int msg, CRect &rect)
 {
 	DocMsg docMsg;
 
-	docMsg.doc = m_pDocument;
+	docMsg.doc  = m_pDocument;
 	docMsg.type = DOCMSG_TYPE_RECT;
 	docMsg.pOut = (void *)&rect;
 
-	::AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
 }
 void CFifoBase::DocMsgIntPtr(int msg, int *pInt)
 {
 	DocMsg docMsg;
 
-	docMsg.doc = m_pDocument;
+	docMsg.doc  = m_pDocument;
 	docMsg.type = DOCMSG_TYPE_INTPTR;
 	docMsg.pOut = (void *)pInt;
 
-	::AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
+}
+LPCTSTR CFifoBase::DocMsgLocalStr(LPCSTR str, CString &tstr)
+{
+	DocMsg docMsg;
+
+	docMsg.doc  = m_pDocument;
+	docMsg.type = DOCMSG_TYPE_STRINGT;
+	docMsg.pIn  = (void *)str;
+	docMsg.pOut = (void *)&tstr;
+
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_LOCALSTR, (LPARAM)&docMsg);
+	return tstr;
 }
 LPCSTR CFifoBase::DocMsgRemoteStr(LPCTSTR str, CStringA &mbs)
 {
 	DocMsg docMsg;
 
-	docMsg.doc = m_pDocument;
+	docMsg.doc  = m_pDocument;
 	docMsg.type = DOCMSG_TYPE_STRINGA;
 	docMsg.pIn  = (void *)str;
 	docMsg.pOut = (void *)&mbs;
 
-	::AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_REMOTESTR, (LPARAM)&docMsg);
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_REMOTESTR, (LPARAM)&docMsg);
 	return mbs;
 }
 void CFifoBase::DocMsgLineMode(int sw)
@@ -642,19 +672,19 @@ void CFifoBase::DocMsgLineMode(int sw)
 	docMsg.doc = m_pDocument;
 	docMsg.type = sw;
 
-	::AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_LINEMODE, (LPARAM)&docMsg);
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_LINEMODE, (LPARAM)&docMsg);
 }
 DWORD CFifoBase::DocMsgTtyMode(int mode, DWORD defVal)
 {
 	DWORD value = defVal;
 	DocMsg docMsg;
 
-	docMsg.doc = m_pDocument;
+	docMsg.doc  = m_pDocument;
 	docMsg.type = DOCMSG_TYPE_DWORDPTR;
-	docMsg.pIn  = (void *)mode;
+	docMsg.pIn  = (void *)(UINT_PTR)mode;
 	docMsg.pOut = (void *)&value;
 
-	::AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_TTYMODE, (LPARAM)&docMsg);
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_TTYMODE, (LPARAM)&docMsg);
 	return value;
 }
 DWORD CFifoBase::DocMsgKeepAlive(void *pThis)
@@ -662,13 +692,45 @@ DWORD CFifoBase::DocMsgKeepAlive(void *pThis)
 	DWORD value = 0;
 	DocMsg docMsg;
 
-	docMsg.doc = m_pDocument;
+	docMsg.doc  = m_pDocument;
 	docMsg.type = DOCMSG_TYPE_DWORDPTR;
 	docMsg.pIn  = pThis;
 	docMsg.pOut = (void *)&value;
 
-	::AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_KEEPALIVE, (LPARAM)&docMsg);
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_KEEPALIVE, (LPARAM)&docMsg);
 	return value;
+}
+void CFifoBase::DodMsgStrPtr(int msg, LPCTSTR str)
+{
+	DocMsg docMsg;
+
+	docMsg.doc  = m_pDocument;
+	docMsg.type = DOCMSG_TYPE_STRPTR;
+	docMsg.pIn  = (void *)str;
+
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
+}
+void CFifoBase::DocMsgCommand(int cmdId)
+{
+	DocMsg docMsg;
+
+	docMsg.doc  = m_pDocument;
+	docMsg.type = DOCMSG_TYPE_INT;
+	docMsg.pIn  = (void *)(UINT_PTR)cmdId;
+
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_COMMAND, (LPARAM)&docMsg);
+}
+int CFifoBase::DocMsgSetTimer(int msec, int mode, void *pParam)
+{
+	DocMsg docMsg;
+
+	docMsg.doc  = m_pDocument;
+	docMsg.type = msec;
+	docMsg.pIn  = (void *)(UINT_PTR)mode;
+	docMsg.pOut = (void *)pParam;
+
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_SETTIMER, (LPARAM)&docMsg);
+	return docMsg.type;
 }
 
 ///////////////////////////////////////////////////////
@@ -930,7 +992,7 @@ CFifoWnd::CFifoWnd(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoBase(
 {
 	m_Type = FIFO_TYPE_WINDOW;
 	m_WndMsg = WM_FIFOMSG;
-	m_pWnd = ::AfxGetMainWnd();
+	m_pWnd = theApp.m_pMainWnd;
 	m_bMsgPump = FALSE;
 	m_bPostMsg = FALSE;
 	m_bDestroy = FALSE;
@@ -942,23 +1004,23 @@ CFifoWnd::~CFifoWnd()
 void CFifoWnd::OnLinked(int nFd, BOOL bMid)
 {
 	if ( nFd == FIFO_STDIN )
-		((CMainFrame *)::AfxGetMainWnd())->AddFifoActive(this);
+		((CMainFrame *)m_pWnd)->AddFifoActive(this);
 
 	CFifoBase::OnLinked(nFd, bMid);
 }
 void CFifoWnd::OnUnLinked(int nFd, BOOL bMid)
 {
 	if ( nFd == FIFO_STDIN )
-		((CMainFrame *)::AfxGetMainWnd())->DelFifoActive(this);
+		((CMainFrame *)m_pWnd)->DelFifoActive(this);
 
 	CFifoBase::OnUnLinked(nFd, bMid);
 }
 
 // pFifoBufから直接呼出しLock中で別スレッドの場合あり
-void CFifoWnd::PostMessage(int cmd, int param, int msg)
+void CFifoWnd::PostMessage(int cmd, int param)
 {
 	m_MsgSemaphore.Lock();
-	if ( !m_bDestroy && !m_bPostMsg && !m_MsgList.IsEmpty() ) {
+	if ( !m_bDestroy && !m_bPostMsg && m_pMsgTop != NULL ) {
 		m_bPostMsg = TRUE;
 		m_MsgSemaphore.Unlock();
 
@@ -999,7 +1061,7 @@ void CFifoWnd::FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pPar
 		break;
 	}
 
-	PostMessage(FIFO_CMD_FDEVENTS, nFd, fdEvent);
+	PostMessage(FIFO_CMD_FDEVENTS, nFd);
 }
 //	ON_MESSAGE(WM_FIFOMSG, OnFifoMsg)
 // 	afx_msg LRESULT OnFifoMsg(WPARAM wParam, LPARAM lParam);
@@ -1015,8 +1077,7 @@ void CFifoWnd::MsgPump(WPARAM wParam)
 	ASSERT(m_bMsgPump == FALSE);
 	m_bMsgPump = TRUE;
 
-	while ( !m_MsgList.IsEmpty() ) {
-		pFifoMsg = m_MsgList.RemoveHead();
+	while ( (pFifoMsg = MsgRemoveHead()) != NULL ) {
 		m_MsgSemaphore.Unlock();
 
 		if ( !m_bDestroy ) {
@@ -1032,7 +1093,7 @@ void CFifoWnd::MsgPump(WPARAM wParam)
 				if ( (pFifoMsg->msg & FD_CONNECT) != 0 )
 					OnConnect(pFifoMsg->param);
 				if ( (pFifoMsg->msg & FD_CLOSE) != 0 )
-					OnClose(pFifoMsg->param, (int)pFifoMsg->buffer);
+					OnClose(pFifoMsg->param, (int)(UINT_PTR)pFifoMsg->buffer);
 				if ( (pFifoMsg->msg & FD_OOB) != 0 )
 					OnOob(pFifoMsg->param, pFifoMsg->len, pFifoMsg->buffer);
 				if ( (pFifoMsg->msg & FD_READ) != 0 && IsFdEvents(pFifoMsg->param, FD_READ) )
@@ -1061,13 +1122,13 @@ void CFifoWnd::SendCommand(int cmd, int param, int msg, int len, void *buf, CEve
 {
 	if ( !m_bDestroy ) {
 		PostCommand(cmd, param, msg, len, buf, pEvent, pResult);
-		PostMessage(cmd, param, msg);
+		PostMessage(cmd, param);
 	}
 }
 void CFifoWnd::Destroy()
 {
 	// 以降のPostMessageをキャンセル
-	((CMainFrame *)::AfxGetMainWnd())->DelFifoActive(this);
+	((CMainFrame *)m_pWnd)->DelFifoActive(this);
 
 	// PostMessageを処理中ならMsgPumpでDestroy
 	m_MsgSemaphore.Lock();
@@ -1082,7 +1143,7 @@ void CFifoWnd::Destroy()
 void CFifoWnd::EndOfData(int nFd)
 {
 	int eFd = GetXFd(nFd);
-	SendFdEvents(eFd, FD_CLOSE, (void *)m_nLastError);
+	SendFdEvents(eFd, FD_CLOSE, (void *)(UINT_PTR)m_nLastError);
 	Write(eFd, NULL, 0);
 
 	if ( nFd == FIFO_STDIN ) {
@@ -1228,8 +1289,7 @@ BOOL CFifoThread::ThreadClose()
 
 	m_pWinThread->m_bDestroy = TRUE;
 	m_pWinThread->PostThreadMessage(WM_QUIT, 0, 0);
-
-	WaitForSingleObject(*m_pWinThread, INFINITE);
+	//WaitForSingleObject(*m_pWinThread, INFINITE);
 	m_pWinThread = NULL;
 
 	return TRUE;
@@ -1258,16 +1318,16 @@ void CFifoThread::OnUnLinked(int nFd, BOOL bMid)
 	if ( nFd == FIFO_STDIN )
 		ThreadClose();
 
-	// skip CFifoWind::OnLinked
+	// skip CFifoWind::OnUnLinked
 	CFifoBase::OnUnLinked(nFd, bMid);
 }
-void CFifoThread::PostMessage(int cmd, int param, int msg)
+void CFifoThread::PostMessage(int cmd, int param)
 {
 	m_MsgSemaphore.Lock();
-	if ( !m_bDestroy && !m_bPostMsg && !m_MsgList.IsEmpty() ) {
+	if ( !m_bDestroy && !m_bPostMsg && m_pMsgTop != NULL ) {
 		m_bPostMsg = TRUE;
 		m_MsgSemaphore.Unlock();
-
+		ASSERT(m_pWinThread != NULL);
 		m_pWinThread->PostThreadMessage(WM_FIFOMSG, MAKEWPARAM(cmd, param), (LPARAM)this);
 	} else
 		m_MsgSemaphore.Unlock();
@@ -1362,7 +1422,7 @@ BOOL CFifoSync::WaitEvents(HANDLE hEvent, DWORD mSec)
 
 		if ( (Result = WaitForMultipleObjects(ec, hWaitEvents, FALSE, mSec)) == WAIT_FAILED ) {
 			m_nLastError = GetLastError();
-			SendFdEvents(FIFO_EXTOUT, FD_CLOSE, (void *)m_nLastError);
+			SendFdEvents(FIFO_EXTOUT, FD_CLOSE, (void *)(UINT_PTR)m_nLastError);
 			return FALSE;
 		}
 
@@ -1651,7 +1711,7 @@ static UINT FifoSocketOpenWorker(LPVOID pParam)
 void CFifoSocket::ThreadEnd()
 {
 	if ( !m_bAbort ) {
-		SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)m_nLastError);
+		SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)m_nLastError);
 		Write(FIFO_STDOUT, NULL, 0);
 	}
 
@@ -1887,6 +1947,7 @@ BOOL CFifoSocket::SocketLoop()
 	HANDLE hPauseEvent = NULL;
 	void **pParam = NULL;
 	BOOL bReadWrite = FALSE;
+	FifoMsg *pFifoMsg;
 
 	if ( m_nLimitSize > 0 && (m_nBufSize = m_nLimitSize * 50 / 1000) < 32 )		// Byte per 50ms
 		m_nBufSize = 32;
@@ -2149,8 +2210,7 @@ BOOL CFifoSocket::SocketLoop()
 
 		} else if ( m_hWaitEvents[Event] == m_MsgEvent ) {
 			m_MsgSemaphore.Lock();
-			while ( !m_MsgList.IsEmpty() ) {
-				FifoMsg *pFifoMsg = m_MsgList.RemoveHead();
+			while ( (pFifoMsg = MsgRemoveHead()) != NULL ) {
 				m_MsgSemaphore.Unlock();
 
 				switch(pFifoMsg->cmd) {
@@ -2166,7 +2226,7 @@ BOOL CFifoSocket::SocketLoop()
 						bReadWrite = TRUE;
 						break;
 					case FD_CLOSE:
-						m_nLastError = (int)pFifoMsg->buffer;
+						m_nLastError = (int)(UINT_PTR)pFifoMsg->buffer;
 						Read(FIFO_STDIN, NULL, 0);
 						Write(FIFO_STDOUT, NULL, 0);
 						bClose |= 003;
@@ -2275,7 +2335,7 @@ static UINT ListenWorker(LPVOID pParam)
 	pThis->m_Threadtatus = (pThis->AddInfoOpen() && pThis->ListenProc() ? 0 : 1);
 
 	if ( !pThis->m_bAbort )
-		pThis->SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)pThis->m_nLastError);
+		pThis->SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)pThis->m_nLastError);
 
 	pThis->RemoveAllMsg();
 
@@ -2377,6 +2437,7 @@ BOOL CFifoListen::ListenProc()
 	DWORD Event;
 	WSANETWORKEVENTS NetworkEvents;
 	CArray<HANDLE, HANDLE> WaitEvent;
+	FifoMsg *pFifoMsg;
 
 	for ( ; ; ) {
 		WaitEvent.RemoveAll();
@@ -2406,15 +2467,14 @@ BOOL CFifoListen::ListenProc()
 
 		} else if ( WaitEvent[Event] == m_MsgEvent ) {
 			m_MsgSemaphore.Lock();
-			while ( !m_MsgList.IsEmpty() ) {
-				FifoMsg *pFifoMsg = m_MsgList.RemoveHead();
+			while ( (pFifoMsg = MsgRemoveHead()) != NULL ) {
 				m_MsgSemaphore.Unlock();
 
 				switch(pFifoMsg->cmd) {
 				case FIFO_CMD_FDEVENTS:
 					switch(pFifoMsg->msg) {
 					case FD_CLOSE:
-						m_nLastError = (int)pFifoMsg->buffer;
+						m_nLastError = (int)(UINT_PTR)pFifoMsg->buffer;
 						Read(FIFO_STDIN, NULL, 0);
 						break;
 					}
@@ -2502,7 +2562,7 @@ void CFifoProxy::OnConnect(int nFd)
 	if ( m_pSock->m_SSL_mode != 0 && !m_pSock->SSLConnect() ) {
 		m_pSock->m_ProxyStatus = PRST_NONE;
 		m_pSock->m_ProxyLastError = WSAECONNABORTED;
-		SendFdEvents(FIFO_EXTOUT, FD_CLOSE, (void *)m_pSock->m_ProxyLastError);
+		SendFdEvents(FIFO_EXTOUT, FD_CLOSE, (void *)(UINT_PTR)m_pSock->m_ProxyLastError);
 	}
 	m_pSock->ProxyCheck();
 }
@@ -2511,7 +2571,7 @@ void CFifoProxy::OnClose(int nFd, int nLastError)
 	m_nLastError = nLastError;
 
 	if ( nFd == FIFO_EXTIN )
-		SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)nLastError);
+		SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)nLastError);
 }
 
 ///////////////////////////////////////////////////////
@@ -2609,7 +2669,7 @@ void CFifoDocument::OnClose(int nFd, int nLastError)
 	if ( nFd == FIFO_STDIN ) {
 		m_nLastError = nLastError;
 	} else if ( nFd == FIFO_STDOUT ) {
-		SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)nLastError);
+		SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)nLastError);
 		Write(FIFO_STDOUT, NULL, 0);
 	}
 }

@@ -41,31 +41,21 @@ CFifoSocket		CFifoSsh										CFifoStdio
 								       ChennelCheck->ChanIn		STDOUT<-SSH2MsgChannelData 
 */
 
-CFifoSsh::CFifoSsh(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoWnd(pDoc, pSock)
+CFifoSsh::CFifoSsh(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoThread(pDoc, pSock)
 {
 }
 int CFifoSsh::GetFreeFifo(int nFd)
 {
-	Lock();
 	for ( ; nFd < GetFifoSize() ; nFd += 2 ) {
-		if ( m_FifoBuf[nFd] == NULL && m_FifoBuf[nFd + 1] == NULL ) {
-			Unlock();
+		if ( m_FifoBuf[nFd] == NULL && m_FifoBuf[nFd + 1] == NULL )
 			return nFd;
-		}
 	}
-	Unlock();
 
 	return nFd;
 }
 void CFifoSsh::EndOfData(int nFd)
 {
-	if ( m_nLastError == 0 ) {
-		m_pSock->OnClose();
-		m_pDocument->OnSocketClose();
-	} else {
-		m_pSock->OnError(m_nLastError);
-		m_pDocument->OnSocketError(m_nLastError);
-	}
+	SendFdCommand(FIFO_EXTOUT, FIFO_CMD_MSGQUEIN, FIFO_QCMD_ENDOFDATA, m_nLastError);
 }
 void CFifoSsh::OnRead(int nFd)
 {
@@ -124,7 +114,7 @@ void CFifoSsh::OnClose(int nFd, int nLastError)
 	if ( nFd == FIFO_STDIN )
 		m_nLastError = nLastError;
 	else
-		((Cssh *)m_pSock)->ChannelCheck(nFd, FD_CLOSE, (void *)nLastError);
+		((Cssh *)m_pSock)->ChannelCheck(nFd, FD_CLOSE, (void *)(UINT_PTR)nLastError);
 }
 void CFifoSsh::OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult)
 {
@@ -140,6 +130,12 @@ void CFifoSsh::OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent
 			((Cssh *)m_pSock)->OpenRcpUpload(NULL);
 		else
 			((Cssh *)m_pSock)->m_FileList.RemoveAll();
+		break;
+	case FIFO_QCMD_SENDPACKET:
+		((Cssh *)m_pSock)->FifoCmdSendPacket(msg, (CBuffer *)buf);
+		break;
+	case FIFO_QCMD_KEEPALIVE:
+		((Cssh *)m_pSock)->SendMsgKeepAlive();
 		break;
 	}
 }
@@ -200,17 +196,13 @@ Cssh::~Cssh()
 
 //////////////////////////////////////////////////////////////////////
 
-void Cssh::FifoLink()
+CFifoBase *Cssh::FifoLinkMid()
 {
-	FifoUnlink();
-
-	ASSERT(m_pFifoLeft == NULL && m_pFifoMid == NULL && m_pFifoRight == NULL);
-
-	m_pFifoLeft   = new CFifoSocket(m_pDocument, this);
-	m_pFifoMid    = new CFifoSsh(m_pDocument, this);
-	m_pFifoRight  = new CFifoStdio(m_pDocument, this);
-
-	CFifoBase::MidLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
+	return new CFifoSsh(m_pDocument, this);
+}
+CFifoDocument *Cssh::FifoLinkRight()
+{
+	return new CFifoStdio(m_pDocument, this);
 }
 int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
@@ -332,7 +324,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 
 		if ( m_pDocument->m_ParamTab.m_RsaExt != 0 ) {
 			for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
-				if ( (m_IdKeyTab[n].m_Type & IDKEY_TYPE_MASK) != IDKEY_RSA2 || m_IdKeyTab[n].m_RsaNid != NID_sha1 || m_IdKeyTab[n].m_AgeantType != IDKEY_AGEANT_NONE )
+				if ( (m_IdKeyTab[n].m_Type & IDKEY_TYPE_MASK) != IDKEY_RSA2 || m_IdKeyTab[n].m_RsaNid != NID_sha1 )
 					continue;
 
 				// 追加せずに置き換えに変更 2021.11.05
@@ -411,7 +403,7 @@ void Cssh::Close()
 void Cssh::OnTimer(UINT_PTR nIDEvent)
 {
 	if ( nIDEvent == m_KeepAliveTiimerId )
-		SendMsgKeepAlive();
+		m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_KEEPALIVE);
 	else
 		CExtSocket::OnTimer(nIDEvent);
 }
@@ -435,39 +427,50 @@ void Cssh::OnRecvSocket(void* lpBuf, int nBufLen, int nFlags)
 		for ( ; ; ) {
 			switch(m_InPackStat) {
 			case 0:		// Fast Verstion String
-				while ( m_Incom.GetSize() > 0 ) {
+				for ( ; ; ) {
+					if ( m_Incom.GetSize() == 0 )
+						return;
 					ch = m_Incom.Get8Bit();
 					if ( ch == '\n' ) {
 						CString product, version;
 						product = AfxGetApp()->GetProfileString(_T("MainFrame"), _T("ProductName"), _T("RLogin"));
 						((CRLoginApp *)AfxGetApp())->GetVersion(version);
 
-						if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSH1MODE) &&
-							   (m_ServerVerStr.Mid(0, 5).Compare(_T("SSH-2")) == 0 ||
-								m_ServerVerStr.Mid(0, 8).Compare(_T("SSH-1.99")) == 0) ) {
+						m_ServerVerStr = LocalStr(m_ServerPrompt);
+
+						if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSH1MODE) && (strncmp(m_ServerPrompt, "SSH-2", 5) == 0 || strncmp(m_ServerPrompt, "SSH-1.99", 8) == 0) ) {
 							m_ClientVerStr.Format(_T("SSH-2.0-%s-%s"), (LPCTSTR)product, (LPCTSTR)version);
 							m_InPackStat = 3;
 							m_SSHVer = 2;
-						} else {
+						} else if ( strncmp(m_ServerPrompt, "SSH-1", 5) == 0 ) {
 							m_ClientVerStr.Format(_T("SSH-1.5-%s-%s"), (LPCTSTR)product, (LPCTSTR)version);
 							m_InPackStat = 1;
 							m_SSHVer = 1;
+						} else {
+							if ( !m_ServerPrompt.IsEmpty() ) {
+								m_ServerPrompt += "\r\n";
+								SendDocument((const void *)(LPCSTR)m_ServerPrompt, m_ServerPrompt.GetLength());
+							}
+							m_ServerPrompt.Empty();
+							m_InPackStat = 0;
 						}
 
-						if ( !m_pDocument->m_ParamTab.m_VerIdent.IsEmpty() ) {
-							m_ClientVerStr += _T(' ');
-							m_ClientVerStr += m_pDocument->m_ParamTab.m_VerIdent;
+						if ( m_InPackStat != 0 ) {
+							if ( !m_pDocument->m_ParamTab.m_VerIdent.IsEmpty() ) {
+								m_ClientVerStr += _T(' ');
+								m_ClientVerStr += m_pDocument->m_ParamTab.m_VerIdent;
+							}
+
+							str.Format("%s\r\n", RemoteStr(m_ClientVerStr));
+							SendSocket((LPCSTR)str, str.GetLength());
+
+							DEBUGLOG("Receive Version %s", TstrToMbs(m_ServerVerStr));
+							DEBUGLOG("Send Version %s", str);
 						}
-
-						str.Format("%s\r\n", m_pDocument->RemoteStr(m_ClientVerStr));
-						SendSocket((LPCSTR)str, str.GetLength());
-
-						DEBUGLOG("Receive Version %s", TstrToMbs(m_ServerVerStr));
-						DEBUGLOG("Send Version %s", str);
 
 						break;
 					} else if ( ch != '\r' )
-						m_ServerVerStr += (char)ch;
+						m_ServerPrompt += (char)ch;
 				}
 				break;
 
@@ -712,7 +715,7 @@ void Cssh::OnRecvSocket(void* lpBuf, int nBufLen, int nFlags)
 		msg += _T("...");
 	msg += _T('\n');
 
-	::AfxMessageBox(msg);
+	AfxMessageBox(msg);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -734,7 +737,7 @@ void Cssh::SendWindSize()
 			tmp.Put32Bit(cx);
 			tmp.Put32Bit(sx);
 			tmp.Put32Bit(sy);
-			SendPacket(&tmp);
+			PostSendPacket(1, &tmp);
 			break;
 		case 2:
 			if ( (pChan = GetFifoChannel(FdToId(FIFO_EXTIN))) == NULL || (pChan->m_Status & CHAN_OPEN_REMOTE) == 0 )
@@ -747,11 +750,11 @@ void Cssh::SendWindSize()
 			tmp.Put32Bit(cy);
 			tmp.Put32Bit(sx);
 			tmp.Put32Bit(sy);
-			SendPacket2(&tmp);
+			PostSendPacket(2, &tmp);
 			break;
 		}
 	} catch(...) {
-		::AfxMessageBox(_T("ssh SendWindSize Error"));
+		AfxMessageBox(_T("ssh SendWindSize Error"));
 	}
 }
 void Cssh::SendBreak(int opt)
@@ -769,11 +772,11 @@ void Cssh::SendBreak(int opt)
 			tmp.PutStr("break");
 			tmp.Put8Bit(0);
 			tmp.Put32Bit(opt != 0 ? 300 : 100);
-			SendPacket2(&tmp);
+			PostSendPacket(2, &tmp);
 			break;
 		}
 	} catch(...) {
-		::AfxMessageBox(_T("ssh SendBreak Error"));
+		AfxMessageBox(_T("ssh SendBreak Error"));
 	}
 }
 int Cssh::GetRecvSize()
@@ -926,6 +929,31 @@ void Cssh::ResetOption()
 		m_bAuthAgentReqEnable = m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT);
 		m_PortFwdTable = m_pDocument->m_ParamTab.m_PortFwd;
 	}
+}
+
+//////////////////////////////////////////////////////////////////////
+
+void Cssh::FifoCmdSendPacket(int type, CBuffer *bp)
+{
+	if (  (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 ) {
+		DelayedCheck *pDelayedCheck = new DelayedCheck;
+		pDelayedCheck->type = type;
+		pDelayedCheck->pParam = (void *)bp;
+		pDelayedCheck->bDelBuf = TRUE;
+		m_DelayedCheck.AddTail(pDelayedCheck);
+	} else {
+		switch(type) {
+		case 1: SendPacket(bp); break;
+		case 2: SendPacket2(bp); break;
+		}
+		delete bp;
+	}
+}
+void Cssh::PostSendPacket(int type, CBuffer *bp)
+{
+	CBuffer *pWork = new CBuffer;
+	pWork->Swap(*bp);
+	m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SENDPACKET, type, 0, (void *)pWork);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1168,7 +1196,7 @@ void Cssh::ReceivePacket(CBuffer *bp)
 		if ( type != SSH_SMSG_SUCCESS )
 			goto DISCONNECT;
 		tmp.Put8Bit(SSH_CMSG_USER);
-		tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
+		tmp.PutStr(RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
 		SendPacket(&tmp);
 		m_PacketStat = 2;
 		break;
@@ -1205,7 +1233,7 @@ void Cssh::ReceivePacket(CBuffer *bp)
 	GO_AUTH_PASS:
 		if ( (m_SupportAuth & (1 << SSH_AUTH_PASSWORD)) != 0 ) {
 			tmp.Put8Bit(SSH_CMSG_AUTH_PASSWORD);
-			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
+			tmp.PutStr(RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
 			SendPacket(&tmp);
 			if ( !m_AuthLog.IsEmpty() )
 				m_AuthLog += _T(",");
@@ -1225,7 +1253,7 @@ void Cssh::ReceivePacket(CBuffer *bp)
 		if ( type != SSH_SMSG_AUTH_TIS_CHALLENGE )
 			goto GO_AUTH_PASS;
 		tmp.Put8Bit(SSH_CMSG_AUTH_TIS_RESPONSE);
-		tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
+		tmp.PutStr(RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
 		SendPacket(&tmp);
 		m_PacketStat = 4;
 		break;
@@ -1253,7 +1281,7 @@ void Cssh::ReceivePacket(CBuffer *bp)
 			goto DISCONNECT;
 	NOCOMPRESS:
 		tmp.Put8Bit(SSH_CMSG_REQUEST_PTY);
-		tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_TermName));
+		tmp.PutStr(RemoteStr(m_pDocument->m_ServerEntry.m_TermName));
 		tmp.Put32Bit(m_pDocument->m_TextRam.m_Lines);
 		tmp.Put32Bit(m_pDocument->m_TextRam.m_Cols);
 		tmp.Put32Bit(0);
@@ -1269,7 +1297,7 @@ void Cssh::ReceivePacket(CBuffer *bp)
 		SendPacket(&tmp);
 		m_PacketStat = 7;
 		m_bConnect = TRUE;
-		m_pDocument->OnSocketConnect();
+		m_pFifoMid->SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
 		break;
 
 	case 7:		// Client loop
@@ -1323,8 +1351,7 @@ void Cssh::LogIt(LPCTSTR format, ...)
 	va_end(args);
 
 	if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
-		m_pDocument->LogDebug("%s", TstrToMbs(str));
-		GetMainWnd()->SetStatusText(str);
+		m_pFifoMid->DodMsgStrPtr(DOCMSG_LOGIT, str);
 		return;
 	}
 
@@ -1504,6 +1531,7 @@ class CFifoChannel *Cssh::GetFifoChannel(int id)
 			pChan->m_bClosed = FALSE;
 
 		} else {
+			m_pFifoMid->Lock();
 			for ( nFd = IdToFdIn(m_LastFreeId) ; ; nFd += 2 ) {
 				nFd = ((CFifoSsh *)m_pFifoMid)->GetFreeFifo(nFd);
 				id = FdToId(nFd);
@@ -1515,13 +1543,16 @@ class CFifoChannel *Cssh::GetFifoChannel(int id)
 					break;
 			}
 			m_LastFreeId = id + 1;
+			m_FifoCannel[id] = pChan = new CFifoChannel;
+			m_pFifoMid->Unlock();
 
 			if ( ++m_OpenChanCount == CHAN_MAXCONNECT ) {
-				if ( AfxMessageBox(CStringLoad(IDE_MANYCHANNEL), MB_ICONQUESTION | MB_YESNO) != IDYES )
+				if ( AfxMessageBox(CStringLoad(IDE_MANYCHANNEL), MB_ICONQUESTION | MB_YESNO) != IDYES ) {
+					m_FifoCannel[id] = NULL;
+					delete pChan;
 					return NULL;
+				}
 			}
-
-			m_FifoCannel[id] = pChan = new CFifoChannel;
 
 			pChan->m_Type = SSHFT_NONE;
 			pChan->m_Status = 0;
@@ -1800,7 +1831,17 @@ void Cssh::DelayedCheckExec()
 {
 	while ( !m_DelayedCheck.IsEmpty() ) {
 		DelayedCheck *pDelayedCheck = (DelayedCheck *)m_DelayedCheck.RemoveHead();
-		ChannelCheck(pDelayedCheck->nFd, pDelayedCheck->fdEvent, pDelayedCheck->pParam);
+		switch(pDelayedCheck->type) {
+		case 0:
+			ChannelCheck(pDelayedCheck->nFd, pDelayedCheck->fdEvent, pDelayedCheck->pParam);
+			break;
+		case 1:
+			SendPacket((CBuffer *)pDelayedCheck->pParam);
+			break;
+		case 2:
+			SendPacket2((CBuffer *)pDelayedCheck->pParam);
+			break;
+		}
 		if ( pDelayedCheck->bDelBuf )
 			delete (CBuffer *)pDelayedCheck->pParam;
 		delete pDelayedCheck;
@@ -1818,12 +1859,13 @@ void Cssh::ChannelCheck(int nFd, int fdEvent, void *pParam)
 
 	if (  (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 ) {
 		DelayedCheck *pDelayedCheck = new DelayedCheck;
+		pDelayedCheck->type    = 0;
 		pDelayedCheck->nFd     = nFd;
 		pDelayedCheck->fdEvent = fdEvent;
 		if ( (nFd & 1) != 0 && fdEvent == FD_READ && bp != NULL ) {	// EXTOUT SSH -> FifoChennel FD_READ pParam = CBuffer ptr
 			CBuffer *pTemp = new CBuffer();
 			pTemp->Swap(*bp);
-			pDelayedCheck->pParam = pTemp;
+			pDelayedCheck->pParam  = pTemp;
 			pDelayedCheck->bDelBuf = TRUE;
 		} else {
 			pDelayedCheck->pParam  = pParam;
@@ -1981,7 +2023,7 @@ void Cssh::SocksResult(class CFifoSocks *pFifoSocks)
 		} else {
 			CFifoSocket *pFifoSocket = new CFifoSocket(m_pDocument, this);
 
-			pChan->m_rHost = m_pDocument->LocalStr(pFifoSocks->m_HostName);
+			pChan->m_rHost = LocalStr(pFifoSocks->m_HostName);
 			pChan->m_rPort = pFifoSocks->m_HostPort;
 
 			CFifoBase::Link(pFifoSocks, FIFO_EXTIN, pFifoSocket, FIFO_STDIN);
@@ -2013,7 +2055,7 @@ void Cssh::SocksResult(class CFifoSocks *pFifoSocks)
 			ChannelClose(pChan->m_LocalID);
 
 		} else {
-			host[0] = m_pDocument->LocalStr(pFifoSocks->m_HostName);
+			host[0] = LocalStr(pFifoSocks->m_HostName);
 			host[1] = pChan->m_lHost;
 			SendMsgChannelOpen(pChan->m_LocalID, "direct-tcpip", host[0], pFifoSocks->m_HostPort, host[1], pChan->m_lPort);
 
@@ -2100,7 +2142,7 @@ void Cssh::PortForward()
 
 		if ( m_bPfdConnect == 0 ) {
 			m_bConnect = TRUE;
-			m_pDocument->OnSocketConnect();
+			m_pFifoMid->SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
 		}
 	} else
 		m_bPfdConnect = 0;
@@ -2113,13 +2155,12 @@ void Cssh::OpenSFtpChannel()
 	if ( (m_SSH2Status & SSH2_STAT_HAVELOGIN) == 0 )
 		return;
 
-	int id = SendMsgChannelOpen((-1), "session");
-	ASSERT(id >= 0);
-	CFifoChannel *pChan = GetFifoChannel(id);
-	ASSERT(pChan != NULL);
+	CFifoChannel *pChan = GetFifoChannel(-1);
+
+	if ( pChan == NULL )
+		return;
 
 	pChan->m_Type = SSHFT_SFTP;
-	pChan->m_Status = CHAN_OPEN_LOCAL;
 	pChan->m_pFifoBase = new CFifoSftp(m_pDocument, this, new CSFtp(NULL));
 
 	((CFifoSftp *)pChan->m_pFifoBase)->m_pSFtp->m_pSSh = this;
@@ -2128,7 +2169,9 @@ void Cssh::OpenSFtpChannel()
 	((CFifoSftp *)pChan->m_pFifoBase)->m_pSFtp->Create(IDD_SFTPDLG, CWnd::GetDesktopWindow());
 	((CFifoSftp *)pChan->m_pFifoBase)->m_pSFtp->ShowWindow(SW_SHOW);
 
-	CFifoBase::Link(m_pFifoMid, IdToFdIn(id), pChan->m_pFifoBase, FIFO_STDIN);
+	CFifoBase::Link(m_pFifoMid, IdToFdIn(pChan->m_LocalID), pChan->m_pFifoBase, FIFO_STDIN);
+
+	PostSendMsgChannelOpen(pChan->m_LocalID, "session");
 }
 
 static LPCTSTR GetFileName(LPCTSTR path)
@@ -2180,15 +2223,14 @@ void Cssh::OpenRcpUpload(LPCTSTR file)
 		m_FileList.AddTail(file);
 	}
 
-	int id = SendMsgChannelOpen((-1), "session");
-	ASSERT(id >= 0);
-	CFifoChannel *pChan = GetFifoChannel(id);
-	ASSERT(pChan != NULL);
+	CFifoChannel *pChan = GetFifoChannel(-1);
 	LPCTSTR last = GetFileName(file);
 	CString work;
 
+	if ( pChan == NULL )
+		return;
+
 	pChan->m_Type = SSHFT_RCP;
-	pChan->m_Status = CHAN_OPEN_LOCAL;
 	pChan->m_rHost.Format(m_pDocument->m_TextRam.m_DropFileCmd[5], ShellEscape(last, work));
 	pChan->m_pFifoBase = new CFifoRcp(m_pDocument, this, pChan, 0);	// rcp file upload = 0
 
@@ -2201,21 +2243,22 @@ void Cssh::OpenRcpUpload(LPCTSTR file)
 	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg->SetWindowText(_T("scp File upload"));
 	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg->ShowWindow(SW_SHOW);
 
-	CFifoBase::Link(m_pFifoMid, IdToFdIn(id), pChan->m_pFifoBase, FIFO_STDIN);
+	CFifoBase::Link(m_pFifoMid, IdToFdIn(pChan->m_LocalID), pChan->m_pFifoBase, FIFO_STDIN);
+
+	PostSendMsgChannelOpen(pChan->m_LocalID, "session");
 }
 void Cssh::OpenRcpDownload(LPCTSTR file)
 {
-	int id = SendMsgChannelOpen((-1), "session");
-	ASSERT(id >= 0);
-	CFifoChannel *pChan = GetFifoChannel(id);
-	ASSERT(pChan != NULL);
+	CFifoChannel *pChan = GetFifoChannel(-1);
 	CString work;
+
+	if ( pChan == NULL )
+		return;
 
 	wchar_t *MyDownload;
 	SHGetKnownFolderPath(FOLDERID_Downloads, 0, NULL, &MyDownload);
 
 	pChan->m_Type = SSHFT_RCP;
-	pChan->m_Status = CHAN_OPEN_LOCAL;
 	pChan->m_rHost.Format(_T("scp -p -r -f %s"), ShellEscape(file, work));
 	pChan->m_pFifoBase = new CFifoRcp(m_pDocument, this, pChan, 1);	// rcp file download = 1
 
@@ -2227,7 +2270,9 @@ void Cssh::OpenRcpDownload(LPCTSTR file)
 	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg->SetWindowText(_T("scp File download"));
 	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg->ShowWindow(SW_SHOW);
 
-	CFifoBase::Link(m_pFifoMid, IdToFdIn(id), pChan->m_pFifoBase, FIFO_STDIN);
+	CFifoBase::Link(m_pFifoMid, IdToFdIn(pChan->m_LocalID), pChan->m_pFifoBase, FIFO_STDIN);
+
+	PostSendMsgChannelOpen(pChan->m_LocalID, "session");
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2436,7 +2481,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 	tmp.PutBuf(m_SessHash.GetPtr(), m_SessHash.GetSize());
 	skip = tmp.GetSize();
 	tmp.Put8Bit(SSH2_MSG_USERAUTH_REQUEST);
-	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
+	tmp.PutStr(RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
 	tmp.PutStr("ssh-connection");
 
 	if ( str == NULL ) {
@@ -2531,9 +2576,9 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				tmp.PutStr(TstrToMbs(m_pIdKey->GetName(TRUE, FALSE)));
 				tmp.PutBuf(blob.GetPtr(), blob.GetSize());
 				GetSockName(m_Fd, wrk, &len);
-				tmp.PutStr(m_pDocument->RemoteStr(wrk));			// client ip address
+				tmp.PutStr(RemoteStr(wrk));			// client ip address
 				m_pIdKey->GetUserHostName(wrk);
-				tmp.PutStr(m_pDocument->RemoteStr(wrk));			// client user name;
+				tmp.PutStr(RemoteStr(wrk));			// client user name;
 
 				if ( !m_pIdKey->Sign(&sig, tmp.GetPtr(), tmp.GetSize(), GetSigAlgs()) ) {
 					tmp.ConsumeEnd(tmp.GetSize() - len);
@@ -2578,7 +2623,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 			tmp.PutStr("password");
 			tmp.Put8Bit(0);
-			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
+			tmp.PutStr(RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
 
 			AddAuthLog(_T("password(%s)"), m_pDocument->m_ServerEntry.m_UserName);
 
@@ -2648,6 +2693,24 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 //////////////////////////////////////////////////////////////////////
 
+void Cssh::PostSendMsgChannelOpen(int id, LPCSTR type)
+{
+	CFifoChannel *pChan = GetFifoChannel(id);
+	CBuffer tmp;
+
+	ASSERT(pChan != NULL);
+
+	pChan->m_TypeName = type;
+	pChan->m_Status |= CHAN_OPEN_LOCAL;
+
+	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN);
+	tmp.PutStr(type);
+	tmp.Put32Bit(pChan->m_LocalID);
+	tmp.Put32Bit(pChan->m_LocalWind);
+	tmp.Put32Bit(pChan->m_LocalPacks);
+
+	PostSendPacket(2, &tmp);
+}
 int Cssh::SendMsgChannelOpen(int id, LPCSTR type, LPCTSTR lhost, int lport, LPCTSTR rhost, int rport)
 {
 	CFifoChannel *pChan = GetFifoChannel(id);
@@ -2666,9 +2729,9 @@ int Cssh::SendMsgChannelOpen(int id, LPCSTR type, LPCTSTR lhost, int lport, LPCT
 	tmp.Put32Bit(pChan->m_LocalPacks);
 
 	if ( lhost != NULL ) {
-		tmp.PutStr(m_pDocument->RemoteStr(lhost));
+		tmp.PutStr(RemoteStr(lhost));
 		tmp.Put32Bit(lport);
-		tmp.PutStr(m_pDocument->RemoteStr(rhost));
+		tmp.PutStr(RemoteStr(rhost));
 		tmp.Put32Bit(rport);
 		pChan->m_lHost = lhost;
 		pChan->m_lPort = lport;
@@ -2851,7 +2914,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	tmp.Put32Bit(pChan->m_RemoteID);
 	tmp.PutStr("pty-req");
 	tmp.Put8Bit(1);
-	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_TermName));
+	tmp.PutStr(RemoteStr(m_pDocument->m_ServerEntry.m_TermName));
 	tmp.Put32Bit(cx);
 	tmp.Put32Bit(cy);
 	tmp.Put32Bit(sx);
@@ -2884,8 +2947,8 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 		tmp.Put32Bit(pChan->m_RemoteID);
 		tmp.PutStr("env");
 		tmp.Put8Bit(0);
-		tmp.PutStr(m_pDocument->RemoteStr(env[n].m_nIndex));
-		tmp.PutStr(m_pDocument->RemoteStr(env[n].m_String));
+		tmp.PutStr(RemoteStr(env[n].m_nIndex));
+		tmp.PutStr(RemoteStr(env[n].m_String));
 		SendPacket2(&tmp);
 	}
 
@@ -2933,7 +2996,7 @@ void Cssh::SendMsgGlobalRequest(int num, LPCSTR str, LPCTSTR rhost, int rport)
 	tmp.PutStr(str);
 	tmp.Put8Bit(1);
 	if ( rhost != NULL ) {
-		tmp.PutStr(m_pDocument->RemoteStr(rhost));
+		tmp.PutStr(RemoteStr(rhost));
 		tmp.Put32Bit(rport);
 	}
 	SendPacket2(&tmp);
@@ -3814,7 +3877,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 	bp->GetStr(lang);
 
 	tmp.Put8Bit(SSH2_MSG_USERAUTH_REQUEST);
-	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
+	tmp.PutStr(RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
 	tmp.PutStr("ssh-connection");
 	tmp.PutStr("password");
 	tmp.Put8Bit(1);
@@ -3828,7 +3891,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 	if ( dlg.DoModal() != IDOK )
 		goto NEXTAUTH;
 
-	tmp.PutStr(m_pDocument->RemoteStr(dlg.m_PassName));
+	tmp.PutStr(RemoteStr(dlg.m_PassName));
 
 	info = "Enter New Password";
 	while ( pass.IsEmpty() ) {
@@ -3860,7 +3923,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 		}
 	}
 
-	tmp.PutStr(m_pDocument->RemoteStr(pass));
+	tmp.PutStr(RemoteStr(pass));
 	SendPacket2(&tmp);
 	return 0;
 
@@ -3891,20 +3954,21 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 
 		// 最初のトライでは、保存されたパスワードを送ってみる
 		if ( m_IdKeyPos == 0 && n == 0 && max == 1 && !m_pDocument->m_ServerEntry.m_PassName.IsEmpty() && IsStriStr(prom, "password") ) {
-			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
+			tmp.PutStr(RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
 			bAutoPass = TRUE;
 
 		} else {
 			dlg.m_WinText.Format(_T("keyboard-interactive(%s@%s)"), (LPCTSTR)m_pDocument->m_ServerEntry.m_UserName, (LPCTSTR)m_pDocument->m_ServerEntry.m_HostName);
+			dlg.m_Title.Empty();
 			if ( !name.IsEmpty() ) {
-				dlg.m_Title += m_pDocument->LocalStr(name);
+				dlg.m_Title += LocalStr(name);
 				dlg.m_Title += _T("\r\n");
 			}
 			if ( !inst.IsEmpty() ) {
-				dlg.m_Title += m_pDocument->LocalStr(inst);
+				dlg.m_Title += LocalStr(inst);
 				dlg.m_Title += _T("\r\n");
 			}
-			dlg.m_Title += m_pDocument->LocalStr(prom);
+			dlg.m_Title += LocalStr(prom);
 			dlg.m_bPassword = (echo == 0 ? TRUE : FALSE);
 
 			if ( dlg.DoModal() != IDOK ) {
@@ -3913,7 +3977,7 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 				return 0;
 			}
 
-			tmp.PutStr(m_pDocument->RemoteStr(dlg.m_Edit));
+			tmp.PutStr(RemoteStr(dlg.m_Edit));
 		}
 	}
 
@@ -4021,7 +4085,7 @@ int Cssh::SSH2MsgUserAuthGssapiProcess(CBuffer *bp, int type)
 	tmp.Clear();
 	tmp.PutBuf(m_SessHash.GetPtr(), m_SessHash.GetSize());
 	tmp.Put8Bit(SSH2_MSG_USERAUTH_REQUEST);
-	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
+	tmp.PutStr(RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
 	tmp.PutStr("ssh-connection");
 	tmp.PutStr("gssapi-with-mic");
 
@@ -4109,7 +4173,7 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 
 	} else if ( type.CompareNoCase("x11") == 0 ) {
 		bp->GetStr(mbs);
-		host[0] = m_pDocument->LocalStr(mbs);
+		host[0] = LocalStr(mbs);
 		port[0] = bp->Get32Bit();
 
 		if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSHX11PF) )
@@ -4154,10 +4218,10 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 
 	} else if ( type.CompareNoCase("forwarded-tcpip") == 0 ) {
 		bp->GetStr(mbs);
-		host[0] = m_pDocument->LocalStr(mbs);
+		host[0] = LocalStr(mbs);
 		port[0] = bp->Get32Bit();
 		bp->GetStr(mbs);
-		host[1] = m_pDocument->LocalStr(mbs);
+		host[1] = LocalStr(mbs);
 		port[1] = bp->Get32Bit();
 
 		for ( i = 0 ; i < m_Permit.GetSize() ; i++ ) {
@@ -4255,7 +4319,7 @@ int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 		break;
 	case SSHFT_RCP:
 		LogIt(_T("Connect #%d rcp"), id);
-		SendMsgChannelRequesstExec(id, m_pDocument->RemoteStr(pChan->m_rHost));
+		SendMsgChannelRequesstExec(id, RemoteStr(pChan->m_rHost));
 		break;
 	case SSHFT_X11:
 		LogIt(_T("Connect #%d x11"), id);
@@ -4538,7 +4602,7 @@ int Cssh::SSH2MsgGlobalRequest(CBuffer *bp)
 
 #ifdef	DEBUG
 	} else if ( !str.IsEmpty() ) {
-		msg.Format(_T("Get Msg Global Request '%s'"), m_pDocument->LocalStr(str));
+		msg.Format(_T("Get Msg Global Request '%s'"), LocalStr(str));
 		AfxMessageBox(msg);
 #endif
 	}
@@ -4569,7 +4633,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 
 	if ( m_bPfdConnect > 0 && --m_bPfdConnect <= 0 ) {
 		m_bConnect = TRUE;
-		m_pDocument->OnSocketConnect();
+		m_pFifoMid->SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
 	}
 
 	if ( type == SSH2_MSG_REQUEST_FAILURE && num < m_Permit.GetSize() ) {
@@ -4589,7 +4653,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 	DEBUGLOG("ReceivePacket2 %d(%d) Seq=%d", bp->PTR8BIT(bp->GetPtr()), bp->GetSize(), m_RecvPackSeq);
 	DEBUGDUMP(bp->GetPtr(), bp->GetSize());
 
-	CStringA str;
+	CStringA str, tmp;
 	int type = bp->Get8Bit();
 
 	switch(type) {
@@ -4743,15 +4807,13 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 			m_DecCmp.Init(NULL, MODE_DEC, COMPLEVEL);
 		m_SSH2Status |= SSH2_STAT_HAVELOGIN;
 		if ( !m_pDocument->m_CmdsPath.IsEmpty() ) {
-			OpenRcpDownload(m_pDocument->m_CmdsPath);
+			m_pFifoMid->SendFdCommand(FIFO_EXTOUT, FIFO_CMD_MSGQUEIN, FIFO_QCMD_RCPDOWNLOAD);
 			break;
 		}
 		if ( (m_SSH2Status & SSH2_STAT_HAVEPFWD) == 0 ) {
 			m_SSH2Status |= SSH2_STAT_HAVEPFWD;
 			PortForward();
 		}
-		if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFTPORY) )
-			OpenSFtpChannel();
 		if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) && (m_SSH2Status & SSH2_STAT_HAVESTDIO) == 0 ) {
 			CFifoChannel *pChan = GetFifoChannel(-2);
 			if ( pChan != NULL )
@@ -4759,7 +4821,9 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		} else
 			GetFifoChannel(-2);
 		if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_SshKeepAlive > 0 )
-			m_KeepAliveTiimerId = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
+			m_KeepAliveTiimerId = m_pFifoMid->DocMsgSetTimer(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
+		if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFTPORY) )
+			m_pFifoMid->DocMsgCommand(IDM_SFTP);
 		break;
 	case SSH2_MSG_USERAUTH_FAILURE:
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
@@ -4857,8 +4921,8 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 	case SSH2_MSG_DISCONNECT:
 		bp->Get32Bit();
 		bp->GetStr(str);
-		str.Format("SSH2 Receive Disconnect Message\n%s", TstrToMbs(m_pDocument->LocalStr(str)));
-		AfxMessageBox(MbsToTstr(str));
+		tmp.Format("SSH2 Receive Disconnect Message\n%s", str);
+		AfxMessageBox(LocalStr(tmp));
 		break;
 
 	case SSH2_MSG_IGNORE:
@@ -4868,8 +4932,8 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 #ifdef	DEBUG_XXX
 		bp->Get8Bit();
 		bp->GetStr(str);
-		str.Format("SSH2 Debug Message\n%s", TstrToMbs(m_pDocument->LocalStr(str)));
-		AfxMessageBox(MbsToTstr(str), MB_ICONINFORMATION);
+		tmp.Format("SSH2 Debug Message\n%s", str);
+		AfxMessageBox(LocalStr(tmp), MB_ICONINFORMATION);
 #endif
 		break;
 

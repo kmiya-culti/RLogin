@@ -49,19 +49,19 @@ void CFontParaDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogExt::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CFontParaDlg)
 	DDX_Check(pDX, IDC_SHIFT, m_ShiftTemp);
-	DDX_CBString(pDX, IDC_CHARSET, m_CharSetTemp);
-	DDX_CBString(pDX, IDC_DISPZOOMH, m_ZoomTemp[0]);
-	DDX_CBString(pDX, IDC_DISPZOOMW, m_ZoomTemp[1]);
-	DDX_CBString(pDX, IDC_DISPOFFSETH, m_OffsTemp[0]);
-	DDX_CBString(pDX, IDC_DISPOFFSETW, m_OffsTemp[1]);
-	DDX_CBString(pDX, IDC_CHARBANK, m_BankTemp);
-	DDX_CBString(pDX, IDC_FONTCODE, m_CodeTemp);
-	DDX_CBString(pDX, IDC_ICONVSET, m_IContName);
+	DDX_CBStringExact(pDX, IDC_CHARSET, m_CharSetTemp);
+	DDX_CBStringExact(pDX, IDC_DISPZOOMH, m_ZoomTemp[0]);
+	DDX_CBStringExact(pDX, IDC_DISPZOOMW, m_ZoomTemp[1]);
+	DDX_CBStringExact(pDX, IDC_DISPOFFSETH, m_OffsTemp[0]);
+	DDX_CBStringExact(pDX, IDC_DISPOFFSETW, m_OffsTemp[1]);
+	DDX_CBStringExact(pDX, IDC_CHARBANK, m_BankTemp);
+	DDX_CBStringExact(pDX, IDC_FONTCODE, m_CodeTemp);
+	DDX_CBStringExact(pDX, IDC_ICONVSET, m_IContName);
 	DDX_Text(pDX, IDC_ENTRYNAME, m_EntryName);
-	DDX_CBString(pDX, IDC_FACENAME, m_FontName);
+	DDX_CBStringExact(pDX, IDC_FACENAME, m_FontName);
 	DDX_CBIndex(pDX, IDC_FONTNUM, m_FontNum);
 	DDX_CBIndex(pDX, IDC_FONTQUALITY, m_FontQuality);
-	DDX_CBString(pDX, IDC_OVERZERO, m_OverZero);
+	DDX_CBStringExact(pDX, IDC_OVERZERO, m_OverZero);
 	//}}AFX_DATA_MAP
 }
 

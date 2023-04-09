@@ -33,7 +33,7 @@ CPaneFrame::CPaneFrame(class CMainFrame *pMain, HWND hWnd, class CPaneFrame *pOw
 	m_pMain  = pMain;
 
 	m_Style = PANEFRAME_WINDOW;
-	m_BoderSize = 2;
+	m_BoderSize = MulDiv(2, SCREEN_DPI_X, DEFAULT_DPI_X);
 	m_bActive = FALSE;
 	m_pServerEntry = NULL;
 	m_bReqSize = FALSE;
@@ -1514,14 +1514,14 @@ BOOL CMainFrame::AgeantInit()
 
 	return (count > 0 ? TRUE : FALSE);
 }
-BOOL CMainFrame::AgeantSign(int type, CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
+BOOL CMainFrame::AgeantSign(int type, CBuffer *blob, CBuffer *sign, LPBYTE buf, int len, int flag)
 {
 	CBuffer in(-1), out(-1), work(-1);
 
 	work.Put8Bit(SSH_AGENTC_SIGN_REQUEST);
 	work.PutBuf(blob->GetPtr(), blob->GetSize());
 	work.PutBuf(buf, len);
-	work.Put32Bit(0);
+	work.Put32Bit(flag);
 	
 	in.PutBuf(work.GetPtr(), work.GetSize());
 
@@ -4470,37 +4470,41 @@ LRESULT CMainFrame::OnDocumentMsg(WPARAM wParam, LPARAM lParam)
 {
 	DocMsg *pDocMsg = (DocMsg *)lParam;
 
-	ASSERT(pDocMsg != NULL && pDocMsg->doc != NULL);
+	ASSERT(pDocMsg != NULL);
 
 	switch((int)wParam) {
 	case DOCMSG_REMOTESTR:
-		ASSERT(pDocMsg->type == DOCMSG_TYPE_STRINGA);
+		ASSERT(pDocMsg->type == DOCMSG_TYPE_STRINGA && pDocMsg->doc != NULL);
 		*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr((LPCTSTR)pDocMsg->pIn);
 		break;
 	case DOCMSG_LOCALSTR:
-		ASSERT(pDocMsg->type == DOCMSG_TYPE_STRINGT);
+		ASSERT(pDocMsg->type == DOCMSG_TYPE_STRINGT && pDocMsg->doc != NULL);
 		*((CString *)pDocMsg->pOut) = pDocMsg->doc->LocalStr((LPCSTR)pDocMsg->pIn);
 		break;
 
 	case DOCMSG_USERNAME:
+		ASSERT(pDocMsg->doc != NULL);
 		if ( pDocMsg->type == DOCMSG_TYPE_STRINGA )
 			*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ServerEntry.m_UserName);
 		else if ( pDocMsg->type == DOCMSG_TYPE_STRINGW )
 			*((CStringW *)pDocMsg->pOut) = TstrToUni(pDocMsg->doc->m_ServerEntry.m_UserName);
 		break;
 	case DOCMSG_PASSNAME:
+		ASSERT(pDocMsg->doc != NULL);
 		if ( pDocMsg->type == DOCMSG_TYPE_STRINGA )
 			*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ServerEntry.m_PassName);
 		else if ( pDocMsg->type == DOCMSG_TYPE_STRINGW )
 			*((CStringW *)pDocMsg->pOut) = TstrToUni(pDocMsg->doc->m_ServerEntry.m_PassName);
 		break;
 	case DOCMSG_TERMNAME:
+		ASSERT(pDocMsg->doc != NULL);
 		if ( pDocMsg->type == DOCMSG_TYPE_STRINGA )
 			*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ServerEntry.m_TermName);
 		else if ( pDocMsg->type == DOCMSG_TYPE_STRINGW )
 			*((CStringW *)pDocMsg->pOut) = TstrToUni(pDocMsg->doc->m_ServerEntry.m_TermName);
 		break;
 	case DOCMSG_ENVSTR:
+		ASSERT(pDocMsg->doc != NULL);
 		if ( pDocMsg->type == DOCMSG_TYPE_STRINGA )
 			*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ParamTab.m_ExtEnvStr);
 		else if ( pDocMsg->type == DOCMSG_TYPE_STRINGW )
@@ -4509,12 +4513,13 @@ LRESULT CMainFrame::OnDocumentMsg(WPARAM wParam, LPARAM lParam)
 
 	case DOCMSG_SCREENSIZE:
 		{
-			ASSERT(pDocMsg->type == DOCMSG_TYPE_INTPTR);
+			ASSERT(pDocMsg->type == DOCMSG_TYPE_INTPTR && pDocMsg->doc != NULL);
 			int *pInt = (int *)pDocMsg->pOut;
 			pDocMsg->doc->m_TextRam.GetScreenSize(pInt + 0, pInt + 1, pInt + 2, pInt + 3);
 		}
 		break;
 	case DOCMSG_LINEMODE:
+		ASSERT(pDocMsg->doc != NULL);
 		if ( pDocMsg->type == 0 ) {
 			if ( pDocMsg->doc->m_TextRam.IsLineEditEnable() )
 				pDocMsg->doc->m_TextRam.LineEditSwitch();
@@ -4524,8 +4529,9 @@ LRESULT CMainFrame::OnDocumentMsg(WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case DOCMSG_TTYMODE:
+		ASSERT(pDocMsg->doc != NULL);
 		for ( int n = 0 ; n < pDocMsg->doc->m_ParamTab.m_TtyMode.GetSize() ; n++ ) {
-			if ( pDocMsg->doc->m_ParamTab.m_TtyMode[n].opcode == (BYTE)pDocMsg->pIn ) {
+			if ( pDocMsg->doc->m_ParamTab.m_TtyMode[n].opcode == (BYTE)(UINT_PTR)pDocMsg->pIn ) {
 				*((DWORD *)(pDocMsg->pOut)) = pDocMsg->doc->m_ParamTab.m_TtyMode[n].param;
 				break;
 			}
@@ -4533,8 +4539,37 @@ LRESULT CMainFrame::OnDocumentMsg(WPARAM wParam, LPARAM lParam)
 		break;
 
 	case DOCMSG_KEEPALIVE:
+		ASSERT(pDocMsg->doc != NULL);
 		if ( pDocMsg->doc->m_TextRam.IsOptEnable(TO_TELKEEPAL) && pDocMsg->doc->m_TextRam.m_TelKeepAlive > 0 )
 			*((DWORD *)(pDocMsg->pOut)) = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(pDocMsg->doc->m_TextRam.m_TelKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, pDocMsg->pIn);
+		break;
+
+	case DOCMSG_ENTRYTEXT:
+		ASSERT(pDocMsg->doc != NULL);
+		if ( pDocMsg->type == DOCMSG_TYPE_STRINGT )
+			pDocMsg->doc->EntryText(*((CString *)pDocMsg->pOut));
+		break;
+	case DOCMSG_LOGIT:
+		ASSERT(pDocMsg->doc != NULL);
+		if ( pDocMsg->type == DOCMSG_TYPE_STRPTR ) {
+			pDocMsg->doc->LogDebug("%s", TstrToMbs(((LPCTSTR)(pDocMsg->pIn))));
+			SetStatusText((LPCTSTR)(pDocMsg->pIn));
+		}
+		break;
+	case DOCMSG_COMMAND:
+		ASSERT(pDocMsg->doc != NULL);
+		if ( pDocMsg->type == DOCMSG_TYPE_INT ) {
+			CWnd *pWnd = pDocMsg->doc->GetAciveView();
+			if ( pWnd != NULL )
+				pWnd->PostMessage(WM_COMMAND, (WPARAM)(int)(UINT_PTR)(pDocMsg->pIn), NULL);
+		}
+		break;
+	case DOCMSG_SETTIMER:
+		pDocMsg->type = SetTimerEvent((int)(pDocMsg->type), (int)(UINT_PTR)(pDocMsg->pIn), pDocMsg->pOut);
+		break;
+
+	case DOCMSG_MESSAGE:
+		pDocMsg->type = MessageBox((LPCTSTR)(pDocMsg->pIn), (LPCTSTR)(pDocMsg->pOut), (UINT)(pDocMsg->type));
 		break;
 	}
 

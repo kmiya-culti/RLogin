@@ -48,7 +48,7 @@ public:
 	CPipeSock(class CRLoginDoc *pDoc);
 	virtual ~CPipeSock(void);
 
-	virtual void FifoLink();
+	virtual CFifoBase *FifoLinkLeft();
 	virtual void SendBreak(int opt);
 
 	void GetPathMaps(CStringMaps &maps);

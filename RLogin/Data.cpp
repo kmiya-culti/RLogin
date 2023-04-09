@@ -74,6 +74,15 @@ BOOL IsZeroMemory(void *ptr, int len)
 	return FALSE;
 #endif
 }
+BOOL IsDigits(LPCTSTR p)
+{
+	while ( *p != _T('\0') ) {
+		if ( *p < _T('0') || *p > _T('9') )
+			return FALSE;
+		p++;
+	}
+	return TRUE;
+}
 
 //////////////////////////////////////////////////////////////////////
 // CBits
@@ -4525,6 +4534,7 @@ void CServerEntry::Init()
 	m_ProxyUserProvs.Empty();
 	m_ProxyPassProvs.Empty();
 	m_ProxySSLKeep = FALSE;
+	m_ProxyCmd.Empty();
 	m_BeforeEntry.Empty();
 	m_OptFixEntry.Empty();
 	m_ReEntryFlag = FALSE;
@@ -4569,6 +4579,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_ProxyUserProvs = data.m_ProxyUserProvs;
 	m_ProxyPassProvs = data.m_ProxyPassProvs;
 	m_ProxySSLKeep   = data.m_ProxySSLKeep;
+	m_ProxyCmd       = data.m_ProxyCmd;
 	m_BeforeEntry    = data.m_BeforeEntry;
 	m_OptFixEntry    = data.m_OptFixEntry;
 	m_ReEntryFlag    = data.m_ReEntryFlag;
@@ -4631,6 +4642,7 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_IconName     = (stra.GetSize() > 23 ?  stra.GetAt(23) : _T(""));
 	m_bOptFixed    = (stra.GetSize() > 24 ?  stra.GetVal(24) : FALSE);;
 	m_OptFixEntry  = (stra.GetSize() > 25 ?  stra.GetAt(25) : _T(""));
+	m_ProxyCmd     = (stra.GetSize() > 26 ?  stra.GetAt(26) : _T(""));
 
 	m_ProBuffer.Clear();
 
@@ -4680,6 +4692,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.Add(m_IconName);
 	stra.AddVal(m_bOptFixed);
 	stra.Add(m_OptFixEntry);
+	stra.Add(m_ProxyCmd);
 }
 
 static const ScriptCmdsDefs DocEntry[] = {
@@ -4706,6 +4719,7 @@ static const ScriptCmdsDefs DocEntry[] = {
 	{	"Port",			22	},
 	{	"User",			23	},
 	{	"Pass",			24	},
+	{	"Cmd",			25	},
 	{	NULL,			0	},
 };
 
@@ -4820,6 +4834,9 @@ void CServerEntry::ScriptValue(int cmds, class CScriptValue &value, int mode)
 	case 24:				// Document.Entry.Proxy.Pass
 		value.SetStr(m_ProxyPass, mode);
 		break;
+	case 25:				// Document.Entry.Proxy.Cmd
+		value.SetStr(m_ProxyCmd, mode);
+		break;
 	}
 }
 void CServerEntry::SetBuffer(CBuffer &buf)
@@ -4928,6 +4945,8 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		key.EncryptStr(str, pass);
 		index[_T("Proxy")][_T("Pass")] = str;
 
+		index[_T("Proxy")][_T("Cmd")] = m_ProxyCmd;
+
 		index[_T("Script")][_T("File")] = m_ScriptFile;
 		index[_T("Script")][_T("Text")] = m_ScriptStr;
 
@@ -4991,6 +5010,8 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 				else
 					m_bPassOk = FALSE;
 			}
+			if ( (i = index[n].Find(_T("Cmd"))) >= 0 )
+				m_ProxyCmd = index[n][i];
 		}
 
 		if ( (n = index.Find(_T("Script"))) >= 0 ) {
@@ -5088,6 +5109,9 @@ void CServerEntry::DiffIndex(CServerEntry &orig, CStringIndex &index)
 		key.EncryptStr(str, pass);
 		index[_T("Pass")]  = str;
 	}
+
+	if ( m_ProxyCmd.Compare(orig.m_ProxyCmd) != 0 )
+		index[_T("Proxy")][_T("Cmd")] = m_ProxyCmd;
 
 	if ( m_ScriptFile.Compare(orig.m_ScriptFile) != 0 )
 		index[_T("Script")][_T("File")] = m_ScriptFile;

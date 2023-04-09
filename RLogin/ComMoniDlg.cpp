@@ -50,10 +50,10 @@ void CComMoniDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogExt::DoDataExchange(pDX);
 
-	DDX_CBString(pDX, IDC_BAUDRATE, m_BaudRate);
-	DDX_CBString(pDX, IDC_DATABITS, m_DataBits);
-	DDX_CBString(pDX, IDC_PARITYBIT, m_ParityBit);
-	DDX_CBString(pDX, IDC_STOPBITS, m_StopBits);
+	DDX_CBStringExact(pDX, IDC_BAUDRATE, m_BaudRate);
+	DDX_CBStringExact(pDX, IDC_DATABITS, m_DataBits);
+	DDX_CBStringExact(pDX, IDC_PARITYBIT, m_ParityBit);
+	DDX_CBStringExact(pDX, IDC_STOPBITS, m_StopBits);
 	DDX_CBIndex(pDX, IDC_FLOWCTRL, m_FlowCtrl);
 
 	DDX_Text(pDX, IDC_SENDWAITC, m_SendWait[0]);

@@ -3182,6 +3182,8 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 	int n;
 	CIdleProc *pProc;
 	BOOL rt = FALSE;
+	
+	ASSERT(m_nThreadID == GetCurrentThreadId());
 
 	if ( lCount >= 0 && CWinApp::OnIdle(lCount) )
 		return TRUE;
@@ -3230,6 +3232,38 @@ BOOL CRLoginApp::IsIdleMessage(MSG* pMsg)
 		return TRUE;
 
 	return FALSE;
+}
+int CRLoginApp::DoMessageBox(LPCTSTR lpszPrompt, UINT nType, UINT nIDPrompt)
+{
+	if ( (nType & MB_ICONMASK) == 0 ) {
+		switch (nType & MB_TYPEMASK) {
+		case MB_OK:
+		case MB_OKCANCEL:
+			nType |= MB_ICONEXCLAMATION;
+			break;
+
+		case MB_YESNO:
+		case MB_YESNOCANCEL:
+			nType |= MB_ICONQUESTION;
+			break;
+
+		case MB_ABORTRETRYIGNORE:
+		case MB_RETRYCANCEL:
+			break;
+		}
+	}
+
+	if ( m_nThreadID == GetCurrentThreadId() )
+		return ::AfxGetMainWnd()->MessageBox(lpszPrompt, NULL, nType);
+	else {
+		DocMsg docMsg;
+		docMsg.doc = NULL;
+		docMsg.pIn = (void *)lpszPrompt;
+		docMsg.pOut = (void *)NULL;
+		docMsg.type = nType;
+		theApp.m_pMainWnd->SendMessage(WM_DOCUMENTMSG, DOCMSG_MESSAGE, (LPARAM)&docMsg);
+		return docMsg.type;
+	}
 }
 
 void CRLoginApp::AddIdleProc(int Type, void *pParam)

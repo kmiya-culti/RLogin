@@ -1024,6 +1024,7 @@
 #define IDC_VOICEDESC                   2515
 #define IDC_PASSDISP                    2516
 #define IDC_HELPBTN                     2517
+#define IDC_PROXYCMD                    2518
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1174,7 +1175,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         5154
-#define _APS_NEXT_CONTROL_VALUE         2518
+#define _APS_NEXT_CONTROL_VALUE         2519
 #define _APS_NEXT_SYMED_VALUE           659
 #endif
 #endif

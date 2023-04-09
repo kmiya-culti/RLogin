@@ -219,7 +219,7 @@ void CDialogExt::GetActiveDpi(CSize &dpi, CWnd *pWnd, CWnd *pParent)
 		dpi.cx = DpiX;
 		dpi.cy = DpiY;
 
-	} else if ( ::AfxGetMainWnd() != NULL ) {
+	} else if ( theApp.m_pMainWnd != NULL ) {
 		dpi.cx = SCREEN_DPI_X;
 		dpi.cy = SCREEN_DPI_Y;
 
@@ -563,7 +563,10 @@ afx_msg HBRUSH CDialogExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 
 afx_msg LRESULT CDialogExt::OnKickIdle(WPARAM wParam, LPARAM lParam)
 {
-	return ((CRLoginApp *)AfxGetApp())->OnIdle((LONG)lParam);
+	DWORD d = GetCurrentThreadId();
+	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
+
+	return (pApp->m_nThreadID == d ? pApp->OnIdle((LONG)lParam) : FALSE);
 }
 
 static BOOL CALLBACK EnumWindowsProc(HWND hWnd , LPARAM lParam)

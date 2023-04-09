@@ -34,6 +34,7 @@ public:
 	CString m_ProxyPort;
 	CString m_ProxyUser;
 	CString m_ProxyPass;
+	CString m_ProxyCmd;
 	CString m_ExtEnvStr;
 	CString m_BeforeEntry;
 	BOOL m_UsePassDlg;

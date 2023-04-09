@@ -21,7 +21,7 @@ void CIConvDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogExt::DoDataExchange(pDX);
 
 	for ( int n = 0 ; n < 4 ; n++ )
-		DDX_CBString(pDX, IDC_CHARSET1 + n, m_CharSet[n]);
+		DDX_CBStringExact(pDX, IDC_CHARSET1 + n, m_CharSet[n]);
 }
 
 BEGIN_MESSAGE_MAP(CIConvDlg, CDialogExt)

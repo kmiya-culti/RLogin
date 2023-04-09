@@ -314,7 +314,7 @@ public:
 	CTelnet(class CRLoginDoc *pDoc);
 	virtual ~CTelnet();
 
-	virtual void FifoLink();
+	virtual CFifoBase *FifoLinkMid();
 	virtual BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
 
 	virtual void OnConnect();

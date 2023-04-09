@@ -112,6 +112,7 @@ int CFifoCom::CalcReadByte()
 void CFifoCom::OnReadWriteProc()
 {
 	int len, pos;
+	FifoMsg *pFifoMsg;
 
 	DWORD dw;
 	BOOL bRes;
@@ -372,15 +373,14 @@ void CFifoCom::OnReadWriteProc()
 		else if ( HandleTab[dw] == m_MsgEvent ) {
 			// Fifo Command
 			m_MsgSemaphore.Lock();
-			while ( !m_MsgList.IsEmpty() ) {
-				FifoMsg *pFifoMsg = m_MsgList.RemoveHead();
+			while ( (pFifoMsg = MsgRemoveHead()) != NULL ) {
 				m_MsgSemaphore.Unlock();
 
 				switch(pFifoMsg->cmd) {
 				case FIFO_CMD_FDEVENTS:
 					switch(pFifoMsg->msg) {
 					case FD_CLOSE:
-						m_nLastError = (int)pFifoMsg->buffer;
+						m_nLastError = (int)(UINT_PTR)pFifoMsg->buffer;
 						Read(FIFO_STDIN, NULL, 0);
 						break;
 					}
@@ -434,7 +434,7 @@ void CFifoCom::OnReadWriteProc()
 	}
 
 ERRENDOF:
-	SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)m_nLastError);
+	SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)m_nLastError);
 	Write(FIFO_STDOUT, NULL, 0);
 
 	CancelIo(m_hCom);
@@ -477,17 +477,9 @@ CComSock::~CComSock()
 	if ( m_pComConf != NULL )
 		delete m_pComConf;
 }
-void CComSock::FifoLink()
+CFifoBase *CComSock::FifoLinkLeft()
 {
-	FifoUnlink();
-
-	ASSERT(m_pFifoLeft == NULL && m_pFifoMid == NULL && m_pFifoRight == NULL);
-
-	m_pFifoLeft   = new CFifoCom(m_pDocument, this);
-	m_pFifoMid    = new CFifoWnd(m_pDocument, this);
-	m_pFifoRight  = new CFifoDocument(m_pDocument, this);
-
-	CFifoBase::MidLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
+	return new CFifoCom(m_pDocument, this);
 }
 BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {

@@ -97,17 +97,9 @@ CLogin::CLogin(class CRLoginDoc *pDoc) : CExtSocket(pDoc)
 {
 	m_Type = ESCT_RLOGIN;
 }
-void CLogin::FifoLink()
+CFifoBase *CLogin::FifoLinkMid()
 {
-	FifoUnlink();
-
-	ASSERT(m_pFifoLeft == NULL && m_pFifoMid == NULL && m_pFifoRight == NULL);
-
-	m_pFifoLeft   = new CFifoSocket(m_pDocument, this);
-	m_pFifoMid    = new CFifoLogin(m_pDocument, this);
-	m_pFifoRight  = new CFifoDocument(m_pDocument, this);
-
-	CFifoBase::MidLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
+	return new CFifoLogin(m_pDocument, this);
 }
 int CLogin::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {

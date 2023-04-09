@@ -104,6 +104,7 @@ public:
 	CStringIndex m_ProxyAuth;
 	BOOL m_ProxyConnect;
 	CBuffer m_ProxyBuff;
+	BOOL m_ProxyCmdMode;
 
 	int m_SSL_mode;
 	SSL_CTX *m_SSL_pCtx;
@@ -118,6 +119,10 @@ public:
 
 	void Destroy();
 	void PostClose(int nLastError);
+
+	virtual CFifoBase *FifoLinkLeft();
+	virtual CFifoBase *FifoLinkMid();
+	virtual CFifoDocument *FifoLinkRight();
 
 	virtual void FifoLink();
 	virtual void FifoUnlink();
@@ -155,6 +160,7 @@ public:
 
 	int GetFamily();
 	BOOL ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR ProxyUser, LPCTSTR ProxyPass, LPCTSTR RealHost, UINT RealPort);
+	BOOL ProxyCommand(LPCTSTR pCommand);
 
 	void SetRecvSyncMode(BOOL mode);
 	void SyncRecvClear();

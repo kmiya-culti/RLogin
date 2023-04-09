@@ -30,7 +30,7 @@ void CPrnTextDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 
-	DDX_CBString(pDX, IDC_COMBO1, m_FontName);
+	DDX_CBStringExact(pDX, IDC_COMBO1, m_FontName);
 	DDX_Text(pDX, IDC_EDIT1, m_FontSize);
 	DDX_Text(pDX, IDC_EDIT2, m_FontLine);
 

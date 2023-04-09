@@ -117,6 +117,7 @@ int CKermit::ReadPacket()
 {
 	int n;
 	int ch, od, pos, sum;
+	BOOL ec = FALSE;
 
 RETRY:
 	for ( m_InPkt.Len = pos = od = 0 ; ; od = ch ) {
@@ -132,7 +133,8 @@ RETRY:
 			if ( m_InPkt.Len != 0 ) {
 				m_InPkt.Len = pos;
 				break;
-			}
+			} else if ( ec )
+				SendEcho(ch);
 			m_InPkt.Len = pos = 0;
 			continue;
 		}
@@ -140,8 +142,10 @@ RETRY:
 		if ( ch == m_MarkCh ) {
 			pos = 0;
 		} else if ( pos == 0 ) {
-			if ( (m_MyPadCh == 0 || m_MyPadCh != ch) )
+			if ( (m_MyPadCh == 0 || m_MyPadCh != ch) ) {
 				SendEcho(ch);
+				ec = TRUE;
+			}
 			continue;
 		} else if ( pos == 1 ) {
 			if ( (n = UnChar(ch)) > 0 )

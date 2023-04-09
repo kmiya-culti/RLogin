@@ -44,8 +44,8 @@ void CKeyParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_KEYSTAT5, m_WithCkm);
 	DDX_Check(pDX, IDC_KEYSTAT6, m_WithVt100);
 	DDX_Check(pDX, IDC_KEYSTAT7, m_WithVt52);
-	DDX_CBString(pDX, IDC_KEYCODE, m_KeyCode);
-	DDX_CBString(pDX, IDC_KEYMAPS, m_Maps);
+	DDX_CBStringExact(pDX, IDC_KEYCODE, m_KeyCode);
+	DDX_CBStringExact(pDX, IDC_KEYMAPS, m_Maps);
 	DDX_Control(pDX, IDC_EDITCTRL, m_EditCtrl);
 }
 

@@ -276,6 +276,7 @@ public:
 	virtual int ExitInstance();
 	virtual BOOL OnIdle(LONG lCount);
 	virtual BOOL IsIdleMessage(MSG* pMsg);
+	virtual int DoMessageBox(LPCTSTR lpszPrompt, UINT nType, UINT nIDPrompt);
 
 // ŽÀ‘•
 public:

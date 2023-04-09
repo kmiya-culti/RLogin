@@ -62,7 +62,7 @@ void CIso646Dlg::DoDataExchange(CDataExchange* pDX)
 	for ( int n = 0 ; n < 24 ; n++ )
 		DDX_Control(pDX, IDC_FONTVIEW1 + n, m_ViewBox[n]);
 	for ( int n = 0 ; n < 12 ; n++ )
-		DDX_CBString(pDX, IDC_CODESET1 + n, m_CharCode[n]);
+		DDX_CBStringExact(pDX, IDC_CODESET1 + n, m_CharCode[n]);
 }
 
 void CIso646Dlg::SetViewBox(int num, DWORD code)

@@ -23,8 +23,8 @@
 #define	PANEFRAME_HEVEN			8
 #define	PANEFRAME_HEDLG			9
 
-#define	PANEMIN_WIDTH			32
-#define	PANEMIN_HEIGHT			32
+#define	PANEMIN_WIDTH			MulDiv(32, SCREEN_DPI_X, DEFAULT_DPI_X)
+#define	PANEMIN_HEIGHT			MulDiv(32, SCREEN_DPI_Y, DEFAULT_DPI_Y)
 
 class CPaneFrame : public CObject
 {
@@ -281,8 +281,8 @@ public:
 #define	DEFAULT_DPI_Y		96
 #define	SYSTEM_DPI_X		GlobalSystemDpi
 #define	SYSTEM_DPI_Y		GlobalSystemDpi
-#define	SCREEN_DPI_X		((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiX
-#define	SCREEN_DPI_Y		((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY
+#define	SCREEN_DPI_X		((CMainFrame *)theApp.m_pMainWnd)->m_ScreenDpiX
+#define	SCREEN_DPI_Y		((CMainFrame *)theApp.m_pMainWnd)->m_ScreenDpiY
 
 #define	SPEAKQUESIZE		2
 
@@ -370,7 +370,7 @@ public:
 	LPCTSTR PagentPipeName();
 
 	BOOL AgeantInit();
-	BOOL AgeantSign(int type, CBuffer *blob, CBuffer *sign, LPBYTE buf, int len);
+	BOOL AgeantSign(int type, CBuffer *blob, CBuffer *sign, LPBYTE buf, int len, int flag);
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();

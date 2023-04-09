@@ -77,7 +77,7 @@ void  CSyncSock::StatusMsg(int ids)
 	CString str;
 
 	str.Format(CStringLoad(ids), m_ProtoName);
-	((CMainFrame *)AfxGetMainWnd())->SetStatusText(str);
+	((CMainFrame *)m_pMainWnd)->SetStatusText(str);
 }
 LPCSTR CSyncSock::PathNameToFileName(LPCTSTR pathName)
 {
@@ -159,7 +159,7 @@ void CSyncSock::ThreadCommand(int cmd)
 			break;
 
 		m_ThreadMode = THREAD_NONE;
-		((CMainFrame *)::AfxGetMainWnd())->DelThreadMsg(this);
+		((CMainFrame *)m_pMainWnd)->DelThreadMsg(this);
 		m_pDoc->m_pSock->SetRecvSyncMode(FALSE);
 
 		if ( m_ResvDoit && !m_AbortFlag && !m_ResvPath.IsEmpty() )
@@ -259,7 +259,7 @@ void CSyncSock::DoProc(int cmd)
 	m_DoCommand = cmd;
 	m_pDoc->m_pSock->SetRecvSyncMode(TRUE);
 
-	((CMainFrame *)::AfxGetMainWnd())->AddThreadMsg(this);
+	((CMainFrame *)m_pMainWnd)->AddThreadMsg(this);
 
 	m_pMainWnd->PostMessage(WM_THREADCMD, THCMD_START, (LPARAM)this);
 }
@@ -276,7 +276,7 @@ void CSyncSock::DoAbort(BOOL bClose)
 	}
 
 	m_ThreadMode = THREAD_DOEND;
-	((CMainFrame *)::AfxGetMainWnd())->DelThreadMsg(this);
+	((CMainFrame *)m_pMainWnd)->DelThreadMsg(this);
 
 	m_AbortFlag = TRUE;
 	if ( m_pDoc != NULL && m_pDoc->m_pSock != NULL )
