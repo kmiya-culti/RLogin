@@ -1757,6 +1757,11 @@ const CIdKey & CIdKey::operator = (CIdKey &data)
 		m_XmssKey = data.m_XmssKey;
 		m_Type  = IDKEY_XMSS;
 		break;
+	case IDKEY_UNKNOWN:
+		m_TypeName = data.m_TypeName;
+		m_TypeBlob = data.m_TypeBlob;
+		m_Type  = IDKEY_UNKNOWN;
+		break;
 	}
 
 	return *this;
@@ -1983,6 +1988,10 @@ int CIdKey::Create(int type)
 		m_Type = type;
 		m_XmssKey.RemoveAll();
 		break;
+	case IDKEY_UNKNOWN:
+		m_Type = type;
+		m_TypeName.Empty();
+		break;
 	default:
 		return FALSE;
 	}
@@ -2081,6 +2090,8 @@ int CIdKey::Generate(int type, int bits, LPCTSTR pass, GENSTATUS *gs)
 
 		m_Type = IDKEY_XMSS;
 		goto NEWRET;
+	default:
+		return FALSE;
 	}
 
 	if ( (ctx = EVP_PKEY_CTX_new_id(id, NULL)) == NULL )
@@ -2279,7 +2290,7 @@ int CIdKey::ComperePublic(CIdKey *pKey)
 		break;
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
-		if ( m_PublicKey.GetSize() == 0 || pKey->m_PublicKey.GetSize() == 0 )
+		if ( m_PublicKey.GetSize() == 0 || m_PublicKey.GetSize() != pKey->m_PublicKey.GetSize() )
 			break;
 		if ( memcmp(m_PublicKey.GetPtr(), pKey->m_PublicKey.GetPtr(), m_PublicKey.GetSize()) != 0 )
 			break;
@@ -2289,6 +2300,15 @@ int CIdKey::ComperePublic(CIdKey *pKey)
 		if ( m_XmssKey.m_pPubBuf == NULL || pKey->m_XmssKey.m_pPubBuf == NULL || m_XmssKey.m_PubLen != pKey->m_XmssKey.m_PubLen )
 			break;
 		if ( memcmp(m_XmssKey.m_pPubBuf, pKey->m_XmssKey.m_pPubBuf, m_XmssKey.m_PubLen) != 0 )
+			break;
+		ret = 0;
+		break;
+	case IDKEY_UNKNOWN:
+		if ( m_TypeName.Compare(pKey->m_TypeName) != 0 )
+			break;
+		if ( m_TypeBlob.GetSize() == 0 || m_TypeBlob.GetSize() != pKey->m_TypeBlob.GetSize() )
+			break;
+		if ( memcmp(m_TypeBlob.GetPtr(), pKey->m_TypeBlob.GetPtr(), m_TypeBlob.GetSize()) != 0 )
 			break;
 		ret = 0;
 		break;
@@ -2372,8 +2392,11 @@ LPCTSTR CIdKey::GetName(BOOL bCert, BOOL bExtname)
 		else
 			m_Work += _T("ssh-xmss@openssh.com");
 		break;
+	case IDKEY_UNKNOWN:
+		m_Work += m_TypeName;
+		break;
 	}
-	
+
 	if ( bCert ) {
 		switch(m_Cert) {
 		case IDKEY_CERTV00:
@@ -2435,7 +2458,10 @@ int CIdKey::GetTypeFromName(LPCTSTR name)
 		type = IDKEY_ED448;
 	else if ( _tcscmp(name, _T("ssh-xmss")) == 0 || _tcscmp(name, _T("ssh-xmss@openssh.com")) == 0 )
 		type = IDKEY_XMSS;
-	else
+	else if ( *name != _T('\0') ) {
+		type = IDKEY_UNKNOWN;
+		m_TypeName = name;
+	} else
 		cert = 0;
 
 	return (type | cert);
@@ -2799,6 +2825,9 @@ int CIdKey::Sign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg)
 
 	case IDKEY_XMSS:
 		return XmssSign(bp, buf, len);
+
+	case IDKEY_UNKNOWN:
+		return FALSE;
 	}
 
 	if ( (pkey = GetEvpPkey(GETPKEY_PRIVATEKEY)) == NULL )
@@ -3004,6 +3033,9 @@ int CIdKey::Verify(CBuffer *bp, LPBYTE data, int datalen)
 
 	case IDKEY_XMSS:
 		return XmssVerify(&sig, data, datalen);
+
+	case IDKEY_UNKNOWN:
+		return FALSE;
 	}
 
 	if ( (pkey = GetEvpPkey(GETPKEY_PUBLICKEY)) == NULL )
@@ -3187,6 +3219,13 @@ int CIdKey::GetBlob(CBuffer *bp)
 		m_Type = IDKEY_XMSS;
 		break;
 
+	case IDKEY_UNKNOWN:
+		if ( m_TypeName.IsEmpty() || bp->GetSize() == 0 )
+			return FALSE;
+		m_Type = IDKEY_UNKNOWN;
+		m_TypeBlob = *bp;
+		break;
+
 	default:
 		return FALSE;
 	}
@@ -3264,6 +3303,11 @@ int CIdKey::SetBlob(CBuffer *bp, BOOL bCert)
 	case IDKEY_XMSS:
 		bp->PutStr(m_XmssKey.GetName());
 		bp->PutBuf(m_XmssKey.m_pPubBuf + XMSS_OID_LEN, m_XmssKey.m_PubLen - XMSS_OID_LEN);
+		break;
+	case IDKEY_UNKNOWN:
+		if ( m_TypeName.IsEmpty() || m_TypeBlob.GetSize() == 0 )
+			return FALSE;
+		bp->Apend(m_TypeBlob.GetPtr(), m_TypeBlob.GetSize());
 		break;
 	default:
 		return FALSE;
@@ -3848,6 +3892,7 @@ int CIdKey::WritePublicKey(CString &str, BOOL bAddUser)
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
 	case IDKEY_XMSS:
+	case IDKEY_UNKNOWN:
 		if ( !SetBlob(&tmp, bAddUser ? TRUE : FALSE) )
 			return FALSE;
 		buf.Base64Encode(tmp.GetPtr(), tmp.GetSize());

@@ -312,6 +312,8 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		for ( n = 0 ; n < m_pDocument->m_ParamTab.m_IdKeyList.GetSize() ; n++ ) {
 			if ( (pKey = pMain->m_IdKeyTab.GetUid(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n))) == NULL || pKey->m_Type == IDKEY_NONE || (pKey->m_AgeantType != IDKEY_AGEANT_NONE && !pKey->m_bSecInit) )
 				continue;
+			else if ( pKey->m_Type == IDKEY_UNKNOWN && pKey->m_AgeantType == IDKEY_AGEANT_NONE )
+				continue;
 
 			list[pKey->CompPass(m_pDocument->m_ServerEntry.m_PassName) == 0 ? 0 : 1].Add(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n));
 		}

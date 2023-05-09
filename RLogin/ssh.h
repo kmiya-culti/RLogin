@@ -221,6 +221,7 @@ public:
 #define	IDKEY_ED25519				00010
 #define	IDKEY_ED448					00011
 #define	IDKEY_XMSS					00020
+#define	IDKEY_UNKNOWN				00030
 #define	IDKEY_ECDSA					00040
 
 #define	IDKEY_DSA2EX				00104		// BIGNUM2 fix
@@ -354,6 +355,8 @@ public:
 	int m_AgeantType;
 	CString m_FilePath;
 	CString m_LoadMsg;
+	CString m_TypeName;
+	CBuffer m_TypeBlob;
 
 	int GetIndexNid(int nid);
 	int GetIndexName(LPCTSTR name);
@@ -592,7 +595,7 @@ public:
 	void DecodeSocks();
 };
 
-class CFifoAgent : public CFifoWnd
+class CFifoAgent : public CFifoThread
 {
 public:
 	class CFifoChannel *m_pChan;

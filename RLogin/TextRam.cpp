@@ -7290,7 +7290,40 @@ int CTextRam::JapanCharSet(LPCTSTR name)
 	8192	a1f2	00a3		00a3		00a3		00a3		00a3		00a3		ffe1
 	81ca	a2cc	00ac		00ac		00ac		00ac		00ac		00ac		ffe2
 
-***************************/
+void IconvCheck()
+{
+	int n, i, c, d;
+	CIConv iconv;
+	static DWORD sjisTab[9] = {
+		0x005c,		0x007e,		0x815c,		0x8160,		0x8161,		0x817c,		0x8191,		0x8192,		0x81ca
+	};
+	static DWORD eucTab[9] = {
+		0x005c,		0x007e,		0xa1bd,		0xa1c1,		0xa1c2,		0xa1dd,		0xa1f1,		0xa1f2,		0xa2cc
+	};
+	static LPCTSTR sjisName[] = {
+		_T("CP932"),			_T("SHIFT-JIS"),		_T("SHIFT_JISX0213"),	
+	};
+	static LPCTSTR eucName[] = {
+		_T("EUCJP-MS"),			_T("EUC-JP"),			_T("EUC-JISX0213"),	
+	};
+
+	for ( n = 0 ; n < 3 ; n++ ) {
+		for ( i = 0 ; i < 9 ; i++ ) {
+			c = iconv.IConvChar(sjisName[n], _T("UTF-16BE"), sjisTab[i]);
+			d = iconv.IConvChar(_T("UTF-16BE"), sjisName[n], c);
+			TRACE(_T("%s %04x %04x %04x\n"), sjisName[n], sjisTab[i], c, d);
+		}
+	}
+	for ( n = 0 ; n < 3 ; n++ ) {
+		for ( i = 0 ; i < 9 ; i++ ) {
+			c = iconv.IConvChar(eucName[n], _T("UTF-16BE"), eucTab[i]);
+			d = iconv.IConvChar(_T("UTF-16BE"), eucName[n], c);
+			TRACE(_T("%s %04x %04x %04x\n"), eucName[n], eucTab[i], c, d);
+		}
+	}
+}
+************************************/
+
 
 DWORD CTextRam::MsToIconvUnicode(int jpset, DWORD code)
 {

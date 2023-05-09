@@ -3770,10 +3770,8 @@ LRESULT CSFtp::OnReceiveBuffer(WPARAM wParam, LPARAM lParam)
 			int n;
 			CBuffer buf;
 
-			m_pFifoSftp->m_MsgSemaphore.Lock();
-			n = m_pFifoSftp->MoveBuffer(FIFO_STDIN, &m_RecvBuf);
 			m_bPostMsg = FALSE;
-			m_pFifoSftp->m_MsgSemaphore.Unlock();
+			n = m_pFifoSftp->MoveBuffer(FIFO_STDIN, &m_RecvBuf);
 
 			while ( m_RecvBuf.GetSize() >= 4 ) {
 				n = m_RecvBuf.PTR32BIT(m_RecvBuf.GetPtr());

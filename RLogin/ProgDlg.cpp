@@ -168,12 +168,13 @@ void CProgressWnd::OnPaint()
 	int sx, ex;
 	CRect rect;
 	CPaintDC dc(this);
-	CPen PenLine[3];
+	CPen PenLine[4];
 	CPen *pOldPen;
 
 	PenLine[0].CreatePen(PS_SOLID, 0, RGB(255, 255, 255));
 	PenLine[1].CreatePen(PS_SOLID, 0, RGB(  0, 172,  64));
 	PenLine[2].CreatePen(PS_SOLID, 0, RGB(215, 215, 215));
+	PenLine[3].CreatePen(PS_SOLID, 0, RGB(138, 255, 172));
 
 	pOldPen = dc.SelectObject(&PenLine[0]);
 
@@ -192,7 +193,7 @@ void CProgressWnd::OnPaint()
 		dc.MoveTo(rect.left + x, rect.bottom);
 		dc.LineTo(rect.left + x, rect.bottom - y);
 
-		dc.SelectObject(&PenLine[0]);
+		dc.SelectObject(!m_bNoRange && x < m_LastPos ? &PenLine[3] : &PenLine[0]);
 		dc.LineTo(rect.left + x, rect.top);
 	}
 

@@ -75,12 +75,10 @@ void CFifoSftp::FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pPa
 {
 	switch(fdEvent) {
 	case FD_READ:	// Fifo.PutBuffer
-		m_MsgSemaphore.Lock();
 		if ( !m_pSFtp->m_bPostMsg && m_pSFtp->m_pFifoSftp != NULL ) {
 			m_pSFtp->m_bPostMsg = TRUE;
 			m_pSFtp->PostMessage(WM_RECIVEBUFFER, (WPARAM)FD_READ);
 		}
-		m_MsgSemaphore.Unlock();
 		break;
 
 	case FD_WRITE:	// Fifo.GetBuffer
@@ -419,7 +417,7 @@ void CFifoSocks::DecodeSocks()
 //////////////////////////////////////////////////////////////////////
 // CFifoAgent
 
-CFifoAgent::CFifoAgent(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CFifoChannel *pChan) : CFifoWnd(pDoc, pSock)
+CFifoAgent::CFifoAgent(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CFifoChannel *pChan) : CFifoThread(pDoc, pSock)
 {
 	m_pChan = pChan;
 }
@@ -533,30 +531,22 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 
 				for ( n = 0 ; n < ((Cssh *)m_pSock)->m_IdKeyTab.GetSize() ; n++ ) {
 					pKey = &(((Cssh *)m_pSock)->m_IdKeyTab[n]);
-					switch(pKey->m_Type) {
-					case IDKEY_RSA1:
-						{
-							BIGNUM const *e = NULL, *n = NULL;
+					if ( pKey->m_Type == IDKEY_RSA1 ) {
+						BIGNUM const *e = NULL, *n = NULL;
 
-							RSA_get0_key(pKey->m_Rsa, &n, &e, NULL);
+						RSA_get0_key(pKey->m_Rsa, &n, &e, NULL);
 
-							data.Put32Bit(RSA_bits(pKey->m_Rsa));
-							data.PutBIGNUM(e);
-							data.PutBIGNUM(n);
-							data.PutStr(TstrToMbs(pKey->m_Name));
-						}
+						data.Put32Bit(RSA_bits(pKey->m_Rsa));
+						data.PutBIGNUM(e);
+						data.PutBIGNUM(n);
+						data.PutStr(TstrToMbs(pKey->m_Name));
 						i++;
-						break;
-					case IDKEY_RSA2:
-					case IDKEY_DSA2:
-					case IDKEY_ECDSA:
-					case IDKEY_ED25519:
+					} else if ( pKey->m_Type != IDKEY_NONE ) {
 						work.Clear();
 						pKey->SetBlob(&work);
 						data.PutBuf(work.GetPtr(), work.GetSize());
 						data.PutStr(TstrToMbs(pKey->m_Name));
 						i++;
-						break;
 					}
 				}
 				work.Clear();

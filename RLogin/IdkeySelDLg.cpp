@@ -83,7 +83,7 @@ END_MESSAGE_MAP()
 
 void CIdkeySelDLg::InitList()
 {
-	int n;
+	int n, bits;
 	CString str;
 	CIdKey *pKey;
 
@@ -102,10 +102,14 @@ void CIdkeySelDLg::InitList()
 		case IDKEY_ED25519: str = _T("ED25519"); break;
 		case IDKEY_ED448:   str = _T("ED448"); break;
 		case IDKEY_XMSS:    str = _T("XMSS"); break;
+		case IDKEY_UNKNOWN: str = pKey->m_TypeName; break;
 		}
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
 
-		str.Format(_T("%d"), pKey->GetHeight());
+		if ( (bits = pKey->GetHeight()) > 0 )
+			str.Format(_T("%d"), pKey->GetHeight());
+		else
+			str.Empty();
 		m_List.SetItemText(n, 1, str);
 
 		m_List.SetItemText(n, 2, pKey->m_Name);
@@ -116,6 +120,8 @@ void CIdkeySelDLg::InitList()
 			str = pKey->m_bSecInit ? _T("Wageant") : _T("None");
 		} else if ( pKey->m_AgeantType == IDKEY_AGEANT_PUTTYPIPE ) {
 			str = pKey->m_bSecInit ? _T("Pageant") : _T("None");
+		} else if ( pKey->m_Type == IDKEY_UNKNOWN ) {
+			str = _T("Unknown");
 		} else {
 			switch(pKey->m_Cert) {
 			case IDKEY_CERTV00:  str = _T("V00"); break;
