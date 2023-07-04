@@ -137,6 +137,9 @@ void CFifoSsh::OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent
 	case FIFO_QCMD_KEEPALIVE:
 		((Cssh *)m_pSock)->SendMsgKeepAlive();
 		break;
+	case FIFO_QCMD_CANCELPFD:
+		((Cssh *)m_pSock)->CancelPortForward();
+		break;
 	}
 }
 
@@ -257,6 +260,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_KeepAliveRecvGlobalCount = m_KeepAliveRecvChannelCount = 0;
 		m_bAuthAgentReqEnable = FALSE;
 		m_PortFwdTable.RemoveAll();
+		m_bx11pfdEnable = FALSE;
 
 		m_SSPI_phContext = NULL;
 		ZeroMemory(&m_SSPI_hCredential, sizeof(m_SSPI_hCredential));
@@ -925,11 +929,15 @@ void Cssh::ResetOption()
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_SshKeepAlive > 0 )
 		m_KeepAliveTiimerId = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
 
-	if ( m_bAuthAgentReqEnable != m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) || m_PortFwdTable.Compare(m_pDocument->m_ParamTab.m_PortFwd) != 0 ) {
-		AfxMessageBox(CStringLoad(IDS_SSHOPTIONCHECK), MB_ICONWARNING);
-
-		m_bAuthAgentReqEnable = m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT);
+	if ( m_PortFwdTable.Compare(m_pDocument->m_ParamTab.m_PortFwd) != 0 ) {
+		m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_CANCELPFD);
 		m_PortFwdTable = m_pDocument->m_ParamTab.m_PortFwd;
+	}
+
+	if ( m_bAuthAgentReqEnable != m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) || m_bx11pfdEnable != m_pDocument->m_TextRam.IsOptEnable(TO_SSHX11PF) ) {
+		AfxMessageBox(CStringLoad(IDS_SSHOPTIONCHECK), MB_ICONWARNING);
+		m_bAuthAgentReqEnable = m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT);
+		m_bx11pfdEnable = m_pDocument->m_TextRam.IsOptEnable(TO_SSHX11PF);
 	}
 }
 
@@ -1799,11 +1807,11 @@ void Cssh::ChannelClose(int id, int nStat)
 		break;
 	case SSHFT_LOCAL_LISTEN:
 	case SSHFT_REMOTE_LISTEN:
-		LogIt(_T("Listen Closed #%d %s:%d"), id, pChan->m_rHost, pChan->m_rPort);
+		LogIt(_T("Local Listen Closed %s:%d"), pChan->m_lHost, pChan->m_lPort);
 		break;
 	case SSHFT_LOCAL_SOCKS:
 	case SSHFT_REMOTE_SOCKS:
-		LogIt(_T("Sock Closed #%d %s:%d"), id, pChan->m_lHost, pChan->m_lPort);
+		LogIt(_T("Local Proxy Closed %s:%d"), pChan->m_lHost, pChan->m_lPort);
 		break;
 	case SSHFT_SOCKET_LOCAL:
 	case SSHFT_SOCKET_REMOTE:
@@ -2067,7 +2075,7 @@ void Cssh::SocksResult(class CFifoSocks *pFifoSocks)
 	}
 }
 
-void Cssh::PortForward()
+void Cssh::PortForward(BOOL bReset)
 {
 	int n, i, a = 0;
 	CString str;
@@ -2114,7 +2122,7 @@ void Cssh::PortForward()
 				AfxMessageBox(str);
 				ChannelClose(pChan->m_LocalID);
 			} else {
-				LogIt(_T("Local Socks %s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
+				LogIt(_T("Local Proxy %s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
 				a++;
 			}
 			break;
@@ -2129,25 +2137,55 @@ void Cssh::PortForward()
 			m_Permit[n].m_rPort = GetPortNum(tmp[1]);
 			m_Permit[n].m_Type  = tmp.GetVal(4);
 			SendMsgGlobalRequest(n, "tcpip-forward", tmp[0], GetPortNum(tmp[1]));
-			LogIt(_T("Remote %s %s:%s"), (m_Permit[n].m_Type == PFD_REMOTE ? _T("Listen") : _T("Socks")), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
+			LogIt(_T("Remote %s %s:%s"), (m_Permit[n].m_Type == PFD_REMOTE ? _T("Listen") : _T("Proxy")), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
 			m_bPfdConnect++;
 			a++;
 			break;
 		}
 	}
 
-	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
+	if ( !bReset && m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
 		if ( a == 0 && !m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFTPORY) ) {
 			AfxMessageBox(CStringLoad(IDE_PORTFWORDERROR));
 			PostClose(0);
 		}
 
-		if ( m_bPfdConnect == 0 ) {
+		if ( m_bPfdConnect == 0 && !m_bConnect ) {
 			m_bConnect = TRUE;
 			m_pFifoMid->SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
 		}
 	} else
 		m_bPfdConnect = 0;
+}
+void Cssh::CancelPortForward()
+{
+	int n;
+	CBuffer *pBuf;
+	CFifoChannel *pChan;
+	BOOL bDelay = FALSE;
+
+	for ( n = 0 ; n < m_FifoCannel.GetSize() ; n++ ) {
+		if ( (pChan = (CFifoChannel *)m_FifoCannel[n]) == NULL )
+			continue;
+		if ( pChan->m_Type == SSHFT_LOCAL_LISTEN || pChan->m_Type == SSHFT_LOCAL_SOCKS )
+			ChannelClose(n);
+	}
+
+	for ( n = 0 ; n < m_Permit.GetSize() ; n++ ) {
+		m_Permit[n].m_bClose = TRUE;
+		pBuf = new CBuffer;
+		pBuf->Put8Bit(SSH2_MSG_GLOBAL_REQUEST);
+		pBuf->PutStr("cancel-tcpip-forward");
+		pBuf->Put8Bit(1);
+		pBuf->PutStr(RemoteStr(m_Permit[n].m_rHost));
+		pBuf->Put32Bit(m_Permit[n].m_rPort);
+		FifoCmdSendPacket(2, pBuf);
+		m_GlbReqMap.Add((WORD)n);
+		bDelay = TRUE;
+	}
+
+	if ( !bDelay )
+		PortForward(TRUE);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2905,6 +2943,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 			tmp.PutStr(TstrToMbs((LPCTSTR)dump));
 			tmp.Put32Bit(n);	// screen number
 			SendPacket2(&tmp);
+			m_bx11pfdEnable = TRUE;
 		}
 	}
 
@@ -4460,22 +4499,29 @@ int Cssh::SSH2MsgChannelRequestReply(CBuffer *bp, int type)
 		ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
 		break;
 	case CHAN_REQ_SUBSYS:	// subsystem
-	case CHAN_REQ_EXEC:		// exec
-		if ( type == SSH2_MSG_CHANNEL_FAILURE )
+		if ( type == SSH2_MSG_CHANNEL_FAILURE ) {
+			AfxMessageBox(_T("Channel Request Subsystem Failure"));
 			ChannelClose(id);
-		else
+		} else
+			ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
+		break;
+	case CHAN_REQ_EXEC:		// exec
+		if ( type == SSH2_MSG_CHANNEL_FAILURE ) {
+			AfxMessageBox(_T("Channel Request Exec Failure"));
+			ChannelClose(id);
+		} else
 			ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
 		break;
 	case CHAN_REQ_X11:		// x11-req
 		if ( type == SSH2_MSG_CHANNEL_FAILURE ) {
-			AfxMessageBox(_T("X11-req Failure"));
+			AfxMessageBox(_T("Channel Request X11-req Failure"));
 			ChannelClose(id);
 		} else
 			ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
 		break;
 	case CHAN_REQ_ENV:		// env
 		if ( type == SSH2_MSG_CHANNEL_FAILURE ) {
-			AfxMessageBox(_T("env Failure"));
+			AfxMessageBox(_T("Channel Request Environ Failure"));
 			ChannelClose(id);
 		} else
 			ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
@@ -4631,9 +4677,19 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 		if ( ++m_KeepAliveReplyCount < 0 )
 			m_KeepAliveReplyCount = 0;
 		return 0;
+
+	} else if ( num < m_Permit.GetSize() && m_Permit[num].m_bClose ) {	// remote listen close
+		LogIt(_T("Remote %s %s %s:%d"), 
+			(m_Permit[num].m_Type == PFD_RSOCKS ? _T("Proxy") : _T("Listen")),
+			(type == SSH2_MSG_REQUEST_FAILURE ? _T("Failure") : _T("Closed")),
+			m_Permit[num].m_rHost, m_Permit[num].m_rPort);
+		m_Permit.RemoveAt(num);
+		if ( m_Permit.GetSize() == 0 )	// all closed... new PortForward
+			PortForward(TRUE);
+		return 0;
 	}
 
-	if ( m_bPfdConnect > 0 && --m_bPfdConnect <= 0 ) {
+	if ( m_bPfdConnect > 0 && --m_bPfdConnect <= 0 && !m_bConnect ) {
 		m_bConnect = TRUE;
 		m_pFifoMid->SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
 	}
@@ -4814,7 +4870,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		}
 		if ( (m_SSH2Status & SSH2_STAT_HAVEPFWD) == 0 ) {
 			m_SSH2Status |= SSH2_STAT_HAVEPFWD;
-			PortForward();
+			PortForward(FALSE);
 		}
 		if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) && (m_SSH2Status & SSH2_STAT_HAVESTDIO) == 0 ) {
 			CFifoChannel *pChan = GetFifoChannel(-2);

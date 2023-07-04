@@ -2589,11 +2589,11 @@ void CTextRam::fc_UTF85(DWORD ch)
 		} else if ( n == 1 ) {
 			// 1 Cell type Unicode
 			INSMDCK(1);
-			if ( m_BackChar < 0x0080 )
-				PUT1BYTE(m_BackChar & 0x7F, m_BankTab[m_KanjiMode][0]);
-			else if ( m_BackChar < 0x0100 )
-				PUT1BYTE(m_BackChar & 0x7F, m_BankTab[m_KanjiMode][1]);
-			else
+			//if ( m_BackChar < 0x0080 )
+			//	PUT1BYTE(m_BackChar & 0x7F, m_BankTab[m_KanjiMode][0]);
+			//else if ( m_BackChar < 0x0100 )
+			//	PUT1BYTE(m_BackChar & 0x7F, m_BankTab[m_KanjiMode][1]);
+			//else
 				PUT1BYTE(m_BackChar, SET_UNICODE, ea);
 			m_LastFlag = cf;
 

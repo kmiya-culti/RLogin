@@ -488,6 +488,7 @@ public:
 	CString m_rHost;
 	int m_rPort;
 	int m_Type;
+	BOOL m_bClose;
 
 	const CPermit & operator = (CPermit &data);
 
@@ -782,6 +783,7 @@ public:
 
 	CString m_x11AuthName, m_x11LocalName;
 	CBuffer m_x11AuthData, m_x11LocalData;
+	BOOL m_bx11pfdEnable;
 
 	CMutex *m_pAgentMutex;
 	CStringA m_AgentPass;
@@ -951,7 +953,8 @@ public:
 	void ChannelAccept(int id, SOCKET socket);
 	void SocksResult(class CFifoSocks *pFifoSocks);
 
-	void PortForward();
+	void PortForward(BOOL bReset);
+	void CancelPortForward();
 	void OpenSFtpChannel();
 	void OpenRcpUpload(LPCTSTR file);
 	void OpenRcpDownload(LPCTSTR file);

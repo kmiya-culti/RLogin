@@ -6025,6 +6025,7 @@ CPermit::CPermit()
 	m_rHost = _T("");
 	m_rPort = 0;
 	m_Type = PFD_REMOTE;
+	m_bClose = FALSE;
 }
 CPermit::~CPermit()
 {

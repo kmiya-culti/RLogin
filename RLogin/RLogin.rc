@@ -653,9 +653,9 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,206,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,225,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.28.2 (2023/05/10)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.28.3 (2023/07/03)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2023 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 3.1.0 14 Mar 2023",IDC_STATIC,44,53,189,8
+    LTEXT           "OpenSSL 3.1.1 30 May 2023",IDC_STATIC,44,53,189,8
     LTEXT           "Copyright (c) 1998-2023 The OpenSSL Project",IDC_STATIC,44,63,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,72,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,81,189,8
@@ -2198,8 +2198,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,28,2,0
- PRODUCTVERSION 2,28,2,0
+ FILEVERSION 2,28,3,0
+ PRODUCTVERSION 2,28,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2216,12 +2216,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.28.2.0"
+            VALUE "FileVersion", "2.28.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.28.2.0"
+            VALUE "ProductVersion", "2.28.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4513,7 +4513,7 @@ BEGIN
     IDS_DISCLIPBOARDREAD    "OSC52?によるクリップボードの読み込みが許可されていません"
     IDS_DISCLIPBOARDWRITE   "OSC52によるクリップボードの書き込みが許可されていません"
     IDS_DISWINDOWSIZE       "メインウィンドウに対する移動やリサイズが許可されていません"
-    IDS_SSHOPTIONCHECK      "エージェント転送・ポートフォワードの変更は、次回接続時から有効になります"
+    IDS_SSHOPTIONCHECK      "エージェント転送・x11ポートフォワードの変更は、次回接続時から有効になります"
     IDS_INITENTRYINPORT     "初期エントリー情報をファイルから読み込みますか？"
 END
 

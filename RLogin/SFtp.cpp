@@ -3764,6 +3764,7 @@ LRESULT CSFtp::OnReceiveBuffer(WPARAM wParam, LPARAM lParam)
 			OnConnect();
 
 		} else if ( (int)wParam == FD_CLOSE ) {
+			m_pFifoSftp = NULL;
 			DestroyWindow();
 
 		} else if ( m_pFifoSftp != NULL ) {	// FD_READ
