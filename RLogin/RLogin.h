@@ -340,6 +340,8 @@ extern int ThreadMessageBox(LPCTSTR msg, ...);
 extern INT_PTR DpiAwareDoModal(CCommonDialog &dlg, int req = REQDPICONTEXT_AWAREV2);
 extern void DpiAwareSwitch(BOOL sw, int req = REQDPICONTEXT_AWAREV2);
 
+extern BOOL (WINAPI *ExCancelIoEx)(HANDLE hFile, LPOVERLAPPED lpOverlapped);
+
 #ifdef	USE_OLE
 extern CLIPFORMAT CF_FILEDESCRIPTOR;
 extern CLIPFORMAT CF_FILECONTENTS;

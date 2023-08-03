@@ -805,12 +805,13 @@ static int CsidNameComp(const void *src, const void *dis)
 }
 LPCTSTR CRLoginDoc::GetSpecialFolder(LPCTSTR env)
 {
-	int n, nId;
-	BOOL ret = (-1);
+	int n, nId, gId;
+	BOOL ret = FALSE;
 	CString str(env);
 	HMODULE hDLL;
 	BOOL	(CALLBACK* pSHGetSpecialFolderPath)(HWND,LPTSTR, int,BOOL);
 	HRESULT	(CALLBACK* pSHGetFolderPath)(HWND, int,HANDLE, DWORD,LPTSTR);
+	HRESULT (CALLBACK* pSHGetKnownFolderPath)(REFKNOWNFOLDERID rfid, DWORD dwFlags, HANDLE hToken, PWSTR *ppszPath);
 	static TCHAR FolderPath[MAX_PATH];
 	static const TCHAR *pszDllFile[] = { _T("shell32.dll"), _T("shfolder.dll"), NULL};
 
@@ -899,39 +900,45 @@ LPCTSTR CRLoginDoc::GetSpecialFolder(LPCTSTR env)
 	if ( !BinaryFind((void *)(LPCTSTR)str.MakeUpper(), (void *)CsidlTab, sizeof(CSIDLTAB), CSIDLTABMAX, CsidNameComp, &n) )
 		return NULL;
 
-	if ( (CsidlTab[n].nid & 0xFF00) == CSIDL_FLAG_PER_USER_INIT ) {
-		PWSTR pPath;
-		switch(CsidlTab[n].nid & 0x00FF) {
-		case 0x01:
-			ret = SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Downloads, 0, NULL, &pPath)) ? TRUE : FALSE;
-			break;
-		case 0x02:
-			ret = SUCCEEDED(SHGetKnownFolderPath(FOLDERID_PublicDownloads, 0, NULL, &pPath)) ? TRUE : FALSE;
-			break;
-		}
-		return (ret == TRUE ? UniToTstr(pPath) : NULL);
-	}
 
+	gId = (CsidlTab[n].nid & 0xFF00);
 	nId = (CsidlTab[n].nid & 0x00FF);
 
-	for ( n = 0 ; ret == (-1) && pszDllFile[n] != NULL ; n++ ) {
+	for ( n = 0 ; pszDllFile[n] != NULL ; n++ ) {
 		if ( (hDLL = ::LoadLibrary(pszDllFile[n])) != NULL ) {
+			if ( gId == CSIDL_FLAG_PER_USER_INIT ) {
+				PWSTR pPath;
+				if ( (*(FARPROC*)&pSHGetKnownFolderPath = ::GetProcAddress(hDLL, "SHGetKnownFolderPath")) != NULL ) {
+					switch(nId) {
+					case 0x01:
+						ret = SUCCEEDED(pSHGetKnownFolderPath(FOLDERID_Downloads, 0, NULL, &pPath)) ? TRUE : FALSE;
+						break;
+					case 0x02:
+						ret = SUCCEEDED(pSHGetKnownFolderPath(FOLDERID_PublicDownloads, 0, NULL, &pPath)) ? TRUE : FALSE;
+						break;
+					}
+				}
+				if ( ret )
+					_tcsncpy(FolderPath, UniToTstr(pPath), MAX_PATH);
 #ifdef	_UNICODE
-			if ( (*(FARPROC*)&pSHGetSpecialFolderPath = ::GetProcAddress(hDLL, "SHGetSpecialFolderPathW")) != NULL )
+			} else if ( (*(FARPROC*)&pSHGetSpecialFolderPath = ::GetProcAddress(hDLL, "SHGetSpecialFolderPathW")) != NULL )
 				ret = pSHGetSpecialFolderPath(NULL, FolderPath, nId, FALSE) ? TRUE : FALSE;
 			else if ( (*(FARPROC*)&pSHGetFolderPath = ::GetProcAddress(hDLL, "SHGetFolderPathW")) != NULL )
 				ret = SUCCEEDED(pSHGetFolderPath(NULL, nId, NULL, SHGFP_TYPE_DEFAULT, FolderPath)) ? TRUE : FALSE;
 #else
-			if ( (*(FARPROC*)&pSHGetSpecialFolderPath = ::GetProcAddress(hDLL, "SHGetSpecialFolderPathA")) != NULL )
+			} else if ( (*(FARPROC*)&pSHGetSpecialFolderPath = ::GetProcAddress(hDLL, "SHGetSpecialFolderPathA")) != NULL )
 				ret = pSHGetSpecialFolderPath(NULL, FolderPath, nId, FALSE) ? TRUE : FALSE;
 			else if ( (*(FARPROC*)&pSHGetFolderPath = ::GetProcAddress(hDLL, "SHGetFolderPathA")) != NULL )
 				ret = SUCCEEDED(pSHGetFolderPath(NULL, nId, NULL, SHGFP_TYPE_DEFAULT, FolderPath)) ? TRUE : FALSE;
 #endif
+
 			::FreeLibrary(hDLL);
 		}
+		if ( ret )
+			return FolderPath;
 	}
 
-	return (ret == TRUE ? FolderPath : NULL);
+	return NULL;
 }
 void CRLoginDoc::EnvironText(CString &env, CString &str)
 {

@@ -591,98 +591,98 @@ void CFifoBase::Reset(int nFd)
 
 LPCSTR CFifoBase::DocMsgStrA(int msg, CStringA &str)
 {
-	DocMsg docMsg;
+	DocMsg docMsg = { DOCMSG_TYPE_STRINGA, m_pDocument, NULL, (void *)&str };
 
-	docMsg.doc  = m_pDocument;
-	docMsg.type = DOCMSG_TYPE_STRINGA;
-	docMsg.pOut = (void *)&str;
+	//docMsg.doc  = m_pDocument;
+	//docMsg.type = DOCMSG_TYPE_STRINGA;
+	//docMsg.pOut = (void *)&str;
 
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
 	return str;
 }
 LPCWSTR CFifoBase::DocMsgStrW(int msg, CStringW &str)
 {
-	DocMsg docMsg;
+	DocMsg docMsg = { DOCMSG_TYPE_STRINGW, m_pDocument, NULL, (void *)&str };
 
-	docMsg.doc  = m_pDocument;
-	docMsg.type = DOCMSG_TYPE_STRINGW;
-	docMsg.pOut = (void *)&str;
+	//docMsg.doc  = m_pDocument;
+	//docMsg.type = DOCMSG_TYPE_STRINGW;
+	//docMsg.pOut = (void *)&str;
 
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
 	return str;
 }
 void CFifoBase::DocMsgSize(int msg, CSize &size)
 {
-	DocMsg docMsg;
+	DocMsg docMsg = { DOCMSG_TYPE_SIZE, m_pDocument, NULL, (void *)&size };
 
-	docMsg.doc  = m_pDocument;
-	docMsg.type = DOCMSG_TYPE_SIZE;
-	docMsg.pOut = (void *)&size;
+	//docMsg.doc  = m_pDocument;
+	//docMsg.type = DOCMSG_TYPE_SIZE;
+	//docMsg.pOut = (void *)&size;
 
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
 }
 void CFifoBase::DocMsgRect(int msg, CRect &rect)
 {
-	DocMsg docMsg;
+	DocMsg docMsg = { DOCMSG_TYPE_RECT, m_pDocument, NULL, (void *)&rect };
 
-	docMsg.doc  = m_pDocument;
-	docMsg.type = DOCMSG_TYPE_RECT;
-	docMsg.pOut = (void *)&rect;
+	//docMsg.doc  = m_pDocument;
+	//docMsg.type = DOCMSG_TYPE_RECT;
+	//docMsg.pOut = (void *)&rect;
 
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
 }
 void CFifoBase::DocMsgIntPtr(int msg, int *pInt)
 {
-	DocMsg docMsg;
+	DocMsg docMsg = { DOCMSG_TYPE_INTPTR, m_pDocument, NULL, (void *)pInt };
 
-	docMsg.doc  = m_pDocument;
-	docMsg.type = DOCMSG_TYPE_INTPTR;
-	docMsg.pOut = (void *)pInt;
+	//docMsg.doc  = m_pDocument;
+	//docMsg.type = DOCMSG_TYPE_INTPTR;
+	//docMsg.pOut = (void *)pInt;
 
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
 }
 LPCTSTR CFifoBase::DocMsgLocalStr(LPCSTR str, CString &tstr)
 {
-	DocMsg docMsg;
+	DocMsg docMsg = { DOCMSG_TYPE_STRINGT, m_pDocument, (void *)str, (void *)&tstr };
 
-	docMsg.doc  = m_pDocument;
-	docMsg.type = DOCMSG_TYPE_STRINGT;
-	docMsg.pIn  = (void *)str;
-	docMsg.pOut = (void *)&tstr;
+	//docMsg.doc  = m_pDocument;
+	//docMsg.type = DOCMSG_TYPE_STRINGT;
+	//docMsg.pIn  = (void *)str;
+	//docMsg.pOut = (void *)&tstr;
 
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_LOCALSTR, (LPARAM)&docMsg);
 	return tstr;
 }
 LPCSTR CFifoBase::DocMsgRemoteStr(LPCTSTR str, CStringA &mbs)
 {
-	DocMsg docMsg;
+	DocMsg docMsg = { DOCMSG_TYPE_STRINGA, m_pDocument, (void *)str, (void *)&mbs };
 
-	docMsg.doc  = m_pDocument;
-	docMsg.type = DOCMSG_TYPE_STRINGA;
-	docMsg.pIn  = (void *)str;
-	docMsg.pOut = (void *)&mbs;
+	//docMsg.doc  = m_pDocument;
+	//docMsg.type = DOCMSG_TYPE_STRINGA;
+	//docMsg.pIn  = (void *)str;
+	//docMsg.pOut = (void *)&mbs;
 
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_REMOTESTR, (LPARAM)&docMsg);
 	return mbs;
 }
 void CFifoBase::DocMsgLineMode(int sw)
 {
-	DocMsg docMsg;
+	DocMsg docMsg = { sw, m_pDocument, NULL, NULL };;
 
-	docMsg.doc = m_pDocument;
-	docMsg.type = sw;
+	//docMsg.doc = m_pDocument;
+	//docMsg.type = sw;
 
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_LINEMODE, (LPARAM)&docMsg);
 }
 DWORD CFifoBase::DocMsgTtyMode(int mode, DWORD defVal)
 {
 	DWORD value = defVal;
-	DocMsg docMsg;
+	DocMsg docMsg = { DOCMSG_TYPE_DWORDPTR, m_pDocument, (void *)(UINT_PTR)mode, (void *)&value };
 
-	docMsg.doc  = m_pDocument;
-	docMsg.type = DOCMSG_TYPE_DWORDPTR;
-	docMsg.pIn  = (void *)(UINT_PTR)mode;
-	docMsg.pOut = (void *)&value;
+	//docMsg.doc  = m_pDocument;
+	//docMsg.type = DOCMSG_TYPE_DWORDPTR;
+	//docMsg.pIn  = (void *)(UINT_PTR)mode;
+	//docMsg.pOut = (void *)&value;
 
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_TTYMODE, (LPARAM)&docMsg);
 	return value;
@@ -690,44 +690,44 @@ DWORD CFifoBase::DocMsgTtyMode(int mode, DWORD defVal)
 DWORD CFifoBase::DocMsgKeepAlive(void *pThis)
 {
 	DWORD value = 0;
-	DocMsg docMsg;
+	DocMsg docMsg = { DOCMSG_TYPE_DWORDPTR, m_pDocument, pThis, (void *)&value };
 
-	docMsg.doc  = m_pDocument;
-	docMsg.type = DOCMSG_TYPE_DWORDPTR;
-	docMsg.pIn  = pThis;
-	docMsg.pOut = (void *)&value;
+	//docMsg.doc  = m_pDocument;
+	//docMsg.type = DOCMSG_TYPE_DWORDPTR;
+	//docMsg.pIn  = pThis;
+	//docMsg.pOut = (void *)&value;
 
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_KEEPALIVE, (LPARAM)&docMsg);
 	return value;
 }
 void CFifoBase::DodMsgStrPtr(int msg, LPCTSTR str)
 {
-	DocMsg docMsg;
+	DocMsg docMsg = { DOCMSG_TYPE_STRPTR, m_pDocument, (void *)str, NULL };
 
-	docMsg.doc  = m_pDocument;
-	docMsg.type = DOCMSG_TYPE_STRPTR;
-	docMsg.pIn  = (void *)str;
+	//docMsg.doc  = m_pDocument;
+	//docMsg.type = DOCMSG_TYPE_STRPTR;
+	//docMsg.pIn  = (void *)str;
 
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, msg, (LPARAM)&docMsg);
 }
 void CFifoBase::DocMsgCommand(int cmdId)
 {
-	DocMsg docMsg;
+	DocMsg docMsg = { DOCMSG_TYPE_INT, m_pDocument, (void *)(UINT_PTR)cmdId, NULL };
 
-	docMsg.doc  = m_pDocument;
-	docMsg.type = DOCMSG_TYPE_INT;
-	docMsg.pIn  = (void *)(UINT_PTR)cmdId;
+	//docMsg.doc  = m_pDocument;
+	//docMsg.type = DOCMSG_TYPE_INT;
+	//docMsg.pIn  = (void *)(UINT_PTR)cmdId;
 
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_COMMAND, (LPARAM)&docMsg);
 }
 int CFifoBase::DocMsgSetTimer(int msec, int mode, void *pParam)
 {
-	DocMsg docMsg;
+	DocMsg docMsg = { msec, m_pDocument, (void *)(UINT_PTR)mode, (void *)pParam };
 
-	docMsg.doc  = m_pDocument;
-	docMsg.type = msec;
-	docMsg.pIn  = (void *)(UINT_PTR)mode;
-	docMsg.pOut = (void *)pParam;
+	//docMsg.doc  = m_pDocument;
+	//docMsg.type = msec;
+	//docMsg.pIn  = (void *)(UINT_PTR)mode;
+	//docMsg.pOut = (void *)pParam;
 
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_SETTIMER, (LPARAM)&docMsg);
 	return docMsg.type;

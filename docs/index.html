@@ -26,8 +26,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.28.3)</TD>
-            <TD width="20%" align="right">2023/07/03</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.28.4)</TD>
+            <TD width="20%" align="right">2023/08/04</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -433,6 +433,12 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2023/08/04</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.4/">2.28.4</A></TD>
+            <TD>WindowsXPで起動出来ない問題を修正<BR>
+            openssl-3.1.2に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2023/07/03</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.3/">2.28.3</A></TD>
             <TD>オプション設定のsshポートフォワードの更新を行うように変更<BR>
@@ -470,15 +476,6 @@ TD {
             openssl-3.1.0に更新</TD>
           </TR>
           <TR>
-            <TD align="center">2023/02/10</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.7/">2.27.7</A></TD>
-            <TD>タブバー右クリックでサーバーエントリーなどのメニューを表示<BR>
-            ローカルエディットモードでコントロールコードを編集に変更<BR>
-            メニュー・編集・ローカルエディットモードの有効・無効を追加<BR>
-            Ctrl+wheelでフォントサイズ基準の場合に一時的にサイズを変更<BR>
-            openssl-3.0.8に更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -502,13 +499,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.1.0.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.1.2.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.1.0 openssl-3.1.0-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.1.2 openssl-3.1.2-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -593,7 +590,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.1.0 14 Mar 2023<BR>
+            <P>OpenSSL 3.1.2 1 Aug2023<BR>
             Copyright (c) 1998-2023 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -2099,7 +2096,7 @@ TD {
                 </TR>
                 <TR>
                   <TD align="center">SSH認証鍵</TD>
-                  <TD>このエントリーだけで使用するSSH2の認証鍵ファイル(ssh-keygenなどで作成）を指定します<BR>
+                  <TD>このエントリーだけで使用するSSH2の認証鍵ファイル(ssh-keygenなどで作成）を指定します。この設定は、ファイルで認証鍵を管理している場合に使用しますが、RLoginでは、<A href="#SSHKEYSET">認証キーの設定</A>ですべてのエントリー共通で認証鍵を管理できます.。その場合は、この設定を使用する必要がありません<BR>
                   ※設定を削除するにはファイル名選択でキャンセルをクリックして削除の確認にて「はい」を選択してください<BR>
                   ※2.23.4より<A href="#FILENAMEEXT">送信文字列の特殊文字</A>が利用できます<BR>
                   ※参照：<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A></TD>
@@ -3612,6 +3609,22 @@ fi</PRE>
                   参照：<A href="faq.html#SSHCASCADE">SSHによる多段接続</A></TD>
                 </TR>
                 <TR>
+                  <TD align="center">ポートフォワードリスト</TD>
+                  <TD>チェックマークを入れたポートフォワードの設定を起動時に実行します。チェックマークを外すと設定は、削除されませんが実行されません</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">新規</TD>
+                  <TD>新たに設定を追加します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">編集</TD>
+                  <TD>設定の変更を行います</TD>
+                </TR>
+                <TR>
+                  <TD align="center">削除</TD>
+                  <TD>設定を削除します</TD>
+                </TR>
+                <TR>
                   <TD align="center" width="30%">X11ポートフォワード</TD>
                   <TD>X11クライアントのポートフォワードを有効にします。X11サーバーをローカルで起動しSSH2で接続するとX11端末のように動作するようになります</TD>
                 </TR>
@@ -3628,18 +3641,6 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center">Protocol Data</TD>
-                </TR>
-                <TR>
-                  <TD align="center" width="30%">新規</TD>
-                  <TD>新たに設定を追加します</TD>
-                </TR>
-                <TR>
-                  <TD align="center">編集</TD>
-                  <TD>設定の変更を行います</TD>
-                </TR>
-                <TR>
-                  <TD align="center">削除</TD>
-                  <TD>設定を削除します</TD>
                 </TR>
               </TBODY>
             </TABLE>

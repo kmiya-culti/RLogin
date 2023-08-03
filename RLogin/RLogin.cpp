@@ -719,6 +719,9 @@ CRLoginApp::CRLoginApp()
 	EXTERN_C HRESULT (WINAPI *ExDWriteCreateFactory)(__in DWRITE_FACTORY_TYPE factoryType, __in REFIID iid, __out IUnknown **factory) = NULL;
 #endif
 
+	HMODULE ExKernel32Api = NULL;
+	BOOL (WINAPI *ExCancelIoEx)(HANDLE hFile, LPOVERLAPPED lpOverlapped) = NULL;
+
 void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 {
 #ifdef	USE_DWMAPI
@@ -1329,6 +1332,10 @@ BOOL CRLoginApp::InitInstance()
 			GlobalSystemDpi = 96;
 	}
 
+	// CancelIoExƒ‰ƒCƒuƒ‰ƒŠ‚ðŽæ“¾
+	if ( (ExKernel32Api = LoadLibrary(_T("Kernel32.dll"))) != NULL )
+		ExCancelIoEx = (BOOL (WINAPI *)(HANDLE hFile, LPOVERLAPPED lpOverlapped))GetProcAddress(ExKernel32Api, "CancelIoEx");
+
 #ifdef	USE_DIRECTWRITE
 	// DirectWrite‚ðŽŽ‚·
 	if ( IsWinVerCheck(_WIN32_WINNT_WINBLUE, VER_GREATER_EQUAL) ) {
@@ -1572,6 +1579,9 @@ int CRLoginApp::ExitInstance()
 
 	if ( ExUserApi != NULL )
 		FreeLibrary(ExUserApi);
+
+	if ( ExKernel32Api != NULL )
+		FreeLibrary(ExKernel32Api);
 
 #ifdef	USE_RCDLL
 	if ( ExRcDll != NULL )

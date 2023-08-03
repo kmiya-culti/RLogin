@@ -267,6 +267,7 @@
 #define IDS_FILETRANSMITCLOSE           656
 #define IDS_COMPPRIVATEPROFILE          657
 #define IDS_COMPNAMELENBUGFIX           658
+#define IDS_SSHRSASIGNMSG               659
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -1176,6 +1177,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         5154
 #define _APS_NEXT_CONTROL_VALUE         2519
-#define _APS_NEXT_SYMED_VALUE           659
+#define _APS_NEXT_SYMED_VALUE           660
 #endif
 #endif

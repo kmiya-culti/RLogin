@@ -2290,19 +2290,20 @@ void Cssh::OpenRcpUpload(LPCTSTR file)
 void Cssh::OpenRcpDownload(LPCTSTR file)
 {
 	CFifoChannel *pChan = GetFifoChannel(-1);
+	LPCTSTR MyDownload;
 	CString work;
 
 	if ( pChan == NULL )
 		return;
 
-	wchar_t *MyDownload;
-	SHGetKnownFolderPath(FOLDERID_Downloads, 0, NULL, &MyDownload);
+	if ( (MyDownload = m_pDocument->GetSpecialFolder(_T("DOWNLOAD"))) == NULL && (MyDownload = m_pDocument->GetSpecialFolder(_T("DOCUMENTS"))) == NULL )
+		MyDownload = _T("");
 
 	pChan->m_Type = SSHFT_RCP;
 	pChan->m_rHost.Format(_T("scp -p -r -f %s"), ShellEscape(file, work));
 	pChan->m_pFifoBase = new CFifoRcp(m_pDocument, this, pChan, 1);	// rcp file download = 1
 
-	((CFifoRcp *)pChan->m_pFifoBase)->m_PathName = UniToTstr(MyDownload);
+	((CFifoRcp *)pChan->m_pFifoBase)->m_PathName = MyDownload;
 	((CFifoRcp *)pChan->m_pFifoBase)->m_FileName = file;
 
 	((CFifoRcp *)pChan->m_pFifoBase)->m_pProgDlg = new CProgDlg(NULL);
@@ -2584,7 +2585,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 					AddAuthLog(_T("publickey:offered(%s)"), m_pIdKey->GetName(TRUE, TRUE));
 				}
 
-				if ( m_pIdKey->m_Type == IDKEY_RSA2 ) // && m_pIdKey->m_RsaNid != NID_sha1 )
+				if ( m_pIdKey->m_Type == IDKEY_RSA2 && m_pIdKey->m_RsaNid == NID_sha1 )
 					m_bReqRsaSha1 = TRUE;
 
 				m_AuthMode = AUTH_MODE_PUBLICKEY;
@@ -2725,7 +2726,10 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 	SendDisconnect2(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, "User Auth Failure");
 	wrk.Format(_T("SSH2 User Auth Failure \"%s\" Status=%04o\nSend Disconnect Message...\n%s"), MbsToTstr(str), m_SSH2Status, m_AuthLog);
-	if ( m_bReqRsaSha1 ) wrk += _T("\n\nYou may need to change the ssh-rsa key sign algorithm SHA1 to SHA2-256/512");
+
+	if ( m_bReqRsaSha1 )
+		wrk += CStringLoad(IDS_SSHRSASIGNMSG);
+
 	AfxMessageBox(wrk, MB_ICONSTOP);
 	
 	return FALSE;
@@ -3175,6 +3179,7 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_CURVE25519,	_T("curve25519-sha256")							},	// RFC8731	MUST			SHOULD
 		{ DHMODE_CURVE448,		_T("curve448-sha512")							},	// RFC8731	MAY				MAY
 		{ DHMODE_SNT761X25519,	_T("sntrup761x25519-sha512@openssh.com")		},
+		{ DHMODE_SNT761X25519,	_T("sntrup761x25519-sha512")					},	// draft-josefsson-ntruprime-ssh-00
 		{ DHMODE_RSA1024SHA1,	_T("rsa1024-sha1")								},	// RFC4432	MUST NOT		MUST NOT
 		{ DHMODE_RSA2048SHA2,	_T("rsa2048-sha256")							},	// RFC4432	MAY				MAY
 		{ 0,					NULL											},

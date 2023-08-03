@@ -230,14 +230,21 @@ void CFifoPipe::Close()
 	if ( m_InThreadMode != 0 ) {
 		m_InThreadMode = 2;
 		m_AbortEvent[1].SetEvent();
-		CancelIoEx(m_hIn[0], NULL);
+		// 別スレッドの場合はCancelIoExが有効のようだがWinXPには、無いので注意
+		if ( ExCancelIoEx != NULL )
+			ExCancelIoEx(m_hIn[0], NULL);
+		else
+			CancelIo(m_hIn[0]);
 		WaitForSingleObject(m_InThread, INFINITE);
 	}
 
 	if ( m_OutThreadMode != 0 ) {
 		m_OutThreadMode = 2;
 		m_AbortEvent[2].SetEvent();
-		CancelIoEx(m_hOut[1], NULL);
+		if ( ExCancelIoEx != NULL )
+			ExCancelIoEx(m_hOut[1], NULL);
+		else
+			CancelIo(m_hOut[1]);
 		WaitForSingleObject(m_OutThread, INFINITE);
 	}
 
