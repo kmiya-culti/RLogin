@@ -487,6 +487,9 @@
     <None Include="res\attr7.bmp" />
     <None Include="res\attr8.bmp" />
     <None Include="res\bitmap1.bmp" />
+    <None Include="res\bitmap10.bmp" />
+    <None Include="res\bitmap11.bmp" />
+    <None Include="res\bitmap12.bmp" />
     <None Include="res\bitmap2.bmp" />
     <None Include="res\bitmap3.bmp" />
     <None Include="res\bitmap4.bmp" />
@@ -495,6 +498,7 @@
     <None Include="res\bitmap7.bmp" />
     <None Include="res\bitmap8.bmp" />
     <None Include="res\bitmap9.bmp" />
+    <None Include="res\bmp00001.bmp" />
     <None Include="res\checkbox.bmp" />
     <None Include="res\checkbox1.bmp" />
     <None Include="res\checkbox2.bmp" />
@@ -510,7 +514,9 @@
     <None Include="res\Toolbar.bmp" />
     <None Include="res\toolbar1.bmp" />
     <None Include="ReadMe.txt" />
+    <None Include="res\toolbar2.bmp" />
     <None Include="RLogin.reg" />
+    <None Include="toolbar2.bmp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="RLogin.rc" />

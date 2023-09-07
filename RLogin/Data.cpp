@@ -35,7 +35,11 @@ int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void 
 	int m = max - 1;
 
 	while ( b <= m ) {
+#if 0
+		n = b + (m - b) / 2;
+#else	// (b + m) < INT_MAX
 		n = (b + m) / 2;
+#endif
 		if ( (c = (*func)(ptr, (BYTE *)tab + size * n)) == 0 ) {
 			if ( base != NULL )
 				*base = n;

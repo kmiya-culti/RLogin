@@ -71,6 +71,10 @@
 #define IDD_SECPOLICYDLG                167
 #define IDD_HISTORYDLG                  168
 #define IDD_VOICEBAR                    169
+#define IDR_TOOLBAR2                    170
+#define IDB_BITMAP10                    172
+#define IDB_BITMAP11                    173
+#define IDB_BITMAP12                    174
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -341,6 +345,8 @@
 #define IDT_EXTOPT_LIST26               825
 #define IDT_EXTOPT_LIST27               826
 #define IDT_EXTOPT_LIST28               827
+#define IDT_EXTOPT_LIST29               828
+#define IDT_EXTOPT_LIST30               829
 #define IDT_TERM_LIST01                 900
 #define IDT_TERM_LIST02                 901
 #define IDT_TERM_LIST03                 902
@@ -944,6 +950,7 @@
 #define IDC_TEXTFORMAT                  2439
 #define IDC_TEXTCOLOR                   2440
 #define IDC_TEXTFONT                    2441
+#define IDC_BACKCOLOR                   2441
 #define IDC_BITMAPBLEND                 2442
 #define IDC_VERINDENT                   2443
 #define IDC_HALIGN2                     2443
@@ -1174,7 +1181,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        170
+#define _APS_NEXT_RESOURCE_VALUE        175
 #define _APS_NEXT_COMMAND_VALUE         5154
 #define _APS_NEXT_CONTROL_VALUE         2519
 #define _APS_NEXT_SYMED_VALUE           660

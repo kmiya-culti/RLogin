@@ -2059,6 +2059,62 @@ done</PRE>
     <TR>
       <TD>
       <HR>
+      <P><B><A name="MMLMIDI"></A>5.21 音楽を奏でる</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">RLoginで簡単に音楽を奏でるには、DEC由来の<A href="ctrlcode.html#DECPS">DECPS</A>エスケープシーケンスとRLoginオリジナルの<A href="ctrlcode.html#RLMML">RLMML</A>を利用する方法があります。まず右の楽譜の「ちょうちょ」を演奏してみましょう<BR>
+            <BR>
+            まずは、DECPSを利用した場合・・・・
+            <PRE style="background-color : #cccccc;">for n in &quot;12;8&quot; &quot;12;5&quot; &quot;24;5&quot;
+do
+    printf '\033[7;%s,~' $n
+done
+for n in &quot;12;6&quot; &quot;12;3&quot; &quot;24;3&quot;
+do
+    printf '\033[7;%s,~' $n
+done
+for n in &quot;12;1&quot; &quot;12;3&quot; &quot;12;5&quot; &quot;12;6&quot;
+do
+    printf '\033[7;%s,~' $n
+done
+for n in &quot;12;8&quot; &quot;12;8&quot; &quot;24;8&quot;
+do
+    printf '\033[7;%s,~' $n
+done</PRE>
+            次にRLMMLを利用した場合・・・<BR>
+            <PRE style="background-color : #cccccc;">echo -e '\eP#m GEE2 FDD2 CDEF GGG2 ; &lt; CGEG &quot;BGDG CGEG CC[CG]2 \e\\'</PRE>
+            になります。DECPSでは、すべて数値で音符を表し１音しか鳴らせませんがRLMMLでは、ドレミをCDEの記号で表し同時に複数の音を鳴らすことができます<BR>
+            <BR>
+            MMLの詳細については、色々とGoogleで検索すれば出てくると思いますが、簡単に説明すると４分音符のソは&quot;G4&quot;、 ４分音符のミは&quot;E4&quot;、
+            ２分音符のミは&quot;E2&quot;でデフォルト４分音符&quot;L4&quot;なら&quot;GEE2&quot;となり和音のソとドの２分音符は&quot;[CG]2&quot;で表現できます<BR>
+            <BR>
+            すこし音色を変更したいなら・・・・<BR>
+            <PRE style="background-color : #cccccc;">echo -e '\eP#m XS @41 GEE2 FDD2 CDEF GGG2 ;
+ @49 &lt; CGEG &quot;BGDG CGEG CC[CG]2 \e\\'</PRE>
+            音色の詳細は、Microsoft GS Wavetable Synthの音色番号などを検索してみてください。この例の最初のXSは、GSリセットで&quot;@41&quot;がバイオリン&quot;@49&quot;がストリングスです<BR>
+            <BR>
+            さらに<A href="tefutefu.mid">tefutefu.mid</A>などのStandard Midi Fileを演奏する場合は・・・<BR>
+            <PRE style="background-color : #cccccc;">echo -e &quot;\eP3#m&quot;; base64 tefutefu.mid ; echo -e &quot;\e\\&quot;</PRE>
+            でbase64に変換して読み込むことができます。楽譜プログラムなどで作成したりネットでSMFを拾ってきて演奏できるのでややこしいMMLを記述する必要もありません<BR>
+            <BR>
+            ちなみにお薦めは・・・ちょっと古くさいネタですが・・・<BR>
+            <PRE style="background-color : #cccccc;">echo -e '\eP#m @55 &gt;&gt;DEC&lt;CG1 \e\\'</PRE>
+            </TD>
+            <TD valign="top"><IMG src="image278.jpg" width="600" height="189" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
       </TD>
     </TR>
   </TBODY>

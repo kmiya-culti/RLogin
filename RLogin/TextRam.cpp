@@ -1848,6 +1848,8 @@ CTextRam::CTextRam()
 	m_iTerm2Mark = 0;
 	m_pCmdHisWnd = NULL;
 	m_Atime = 0;
+	m_TabTextColor = ::GetSysColor(COLOR_BTNTEXT);
+	m_TabBackColor = ::GetSysColor(COLOR_BTNHIGHLIGHT);
 
 	m_ColStackUsed = 0;
 	m_ColStackLast = 0;
@@ -2686,6 +2688,8 @@ void CTextRam::Init()
 	m_MarkColor      = RGB(255, 255, 0);
 	m_ImeTypeCaret   = 0;
 	m_ImeCaretColor  = RGB(31, 255, 127);
+	m_TabTextColor = ::GetSysColor(COLOR_BTNTEXT);
+	m_TabBackColor = ::GetSysColor(COLOR_BTNHIGHLIGHT);
 
 	for ( int n = 0 ; n < 8 ; n++ )
 		m_DropFileCmd[n] = DropCmdTab[n];
@@ -2894,6 +2898,13 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("ImeCaretColor")].Add(GetRValue(m_ImeCaretColor));
 		index[_T("ImeCaretColor")].Add(GetGValue(m_ImeCaretColor));
 		index[_T("ImeCaretColor")].Add(GetBValue(m_ImeCaretColor));
+
+		index[_T("TabTextColor")].Add(GetRValue(m_TabTextColor));
+		index[_T("TabTextColor")].Add(GetGValue(m_TabTextColor));
+		index[_T("TabTextColor")].Add(GetBValue(m_TabTextColor));
+		index[_T("TabBackColor")].Add(GetRValue(m_TabBackColor));
+		index[_T("TabBackColor")].Add(GetGValue(m_TabBackColor));
+		index[_T("TabBackColor")].Add(GetBValue(m_TabBackColor));
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -3179,6 +3190,12 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("ImeCaretColor"))) >= 0 && index[n].GetSize() >= 3 )
 			m_ImeCaretColor = RGB((int)index[n][0], (int)index[n][1], (int)index[n][2]);
 
+		if ( (n = index.Find(_T("TabTextColor"))) >= 0 && index[n].GetSize() >= 3 )
+			m_TabTextColor = RGB((int)index[n][0], (int)index[n][1], (int)index[n][2]);
+
+		if ( (n = index.Find(_T("TabBackColor"))) >= 0 && index[n].GetSize() >= 3 )
+			m_TabBackColor = RGB((int)index[n][0], (int)index[n][1], (int)index[n][2]);
+
 		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -3434,6 +3451,18 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 		index[_T("ImeCaretColor")].Add(GetGValue(m_ImeCaretColor));
 		index[_T("ImeCaretColor")].Add(GetBValue(m_ImeCaretColor));
 	}
+
+	if ( m_TabTextColor != orig.m_TabTextColor ) {
+		index[_T("TabTextColor")].Add(GetRValue(m_TabTextColor));
+		index[_T("TabTextColor")].Add(GetGValue(m_TabTextColor));
+		index[_T("TabTextColor")].Add(GetBValue(m_TabTextColor));
+	}
+
+	if ( m_TabBackColor != orig.m_TabBackColor ) {
+		index[_T("TabBackColor")].Add(GetRValue(m_TabBackColor));
+		index[_T("TabBackColor")].Add(GetGValue(m_TabBackColor));
+		index[_T("TabBackColor")].Add(GetBValue(m_TabBackColor));
+	}
 }
 void CTextRam::SetArray(CStringArrayExt &stra)
 {
@@ -3552,6 +3581,9 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 
 	stra.AddVal(m_ImeTypeCaret);
 	stra.AddVal(m_ImeCaretColor);
+	
+	stra.AddVal(m_TabTextColor);
+	stra.AddVal(m_TabBackColor);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -3796,7 +3828,10 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > 81 )
 		m_ImeCaretColor = stra.GetVal(81);
 
-	// stra.GetBin(82)	DefDiffBitMap
+	if ( stra.GetSize() > 82 )
+		m_TabTextColor = stra.GetVal(82);
+	if ( stra.GetSize() > 83 )
+		m_TabBackColor = stra.GetVal(83);
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {

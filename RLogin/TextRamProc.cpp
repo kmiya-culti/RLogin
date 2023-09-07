@@ -1508,9 +1508,9 @@ void CTextRam::EscCsiDefName(LPCTSTR *esc, LPCTSTR *csi,  LPCTSTR *dcs)
 
 //////////////////////////////////////////////////////////////////////
 
-#define	GetRValue16(n)		(int)((DWORD)GetRValue(n) * 65535 / 255)
-#define	GetGValue16(n)		(int)((DWORD)GetGValue(n) * 65535 / 255)
-#define	GetBValue16(n)		(int)((DWORD)GetBValue(n) * 65535 / 255)
+#define	GetRValue16(n)		(int)((DWORD)GetRValue(n) * 257)
+#define	GetGValue16(n)		(int)((DWORD)GetGValue(n) * 257)
+#define	GetBValue16(n)		(int)((DWORD)GetBValue(n) * 257)
 #define	RoundMulDiv(d,m)	(BYTE)(((DWORD)(d) * 255 + (m / 2)) / m)
 
 	// RGBtoXYZmatrix[3][3]

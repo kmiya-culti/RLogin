@@ -394,9 +394,6 @@ void COptDlg::OnOK()
 		if ( pPage->m_hWnd != NULL )
 			pPage->OnApply();
 	}
-		
-	if ( memcmp(m_pTextRam->m_DefAnsiOpt, m_pTextRam->m_AnsiOpt, sizeof(m_pTextRam->m_AnsiOpt)) != 0 )
-		m_ModFlag |= UMOD_ANSIOPT;
 
 	CDialogExt::OnOK();
 }

@@ -1715,12 +1715,14 @@ void CResDataBase::InitRessource()
 BOOL CResDataBase::InitToolBarBitmap(LPCTSTR lpszName, UINT ImageId)
 {
 	int n, i, idx;
+	int mx, my;
 	HINSTANCE hInst;
 	HRSRC hResource;
 	HGLOBAL hTemplate;
 	LPBYTE lpStrPtr;
 	CResToolBarBase work;
 	CBitmap ImageMap[3], Bitmap;
+	BITMAP MapInfo[3];
 	CDC SrcDC, DisDC;
 	CBitmap *pSrcOld, *pDisOld;
 
@@ -1749,8 +1751,20 @@ BOOL CResDataBase::InitToolBarBitmap(LPCTSTR lpszName, UINT ImageId)
 	if ( work.m_Item.GetSize() <= 0 )
 		return FALSE;
 
-	for ( n = 0 ; n < 3 ; n++ )
+	mx = work.m_Width;
+	my = work.m_Height;
+
+	for ( n = 0 ; n < 3 ; n++ ) {
 		ImageMap[n].LoadBitmap(ImageId + n);
+
+		if ( ImageMap[n].m_hObject == NULL || !ImageMap[n].GetBitmap(&MapInfo[n]) )
+			continue;
+
+		if ( my >= MapInfo[n].bmHeight )
+			continue;
+
+		mx = my = MapInfo[n].bmHeight;
+	}
 
 	// ツールバーイメージからBitmapリソースを作成
 	SrcDC.CreateCompatibleDC(NULL);
@@ -1767,12 +1781,17 @@ BOOL CResDataBase::InitToolBarBitmap(LPCTSTR lpszName, UINT ImageId)
 			pSrcOld = SrcDC.SelectObject(&(ImageMap[i]));
 
 			if ( Bitmap.m_hObject == NULL ) {
-				Bitmap.CreateCompatibleBitmap(&SrcDC, work.m_Width * 3, work.m_Height);
+				Bitmap.CreateCompatibleBitmap(&SrcDC, mx * 3, my);
 				pDisOld = DisDC.SelectObject(&Bitmap);
-				DisDC.FillSolidRect(0, 0, work.m_Width * 3, work.m_Height, RGB(192, 192, 192));
+				DisDC.FillSolidRect(0, 0, mx * 3, my, RGB(192, 192, 192));
 			}
 
-			DisDC.BitBlt(work.m_Width * i, 0, work.m_Width, work.m_Height, &SrcDC, work.m_Width * idx, 0, SRCCOPY);
+			if ( mx == MapInfo[i].bmHeight )
+				DisDC.BitBlt(mx * i, 0, mx, my, &SrcDC, mx * idx, 0, SRCCOPY);
+			else
+				::TransparentBlt(DisDC, mx * i, 0, mx, my, 
+					SrcDC, MapInfo[i].bmHeight * idx, 0, MapInfo[i].bmHeight, MapInfo[i].bmHeight, RGB(192, 192, 192));
+
 			SrcDC.SelectObject(pSrcOld);
 		}
 

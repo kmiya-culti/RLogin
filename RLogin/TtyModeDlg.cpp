@@ -394,6 +394,7 @@ CKnownHostsDlg::~CKnownHostsDlg()
 }
 
 BEGIN_MESSAGE_MAP(CKnownHostsDlg, CTtyModeDlg)
+	ON_NOTIFY(LVN_ITEMCHANGED, IDC_MODE_LIST, &CKnownHostsDlg::OnLvnItemchangedModeList)
 END_MESSAGE_MAP()
 
 static const LV_COLUMN InitKnownHostsTab[3] = {
@@ -555,4 +556,19 @@ void CKnownHostsDlg::OnOK()
 	}
 
 	CDialogExt::OnOK();
+}
+void CKnownHostsDlg::OnLvnItemchangedModeList(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
+
+	if ( (pNMLV->uNewState & LVIS_STATEIMAGEMASK) != 0 && m_List.GetItemState(pNMLV->iItem, LVIS_SELECTED) != 0 ) {
+		BOOL bCheck = m_List.GetLVCheck(pNMLV->iItem);
+		for ( int n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+			if ( n == pNMLV->iItem || m_List.GetItemState(n, LVIS_SELECTED) == 0 )
+				continue;
+			m_List.SetLVCheck(n, bCheck);
+		}
+	}
+
+	*pResult = 0;
 }

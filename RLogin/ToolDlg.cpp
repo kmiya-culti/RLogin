@@ -301,6 +301,7 @@ void CToolDlg::OnOK()
 
 	// システムのツールバーアイコンを再読み込み
 	pDataBase->InitToolBarBitmap(MAKEINTRESOURCE(IDR_MAINFRAME), IDB_BITMAP1);
+	pDataBase->InitToolBarBitmap(MAKEINTRESOURCE(IDR_TOOLBAR2),  IDB_BITMAP10);
 
 	// ローカルの内蔵ビットマットを削除
 	// ローカルのユーザービットマップをシステムにコピー
@@ -435,6 +436,7 @@ void CToolDlg::OnEditDelall()
 	// ユーザーアイコンをすべて削除
 	m_DataBase.m_Bitmap.RemoveAll();
 	m_DataBase.InitToolBarBitmap(MAKEINTRESOURCE(IDR_MAINFRAME), IDB_BITMAP1);
+	m_DataBase.InitToolBarBitmap(MAKEINTRESOURCE(IDR_TOOLBAR2),  IDB_BITMAP10);
 
 	InitList();
 	m_ToolSize.SetCurSel((sz - 10) / 2);

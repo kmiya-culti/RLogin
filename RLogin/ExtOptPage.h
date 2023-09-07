@@ -20,6 +20,11 @@ public:
 public:
 	CListCtrlExt m_ExtList;
 	CString m_InlineExt;
+	CStatic m_TabTextColorBox;
+	CStatic m_TabBackColorBox;
+	COLORREF m_TabTextColor;
+	COLORREF m_TabBackColor;
+	BOOL m_TabBackGradient;
 
 public:
 	void DoInit();
@@ -37,4 +42,7 @@ protected:
 	afx_msg void OnNMClickExtlist(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnLvnGetInfoTipExtlist(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnUpdate();
+	afx_msg void OnStnClickedTabTextColor();
+	afx_msg void OnStnClickedTabBackColor();
+	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 };

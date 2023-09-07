@@ -504,6 +504,7 @@ public:
 	inline void QuickBarInit() { m_wndQuickBar.InitDialog(); }
 	inline void TabDlgShow(BOOL bShow) { ShowControlBar(&m_wndTabDlgBar, bShow, FALSE); }
 	inline BOOL TabDlgInDrag(CPoint point, CWnd *pWnd, int nImage) { if ( !m_bTabDlgBarShow ) return FALSE; m_wndTabDlgBar.TrackLoop(point, (-7), pWnd, nImage); return TRUE; }
+	inline void TabBarUpdate() { m_wndTabBar.Invalidate(FALSE); }
 
 // コントロール バー用メンバ
 protected: 

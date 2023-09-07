@@ -8,6 +8,21 @@
 #define	TBTMID_SETCURSOR		1024
 #define	TBTMID_GHOSTWMD			1025
 
+class CTabCtrlExt : public CTabCtrl
+{
+	DECLARE_DYNAMIC(CTabCtrlExt)
+
+public:
+	CTabCtrlExt();
+	virtual ~CTabCtrlExt();
+
+public:
+	virtual void DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);
+
+protected:
+	DECLARE_MESSAGE_MAP()
+};
+
 class CTabBar : public CControlBar  
 {
 	DECLARE_DYNAMIC(CTabBar)
@@ -17,7 +32,7 @@ public:
 	virtual ~CTabBar();
 
 public:
-	CTabCtrl m_TabCtrl;
+	CTabCtrlExt m_TabCtrl;
 	CFont m_TabFont;
 	int m_GhostReq;
 	int m_GhostItem;

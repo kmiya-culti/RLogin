@@ -1289,6 +1289,7 @@ BOOL CRLoginApp::InitInstance()
 
 	// デフォルトツールバーイメージからBitmapリソースを作成
 	InitToolBarBitmap(MAKEINTRESOURCE(IDR_MAINFRAME), IDB_BITMAP1);
+	InitToolBarBitmap(MAKEINTRESOURCE(IDR_TOOLBAR2),  IDB_BITMAP10);
 	InitToolBarBitmap(MAKEINTRESOURCE(IDR_SFTPTOOL),  IDB_BITMAP5);
 
 	// レジストリ保存のリソースデータベース読み込み

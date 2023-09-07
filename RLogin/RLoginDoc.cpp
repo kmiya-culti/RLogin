@@ -2298,6 +2298,9 @@ void CRLoginDoc::OnSetOption()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
+	if ( (dlg.m_ModFlag & UMOD_TABCOLOR) != 0 )
+		((CMainFrame *)::AfxGetMainWnd())->TabBarUpdate();
+
 	if ( (dlg.m_ModFlag & (UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT | UMOD_CARET)) != 0 )
 		dlg.m_ModFlag = m_TextRam.InitDefParam(TRUE, dlg.m_ModFlag);
 

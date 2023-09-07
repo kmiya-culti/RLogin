@@ -21,8 +21,99 @@ static char THIS_FILE[]=__FILE__;
 #define	DEFTAB_COUNT	4
 
 //////////////////////////////////////////////////////////////////////
-// 構築/消滅
+// CTabCtrlExt
+CTabCtrlExt::CTabCtrlExt()
+{
+}
+CTabCtrlExt::~CTabCtrlExt()
+{
+}
+void CTabCtrlExt::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
+{
+	CDC *pDC = CDC::FromHandle(lpDrawItemStruct->hDC);
+	CRect rect = lpDrawItemStruct->rcItem;
+	int nTabIndex = (int)(lpDrawItemStruct->itemID);
+	BOOL bSelected = FALSE;
+	BOOL bGradient = FALSE;
+	TC_ITEM tci;
+	TCHAR title[MAX_PATH + 2] = { _T('\0') };
+	int nSavedDC;
+	CChildFrame *pWnd;
+	CRLoginDoc *pDoc;
+	COLORREF bc = ::GetSysColor(COLOR_BTNFACE);
+	COLORREF tc = ::GetSysColor(COLOR_BTNTEXT);
+	COLORREF gc = ::GetSysColor(COLOR_BTNFACE);
+	int ex = ::GetSystemMetrics(SM_CXEDGE) * 2;
+	int ox = 0;
+	CImageList* pImageList = GetImageList();
+
+	ASSERT(pDC != NULL);
+
+	if ( nTabIndex < 0 )
+		return;
+	else if ( nTabIndex == GetCurSel() )
+		bSelected = TRUE;
+
+	ZeroMemory(&tci, sizeof(tci));
+	tci.mask = TCIF_TEXT | TCIF_PARAM | TCIF_IMAGE;
+	tci.pszText = title;
+	tci.cchTextMax = MAX_PATH;
+
+	if ( !GetItem(nTabIndex, &tci) ) {
+		title[0] = _T('\0');
+		tci.iImage = (-1);
+		tci.lParam = NULL;
+	}
+
+	nSavedDC = pDC->SaveDC();
+
+	if ( bSelected ) {
+		if ( (HWND)tci.lParam != NULL && (pWnd = (CChildFrame *)FromHandle((HWND)tci.lParam)) != NULL && (pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument())) != NULL ) {
+			bc = pDoc->m_TextRam.m_TabBackColor;
+			tc = pDoc->m_TextRam.m_TabTextColor;
+			if ( bc != gc && pDoc->m_TextRam.IsOptEnable(TO_RLTABGRAD) )
+				bGradient = TRUE;
+		} else {
+			bc = ::GetSysColor(COLOR_BTNHIGHLIGHT);
+			tc = ::GetSysColor(COLOR_BTNTEXT);
+		}
+	}
+
+	if ( bGradient ) {
+		TRIVERTEX tv[2] = { { rect.left, rect.top, GetRValue(bc) * 257, GetGValue(bc) * 257, GetBValue(bc) * 257, 0xffff },
+							{ rect.right, rect.bottom, GetRValue(gc) * 257, GetGValue(gc) * 257, GetBValue(gc) * 257, 0xffff } };
+		GRADIENT_RECT gr = { 0, 1 };
+
+		pDC->GradientFill(tv, 2, &gr, 1, GRADIENT_FILL_RECT_V);
+	} else
+		pDC->FillSolidRect(rect, bc);
+
+	if ( pImageList != 0 && tci.iImage >= 0 ) {
+		IMAGEINFO info;
+		pImageList->GetImageInfo(tci.iImage, &info);
+		CRect ImageRect(info.rcImage);
+
+		pImageList->Draw(pDC, tci.iImage, CPoint(rect.left + ex, rect.top + (rect.Height() - ImageRect.Height()) / 2), ILD_TRANSPARENT);
+		ox += (ImageRect.Width() + ex);
+	}
+
+	if ( title[0] != _T('\0') ) {
+		pDC->SetBkMode(TRANSPARENT);
+		pDC->SetTextColor(tc);
+		rect.left += (ox + ex);
+		pDC->DrawText(title, rect, DT_SINGLELINE | DT_VCENTER | DT_LEFT);
+	}
+
+	pDC->RestoreDC(nSavedDC);
+}
+
+IMPLEMENT_DYNAMIC(CTabCtrlExt, CTabCtrl)
+
+BEGIN_MESSAGE_MAP(CTabCtrlExt, CTabCtrl)
+END_MESSAGE_MAP()
+
 //////////////////////////////////////////////////////////////////////
+// CTabBar
 
 CTabBar::CTabBar()
 {
@@ -91,6 +182,7 @@ CSize CTabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 			pFont->GetLogFont(&LogFont);
 			if ( (FontSize = LogFont.lfHeight) < 0 )
 				FontSize = 0 - FontSize;
+			FontSize = FontSize * 12 / 10;
 		}
 	}
 	
@@ -157,6 +249,8 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	if ( m_bMultiLine )
 		addStyle |= (TCS_MULTILINE | TCS_BUTTONS);
+
+	addStyle |= TCS_OWNERDRAWFIXED;
 
 	if ( !m_TabCtrl.Create(WS_VISIBLE | WS_CHILD | TCS_FOCUSNEVER | TCS_FIXEDWIDTH | TCS_FORCELABELLEFT | addStyle, rect, this, IDC_MDI_TAB_CTRL) ) {
 		TRACE0("Unable to create tab control bar\n");
@@ -318,14 +412,16 @@ void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 		}
 
 		if ( ntc.mask != 0 ) {
+			// OwnerDrawItemのおかげで以下のバグを回避？
+
 			// SetItemではiImageを設定するとテキストと重なるバグあり? しかたなくInsert/Deleteで代用
-			if ( (ntc.mask & TCIF_IMAGE) != 0 && (ntc.iImage == (-1) || tci.iImage == (-1)) ) {
-				ntc.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
-				ntc.pszText = tmp;
-				ntc.lParam = tci.lParam;
-				m_TabCtrl.InsertItem(n, &ntc);
-				m_TabCtrl.DeleteItem(n + 1);
-			} else
+			//if ( (ntc.mask & TCIF_IMAGE) != 0 && (ntc.iImage == (-1) || tci.iImage == (-1)) ) {
+			//	ntc.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
+			//	ntc.pszText = tmp;
+			//	ntc.lParam = tci.lParam;
+			//	m_TabCtrl.InsertItem(n, &ntc);
+			//	m_TabCtrl.DeleteItem(n + 1);
+			//} else
 				m_TabCtrl.SetItem(n, &ntc);
 		}
 

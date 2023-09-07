@@ -292,6 +292,8 @@
 #define	TO_IMECARET		1489		// IMEがONの時にカレットの色を変える
 #define	TO_DNSSSSHFP	1490		// DNSによるSSSHホスト鍵のチェックを行う
 #define	TO_RLENOEDPAST	1491		// ペーストを確認しない
+#define	TO_RLTABGRAD	1492		// タブの背景をグラデーション
+
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -1062,6 +1064,8 @@ public:	// Options
 	int m_SleepMode;
 	int m_ImeTypeCaret;
 	COLORREF m_ImeCaretColor;
+	COLORREF m_TabTextColor;
+	COLORREF m_TabBackColor;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);

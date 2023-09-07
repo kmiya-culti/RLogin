@@ -732,6 +732,24 @@
     <None Include="res\checkbox.bmp">
       <Filter>リソース ファイル</Filter>
     </None>
+    <None Include="res\bmp00001.bmp">
+      <Filter>リソース ファイル</Filter>
+    </None>
+    <None Include="toolbar2.bmp">
+      <Filter>リソース ファイル</Filter>
+    </None>
+    <None Include="res\bitmap10.bmp">
+      <Filter>リソース ファイル</Filter>
+    </None>
+    <None Include="res\bitmap11.bmp">
+      <Filter>リソース ファイル</Filter>
+    </None>
+    <None Include="res\bitmap12.bmp">
+      <Filter>リソース ファイル</Filter>
+    </None>
+    <None Include="res\toolbar2.bmp">
+      <Filter>リソース ファイル</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="RLogin.rc">

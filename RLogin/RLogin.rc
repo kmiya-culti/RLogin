@@ -99,6 +99,10 @@ IDB_HATCH3              BITMAP                  "res\\hatch3.bmp"
 IDB_CHECKBOX1           BITMAP                  "res\\checkbox1.bmp"
 IDB_CHECKBOX2           BITMAP                  "res\\checkbox2.bmp"
 IDB_CHECKBOX3           BITMAP                  "res\\checkbox.bmp"
+IDR_TOOLBAR2            BITMAP                  "res\\toolbar2.bmp"
+IDB_BITMAP10            BITMAP                  "res\\bitmap10.bmp"
+IDB_BITMAP11            BITMAP                  "res\\bitmap11.bmp"
+IDB_BITMAP12            BITMAP                  "res\\bitmap12.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -152,6 +156,46 @@ BEGIN
     SEPARATOR
     BUTTON      IDM_SFTP_REFLESH
     BUTTON      IDM_SFTP_ABORT
+END
+
+IDR_TOOLBAR2 TOOLBAR 16, 16
+BEGIN
+    BUTTON      ID_FILE_ALL_SAVE
+    BUTTON      ID_FILE_PRINT
+    BUTTON      ID_FILE_PRINT_PREVIEW
+    BUTTON      ID_FILE_PRINT_SETUP
+    BUTTON      IDM_SCRIPT
+    SEPARATOR
+    BUTTON      IDM_EDIT_MARK
+    BUTTON      ID_EDIT_COPY_ALL
+    BUTTON      IDM_SEARCH_REG
+    BUTTON      IDM_SEARCH_BACK
+    BUTTON      IDM_SEARCH_NEXT
+    BUTTON      IDM_SPEAKALL
+    SEPARATOR
+    BUTTON      IDM_SOCKETSTATUS
+    BUTTON      IDM_COMMONITER
+    BUTTON      IDM_CHARTOOLTIP
+    BUTTON      ID_GOZIVIEW
+    SEPARATOR
+    BUTTON      ID_WINDOW_CASCADE
+    BUTTON      ID_WINDOW_TILE_HORZ
+    BUTTON      ID_SPLIT_HEIGHT
+    BUTTON      ID_SPLIT_WIDTH
+    BUTTON      ID_SPLIT_OVER
+    BUTTON      IDM_SPLIT_HEIGHT_NEW
+    BUTTON      IDM_SPLIT_WIDTH_NEW
+    SEPARATOR
+    BUTTON      IDM_XMODEM_UPLOAD
+    BUTTON      IDM_YMODEM_UPLOAD
+    BUTTON      IDM_ZMODEM_UPLOAD
+    BUTTON      IDM_KERMIT_UPLOAD
+    BUTTON      IDM_SIMPLE_UPLOAD
+    BUTTON      IDM_XMODEM_DOWNLOAD
+    BUTTON      IDM_YMODEM_DOWNLOAD
+    BUTTON      IDM_ZMODEM_DOWNLOAD
+    BUTTON      IDM_KERMIT_DOWNLOAD
+    BUTTON      IDM_SIMPLE_DOWNLOAD
 END
 
 
@@ -653,7 +697,7 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,206,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,225,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.28.4 (2023/08/04)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.28.5 (2023/09/08)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2023 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 3.1.2 1 Aug 2023",IDC_STATIC,44,53,189,8
     LTEXT           "Copyright (c) 1998-2023 The OpenSSL Project",IDC_STATIC,44,63,189,8
@@ -1855,12 +1899,17 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "拡張機能"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "",IDC_EXTLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,15,34,240,198
-    GROUPBOX        "各種オプション",IDC_STATIC,7,7,256,234
+    CONTROL         "",IDC_EXTLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,15,34,240,156
+    EDITTEXT        IDC_EDIT1,15,231,240,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_TEXTCOLOR,"Static",SS_OWNERDRAW | SS_NOTIFY,240,270,15,15,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BACKCOLOR,"Static",SS_OWNERDRAW | SS_NOTIFY,108,270,15,15,WS_EX_STATICEDGE
+    GROUPBOX        "各種オプション",IDC_STATIC,7,7,256,192
     LTEXT           "要望のあったオプションや試験的な実装を試すことができます",IDC_STATIC,15,19,240,8
-    EDITTEXT        IDC_EDIT1,15,271,240,14,ES_AUTOHSCROLL
-    GROUPBOX        "OSC 1337 インライン拡張",IDC_STATIC,7,245,256,48
-    LTEXT           "インライン表示できない時に下記の拡張子ならShellで実行します",IDC_STATIC,15,258,240,8
+    GROUPBOX        "OSC 1337 インライン拡張",IDC_STATIC,7,205,256,48
+    LTEXT           "インライン表示できない時に下記の拡張子ならShellで実行します",IDC_STATIC,15,218,240,8
+    GROUPBOX        "アクティブな時のタブバーの色設定",IDC_STATIC,7,258,256,35
+    RTEXT           "タブバーの文字色",IDC_STATIC,146,274,78,8
+    RTEXT           "タブバーの背景色",IDC_STATIC,15,274,78,8
 END
 
 IDD_MSGDLG DIALOGEX 0, 0, 315, 114
@@ -2198,8 +2247,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,28,4,0
- PRODUCTVERSION 2,28,4,0
+ FILEVERSION 2,28,5,0
+ PRODUCTVERSION 2,28,5,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2216,12 +2265,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.28.4.0"
+            VALUE "FileVersion", "2.28.5.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.28.4.0"
+            VALUE "ProductVersion", "2.28.5.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4922,6 +4971,8 @@ BEGIN
     IDT_EXTOPT_LIST26       "TCP_NODLAY Enable\tDisable\tTCPオプションのNoDelayを有効にす"
     IDT_EXTOPT_LIST27       "IMEオンでカーソル変更\t通常の文字カーソル\tIMEの状態で文字カーソルを変更します"
     IDT_EXTOPT_LIST28       "DNSでチェックしない\tDNSでチェックする\tDNSによるSSHホスト鍵のチェックを行なわないようにします"
+    IDT_EXTOPT_LIST29       "ペーストを確認する\tペーストを確認しない\tペースト時の確認を行わないようにします"
+    IDT_EXTOPT_LIST30       "タブの背景をグラデーション\tタブの背景を単色\tタブバーの背景表示をグラデーションで描画します"
 END
 
 STRINGTABLE
