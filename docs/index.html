@@ -26,8 +26,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.28.5)</TD>
-            <TD width="20%" align="right">2023/09/08</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.28.6)</TD>
+            <TD width="20%" align="right">2023/10/02</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -434,6 +434,17 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2023/10/02</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.6/">2.28.6</A></TD>
+            <TD>シェル起動なしでPFログを表示でCONNECTされないバグを修正<BR>
+            ツールバーにドロップダウンメニュー機能を追加<BR>
+            メニュー・表示にサブツールバーを追加<BR>
+            おさかなをシステムDPIで調整して表示に修正<BR>
+            暗号方式などの設定ダイアログをサイズ変更可能に変更<BR>
+            タブバーの背景色設定を拡張機能から背景設定に移動<BR>
+            openssl-3.1.3に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2023/09/08</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.5/">2.28.5</A></TD>
             <TD>オプション・拡張機能にタブバーの色設定を追加<BR>
@@ -462,14 +473,6 @@ TD {
             libiconv-1.17に更新</TD>
           </TR>
           <TR>
-            <TD align="center">2023/04/10</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.1/">2.28.1</A></TD>
-            <TD>sshを完全にスレッド動作に変更<BR>
-            プロキシ設定にProxy Commandを追加<BR>
-            <SPAN style="color: rgb(36, 41, 47); font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, &quot;Noto Sans&quot;, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;; font-size: 14px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">PAGEANTなどでRSAの署名拡張されないバグを修正</SPAN><BR>
-            2.28.0でSSH2のエージェント転送が条件により失敗するバグを修正</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -493,13 +496,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.1.2.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.1.3.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.1.2 openssl-3.1.2-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.1.3 openssl-3.1.3-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -584,7 +587,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.1.2 1 Aug2023<BR>
+            <P>OpenSSL 3.1.3 19 Sep 2023<BR>
             Copyright (c) 1998-2023 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -935,7 +938,7 @@ TD {
                   <TD align="left" colspan="6">表示(V)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="10" rowspan="31">&nbsp;</TD>
+                  <TD align="center" width="10" rowspan="32">&nbsp;</TD>
                   <TD colspan="2" width="250" valign="top">メニューバー(M)</TD>
                   <TD width="450" valign="top">メニューバーを表示・非表示にします<BR>
                   ※非表示の時は、システムメニューでメニューバーを表示できます</TD>
@@ -947,6 +950,12 @@ TD {
                   <TD valign="top">ツールバーを表示・非表示にします</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_TOOLBAR</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" colspan="2">サブツールバー(U)</TD>
+                  <TD valign="top">サブツールバーを表示・非表示にします</TD>
+                  <TD valign="top" align="right"></TD>
+                  <TD valign="top">$VIEW_SUBTOOLBAR</TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">クィックバー(Q)</TD>
@@ -3122,6 +3131,8 @@ fi</PRE>
             変更したい項目を選択してSHIFT+↑、SHIFT+↓で順位が変わります<BR>
             参照：<A href="faq.html#LOGON">ログイン手順の自動化</A> <A href="faq.html#SSHALGO">SSH2での各種選択</A><BR>
             <BR>
+            ※2.28.6からダイアログのサイズを変更出来るようにしました<BR>
+            <BR>
             暗号化のスピードは、以下のようになるようです（コンパイル条件により異なります）<BR>
             arcfour&gt;aes&gt;twofish&gt;blowfish&gt;camellia&gt;cast&gt;idea&gt;seed&gt;serpent&gt;3des<BR>
             cbc&gt;ecb&gt;ofb&gt;cfb&gt;ctr<BR>
@@ -4333,14 +4344,6 @@ function TekClock2() {
                 <TR>
                   <TD colspan="2">デフォルトフォントのWindowsによるCHARSETでフォント置換を行わないようにします。結果、文字が正しく表示されない場合がありますのでご注意ください</TD>
                 </TR>
-                <TR>
-                  <TD align="center" rowspan="2">492</TD>
-                  <TD>タブの背景をグラデーション</TD>
-                  <TD>タブの背景を単色</TD>
-                </TR>
-                <TR>
-                  <TD colspan="2">下記のタブバーの色設定で背景色をグラデーションで描画するようにします</TD>
-                </TR>
               </TBODY>
             </TABLE>
             <BR>
@@ -4349,22 +4352,6 @@ function TekClock2() {
                 <TR>
                   <TD width="30%">OSC 1337 インライン拡張</TD>
                   <TD>インライン指定で表示できる画像(jpg/png/gif/bmp...)以外の場合に指定された拡張子のみファイルを作業用フォルダに作成してShell経由で外部プログラムで起動します。作業ファイルは、RLogin終了時に削除します。exeなどの実行プログラムなどは、指定しないでください。セキュリティ的に問題になる場合があります</TD>
-                </TR>
-              </TBODY>
-            </TABLE>
-            <BR>
-            <TABLE class="BOX" width="600" cellpadding="5" cellspacing="1">
-              <TBODY>
-                <TR>
-                  <TD colspan="2">アクティブな時のタブバーの色設定</TD>
-                </TR>
-                <TR>
-                  <TD width="30%">タブバーの背景色</TD>
-                  <TD>このエントリーがアクティブになった時のタブバーのタブの背景色を色見本をクリックすると変更することが出来ます</TD>
-                </TR>
-                <TR>
-                  <TD width="30%">タブバーの文字色</TD>
-                  <TD>同じくアクティブになった時のタブバーのタブの文字色です</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -5629,10 +5616,25 @@ function TekClock2() {
                   <TD>文字の背景色や反転表示時に画像と合成する比率を調整します<BR>
                   薄い～濃いで背景色が濃くなります。ただしデフォルトの文字カラーの背景色は、合成せずに透過します</TD>
                 </TR>
+                <TR>
+                  <TD colspan="2">アクティブな時のタブバーの背景色</TD>
+                </TR>
+                <TR>
+                  <TD>背景色をグラデーション</TD>
+                  <TD>下記の背景色をグラデーションで描画します</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">タブバーの背景色</TD>
+                  <TD>このエントリーがアクティブになった時のタブバーのタブの背景色を色見本をクリックすると変更することが出来ます</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">タブバーの文字色</TD>
+                  <TD>同じくアクティブになった時のタブバーのタブの文字色です</TD>
+                </TR>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image049.jpg" width="597" height="530" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image049.jpg" width="609" height="531" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -6222,16 +6224,17 @@ function TekClock2() {
                   <TD width="30%" colspan="2">ツールバーのカスタマイズ</TD>
                 </TR>
                 <TR>
-                  <TD width="30%">メニューリスト</TD>
-                  <TD>メニューの一覧から追加したい物を選択して右のツールバーリストの追加したい場所にドラッグします</TD>
+                  <TD width="30%" align="center">メニューリスト</TD>
+                  <TD>メニューの一覧から追加したい物を選択して右のツールバーリストの追加したい場所にドラッグします<BR>
+                  ※ドロップダウンの始まり・終わりは、内部で区切り記号２つで管理しています。区切り記号との組み合わせで予期せぬ結果になりますのでご注意ください</TD>
                 </TR>
                 <TR>
-                  <TD>ツールバーサイズ</TD>
+                  <TD align="center">ツールバーサイズ</TD>
                   <TD>ツールバーのアイコンサイズを10x10～32x32で選びます<BR>
                   ※2.23.8よりHiDPIの変更に追従するようにしました。サイズは、96dpiから換算されますのでご注意ください</TD>
                 </TR>
                 <TR>
-                  <TD>ツールバーリスト</TD>
+                  <TD align="center">ツールバーリスト</TD>
                   <TD>各ツールのドラッグで移動します。また右クリックで下記のポップアップメニューが表示されます<BR>
                   <TABLE cellpadding="3">
                     <TBODY>
@@ -6260,10 +6263,14 @@ function TekClock2() {
                   </TABLE>
                   </TD>
                 </TR>
+                <TR>
+                  <TD align="center">ツール/サブツールバー</TD>
+                  <TD>編集するツールバーを選択します</TD>
+                </TR>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image050.jpg" width="560" height="440" border="0"></TD>
+            <TD valign="top"><IMG src="image050.jpg" width="560" height="445" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

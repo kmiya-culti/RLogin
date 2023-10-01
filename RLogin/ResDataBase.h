@@ -144,7 +144,7 @@ public:
 	void SetIndex(int mode, class CStringIndex &index);
 	void Serialize(int mode, class CBuffer &buf);
 
-	BOOL SetToolBar(CToolBar &ToolBar, CWnd *pWnd);
+	BOOL SetToolBar(class CToolBarEx &ToolBar, CWnd *pWnd);
 
 	const CResToolBarBase & operator = (CResToolBarBase &data);
 
@@ -249,7 +249,7 @@ public:
 	BOOL LoadResMenu(LPCTSTR lpszName, HMENU &hMenu);
 
 	BOOL LoadResString(LPCTSTR lpszName, CString &str);
-	BOOL LoadResToolBar(LPCTSTR lpszName, CToolBar &ToolBar, CWnd *pWnd);
+	BOOL LoadResToolBar(LPCTSTR lpszName, class CToolBarEx &ToolBar, CWnd *pWnd);
 	BOOL LoadResBitmap(LPCTSTR lpszName, CBitmap &Bitmap);
 
 	void *Find(WORD nId, LPCTSTR type);

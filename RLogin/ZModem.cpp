@@ -596,7 +596,8 @@ CANRET:
 
 ENDRET:
     SetXonXoff(TRUE);
-    fclose(fp);
+	if ( fp != NULL )
+	    fclose(fp);
     UpDownClose();
     return FALSE;
 }

@@ -99,6 +99,8 @@ void CDialogExt::InitItemOffset(const INITDLGTAB *pTab, int ox, int oy, int mx, 
 				rect.left = place.rcNormalPosition.left - cx / 2;
 			else if ( pTab[n].mode & ITM_LEFT_RIGHT )
 				rect.left = place.rcNormalPosition.left - cx;
+			else if ( pTab[n].mode & ITM_LEFT_PER )
+				rect.left = place.rcNormalPosition.left * ITM_PER_MAX / cx;
 			else
 				rect.left = place.rcNormalPosition.left;
 
@@ -106,6 +108,8 @@ void CDialogExt::InitItemOffset(const INITDLGTAB *pTab, int ox, int oy, int mx, 
 				rect.right = place.rcNormalPosition.right - cx/ 2;
 			else if ( pTab[n].mode & ITM_RIGHT_RIGHT )
 				rect.right = place.rcNormalPosition.right - cx;
+			else if ( pTab[n].mode & ITM_RIGHT_PER )
+				rect.right = place.rcNormalPosition.right * ITM_PER_MAX /  cx;
 			else
 				rect.right = place.rcNormalPosition.right;
 
@@ -113,6 +117,8 @@ void CDialogExt::InitItemOffset(const INITDLGTAB *pTab, int ox, int oy, int mx, 
 				rect.top = place.rcNormalPosition.top - cy / 2;
 			else if ( pTab[n].mode & ITM_TOP_BTM )
 				rect.top = place.rcNormalPosition.top - cy;
+			else if ( pTab[n].mode & ITM_TOP_PER )
+				rect.top = place.rcNormalPosition.top * ITM_PER_MAX / cy;
 			else
 				rect.top = place.rcNormalPosition.top;
 
@@ -120,6 +126,8 @@ void CDialogExt::InitItemOffset(const INITDLGTAB *pTab, int ox, int oy, int mx, 
 				rect.bottom = place.rcNormalPosition.bottom - cy / 2;
 			else if ( pTab[n].mode & ITM_BTM_BTM )
 				rect.bottom = place.rcNormalPosition.bottom - cy;
+			else if ( pTab[n].mode & ITM_BTM_PER )
+				rect.bottom = place.rcNormalPosition.bottom * ITM_PER_MAX / cy;
 			else
 				rect.bottom = place.rcNormalPosition.bottom;
 		}
@@ -149,6 +157,8 @@ void CDialogExt::SetItemOffset(int cx, int cy)
 			place.rcNormalPosition.left = i + cx / 2;
 		else if ( m_InitDlgRect[n].mode & ITM_LEFT_RIGHT )
 			place.rcNormalPosition.left = i + cx;
+		else if ( m_InitDlgRect[n].mode & ITM_LEFT_PER )
+			place.rcNormalPosition.left = cx * m_InitDlgRect[n].rect.left / ITM_PER_MAX;
 		else
 			place.rcNormalPosition.left = i + m_OfsSize.cx;
 
@@ -158,6 +168,8 @@ void CDialogExt::SetItemOffset(int cx, int cy)
 			place.rcNormalPosition.right = i + cx / 2;
 		else if ( m_InitDlgRect[n].mode & ITM_RIGHT_RIGHT )
 			place.rcNormalPosition.right = i + cx;
+		else if ( m_InitDlgRect[n].mode & ITM_RIGHT_PER )
+			place.rcNormalPosition.right = cx * m_InitDlgRect[n].rect.right / ITM_PER_MAX;
 		else
 			place.rcNormalPosition.right = i + m_OfsSize.cx;
 
@@ -167,6 +179,8 @@ void CDialogExt::SetItemOffset(int cx, int cy)
 			place.rcNormalPosition.top = i + cy / 2;
 		else if ( m_InitDlgRect[n].mode & ITM_TOP_BTM )
 			place.rcNormalPosition.top = i + cy;
+		else if ( m_InitDlgRect[n].mode & ITM_TOP_PER )
+			place.rcNormalPosition.top = cy * m_InitDlgRect[n].rect.top / ITM_PER_MAX;
 		else
 			place.rcNormalPosition.top = i + m_OfsSize.cy;
 
@@ -176,6 +190,8 @@ void CDialogExt::SetItemOffset(int cx, int cy)
 			place.rcNormalPosition.bottom = i + cy / 2;
 		else if ( m_InitDlgRect[n].mode & ITM_BTM_BTM )
 			place.rcNormalPosition.bottom = i + cy;
+		else if ( m_InitDlgRect[n].mode & ITM_BTM_PER )
+			place.rcNormalPosition.bottom = cy * m_InitDlgRect[n].rect.bottom / ITM_PER_MAX;
 		else
 			place.rcNormalPosition.bottom = i + m_OfsSize.cy;
 

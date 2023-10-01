@@ -26,6 +26,11 @@ public:
 	CStatic m_ColorBox;
 	COLORREF m_TextColor;
 	LOGFONT m_LogFont;
+	CStatic m_TabTextColorBox;
+	CStatic m_TabBackColorBox;
+	COLORREF m_TabTextColor;
+	COLORREF m_TabBackColor;
+	BOOL m_TabBackGradient;
 
 public:
 	void DoInit();
@@ -48,4 +53,6 @@ protected:
 	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg void OnUpdateEdit();
 	afx_msg void OnUpdateSlider(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnStnClickedTabTextColor();
+	afx_msg void OnStnClickedTabBackColor();
 };

@@ -3,6 +3,7 @@
 #include "DialogExt.h"
 #include "ComboBoxHis.h"
 #include "ListCtrlExt.h"
+#include "ToolBarEx.h"
 #include <Shobjidl.h>
 
 /* version */
@@ -223,7 +224,7 @@ public:
 	CImageList m_ImageList;
 	CIConv m_IConv;
 	CString m_HostKanjiSet;
-	CToolBar m_wndToolBar;
+	CToolBarEx m_wndToolBar;
 	int m_ToolBarOfs;
 	int m_UpdateCheckMode;
 	time_t m_LocalCurTime;

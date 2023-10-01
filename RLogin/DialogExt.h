@@ -19,14 +19,18 @@ public:
 
 #define	ITM_LEFT_MID	00001
 #define	ITM_LEFT_RIGHT	00002
+#define	ITM_LEFT_PER	00004
 #define	ITM_RIGHT_MID	00010
 #define	ITM_RIGHT_RIGHT	00020
+#define	ITM_RIGHT_PER	00040
 #define	ITM_TOP_MID		00100
 #define	ITM_TOP_BTM		00200
+#define	ITM_TOP_PER		00400
 #define	ITM_BTM_MID		01000
 #define	ITM_BTM_BTM		02000
+#define	ITM_BTM_PER		04000
 
-#define ITM_PER_MAX		2000
+#define ITM_PER_MAX		1000
 
 typedef struct	_InitDlgTab {
 	UINT	id;

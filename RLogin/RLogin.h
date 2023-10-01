@@ -262,7 +262,7 @@ public:
 	inline BOOL LoadResDialog(LPCTSTR lpszName, HGLOBAL &hTemplate, HGLOBAL &hInitData) { return m_ResDataBase.LoadResDialog(lpszName, hTemplate, hInitData); }
 	inline BOOL LoadResString(LPCTSTR lpszName, CString &str) { return m_ResDataBase.LoadResString(lpszName, str); }
 	inline BOOL LoadResMenu(LPCTSTR lpszName, HMENU &hMenu) { return m_ResDataBase.LoadResMenu(lpszName, hMenu); }
-	inline BOOL LoadResToolBar(LPCTSTR lpszName, CToolBar &ToolBar, CWnd *pWnd) { return m_ResDataBase.LoadResToolBar(lpszName, ToolBar, pWnd); }
+	inline BOOL LoadResToolBar(LPCTSTR lpszName, CToolBarEx &ToolBar, CWnd *pWnd) { return m_ResDataBase.LoadResToolBar(lpszName, ToolBar, pWnd); }
 	inline BOOL LoadResBitmap(LPCTSTR lpszName, CBitmap &Bitmap) { return m_ResDataBase.LoadResBitmap(lpszName, Bitmap); }
 	inline BOOL InitToolBarBitmap(LPCTSTR lpszName, UINT ImageId) { return m_ResDataBase.InitToolBarBitmap(lpszName, ImageId); }
 

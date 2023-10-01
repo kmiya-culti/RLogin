@@ -80,8 +80,8 @@ void CTabCtrlExt::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	}
 
 	if ( bGradient ) {
-		TRIVERTEX tv[2] = { { rect.left, rect.top, GetRValue(bc) * 257, GetGValue(bc) * 257, GetBValue(bc) * 257, 0xffff },
-							{ rect.right, rect.bottom, GetRValue(gc) * 257, GetGValue(gc) * 257, GetBValue(gc) * 257, 0xffff } };
+		TRIVERTEX tv[2] = { { rect.left, rect.top, (COLOR16)(GetRValue(bc) * 257), (COLOR16)(GetGValue(bc) * 257), (COLOR16)(GetBValue(bc) * 257), 0xffff },
+							{ rect.right, rect.bottom, (COLOR16)(GetRValue(gc) * 257), (COLOR16)(GetGValue(gc) * 257), (COLOR16)(GetBValue(gc) * 257), 0xffff } };
 		GRADIENT_RECT gr = { 0, 1 };
 
 		pDC->GradientFill(tv, 2, &gr, 1, GRADIENT_FILL_RECT_V);

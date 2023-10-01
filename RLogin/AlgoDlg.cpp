@@ -43,7 +43,51 @@ BEGIN_MESSAGE_MAP(CAlgoDlg, CDialogExt)
 	//{{AFX_MSG_MAP(CAlgoDlg)
 	//}}AFX_MSG_MAP
 	ON_BN_CLICKED(IDC_RESET, &CAlgoDlg::OnBnClickedReset)
+	ON_WM_SIZE()
 END_MESSAGE_MAP()
+
+static const INITDLGTAB ItemTab[] = {
+	{ IDC_ALGO_LIST1,	ITM_RIGHT_PER | ITM_BTM_PER },
+	{ IDC_ALGO_LIST2,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_PER },
+	{ IDC_ALGO_LIST3,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_PER },
+
+	{ IDC_ALGO_LIST4,	ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_PER },
+	{ IDC_ALGO_LIST5,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_PER },
+	{ IDC_ALGO_LIST6,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_PER },
+
+	{ IDC_ALGO_LIST7,	ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_BTM },
+	{ IDC_ALGO_LIST8,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_BTM },
+	{ IDC_ALGO_LIST9,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_BTM },
+
+	{ IDC_ALGO_LIST10,	ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_PER },
+	{ IDC_ALGO_LIST11,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_PER },
+	{ IDC_ALGO_LIST12,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_PER },
+
+	{ IDC_RESET,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+
+	{ IDC_GROUP1,		ITM_RIGHT_RIGHT | ITM_BTM_PER },
+	{ IDC_GROUP2,		ITM_RIGHT_RIGHT | ITM_TOP_PER | ITM_BTM_BTM },
+
+	{ IDC_TITLE1,		ITM_TOP_PER | ITM_BTM_PER },
+	{ IDC_TITLE2,		ITM_TOP_PER | ITM_BTM_PER },
+	{ IDC_TITLE3,		ITM_TOP_PER | ITM_BTM_PER },
+
+	{ IDC_TITLE4,		ITM_LEFT_PER | ITM_RIGHT_PER },
+	{ IDC_TITLE5,		ITM_LEFT_PER | ITM_RIGHT_PER },
+	{ IDC_TITLE6,		ITM_LEFT_PER | ITM_RIGHT_PER },
+
+	{ IDC_TITLE7,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_PER },
+	{ IDC_TITLE8,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_PER },
+	{ IDC_TITLE9,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_PER },
+
+	{ IDC_CHECK1,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_PER },
+	{ IDC_CHECK2,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_PER },
+	{ IDC_TITLE10,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_PER },
+
+	{ 0,	0 },
+};
 
 /////////////////////////////////////////////////////////////////////////////
 // CAlgoDlg メッセージ ハンドラ
@@ -52,14 +96,19 @@ BOOL CAlgoDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
 
+	InitItemOffset(ItemTab);
+
 	int n, i;
+	CRect rect;
 
 	for ( n = 0 ; n < 12 ; n++ ) {
-		i = MulDiv((n >= 9 && n <= 10 ? 260 : 150), m_NowDpi.cx, DEFAULT_DPI_X);
-		m_List[n].InsertColumn(0, _T(""), LVCFMT_LEFT, i);
+		m_List[n].InsertColumn(0, _T(""), LVCFMT_LEFT, 200);
 		for ( i = 0 ; i < m_AlgoTab[n].GetSize() ; i++ )
 			m_List[n].InsertItem(i, m_AlgoTab[n][i]);
 		m_List[n].m_bMove = TRUE;
+
+		m_List[n].GetClientRect(rect);
+		m_List[n].SetColumnWidth(0, rect.Width() * 95 / 100);
 	}
 		
 	return TRUE;
@@ -115,4 +164,19 @@ ENDOF:
 	delete pKeyTab;
 	delete pKeyMac;
 	delete pParamTab;
+}
+
+void CAlgoDlg::OnSize(UINT nType, int cx, int cy)
+{
+	CDialogExt::OnSize(nType, cx, cy);
+
+	int n;
+	CRect rect;
+
+	for ( n = 0 ; n < 12 ; n++ ) {
+		if ( m_List[n].GetSafeHwnd() == NULL )
+			continue;
+		m_List[n].GetClientRect(rect);
+		m_List[n].SetColumnWidth(0, rect.Width() * 95 / 100);
+	}
 }

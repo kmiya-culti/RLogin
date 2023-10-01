@@ -10,6 +10,7 @@
 #include "Ssh.h"
 #include "MidiData.h"
 #include "ComboBoxHis.h"
+#include "ToolBarEx.h"
 #include "Shobjidl.h"
 
 #define	PANEFRAME_NOCHNG		0
@@ -305,6 +306,7 @@ public:
 	HICON m_hIconActive;
 	NOTIFYICONDATA m_IconData;
 	CImageList m_ImageGozi;
+	CSize m_ImageSize;
 	CPtrArray m_HostAddrParam;
 	CPtrArray m_AfterIdParam;
 	CServerEntryTab m_ServerEntryTab;
@@ -509,7 +511,8 @@ public:
 // コントロール バー用メンバ
 protected: 
 	CStatusBar  m_wndStatusBar;
-	CToolBar    m_wndToolBar;
+	CToolBarEx  m_wndToolBar;
+	CToolBarEx  m_wndSubToolBar;
 	CTabBar		m_wndTabBar;
 	CQuickBar	m_wndQuickBar;
 	CTabDlgBar	m_wndTabDlgBar;
@@ -584,6 +587,8 @@ protected:
 	afx_msg void OnUpdateViewScrollbar(CCmdUI *pCmdUI);
 	afx_msg void OnViewHistoryDlg();
 	afx_msg void OnUpdateHistoryDlg(CCmdUI *pCmdUI);
+	afx_msg void OnViewSubToolbar();
+	afx_msg void OnUpdateSubToolbar(CCmdUI *pCmdUI);
 
 	afx_msg void OnVersioncheck();
 	afx_msg void OnUpdateVersioncheck(CCmdUI *pCmdUI);

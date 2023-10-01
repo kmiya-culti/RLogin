@@ -2170,6 +2170,7 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 	int style, anime, move;
 	CRect frame, rect;
 	CRLoginDoc *pDoc = GetDocument();
+	CSize sz;
 
 	CView::OnTimer(nIDEvent);
 
@@ -2389,9 +2390,10 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		InvalidateRect(rect, FALSE);
 
 #elif USE_GOZI == 3 || USE_GOZI == 4
+		sz = ((CMainFrame *)::AfxGetMainWnd())->m_ImageSize;
 
 		for ( n = 0 ; n < m_GoziMax ; n++ ) {
-			rect.SetRect(m_GoziData[n].m_GoziPos.x, m_GoziData[n].m_GoziPos.y, m_GoziData[n].m_GoziPos.x + 16, m_GoziData[n].m_GoziPos.y + 16);
+			rect.SetRect(m_GoziData[n].m_GoziPos.x, m_GoziData[n].m_GoziPos.y, m_GoziData[n].m_GoziPos.x + sz.cx, m_GoziData[n].m_GoziPos.y + sz.cy);
 			InvalidateRect(rect, FALSE);
 		}
 
@@ -2416,13 +2418,13 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 				anime = rand() % 6;
 
 				if ( move == 0 ) {
-					if ( ((mx = m_CaretX + m_CharWidth + 2) + 16) > frame.right )
-						mx = m_CaretX - 16;
+					if ( ((mx = m_CaretX + m_CharWidth + sz.cx / 8) + sz.cx) > frame.right )
+						mx = m_CaretX - sz.cx;
 					else if ( mx < 0 )
 						mx = 0;
 
-					if ( ((my = m_CaretY + m_CharHeight - 16) + 16) > frame.bottom )
-						my = frame.bottom - 16;
+					if ( ((my = m_CaretY + m_CharHeight - sz.cy) + sz.cy) > frame.bottom )
+						my = frame.bottom - sz.cy;
 					else if ( my < 0 )
 						my = 0;
 
@@ -2438,23 +2440,23 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 				}
 			}
 
-			if ( (move & 1) != 0 ) m_GoziData[n].m_GoziPos.x += 2;
-			if ( (move & 2) != 0 ) m_GoziData[n].m_GoziPos.x -= 2;
-			if ( (move & 4) != 0 ) m_GoziData[n].m_GoziPos.y += 2;
-			if ( (move & 8) != 0 ) m_GoziData[n].m_GoziPos.y -= 2;
+			if ( (move & 1) != 0 ) m_GoziData[n].m_GoziPos.x += (sz.cx / 8);
+			if ( (move & 2) != 0 ) m_GoziData[n].m_GoziPos.x -= (sz.cx / 8);
+			if ( (move & 4) != 0 ) m_GoziData[n].m_GoziPos.y += (sz.cy / 8);
+			if ( (move & 8) != 0 ) m_GoziData[n].m_GoziPos.y -= (sz.cy / 8);
 
 			if ( m_GoziData[n].m_GoziPos.x < 0 ) { m_GoziData[n].m_GoziPos.x = 0; move = (move & 12) | 1; }
 			if ( m_GoziData[n].m_GoziPos.y < 0 ) { m_GoziData[n].m_GoziPos.y = 0; move = (move &  3) | 4; }
 
-			if ( (m_GoziData[n].m_GoziPos.x + 16) > frame.right  ) { m_GoziData[n].m_GoziPos.x = frame.right  - 16; move = (move & 12) | 2; }
-			if ( (m_GoziData[n].m_GoziPos.y + 16) > frame.bottom ) { m_GoziData[n].m_GoziPos.y = frame.bottom - 16; move = (move &  3) | 8; }
+			if ( (m_GoziData[n].m_GoziPos.x + sz.cx) > frame.right  ) { m_GoziData[n].m_GoziPos.x = frame.right  - sz.cx; move = (move & 12) | 2; }
+			if ( (m_GoziData[n].m_GoziPos.y + sz.cy) > frame.bottom ) { m_GoziData[n].m_GoziPos.y = frame.bottom - sz.cy; move = (move &  3) | 8; }
 
 			style += ((move & 1) != 0 ? 0 : 6);
 
 			if ( ++anime >= 6 ) anime = 0;
 			m_GoziData[n].m_GoziStyle = ((style + anime) << 4) | move;
 
-			rect.SetRect(m_GoziData[n].m_GoziPos.x, m_GoziData[n].m_GoziPos.y, m_GoziData[n].m_GoziPos.x + 16, m_GoziData[n].m_GoziPos.y + 16);
+			rect.SetRect(m_GoziData[n].m_GoziPos.x, m_GoziData[n].m_GoziPos.y, m_GoziData[n].m_GoziPos.x + sz.cx, m_GoziData[n].m_GoziPos.y + sz.cy);
 			InvalidateRect(rect, FALSE);
 		}
 

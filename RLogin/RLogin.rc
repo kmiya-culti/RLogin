@@ -93,6 +93,8 @@ IDB_BITMAP9             BITMAP                  "res\\bitmap9.bmp"
 IDB_MENUMAP1            BITMAP                  "res\\menumap1.bmp"
 IDB_MENUMAP2            BITMAP                  "res\\menumap2.bmp"
 IDB_MENUMAP3            BITMAP                  "res\\menumap3.bmp"
+IDB_MENUMAP4            BITMAP                  "res\\menumap4.bmp"
+IDB_MENUMAP5            BITMAP                  "res\\menumap5.bmp"
 IDB_HATCH1              BITMAP                  "res\\hatch1.bmp"
 IDB_HATCH2              BITMAP                  "res\\hatch2.bmp"
 IDB_HATCH3              BITMAP                  "res\\hatch3.bmp"
@@ -161,13 +163,17 @@ END
 IDR_TOOLBAR2 TOOLBAR 16, 16
 BEGIN
     BUTTON      ID_FILE_ALL_SAVE
+    SEPARATOR
+    SEPARATOR
     BUTTON      ID_FILE_PRINT
     BUTTON      ID_FILE_PRINT_PREVIEW
     BUTTON      ID_FILE_PRINT_SETUP
+    SEPARATOR
     BUTTON      IDM_SCRIPT
     SEPARATOR
     BUTTON      IDM_EDIT_MARK
     BUTTON      ID_EDIT_COPY_ALL
+    SEPARATOR
     BUTTON      IDM_SEARCH_REG
     BUTTON      IDM_SEARCH_BACK
     BUTTON      IDM_SEARCH_NEXT
@@ -180,17 +186,23 @@ BEGIN
     SEPARATOR
     BUTTON      ID_WINDOW_CASCADE
     BUTTON      ID_WINDOW_TILE_HORZ
+    SEPARATOR
     BUTTON      ID_SPLIT_HEIGHT
     BUTTON      ID_SPLIT_WIDTH
     BUTTON      ID_SPLIT_OVER
     BUTTON      IDM_SPLIT_HEIGHT_NEW
     BUTTON      IDM_SPLIT_WIDTH_NEW
     SEPARATOR
+    SEPARATOR
+    SEPARATOR
     BUTTON      IDM_XMODEM_UPLOAD
     BUTTON      IDM_YMODEM_UPLOAD
     BUTTON      IDM_ZMODEM_UPLOAD
     BUTTON      IDM_KERMIT_UPLOAD
     BUTTON      IDM_SIMPLE_UPLOAD
+    SEPARATOR
+    SEPARATOR
+    SEPARATOR
     BUTTON      IDM_XMODEM_DOWNLOAD
     BUTTON      IDM_YMODEM_DOWNLOAD
     BUTTON      IDM_ZMODEM_DOWNLOAD
@@ -221,6 +233,7 @@ BEGIN
     BEGIN
         MENUITEM "メニューバー(&M)",                  ID_VIEW_MENUBAR
         MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
+        MENUITEM "サブツールバー(&U)",                 IDM_VIEW_SUBTOOL
         MENUITEM "クイックバー(&Q)",                  ID_VIEW_QUICKBAR
         MENUITEM "ボイスバー(&A)",                   ID_VIEW_VOICEBAR
         MENUITEM "タブバー(&B)",                    ID_VIEW_TABBAR
@@ -333,6 +346,7 @@ BEGIN
     BEGIN
         MENUITEM "メニューバー(&M)",                  ID_VIEW_MENUBAR
         MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
+        MENUITEM "サブツールバー(&U)",                 IDM_VIEW_SUBTOOL
         MENUITEM "クイックバー(&Q)",                  ID_VIEW_QUICKBAR
         MENUITEM "ボイスバー(&A)",                   ID_VIEW_VOICEBAR
         MENUITEM "タブバー(&B)",                    ID_VIEW_TABBAR
@@ -697,9 +711,9 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,206,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,225,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.28.5 (2023/09/08)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.28.6 (2023/10/02)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2023 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 3.1.2 1 Aug 2023",IDC_STATIC,44,53,189,8
+    LTEXT           "OpenSSL 3.1.3 19 Sep 2023",IDC_STATIC,44,53,189,8
     LTEXT           "Copyright (c) 1998-2023 The OpenSSL Project",IDC_STATIC,44,63,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,72,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,81,189,8
@@ -716,7 +730,7 @@ BEGIN
 END
 
 IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "SSHサポート"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
@@ -737,18 +751,18 @@ BEGIN
     PUSHBUTTON      "初期化",IDC_RESET,66,322,60,14
     DEFPUSHBUTTON   "OK",IDOK,145,322,60,14
     PUSHBUTTON      "キャンセル",IDCANCEL,224,322,60,14
-    GROUPBOX        "SSH1",IDC_STATIC,7,7,337,61
-    GROUPBOX        "SSH2",IDC_STATIC,7,70,337,247
-    LTEXT           "入力",IDC_STATIC,11,198,15,8
-    LTEXT           "出力",IDC_STATIC,11,269,15,8
-    LTEXT           "圧縮",IDC_STATIC,279,16,15,8
-    LTEXT           "検証",IDC_STATIC,176,16,15,8
-    LTEXT           "暗号",IDC_STATIC,71,16,15,8
-    LTEXT           "圧縮",IDC_STATIC,279,157,15,8
-    LTEXT           "ホスト鍵",IDC_STATIC,172,78,25,8
-    LTEXT           "鍵交換",IDC_STATIC,67,78,22,8
-    LTEXT           "認証",IDC_STATIC,11,118,15,8
-    LTEXT           "ログイン",IDC_STATIC,275,78,24,8
+    GROUPBOX        "SSH1",IDC_GROUP1,7,7,337,61
+    GROUPBOX        "SSH2",IDC_GROUP2,7,70,337,247
+    LTEXT           "入力",IDC_TITLE2,11,198,15,8
+    LTEXT           "出力",IDC_TITLE3,11,269,15,8
+    LTEXT           "圧縮",IDC_TITLE6,279,16,15,8
+    LTEXT           "検証",IDC_TITLE5,176,16,15,8
+    LTEXT           "暗号",IDC_TITLE4,71,16,15,8
+    LTEXT           "圧縮",IDC_TITLE10,279,157,15,8
+    LTEXT           "ホスト鍵",IDC_TITLE8,172,78,25,8
+    LTEXT           "鍵交換",IDC_TITLE7,67,78,22,8
+    LTEXT           "認証",IDC_TITLE1,11,118,15,8
+    LTEXT           "ログイン",IDC_TITLE9,275,78,24,8
 END
 
 IDD_PASSDLG DIALOGEX 0, 0, 230, 140
@@ -1899,17 +1913,12 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "拡張機能"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "",IDC_EXTLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,15,34,240,156
-    EDITTEXT        IDC_EDIT1,15,231,240,14,ES_AUTOHSCROLL
-    CONTROL         "",IDC_TEXTCOLOR,"Static",SS_OWNERDRAW | SS_NOTIFY,240,270,15,15,WS_EX_STATICEDGE
-    CONTROL         "",IDC_BACKCOLOR,"Static",SS_OWNERDRAW | SS_NOTIFY,108,270,15,15,WS_EX_STATICEDGE
-    GROUPBOX        "各種オプション",IDC_STATIC,7,7,256,192
-    LTEXT           "要望のあったオプションや試験的な実装を試すことができます",IDC_STATIC,15,19,240,8
-    GROUPBOX        "OSC 1337 インライン拡張",IDC_STATIC,7,205,256,48
-    LTEXT           "インライン表示できない時に下記の拡張子ならShellで実行します",IDC_STATIC,15,218,240,8
-    GROUPBOX        "アクティブな時のタブバーの色設定",IDC_STATIC,7,258,256,35
-    RTEXT           "タブバーの文字色",IDC_STATIC,146,274,78,8
-    RTEXT           "タブバーの背景色",IDC_STATIC,15,274,78,8
+    CONTROL         "",IDC_EXTLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,15,35,240,196
+    EDITTEXT        IDC_EDIT1,15,271,240,14,ES_AUTOHSCROLL
+    GROUPBOX        "各種オプション",IDC_STATIC,7,7,256,232
+    LTEXT           "要望のあったオプションや試験的な実装を試すことができます",IDC_STATIC,15,21,240,8
+    GROUPBOX        "OSC 1337 インライン拡張",IDC_STATIC,7,245,256,48
+    LTEXT           "インライン表示できない時に下記の拡張子ならShellで実行します",IDC_STATIC,15,258,240,8
 END
 
 IDD_MSGDLG DIALOGEX 0, 0, 315, 114
@@ -1930,44 +1939,52 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "背景設定"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    EDITTEXT        IDC_BACKFILE,15,27,180,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "参照(&F)",IDC_BACKSEL,205,27,50,14
-    COMBOBOX        IDC_MAPSTYLE,205,50,50,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "バックグランド画像にテキストを追加",IDC_TEXTMAPENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,97,240,11
-    COMBOBOX        IDC_HALIGN,83,119,41,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "",IDC_TEXTCOLOR,"Static",SS_OWNERDRAW | SS_NOTIFY,212,119,43,15,WS_EX_STATICEDGE
-    COMBOBOX        IDC_VALIGN,83,140,41,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "フォント",IDC_TEXTFONT,212,140,43,15
-    EDITTEXT        IDC_TEXTFORMAT,15,186,240,15,ES_AUTOHSCROLL
-    CONTROL         "",IDC_BITMAPALPHA,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,144,236,111,22
-    CONTROL         "",IDC_BITMAPBLEND,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,144,259,111,22
-    GROUPBOX        "バックグランド画像",IDC_STATIC,7,7,256,65
-    GROUPBOX        "テキスト描画",IDC_STATIC,7,81,256,132
-    LTEXT           "ログファイル名などで指定できる特殊文字列が使用できます（%Eでエントリー名）",IDC_STATIC,15,171,240,9
-    LTEXT           "横表示位置",IDC_STATIC,15,123,60,9
-    LTEXT           "縦表示位置",IDC_STATIC,15,143,60,9
-    LTEXT           "文字色",IDC_STATIC,141,123,60,9
-    LTEXT           "使用するフォント",IDC_STATIC,141,143,60,9
-    GROUPBOX        "描画オプション",IDC_STATIC,7,221,256,72
-    LTEXT           "背景文字などの合成比率（薄い～濃い）",IDC_STATIC,15,268,125,9
-    LTEXT           "バックグランド画像の明るさ調整（黒～白）",IDC_STATIC,15,245,125,9
-    LTEXT           "画像の配置方法を選択できます。FILLがデフォルトです",IDC_STATIC,15,52,180,8
+    EDITTEXT        IDC_BACKFILE,15,20,180,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "参照(&F)",IDC_BACKSEL,205,20,50,14
+    COMBOBOX        IDC_MAPSTYLE,205,39,50,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "バックグランド画像にテキストを追加",IDC_TEXTMAPENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,75,240,11
+    COMBOBOX        IDC_HALIGN,80,90,50,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_TEXTCOLOR,"Static",SS_OWNERDRAW | SS_NOTIFY,218,90,24,15,WS_EX_STATICEDGE
+    COMBOBOX        IDC_VALIGN,80,110,50,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "フォント",IDC_TEXTFONT,205,110,50,15
+    EDITTEXT        IDC_TEXTFORMAT,15,145,240,15,ES_AUTOHSCROLL
+    CONTROL         "",IDC_BITMAPALPHA,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,144,180,111,22
+    CONTROL         "",IDC_BITMAPBLEND,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,144,206,111,22
+    CONTROL         "タブバーの背景色をグラデーションで描画",IDC_TABBACKGRAD,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,253,240,10
+    CONTROL         "",IDC_TABBACKCOL,"Static",SS_OWNERDRAW | SS_NOTIFY,93,270,24,15,WS_EX_STATICEDGE
+    CONTROL         "",IDC_TABTEXTCOL,"Static",SS_OWNERDRAW | SS_NOTIFY,218,270,24,15,WS_EX_STATICEDGE
+    GROUPBOX        "バックグランド画像",IDC_STATIC,7,7,256,53
+    GROUPBOX        "テキスト描画",IDC_STATIC,7,63,256,105
+    LTEXT           "ログファイル名などで指定できる特殊文字列が使用できます（%Eでエントリー名）",IDC_STATIC,15,131,240,9
+    LTEXT           "横表示位置",IDC_STATIC,15,94,60,9
+    LTEXT           "縦表示位置",IDC_STATIC,15,113,60,9
+    LTEXT           "文字色",IDC_STATIC,140,94,60,9
+    LTEXT           "使用するフォント",IDC_STATIC,140,113,60,9
+    GROUPBOX        "描画オプション",IDC_STATIC,7,171,256,63
+    LTEXT           "背景文字などの合成比率（薄い～濃い）",IDC_STATIC,15,215,125,9
+    LTEXT           "バックグランド画像の明るさ調整（黒～白）",IDC_STATIC,15,189,125,9
+    LTEXT           "画像の配置方法を選択できます。FILLがデフォルトです",IDC_STATIC,15,41,180,8
+    GROUPBOX        "アクティブな時のタブバーの背景色",IDC_STATIC,7,239,256,54
+    LTEXT           "タブバーの文字色",IDC_STATIC,140,274,60,8
+    LTEXT           "タブバーの背景色",IDC_STATIC,15,274,60,8
 END
 
 IDD_TOOLDLG DIALOGEX 0, 0, 319, 275
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "ツールバーのカスタマイズ"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "",IDC_TREE1,"SysTreeView32",TVS_HASLINES | TVS_SHOWSELALWAYS | TVS_NOTOOLTIPS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,15,40,135,198
-    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,170,40,135,198
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,170,40,135,188
     COMBOBOX        IDC_COMBO1,257,19,48,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "ツールバー",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,176,233,60,10
+    CONTROL         "サブツールバー",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,245,233,60,10
     DEFPUSHBUTTON   "OK",IDOK,92,254,60,14
     PUSHBUTTON      "キャンセル",IDCANCEL,166,254,60,14
-    GROUPBOX        "ツールバー",IDC_STATIC,163,7,150,240
-    GROUPBOX        "メニューリスト",IDC_STATIC,7,7,150,240
+    GROUPBOX        "ツールバー",IDC_LIST_FRAME1,163,7,150,240
+    GROUPBOX        "メニューリスト",IDC_TREE_FRAME1,7,7,150,240
     LTEXT           "ツールバーで使用するメニューを右にドラッグ",IDC_STATIC,15,23,135,8
-    LTEXT           "画像サイズを右から選択",IDC_STATIC,170,21,82,8
+    LTEXT           "画像サイズを右から選択",IDC_COMBO_TITLE1,170,21,82,8
 END
 
 IDD_RESTRANSDLG DIALOGEX 0, 0, 271, 151
@@ -2247,8 +2264,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,28,5,0
- PRODUCTVERSION 2,28,5,0
+ FILEVERSION 2,28,6,0
+ PRODUCTVERSION 2,28,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2265,12 +2282,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.28.5.0"
+            VALUE "FileVersion", "2.28.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.28.5.0"
+            VALUE "ProductVersion", "2.28.6.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4592,6 +4609,8 @@ BEGIN
     IDS_COMPPRIVATEPROFILE  "プライベートプロファイルの圧縮を有効にしてすべての設定を更新しますか？\n下位互換が無い更新になりますのでご注意ください。"
     IDS_COMPNAMELENBUGFIX   "コンピュータ名などの取得に失敗するバグを修正しました\nファイルベースの場合にパスワードを再設定する必要があります\nまた、下位互換性がありませんのでご注意ください"
     IDS_SSHRSASIGNMSG       "\n\nRSA認証鍵の署名方式をSHA2-256/512に変更する必要があるかもしれません。オプション・プロトコル・SSHのRSA認証鍵の署名方式をご確認ください(openssh-8.8からSHA1は、標準で無効化されています)"
+    IDS_DROPBEGINSTRING     "ドロップダウンの始まり"
+    IDS_DROPENDSTRING       "ドロップダウンの終わり"
 END
 
 STRINGTABLE
@@ -5082,9 +5101,9 @@ BEGIN
     IDM_SPEAKALL            "表示されている画面を音声で読み上げます\n音声で読み上げ"
     IDM_KNOWNHOSTDEL        "登録されているホスト鍵の削除\nホスト鍵の削除"
     IDM_ALL_EXPORT          "すべてのエントリーをファイルに保存します\nすべて保存"
-    IDM_SPEAKBACK           "前行を読み上げ"
-    IDM_SPEAKNEXT           "次行を読み上げ"
-    IDM_CHARTOOLTIP         "コンソールの文字情報をツールチップで表示する"
+    IDM_SPEAKBACK           "前行を読み上げ\n前行を読む"
+    IDM_SPEAKNEXT           "次行を読み上げ\n次行を読む"
+    IDM_CHARTOOLTIP         "コンソールの文字情報をツールチップで表示する\n文字情報"
     IDM_LINEEDITMODE        "端末で行編集してから文字を送ります\nローカルエディットモードの切替"
 END
 
@@ -5092,6 +5111,7 @@ STRINGTABLE
 BEGIN
     IDM_RIGHTCLOSE          "右側の接続をすべて閉じる\n右側を閉じる"
     IDM_OTHERCLOSE          "他の接続をすべて閉じる\n他を閉じる"
+    IDM_VIEW_SUBTOOL        "サブツールバーの 表示/非表示\nサブツールバーの表示切り替え"
 END
 
 #endif    // 日本語 (日本) resources

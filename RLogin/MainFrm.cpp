@@ -839,6 +839,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(IDM_HISTORYDLG, &CMainFrame::OnUpdateHistoryDlg)
 	ON_COMMAND(ID_VIEW_VOICEBAR, &CMainFrame::OnViewVoicebar)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_VOICEBAR, &CMainFrame::OnUpdateViewVoicebar)
+	ON_COMMAND(IDM_VIEW_SUBTOOL, &CMainFrame::OnViewSubToolbar)
+	ON_UPDATE_COMMAND_UI(IDM_VIEW_SUBTOOL, &CMainFrame::OnUpdateSubToolbar)
 
 	ON_COMMAND(ID_WINDOW_CASCADE, OnWindowCascade)
 	ON_UPDATE_COMMAND_UI(ID_WINDOW_CASCADE, OnUpdateWindowCascade)
@@ -964,6 +966,7 @@ CMainFrame::CMainFrame()
 	m_PastNoCheck = FALSE;
 	m_pTaskbarList = NULL;
 	m_bCharTooltip = FALSE;
+	m_ImageSize.cx = m_ImageSize.cy = 16;
 }
 
 CMainFrame::~CMainFrame()
@@ -1005,10 +1008,11 @@ CMainFrame::~CMainFrame()
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
 	int n;
-	CBitmap BitMap;
+	CBitmapEx BitMap;
 	CBuffer buf;
 	CMenu *pMenu;
 	UINT nID, nSt;
+	BITMAP mapinfo;
 
 	if (CMDIFrameWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
@@ -1023,8 +1027,11 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_ImageGozi.Add(&BitMap, RGB(192, 192, 192));
 	BitMap.DeleteObject();
 #elif	USE_GOZI == 3
-	((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_BITMAP8), BitMap);
-	m_ImageGozi.Create(16, 16, ILC_COLOR24 | ILC_MASK, 12, 10);
+	BitMap.LoadResBitmap(IDB_BITMAP8, SYSTEM_DPI_X, SYSTEM_DPI_Y, RGB(255, 255, 255));
+	BitMap.GetBitmap(&mapinfo);
+	m_ImageSize.cx = mapinfo.bmHeight;
+	m_ImageSize.cy = mapinfo.bmHeight;
+	m_ImageGozi.Create(m_ImageSize.cx, m_ImageSize.cy, ILC_COLOR24 | ILC_MASK, mapinfo.bmWidth / m_ImageSize.cx, 1);
 	m_ImageGozi.Add(&BitMap, RGB(255, 255, 255));
 	BitMap.DeleteObject();
 #elif	USE_GOZI == 4
@@ -1041,9 +1048,16 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	// ツール・ステータス・タブ　バーの作成
 	if ( !m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
-			WS_CHILD | WS_VISIBLE | CBRS_ALIGN_TOP | CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY) ||
+			WS_CHILD | WS_VISIBLE | CBRS_ALIGN_TOP | CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
 		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar, this) ) {
 		TRACE0("Failed to create toolbar\n");
+		return -1;      // 作成に失敗
+	}
+
+	if ( !m_wndSubToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
+			WS_CHILD | WS_VISIBLE | CBRS_ALIGN_TOP | CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC, CRect(0, 0, 0, 0), IDR_TOOLBAR2) ||
+		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_TOOLBAR2), m_wndSubToolBar, this) ) {
+		TRACE0("Failed to create subtoolbar\n");
 		return -1;      // 作成に失敗
 	}
 
@@ -1075,23 +1089,17 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndStatusBar.GetPaneInfo(0, nID, nSt, n);
 	m_wndStatusBar.SetPaneInfo(0, nID, nSt, 160);
 
-#if 0
-	m_wndToolBar.EnableDocking(CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
-	m_wndTabBar.EnableDocking(CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
-	m_wndQuickBar.EnableDocking(CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
-	m_wndTabDlgBar.EnableDocking(CBRS_ALIGN_ANY);
-	m_wndVoiceBar.EnableDocking(CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
-#else
-	CDockContextEx::EnableDocking(&m_wndToolBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
+	CDockContextEx::EnableDocking(&m_wndToolBar, CBRS_ALIGN_ANY);
+	CDockContextEx::EnableDocking(&m_wndSubToolBar, CBRS_ALIGN_ANY);
 	CDockContextEx::EnableDocking(&m_wndTabBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 	CDockContextEx::EnableDocking(&m_wndQuickBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 	CDockContextEx::EnableDocking(&m_wndTabDlgBar, CBRS_ALIGN_ANY);
 	CDockContextEx::EnableDocking(&m_wndVoiceBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
-#endif
 
 	EnableDocking(CBRS_ALIGN_ANY);
 
 	DockControlBar(&m_wndToolBar);
+	DockControlBar(&m_wndSubToolBar);
 	DockControlBar(&m_wndQuickBar);
 	DockControlBar(&m_wndTabBar);
 	DockControlBar(&m_wndTabDlgBar);
@@ -1104,6 +1112,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	if ( (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("ToolBarStyle"), WS_VISIBLE) & WS_VISIBLE) == 0 )
 		ShowControlBar(&m_wndToolBar, FALSE, FALSE);
+
+	if ( (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("SubToolBarStyle"), 0) & WS_VISIBLE) == 0 )
+		ShowControlBar(&m_wndSubToolBar, FALSE, FALSE);
 
 	if ( (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("StatusBarStyle"), WS_VISIBLE) & WS_VISIBLE) == 0 )
 		ShowControlBar(&m_wndStatusBar, FALSE, FALSE);
@@ -2758,6 +2769,7 @@ LRESULT CMainFrame::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 
 	m_wndTabBar.FontSizeCheck();
 	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar, this);
+	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_TOOLBAR2), m_wndSubToolBar, this);
 
 	m_wndQuickBar.DpiChanged();
 	m_wndTabDlgBar.DpiChanged();
@@ -2791,6 +2803,7 @@ void CMainFrame::OnClose()
 
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("HistoryDlg"),	    m_bTabDlgBarShow && m_pHistoryDlg != NULL && m_wndTabDlgBar.IsInside(m_pHistoryDlg) ? TRUE : FALSE);
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("ToolBarStyle"),	m_wndToolBar.GetStyle());
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("SubToolBarStyle"),m_wndSubToolBar.GetStyle());
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("StatusBarStyle"), m_wndStatusBar.GetStyle());
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("QuickBarShow"),  (m_wndQuickBar.GetStyle() & WS_VISIBLE) != 0 ? TRUE : FALSE);
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("VoiceBarShow"),  (m_wndVoiceBar.GetStyle() & WS_VISIBLE) != 0 ? TRUE : FALSE);
@@ -3527,7 +3540,7 @@ void CMainFrame::InitMenuBitmap()
 	CResDataBase *pResData = &(((CRLoginApp *)::AfxGetApp())->m_ResDataBase);
 
 	// Add Menu Image From Bitmap Resource
-	for ( n = 0 ; n < 3 ; n++ )
+	for ( n = 0 ; n < 5 ; n++ )
 		pResData->AddBitmap(MAKEINTRESOURCE(IDB_MENUMAP1 + n));
 
 	// MenuMap RemoveAll
@@ -3840,6 +3853,14 @@ void CMainFrame::OnUpdateViewTabbar(CCmdUI *pCmdUI)
 	else
 		pCmdUI->SetCheck(m_bTabBarShow);
 }
+afx_msg void CMainFrame::OnViewSubToolbar()
+{
+	ShowControlBar(&m_wndSubToolBar, ((m_wndSubToolBar.GetStyle() & WS_VISIBLE) != 0 ? FALSE : TRUE), FALSE);
+}
+afx_msg void CMainFrame::OnUpdateSubToolbar(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck((m_wndSubToolBar.GetStyle() & WS_VISIBLE) ? 1 : 0);
+}
 
 void CMainFrame::OnNewVersionFound()
 {
@@ -3994,6 +4015,7 @@ void CMainFrame::OnToolcust()
 		return;
 
 	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar, this);
+	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_TOOLBAR2), m_wndSubToolBar, this);
 
 	// ツールバーの再表示
 	RecalcLayout(FALSE);

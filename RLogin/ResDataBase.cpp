@@ -1104,35 +1104,59 @@ void CResToolBarBase::Serialize(int mode, class CBuffer &buf)
 		}
 	}
 }
-BOOL CResToolBarBase::SetToolBar(CToolBar &ToolBar, CWnd *pWnd)
+BOOL CResToolBarBase::SetToolBar(class CToolBarEx &ToolBar, CWnd *pWnd)
 {
-	int n, i, max, num;
+	int n, i;
 	int width, height;
+	int TabCount = 0;
 	UINT *pNewTab;
-	CBitmap Bitmap, ImageMap;
-	CImageList ImageList[3];
-	CDC SrcDC, DisDC;
-	CBitmap *pSrcOld, *pDisOld;
-	BITMAP mapinfo;
-	CFont font, *pOldFont;
-	CString str;
 	CSize sz, dpi;
+
+	ToolBar.RemoveAll();
 
 	// Itemリストを作成 WORD != UINT ?
 	pNewTab = new UINT[(int)m_Item.GetSize()];
 
-	for ( max = n = 0 ; n < m_Item.GetSize() ; n++ ) {
-		if ( m_Item[n] != 0 )
-			max++;
-		pNewTab[n] = (UINT)m_Item[n];
+	for ( n = 0 ; n < m_Item.GetSize() ; n++ ) {
+		if ( m_Item[n] == 0 && (n + 2) < m_Item.GetSize() && m_Item[n + 1] == 0 && m_Item[n + 2] != 0 ) {
+			// ２つの区切りが続いていれば次の区切りまでDropDownメニューとして処理
+			n += 2;
+			int DropCount = 0;
+			for ( ; n < m_Item.GetSize() ; n++ ) {
+				if ( m_Item[n] == 0 )
+					break;
+				ToolBar.AddItemImage((int)m_Item[n]);
+				pNewTab[TabCount + DropCount++] = (UINT)m_Item[n];
+			}
+
+			if ( DropCount > 0 ) {
+				int item = pNewTab[TabCount];
+				CString key;
+				key.Format(_T("%d-%d"), m_ResId, TabCount);
+				item = ::AfxGetApp()->GetProfileInt(_T("ToolBarEx"), key, item);
+				for ( i = 0 ; i <  DropCount ; i++ ) {
+					if ( pNewTab[TabCount + i] == (UINT)item )
+						break;
+				}
+				if ( i >= DropCount )
+					item = pNewTab[TabCount];
+				ToolBar.SetDropItem(TabCount, item, DropCount, &(pNewTab[TabCount]));
+				pNewTab[TabCount++] = (UINT)item;
+			}
+
+		} else {
+			if ( m_Item[n] != 0 )
+				ToolBar.AddItemImage((int)m_Item[n]);
+			pNewTab[TabCount++] = (UINT)m_Item[n];
+		}
 	}
 
-	if ( !ToolBar.SetButtons(pNewTab, (int)m_Item.GetSize()) ) {
+	if ( !ToolBar.SetButtons(pNewTab, TabCount) ) {
 		delete [] pNewTab;
 		return FALSE;
 	}
 
-	delete [] pNewTab;
+	ToolBar.InitDropDown();
 
 	// サイズを設定
 
@@ -1146,101 +1170,9 @@ BOOL CResToolBarBase::SetToolBar(CToolBar &ToolBar, CWnd *pWnd)
 	}
 
 	ToolBar.SetSizes(CSize(width + 7, height + 8), CSize(width, height));
+	ToolBar.CreateItemImage(width, height);
 
-	// BitmapリソースからImageListを作成
-	ImageList[0].Create(width, height, ILC_COLOR24 | ILC_MASK, max, 1);
-	ImageList[1].Create(width, height, ILC_COLOR24 | ILC_MASK, max, 1);
-	ImageList[2].Create(width, height, ILC_COLOR24 | ILC_MASK, max, 1);
-
-	DisDC.CreateCompatibleDC(NULL);
-	SrcDC.CreateCompatibleDC(NULL);
-
-	ImageMap.CreateBitmap(width, height, DisDC.GetDeviceCaps(PLANES), DisDC.GetDeviceCaps(BITSPIXEL), NULL);
-	pDisOld = DisDC.SelectObject(&ImageMap);
-	
-	font.CreateFont(height / 2, 0, 0, 0, 0, FALSE, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
-	pOldFont = DisDC.SelectObject(&font);
-
-	for ( num = n = 0 ; n < m_Item.GetSize() ; n++ ) {
-		if ( m_Item[n] == 0 )
-			continue;
-
-		if ( ((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(m_Item[n]), Bitmap) ) {
-			pSrcOld = SrcDC.SelectObject(&Bitmap);
-			Bitmap.GetBitmap(&mapinfo);
-
-			for ( i = 0 ; i < 3 ; i++ ) {
-				DisDC.FillSolidRect(0, 0, width, height, RGB(192, 192, 192));
-				DisDC.TransparentBlt(0, 0, width, height, &SrcDC, (mapinfo.bmHeight == height && mapinfo.bmWidth >= (width * 3) ? (width * i) : 0), 0, (mapinfo.bmWidth <= mapinfo.bmHeight ? mapinfo.bmWidth : mapinfo.bmHeight), mapinfo.bmHeight, RGB(192, 192, 192));
-
-				DisDC.SelectObject(pDisOld);
-				ImageList[i].Add(&ImageMap, RGB(192, 192, 192));
-				pDisOld = DisDC.SelectObject(&ImageMap);
-			}
-
-			SrcDC.SelectObject(pSrcOld);
-			Bitmap.DeleteObject();
-
-		} else {
-			((CRLoginApp *)::AfxGetApp())->LoadResString(MAKEINTRESOURCE(m_Item[n]), str);
-
-			if ( str.IsEmpty() )
-				str.Format(_T("%4d"), m_Item[n]);
-
-			LPCTSTR p;
-			CString line[2];
-
-			if ( (p = _tcsrchr(str, _T('\n'))) != NULL )
-				p++;
-			else
-				p = str;
-
-			if ( *p != _T('\0') )
-				line[0] += *(p++);
-			if ( *p != _T('\0') )
-				line[0] += *(p++);
-
-			if ( *p != _T('\0') )
-				line[1] += *(p++);
-			if ( *p != _T('\0') )
-				line[1] += *(p++);
-
-			for ( i = 0 ; i < 3 ; i++ ) {
-				DisDC.SetBkMode(TRANSPARENT);
-				DisDC.SetTextColor(RGB(255 - 60 * i, 0, 0));
-
-				DisDC.FillSolidRect(0, 0, width, height, RGB(192, 192, 192));
-
-				sz = DisDC.GetTextExtent(line[0]);
-				DisDC.TextOut((width - sz.cx) / 2, (height / 2 - sz.cy) / 2, line[0]);
-
-				sz = DisDC.GetTextExtent(line[1]);
-				DisDC.TextOut((width - sz.cx) / 2, (height / 2) + (height / 2 - sz.cy) / 2, line[1]);
-
-				DisDC.SelectObject(pDisOld);
-				ImageList[i].Add(&ImageMap, RGB(192, 192, 192));
-				pDisOld = DisDC.SelectObject(&ImageMap);
-			}
-		}
-
-		num++;
-	}
-
-	DisDC.SelectObject(&pOldFont);
-	DisDC.SelectObject(pDisOld);
-	ImageMap.DeleteObject();
-
-	DisDC.DeleteDC();
-	SrcDC.DeleteDC();
-
-	ToolBar.GetToolBarCtrl().SetImageList(&(ImageList[0]));
-	ToolBar.GetToolBarCtrl().SetHotImageList(&(ImageList[1]));
-	ToolBar.GetToolBarCtrl().SetDisabledImageList(&(ImageList[2]));
-
-	ImageList[0].Detach();
-	ImageList[1].Detach();
-	ImageList[2].Detach();
-
+	delete [] pNewTab;
 	return TRUE;
 }
 
@@ -2086,7 +2018,7 @@ BOOL CResDataBase::LoadResString(LPCTSTR lpszName, CString &str)
 
 	return FALSE;
 }
-BOOL CResDataBase::LoadResToolBar(LPCTSTR lpszName, CToolBar &ToolBar, CWnd *pWnd)
+BOOL CResDataBase::LoadResToolBar(LPCTSTR lpszName, CToolBarEx &ToolBar, CWnd *pWnd)
 {
 	int n;
 

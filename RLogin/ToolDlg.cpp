@@ -10,12 +10,14 @@
 //////////////////////////////////////////////////////////////////////
 // CToolDlg ダイアログ
 
+static WORD ToolBarCtrlId[] = { IDR_MAINFRAME, IDR_TOOLBAR2 };
+
 IMPLEMENT_DYNAMIC(CToolDlg, CDialogExt)
 
 CToolDlg::CToolDlg(CWnd* pParent /*=NULL*/)
 	: CDialogExt(CToolDlg::IDD, pParent)
 {
-
+	m_BarIdx = 0;
 }
 CToolDlg::~CToolDlg()
 {
@@ -27,6 +29,7 @@ void CToolDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_TREE1, m_MenuTree);
 	DDX_Control(pDX, IDC_COMBO1, m_ToolSize);
 	DDX_Control(pDX, IDC_LIST1, m_ToolList);
+	DDX_Radio(pDX, IDC_RADIO1, m_BarIdx);
 }
 
 BEGIN_MESSAGE_MAP(CToolDlg, CDialogExt)
@@ -38,7 +41,25 @@ BEGIN_MESSAGE_MAP(CToolDlg, CDialogExt)
 	ON_COMMAND(ID_EDIT_DELALL, &CToolDlg::OnEditDelall)
 	ON_COMMAND(IDM_ICONLOAD, &CToolDlg::OnIconload)
 	ON_UPDATE_COMMAND_UI(IDM_ICONLOAD, &CToolDlg::OnUpdateIconload)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO2, OnToolBatSel)
 END_MESSAGE_MAP()
+
+static const INITDLGTAB ItemTab[] = {
+	{ IDC_TREE1,		ITM_RIGHT_MID | ITM_BTM_BTM },
+	{ IDC_LIST1,		ITM_LEFT_MID | ITM_RIGHT_RIGHT | ITM_BTM_BTM },
+	{ IDC_COMBO1,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_RADIO1,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_RADIO2,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
+
+	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+
+	{ IDC_TREE_FRAME1,	ITM_RIGHT_MID | ITM_BTM_BTM },
+	{ IDC_LIST_FRAME1,	ITM_LEFT_MID | ITM_RIGHT_RIGHT | ITM_BTM_BTM },
+	{ IDC_COMBO_TITLE1,	ITM_LEFT_MID | ITM_RIGHT_RIGHT },
+
+	{ 0,	0 },
+};
 
 int CToolDlg::GetImageIndex(UINT nId, BOOL bUpdate)
 {
@@ -136,6 +157,12 @@ void CToolDlg::InsertList(int pos, WORD id)
 	if ( id == 0 ) {
 		str.LoadString(IDS_SEPARATESTRING);
 		idx = 2;
+	} else if ( id == 1 ) {
+		str.LoadString(IDS_DROPBEGINSTRING);
+		idx = 3;
+	} else if ( id == 2 ) {
+		str.LoadString(IDS_DROPENDSTRING);
+		idx = 4;
 	} else {
 		m_DefMenu.GetMenuString(id, str, MF_BYCOMMAND);
 		idx = GetImageIndex(id, FALSE);
@@ -147,40 +174,52 @@ void CToolDlg::InsertList(int pos, WORD id)
 	m_ToolList.InsertItem(pos, str, idx);
 	m_ToolList.SetItemData(pos, (DWORD_PTR)id);
 }
-void CToolDlg::InitList()
+void CToolDlg::InitList(BOOL bMenuInit)
 {
 	int n;
 	HTREEITEM item;
 
-	// Image List Delete
-	while ( m_ImageId.GetSize() > 3 )
-		m_ImageId.RemoveAt(3);
-	while ( m_ImageList.GetImageCount() > 3 )
-		m_ImageList.Remove(3);
+	if ( bMenuInit ) {
+		// Image List Delete
+		while ( m_ImageId.GetSize() > 5 )
+			m_ImageId.RemoveAt(5);
+		while ( m_ImageList.GetImageCount() > 5 )
+			m_ImageList.Remove(5);
+	}
 
 	// Tool List Init
 	m_ToolList.DeleteAllItems();
 
-	for ( n = 0 ; n < m_ToolId.GetSize() ; n++ )
-		InsertList(n, m_ToolId[n]);
+	for ( n = 0 ; n < m_ToolId[m_BarIdx].GetSize() ; n++ )
+		InsertList(n, m_ToolId[m_BarIdx][n]);
 
-	// Menu Tree Init
-	m_MenuTree.DeleteAllItems();
-	AddMenuTree(&m_DefMenu, NULL);
+	if ( bMenuInit ) {
+		// Menu Tree Init
+		m_MenuTree.DeleteAllItems();
+		AddMenuTree(&m_DefMenu, NULL);
 
-	if ( (item = m_MenuTree.InsertItem(CStringLoad(IDS_SEPARATESTRING), NULL)) != NULL ) {
-		m_MenuTree.SetItemData(item, (DWORD_PTR)0);
-		m_MenuTree.SetItemImage(item, 2, 2);
+		if ( (item = m_MenuTree.InsertItem(CStringLoad(IDS_SEPARATESTRING), NULL)) != NULL ) {
+			m_MenuTree.SetItemData(item, (DWORD_PTR)0);
+			m_MenuTree.SetItemImage(item, 2, 2);
+		}
+		if ( (item = m_MenuTree.InsertItem(CStringLoad(IDS_DROPBEGINSTRING), NULL)) != NULL ) {
+			m_MenuTree.SetItemData(item, (DWORD_PTR)1);
+			m_MenuTree.SetItemImage(item, 3, 3);
+		}
+		if ( (item = m_MenuTree.InsertItem(CStringLoad(IDS_DROPENDSTRING), NULL)) != NULL ) {
+			m_MenuTree.SetItemData(item, (DWORD_PTR)2);
+			m_MenuTree.SetItemImage(item, 4, 4);
+		}
 	}
 }
 void CToolDlg::LoadList()
 {
 	int n;
 
-	m_ToolId.RemoveAll();
+	m_ToolId[m_BarIdx].RemoveAll();
 
 	for ( n = 0 ; n < m_ToolList.GetItemCount() ; n++ )
-		m_ToolId.Add((WORD)m_ToolList.GetItemData(n));
+		m_ToolId[m_BarIdx].Add((WORD)m_ToolList.GetItemData(n));
 }
 void CToolDlg::ListUpdateImage(HTREEITEM root, WORD nId, int idx)
 {
@@ -227,6 +266,8 @@ BOOL CToolDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
 
+	InitItemOffset(ItemTab);
+
 	int n;
 	CResToolBarBase *pResToolBar;
 	int sz = 16;
@@ -240,7 +281,7 @@ BOOL CToolDlg::OnInitDialog()
 	m_MenuTree.SetImageList(&m_ImageList, TVSIL_NORMAL);
 
 	// Add ImageList Null, Sub, Sepa
-	for ( n = 0 ; n < 3 ; n++ )
+	for ( n = 0 ; n < 5 ; n++ )
 		GetImageIndex(IDB_MENUMAP1 + n, TRUE);
 
 	// レジストリから読み込み
@@ -249,18 +290,35 @@ BOOL CToolDlg::OnInitDialog()
 		m_DataBase.Serialize(FALSE, buf);
 
 	// ツールバー読み込み
-	if ( (pResToolBar = (CResToolBarBase *)(((CRLoginApp *)::AfxGetApp())->m_ResDataBase.Find(IDR_MAINFRAME, RT_TOOLBAR))) != NULL ) {
-		for ( n = 0 ; n < pResToolBar->m_Item.GetSize() ; n++ )
-			m_ToolId.Add(pResToolBar->m_Item[n]);
-		sz = pResToolBar->m_Width;
+	for ( int i = 0 ; i < 2 ; i++ ) {
+		m_ToolId[i].RemoveAll();
+		if ( (pResToolBar = (CResToolBarBase *)(((CRLoginApp *)::AfxGetApp())->m_ResDataBase.Find(ToolBarCtrlId[i], RT_TOOLBAR))) != NULL ) {
+			for ( n = 0 ; n < pResToolBar->m_Item.GetSize() ; n++ ) {
+				if ( pResToolBar->m_Item[n] == 0 && (n + 2) < pResToolBar->m_Item.GetSize() && pResToolBar->m_Item[n + 1] == 0 && pResToolBar->m_Item[n + 2] != 0 ) {
+					n += 2;
+					m_ToolId[i].Add(1);
+					for ( ; n < pResToolBar->m_Item.GetSize() ; n++ ) {
+						if ( pResToolBar->m_Item[n] == 0 )
+							break;
+						m_ToolId[i].Add(pResToolBar->m_Item[n]);
+					}
+					m_ToolId[i].Add(2);
+				} else
+					m_ToolId[i].Add(pResToolBar->m_Item[n]);
+			}
+			sz = pResToolBar->m_Width;
+		}
 	}
 
-	m_ToolList.InsertColumn(0, _T(""), LVCFMT_LEFT, 200);
+	CRect rect;
+	m_ToolList.GetClientRect(rect);
+
+	m_ToolList.InsertColumn(0, _T(""), LVCFMT_LEFT, rect.Width() * 9 / 10);
 	m_ToolList.SetImageList(&m_ImageList, LVSIL_SMALL);
 	m_ToolList.m_bMove = TRUE;
 	m_ToolList.SetPopUpMenu(IDR_POPUPMENU, 7);
 
-	InitList();
+	InitList(TRUE);
 	m_ToolSize.SetCurSel((sz - 10) / 2);
 
 	return TRUE;
@@ -280,15 +338,37 @@ void CToolDlg::OnOK()
 		sz = n * 2 + 10;
 
 	// システムのツールバーを更新
-	if ( (pResToolBar = (CResToolBarBase *)pDataBase->Find(IDR_MAINFRAME, RT_TOOLBAR)) != NULL ) {
-		pResToolBar->m_Item.RemoveAll();
-		for ( n = 0 ; n < m_ToolId.GetSize() ; n++ )
-			pResToolBar->m_Item.Add(m_ToolId[n]);
-		pResToolBar->m_Width  = sz;
-		pResToolBar->m_Height = sz;
+	for ( int i = 0 ; i < 2 ; i++ ) {
+		if ( (pResToolBar = (CResToolBarBase *)pDataBase->Find(ToolBarCtrlId[i], RT_TOOLBAR)) != NULL ) {
+			pResToolBar->m_Item.RemoveAll();
 
-		// ローカルのツールバーを更新
-		m_DataBase.Add(pResToolBar->m_ResId, RT_TOOLBAR, pResToolBar);
+			BOOL bDrop = FALSE;
+			for ( n = 0 ; n < m_ToolId[i].GetSize() ; n++ ) {
+				if ( m_ToolId[i][n] == 1 ) {
+					if ( bDrop )
+						pResToolBar->m_Item.Add(0);
+					pResToolBar->m_Item.Add(0);
+					pResToolBar->m_Item.Add(0);
+					bDrop = TRUE;
+				} else if ( m_ToolId[i][n] == 2 ) {
+					if ( bDrop )
+						pResToolBar->m_Item.Add(0);
+					bDrop = FALSE;
+				} else {
+					if ( m_ToolId[i][n] == 0 && bDrop ) {
+						pResToolBar->m_Item.Add(0);
+						bDrop = FALSE;
+					}
+					pResToolBar->m_Item.Add(m_ToolId[i][n]);
+				}
+			}
+
+			pResToolBar->m_Width  = sz;
+			pResToolBar->m_Height = sz;
+
+			// ローカルのツールバーを更新
+			m_DataBase.Add(pResToolBar->m_ResId, RT_TOOLBAR, pResToolBar);
+		}
 	}
 
 	// システムのユーザービットマップを削除
@@ -319,6 +399,9 @@ void CToolDlg::OnOK()
 
 	// メニュー画像も再構成
 	((CMainFrame *)::AfxGetMainWnd())->InitMenuBitmap();
+
+	// DropDownメニューの最後の記録をすべて削除
+	((CRLoginApp *)::AfxGetApp())->DelProfileSection(_T("ToolBarEx"));
 
 	CDialogExt::OnOK();
 }
@@ -423,13 +506,24 @@ void CToolDlg::OnEditDelall()
 	CResToolBarBase *pResToolBar;
 
 	// デフォルトのプログラム内リソースから読み込み
-	DataBase.AddToolBar(MAKEINTRESOURCE(IDR_MAINFRAME));
-	pResToolBar = (CResToolBarBase *)(DataBase.Find(IDR_MAINFRAME, RT_TOOLBAR));
+	DataBase.AddToolBar(MAKEINTRESOURCE(ToolBarCtrlId[m_BarIdx]));
+	pResToolBar = (CResToolBarBase *)(DataBase.Find(ToolBarCtrlId[m_BarIdx], RT_TOOLBAR));
 
 	if ( pResToolBar != NULL ) {
-		m_ToolId.RemoveAll();
-		for ( n = 0 ; n < pResToolBar->m_Item.GetSize() ; n++ )
-			m_ToolId.Add(pResToolBar->m_Item[n]);
+		m_ToolId[m_BarIdx].RemoveAll();
+		for ( n = 0 ; n < pResToolBar->m_Item.GetSize() ; n++ ) {
+			if ( pResToolBar->m_Item[n] == 0 && (n + 2) < pResToolBar->m_Item.GetSize() && pResToolBar->m_Item[n + 1] == 0 && pResToolBar->m_Item[n + 2] != 0 ) {
+				n += 2;
+				m_ToolId[m_BarIdx].Add(1);
+				for ( ; n < pResToolBar->m_Item.GetSize() ; n++ ) {
+					if ( pResToolBar->m_Item[n] == 0 )
+						break;
+					m_ToolId[m_BarIdx].Add(pResToolBar->m_Item[n]);
+				}
+				m_ToolId[m_BarIdx].Add(2);
+			} else
+				m_ToolId[m_BarIdx].Add(pResToolBar->m_Item[n]);
+		}
 		sz = pResToolBar->m_Width;
 	}
 
@@ -438,7 +532,7 @@ void CToolDlg::OnEditDelall()
 	m_DataBase.InitToolBarBitmap(MAKEINTRESOURCE(IDR_MAINFRAME), IDB_BITMAP1);
 	m_DataBase.InitToolBarBitmap(MAKEINTRESOURCE(IDR_TOOLBAR2),  IDB_BITMAP10);
 
-	InitList();
+	InitList(TRUE);
 	m_ToolSize.SetCurSel((sz - 10) / 2);
 }
 
@@ -470,4 +564,11 @@ void CToolDlg::OnUpdateIconload(CCmdUI *pCmdUI)
 	int pos;
 
 	pCmdUI->Enable((pos = m_ToolList.GetSelectionMark()) >= 0 && (WORD)(m_ToolList.GetItemData(pos)) != 0 ? TRUE : FALSE);
+}
+
+void CToolDlg::OnToolBatSel(UINT nID)
+{
+	LoadList();
+	UpdateData(TRUE);
+	InitList(FALSE);
 }

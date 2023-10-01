@@ -55,7 +55,7 @@ static const struct _OptListTab {
 //	{	TO_IMECARET,	IDT_EXTOPT_LIST27	},
 //	{	TO_DNSSSSHFP,	IDT_EXTOPT_LIST28	},
 //	{	TO_RLENOEDPAST,	IDT_EXTOPT_LIST29	},
-	{	TO_RLTABGRAD,	IDT_EXTOPT_LIST30	},
+//	{	TO_RLTABGRAD,	IDT_EXTOPT_LIST30	},
 	{	0,				0					},
 };
 
@@ -74,8 +74,6 @@ void CExtOptPage::DoDataExchange(CDataExchange* pDX)
 
 	DDX_Control(pDX, IDC_EXTLIST, m_ExtList);
 	DDX_Text(pDX, IDC_EDIT1, m_InlineExt);
-	DDX_Control(pDX, IDC_TEXTCOLOR, m_TabTextColorBox);
-	DDX_Control(pDX, IDC_BACKCOLOR, m_TabBackColorBox);
 }
 
 BEGIN_MESSAGE_MAP(CExtOptPage, CTreePage)
@@ -83,8 +81,6 @@ BEGIN_MESSAGE_MAP(CExtOptPage, CTreePage)
 	ON_NOTIFY(NM_CLICK, IDC_EXTLIST, &CExtOptPage::OnNMClickExtlist)
 	ON_NOTIFY(LVN_GETINFOTIP, IDC_EXTLIST, &CExtOptPage::OnLvnGetInfoTipExtlist)
 	ON_EN_CHANGE(IDC_EDIT1, &CExtOptPage::OnUpdate)
-	ON_STN_CLICKED(IDC_TEXTCOLOR, &CExtOptPage::OnStnClickedTabTextColor)
-	ON_STN_CLICKED(IDC_BACKCOLOR, &CExtOptPage::OnStnClickedTabBackColor)
 END_MESSAGE_MAP()
 
 void CExtOptPage::DoInit()
@@ -98,14 +94,7 @@ void CExtOptPage::DoInit()
 
 	m_pSheet->m_pTextRam->m_InlineExt.SetString(m_InlineExt, _T('|'));
 
-	m_TabTextColor = m_pSheet->m_pTextRam->m_TabTextColor;
-	m_TabBackColor = m_pSheet->m_pTextRam->m_TabBackColor;
-	m_TabBackGradient = m_pSheet->m_pTextRam->IsOptEnable(TO_RLTABGRAD);
-
 	UpdateData(FALSE);
-
-	m_TabTextColorBox.Invalidate(FALSE);
-	m_TabBackColorBox.Invalidate(FALSE);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -153,12 +142,6 @@ BOOL CExtOptPage::OnApply()
 
 	m_pSheet->m_pTextRam->m_InlineExt.GetString(m_InlineExt, _T('|'));
 
-	m_pSheet->m_pTextRam->m_TabTextColor = m_TabTextColor;
-	m_pSheet->m_pTextRam->m_TabBackColor = m_TabBackColor;
-
-	if ( m_TabBackGradient != m_pSheet->m_pTextRam->IsOptEnable(TO_RLTABGRAD) )
-		m_pSheet->m_ModFlag |= UMOD_TABCOLOR;
-
 	return TRUE;
 }
 void CExtOptPage::OnReset() 
@@ -203,48 +186,4 @@ void CExtOptPage::OnUpdate()
 {
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
-}
-void CExtOptPage::OnStnClickedTabTextColor()
-{
-	CColorDialog cdl(m_TabTextColor, CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT, this);
-
-	if ( DpiAwareDoModal(cdl) != IDOK )
-		return;
-
-	m_TabTextColor = cdl.GetColor();
-	m_TabTextColorBox.Invalidate(FALSE);
-
-	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_TABCOLOR);
-}
-void CExtOptPage::OnStnClickedTabBackColor()
-{
-	CColorDialog cdl(m_TabBackColor, CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT, this);
-
-	if ( DpiAwareDoModal(cdl) != IDOK )
-		return;
-
-	m_TabBackColor = cdl.GetColor();
-	m_TabBackColorBox.Invalidate(FALSE);
-
-	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_TABCOLOR);
-}
-void CExtOptPage::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
-{
-	CDC dc;
-	CRect rect;
-
-	if ( nIDCtl == IDC_TEXTCOLOR ) {
-		dc.Attach(lpDrawItemStruct->hDC);
-		m_TabTextColorBox.GetClientRect(rect);
-		dc.FillSolidRect(rect, m_TabTextColor);
-		dc.Detach();
-	} else if ( nIDCtl == IDC_BACKCOLOR ) {
-		dc.Attach(lpDrawItemStruct->hDC);
-		m_TabBackColorBox.GetClientRect(rect);
-		dc.FillSolidRect(rect, m_TabBackColor);
-		dc.Detach();
-	} else
-		CTreePage::OnDrawItem(nIDCtl, lpDrawItemStruct);
 }

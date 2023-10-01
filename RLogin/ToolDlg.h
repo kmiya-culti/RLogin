@@ -23,9 +23,10 @@ public:
 	CTreeCtrl m_MenuTree;
 	CComboBox m_ToolSize;
 	CListCtrlExt m_ToolList;
+	int m_BarIdx;
 
 	CMenu m_DefMenu;
-	CWordArray m_ToolId;
+	CWordArray m_ToolId[2];
 	CResDataBase m_DataBase;
 
 	CWordArray m_ImageId;
@@ -35,7 +36,7 @@ public:
 	void CToolDlg::AddMenuTree(CMenu *pMenu, HTREEITEM own);
 
 	void InsertList(int pos, WORD id);
-	void InitList();
+	void InitList(BOOL bMenuInit);
 	void LoadList();
 	void ListUpdateImage(HTREEITEM root, WORD nId, int idx);
 	void UpdateImage(WORD nId);
@@ -57,4 +58,5 @@ protected:
 	afx_msg void OnEditDelall();
 	afx_msg void OnIconload();
 	afx_msg void OnUpdateIconload(CCmdUI *pCmdUI);
+	afx_msg void OnToolBatSel(UINT nID);
 };

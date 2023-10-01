@@ -105,12 +105,14 @@
 #define IDB_MENUMAP1                    417
 #define IDB_MENUMAP2                    418
 #define IDB_MENUMAP3                    419
-#define IDB_HATCH1                      420
-#define IDB_HATCH2                      421
-#define IDB_HATCH3                      422
-#define IDB_CHECKBOX1                   423
-#define IDB_CHECKBOX2                   424
-#define IDB_CHECKBOX3                   425
+#define IDB_MENUMAP4                    420
+#define IDB_MENUMAP5                    421
+#define IDB_HATCH1                      422
+#define IDB_HATCH2                      423
+#define IDB_HATCH3                      424
+#define IDB_CHECKBOX1                   425
+#define IDB_CHECKBOX2                   426
+#define IDB_CHECKBOX3                   427
 #define IDI_ACTIVE                      430
 #define IDS_AGENT_DELKEY                500
 #define IDS_ALLINITREQ                  501
@@ -272,6 +274,8 @@
 #define IDS_COMPPRIVATEPROFILE          657
 #define IDS_COMPNAMELENBUGFIX           658
 #define IDS_SSHRSASIGNMSG               659
+#define IDS_DROPBEGINSTRING             660
+#define IDS_DROPENDSTRING               661
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -1033,6 +1037,24 @@
 #define IDC_PASSDISP                    2516
 #define IDC_HELPBTN                     2517
 #define IDC_PROXYCMD                    2518
+#define IDC_TREE_FRAME1                 2519
+#define IDC_LIST_FRAME1                 2520
+#define IDC_COMBO_TITLE1                2521
+#define IDC_GROUP1                      2522
+#define IDC_GROUP2                      2523
+#define IDC_TITLE1                      2524
+#define IDC_TITLE2                      2525
+#define IDC_TITLE3                      2526
+#define IDC_TITLE4                      2527
+#define IDC_TITLE5                      2528
+#define IDC_TITLE6                      2529
+#define IDC_TITLE7                      2530
+#define IDC_TITLE8                      2531
+#define IDC_TITLE9                      2532
+#define IDC_TITLE10                     2533
+#define IDC_TABTEXTCOL                  2534
+#define IDC_TABBACKCOL                  2535
+#define IDC_TABBACKGRAD                 2536
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1175,6 +1197,7 @@
 #define IDM_LINEEDITMODE                5151
 #define IDM_RIGHTCLOSE                  5152
 #define IDM_OTHERCLOSE                  5153
+#define IDM_VIEW_SUBTOOL                5154
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
@@ -1182,8 +1205,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        175
-#define _APS_NEXT_COMMAND_VALUE         5154
-#define _APS_NEXT_CONTROL_VALUE         2519
-#define _APS_NEXT_SYMED_VALUE           660
+#define _APS_NEXT_COMMAND_VALUE         5155
+#define _APS_NEXT_CONTROL_VALUE         2537
+#define _APS_NEXT_SYMED_VALUE           662
 #endif
 #endif

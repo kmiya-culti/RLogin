@@ -2150,7 +2150,7 @@ void Cssh::PortForward(BOOL bReset)
 			PostClose(0);
 		}
 
-		if ( m_bPfdConnect == 0 && !m_bConnect ) {
+		if ( m_bPfdConnect == 0 ) { // && !m_bConnect ) {
 			m_bConnect = TRUE;
 			m_pFifoMid->SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
 		}
@@ -4694,7 +4694,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 		return 0;
 	}
 
-	if ( m_bPfdConnect > 0 && --m_bPfdConnect <= 0 && !m_bConnect ) {
+	if ( m_bPfdConnect > 0 && --m_bPfdConnect <= 0 ) { // && !m_bConnect ) {
 		m_bConnect = TRUE;
 		m_pFifoMid->SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
 	}

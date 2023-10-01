@@ -315,6 +315,9 @@
     <ClCompile Include="Fifo.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="ToolBarEx.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlgoDlg.h">
@@ -632,6 +635,9 @@
     <ClInclude Include="Fifo.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="ToolBarEx.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\Active.ico">
@@ -748,6 +754,12 @@
       <Filter>リソース ファイル</Filter>
     </None>
     <None Include="res\toolbar2.bmp">
+      <Filter>リソース ファイル</Filter>
+    </None>
+    <None Include="res\menumap4.bmp">
+      <Filter>リソース ファイル</Filter>
+    </None>
+    <None Include="res\menumap5.bmp">
       <Filter>リソース ファイル</Filter>
     </None>
   </ItemGroup>
