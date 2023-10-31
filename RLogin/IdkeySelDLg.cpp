@@ -21,8 +21,8 @@ CIdkeySelDLg::CIdkeySelDLg(CWnd* pParent /*=NULL*/)
 	: CDialogExt(CIdkeySelDLg::IDD, pParent)
 {
 	m_ExportStyle = EXPORT_STYLE_OPENSSH;
-	m_Type = _T("ECDSA");
-	m_Bits = _T("256");
+	m_Type = _T("ED25519");
+	m_Bits = _T("");
 	m_Name = _T("");
 	m_pIdKeyTab = NULL;
 	m_EntryNum = (-1);

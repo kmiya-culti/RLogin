@@ -3199,6 +3199,15 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 	if ( lCount >= 0 && CWinApp::OnIdle(lCount) )
 		return TRUE;
 
+	// PostMessageが連続しないようにここでポストする
+	m_PostMsgLock.Lock();
+	while ( !m_PostMsgQue.IsEmpty() ) {
+		PostMsgQue *pQue = m_PostMsgQue.RemoveHead();
+		::PostMessage(pQue->hWnd, pQue->Msg, pQue->wParam, pQue->lParam);
+		delete pQue;
+	}
+	m_PostMsgLock.Unlock();
+
 	for ( n = 0 ; !rt && n < m_IdleProcCount && (pProc = m_pIdleTop) != NULL ; n++ ) {
 		m_pIdleTop = pProc->m_pNext;
 
@@ -3236,7 +3245,7 @@ BOOL CRLoginApp::IsIdleMessage(MSG* pMsg)
 		return TRUE;
 	}
 
-	if ( pMsg->message == WM_NULL || pMsg->message == WM_PAINT )
+	if ( pMsg->message == WM_PAINT )
 		return TRUE;
 
 	if ( CWinApp::IsIdleMessage(pMsg) )
@@ -3354,6 +3363,25 @@ void CRLoginApp::SetSleepMode(int req)
 		}
 		break;
 	}
+}
+void CRLoginApp::IdlePostMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+	PostMsgQue tmp = { hWnd, Msg, wParam, lParam };
+
+	// 別スレッドからの場合あり
+	m_PostMsgLock.Lock();
+	POSITION pos = m_PostMsgQue.GetHeadPosition();
+
+	while ( pos != NULL ) {
+		PostMsgQue *pQue = m_PostMsgQue.GetNext(pos);
+		if ( pQue->hWnd == hWnd && pQue->Msg == Msg && pQue->wParam == wParam ) {
+			m_PostMsgLock.Unlock();
+			return;
+		}
+	}
+
+	m_PostMsgQue.AddTail(new PostMsgQue(tmp));
+	m_PostMsgLock.Unlock();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3833,7 +3861,7 @@ BOOL CRLoginApp::DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLO
 		pEmoji->m_String = str;
 
 		// ビットマップ取得できない情報もキャッシュに登録
-		if (  (hDC = GetEmojiImage(pEmoji)) == NULL && (hDC = GetEmojiDrawText(pEmoji, fc, fh)) == NULL )
+		if (  (hDC = GetEmojiImage(pEmoji)) == NULL && (hDC = GetEmojiDrawText(pEmoji, fc, fh * 2)) == NULL )
 			goto ENDOF;
 	}
 

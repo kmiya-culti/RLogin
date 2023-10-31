@@ -348,7 +348,7 @@ void CFifoCom::OnReadWriteProc()
 		if ( (dw = WaitForMultipleObjects(HandleCount, HandleTab, FALSE, INFINITE)) == WAIT_FAILED ) {
 			m_nLastError = GetLastError();
 			goto ERRENDOF;
-		} if ( dw < WAIT_OBJECT_0 || (dw -= WAIT_OBJECT_0) >= (DWORD)HandleCount )
+		} else if ( dw < WAIT_OBJECT_0 || (dw -= WAIT_OBJECT_0) >= (DWORD)HandleCount )
 			goto ERRENDOF;
 
 		if ( HandleTab[dw] == GetEvent(FIFO_STDOUT)->m_hObject )

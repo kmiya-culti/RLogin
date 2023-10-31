@@ -70,7 +70,7 @@ BOOL CMemMap::NewMap(int cols_max, int line_max, int his_max)
 		m_LineMax <<= 1;
 
 	GetSystemInfo(&SystemInfo);
-	m_MapPage = (ULONGLONG)(((sizeof(CCharCell) * m_ColsMax * (m_LineMax / 2)) + SystemInfo.dwAllocationGranularity - 1) / SystemInfo.dwAllocationGranularity * SystemInfo.dwAllocationGranularity);
+	m_MapPage = ((((ULONGLONG)sizeof(CCharCell) * (ULONGLONG)m_ColsMax * (ULONGLONG)(m_LineMax / 2)) + (ULONGLONG)SystemInfo.dwAllocationGranularity - 1) / (ULONGLONG)SystemInfo.dwAllocationGranularity * (ULONGLONG)SystemInfo.dwAllocationGranularity);
 	m_MapSize = m_MapPage * 2;
 	m_pMapTop = NULL;
 
@@ -164,8 +164,10 @@ void CCharCell::operator += (DWORD ch)
 
 	b = ((ch & 0xFFFF0000) != 0 ? 2 : 1);
 
-	if ( (a = n + b + 1) > MAXCHARSIZE )
+	if ( (a = n + b + 1) > MAXCHARSIZE ) {
+		TRACE("CCharCell over %d\n", a);
 		return;
+	}
 
 	if ( (ch & 0xFFFF0000) != 0 )
 		m_Data[n++] = (WCHAR)(ch >> 16);
@@ -181,19 +183,13 @@ void CCharCell::operator += (DWORD ch)
 void CCharCell::operator = (LPCWSTR str)
 {
 	int n;
-	int a = (int)wcslen(str) + 1;
 
 	if ( IS_IMAGE(m_Vram.mode) )
 		return;
 
-	for ( n = 0 ; n < a ; n++ ) {
-		if ( n >= (MAXCHARSIZE - 1) ) {
-			TRACE("CCharCell over %d\n", a);
-			m_Data[MAXCHARSIZE - 1] = L'\0';
-			break;
-		}
-		m_Data[n] = *(str++);
-	}
+	for ( n = 0 ; *str != L'\0' && n < (MAXCHARSIZE - 1) ; )
+		m_Data[n++] = *(str++);
+	m_Data[n++] = L'\0';
 
 	if ( n > MAXEXTSIZE && (m_Vram.attr & ATT_EXTVRAM) != 0 )
 		m_Vram.attr &= ~ATT_EXTVRAM;
@@ -2102,15 +2098,14 @@ void CTextRam::InitText(int Width, int Height)
 		newColsMax = (m_ColsMax >= newCols && m_LineUpdate < m_HisMax ? m_ColsMax : newCols);
 		CMemMap *pNewMap = new CMemMap;
 
-		for ( n = newHisMax ; !pNewMap->NewMap(newColsMax, newLines, n) ; ) {
-			if ( (n /= 2) <= (newLines * 2) )
+		if ( !pNewMap->NewMap(newColsMax, newLines, newHisMax) ) {
+			// ヒストリ数を半減して試す
+			if ( !pNewMap->NewMap(newColsMax, newLines, newHisMax / 2) ) {
 				AfxThrowMemoryException();
-		}
-		if ( n < newHisMax ) {
-			CString msg;
-			msg.Format(_T("Memory Error HisLen %d -> %d"), newHisMax, n);
-			::AfxMessageBox(msg, MB_ICONWARNING);
-			newHisMax = n;
+			} else {
+				ThreadMessageBox(_T("Failed to allocate history buffer\nReduce history line %d -> %d"), newHisMax, newHisMax / 2);
+				newHisMax /= 2;
+			}
 		}
 
 		if ( m_pMemMap != NULL ) {

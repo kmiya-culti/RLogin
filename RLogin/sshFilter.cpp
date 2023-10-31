@@ -77,7 +77,10 @@ void CFifoSftp::FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pPa
 	case FD_READ:	// Fifo.PutBuffer
 		if ( !m_pSFtp->m_bPostMsg && m_pSFtp->m_pFifoSftp != NULL ) {
 			m_pSFtp->m_bPostMsg = TRUE;
-			m_pSFtp->PostMessage(WM_RECIVEBUFFER, (WPARAM)FD_READ);
+			if ( !m_pSFtp->m_bBuzy )
+				m_pSFtp->PostMessage(WM_RECIVEBUFFER, (WPARAM)FD_READ);
+			else
+				theApp.IdlePostMessage(m_pSFtp->GetSafeHwnd(), WM_RECIVEBUFFER, (WPARAM)FD_READ);
 		}
 		break;
 
@@ -1031,7 +1034,7 @@ void CFifoRcp::RcpUpLoad()
 
 	if ( _tstati64(m_PathName, &stat) || (fp = _tfopen(m_PathName, _T("rb"))) == NULL ) {
 		line.Format("file open error %d", GetLastError());
-		return;
+		goto ERRRET;
 	}
 	
 	m_nLastError = WSAEFAULT;

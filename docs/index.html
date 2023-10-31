@@ -26,8 +26,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.28.6)</TD>
-            <TD width="20%" align="right">2023/10/02</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.28.7)</TD>
+            <TD width="20%" align="right">2023/11/01</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -343,7 +343,7 @@ TD {
         <TBODY>
           <TR>
             <TD width="600">動作環境としてWindows XP x32/Windows 7 x64/Windows 10 x64にて確認しています<BR>
-            サーバーは、FreeBSD 12.3のrlogind, telnetd, sshd(openssh-9.1p1)を使用しています<BR>
+            サーバーは、FreeBSD 12.3のrlogind, telnetd, sshd(openssh-9.5p1)を使用しています<BR>
             <BR>
             「rlogin.zip」を解凍してRLogin.exeを適当な場所に置いて実行してください<BR>
             <BR>
@@ -434,6 +434,17 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2023/11/01</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.7/">2.28.7</A></TD>
+            <TD>sftpの受信メッセージ処理が連続しないように変更<BR>
+            sftpのファイルの読み書きをスレッド動作に変更<BR>
+            sftpのフライングパケット数の見直し<BR>
+            <SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">UTF-8の文字幅などをUnicode-15.1.0のデータに更新</SPAN><BR>
+            １文字の最大文字数を増して複雑なemojiに対応<BR>
+            カラーemojiのキャッシュ数の見直し<BR>
+            openssl-3.1.4に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2023/10/02</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.6/">2.28.6</A></TD>
             <TD>シェル起動なしでPFログを表示でCONNECTされないバグを修正<BR>
@@ -465,14 +476,6 @@ TD {
             openssl-3.1.1に更新</TD>
           </TR>
           <TR>
-            <TD align="center">2023/05/10</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.2/">2.28.2</A></TD>
-            <TD>2.28.1でsftpがタイミングによりデットロックするバグを修正<BR>
-            非対応の鍵でもagentでは、利用するように変更<BR>
-            内部agentの動作をスレッドに変更<BR>
-            libiconv-1.17に更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -496,13 +499,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.1.3.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.1.4.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.1.3 openssl-3.1.3-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.1.4 openssl-3.1.4-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -587,7 +590,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.1.3 19 Sep 2023<BR>
+            <P>OpenSSL 3.1.4 24 Oct 2023<BR>
             Copyright (c) 1998-2023 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>

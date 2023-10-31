@@ -52,8 +52,8 @@
 #define	INUSE_ACTWIN		1
 #define	INUSE_ALLWIN		2
 
-#define	EMOJI_HASH			16
-#define	EMOJI_LISTMAX		64
+#define	EMOJI_HASH			64
+#define	EMOJI_LISTMAX		128
 
 #define	SLEEPREQ_DISABLE	0
 #define	SLEEPREQ_ENABLE		1
@@ -267,6 +267,17 @@ public:
 	inline BOOL InitToolBarBitmap(LPCTSTR lpszName, UINT ImageId) { return m_ResDataBase.InitToolBarBitmap(lpszName, ImageId); }
 
 	LPCTSTR GetTempDir(BOOL bSeqId);
+
+	typedef struct _PostMsgQue {
+		HWND hWnd;
+		UINT Msg;
+		WPARAM wParam;
+		LPARAM lParam;
+	} PostMsgQue;
+
+	CSemaphore m_PostMsgLock;
+	CList<PostMsgQue *, PostMsgQue *> m_PostMsgQue;
+	void IdlePostMessage(HWND hWnd, UINT Msg, WPARAM wParam = 0, LPARAM lParam = 0);
 
 	CRLoginApp();
 

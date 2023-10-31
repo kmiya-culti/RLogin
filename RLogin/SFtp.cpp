@@ -529,6 +529,338 @@ BOOL CSFtpDropTarget::OnDrop(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT
 #endif	// USE_OLE
 
 /////////////////////////////////////////////////////////////////////////////
+// CFileOverLap
+
+CFileOverLap::CFileOverLap()
+{
+	m_Handle = NULL;
+	m_pBuffer = NULL;
+	m_Pos = m_Len = m_Max = 0;
+
+	memset(&m_OverLap, 0 , sizeof(m_OverLap));
+	m_OverLap.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+	m_pPostWnd = NULL;
+	m_pThread = NULL;
+	m_Stat = FOL_INIT;
+	m_LastError = 0;
+}
+CFileOverLap::~CFileOverLap()
+{
+	EndOfThread();
+
+	if ( m_Max > 0 && m_pBuffer != NULL )
+		delete [] m_pBuffer;
+
+	CloseHandle(m_OverLap.hEvent);
+
+	while ( !m_ReadQue.IsEmpty() ) {
+		CCmdQue *pCmdQue = m_ReadQue.RemoveHead();
+		delete pCmdQue;
+	}
+}
+void CFileOverLap::EndOfThread()
+{
+	if ( m_pThread != NULL && m_Stat != FOL_INIT ) {
+		if ( m_Stat == FOL_OVERLAP || m_Stat == FOL_OVERWAIT ) {
+			m_Stat = FOL_INIT;
+			CancelIo(m_Handle);
+		} else
+			m_Stat = FOL_INIT;
+		m_WaitEvent.SetEvent();
+		WaitForSingleObject(m_pThread, INFINITE);
+		m_pThread = NULL;
+	}
+}
+BOOL CFileOverLap::IsBuzy(CSFtp *pWnd)
+{
+	BOOL bRes = TRUE;
+
+	m_Lock.Lock();
+	if ( m_Stat == FOL_INIT || m_Stat == FOL_DONE )
+		bRes = FALSE;
+	else
+		m_pPostWnd = pWnd;
+	m_Lock.Unlock();
+
+	return bRes;
+}
+void CFileOverLap::DonePostMsg(UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+	m_Lock.Lock();
+	if ( m_pPostWnd != NULL ) {
+		m_pPostWnd->PostMessage(Msg, wParam, lParam);
+		m_pPostWnd = NULL;
+	}
+	m_Stat = FOL_DONE;
+	m_Lock.Unlock();
+}
+void CFileOverLap::WriteOverLapWork()
+{
+	int HandleCount;
+	HANDLE HandleTab[2];
+	BOOL bRes = FALSE;
+	DWORD dw;
+	LONGLONG offset;
+
+	for ( ; ; ) {
+		HandleCount = 0;
+		HandleTab[HandleCount++] = m_WaitEvent;
+
+		if ( m_Stat == FOL_HAVEDATA )
+			bRes = ::WriteFile(m_Handle, m_pBuffer + m_Pos, m_Len - m_Pos, &dw, &m_OverLap);
+		else if ( m_Stat == FOL_OVERLAP )
+			bRes = GetOverlappedResult(m_Handle, &m_OverLap, &dw, FALSE);
+		else {
+			if ( m_Stat == FOL_OVERWAIT )
+				HandleTab[HandleCount++] = m_OverLap.hEvent;
+			else if ( m_Stat == FOL_INIT )
+				break;
+
+			if ( (dw = WaitForMultipleObjects(HandleCount, HandleTab, FALSE, INFINITE)) == WAIT_FAILED || dw < WAIT_OBJECT_0 || (dw -= WAIT_OBJECT_0) >= (DWORD)HandleCount ) {
+				m_LastError = ::GetLastError();
+				DonePostMsg(WM_RECIVEBUFFER, (WPARAM)FD_READ);
+			} else if ( HandleTab[dw] == m_OverLap.hEvent )
+				m_Stat = FOL_OVERLAP;
+
+			continue;
+		}
+
+		if ( bRes ) {
+			if ( (m_Pos += dw) >= m_Len )
+				DonePostMsg(WM_RECIVEBUFFER, (WPARAM)FD_READ);
+			else {
+				m_Stat = FOL_HAVEDATA;
+
+				offset = ((LONGLONG)(m_OverLap.OffsetHigh) << 32) | (LONGLONG)m_OverLap.Offset;
+				offset += dw;
+				m_OverLap.Offset     = (DWORD)offset;
+				m_OverLap.OffsetHigh = (DWORD)(offset >> 32);
+			}
+
+		} else if ( (dw = ::GetLastError()) == ERROR_IO_INCOMPLETE || dw == ERROR_IO_PENDING ) {
+			m_Stat = FOL_OVERWAIT;
+		} else {
+			m_LastError = dw;
+			DonePostMsg(WM_RECIVEBUFFER, (WPARAM)FD_READ);
+		}
+	}
+}
+static UINT WriteOverLapThread(LPVOID pParam)
+{
+	CFileOverLap *pThis = (CFileOverLap *)pParam;
+	pThis->WriteOverLapWork();
+	return 0;
+}
+BOOL CFileOverLap::SeekWriteFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG SeekPos)
+{
+	if ( m_Stat != FOL_DONE ) {
+		m_LastError = ERROR_INVALID_FUNCTION;
+		return FALSE;
+	} else if ( m_LastError != 0 )
+		return FALSE;
+
+	if ( m_Max < BufLen ) {
+		if ( m_Max > 0 && m_pBuffer != NULL )
+			delete [] m_pBuffer;
+		m_Max = BufLen;
+		m_pBuffer = new BYTE[m_Max];
+	}
+
+	m_Handle = hFile;
+	m_Seek.QuadPart = SeekPos;
+	m_OverLap.Offset = (DWORD)SeekPos;
+	m_OverLap.OffsetHigh = (DWORD)(SeekPos >> 32);
+
+	m_Pos = 0;
+	m_Len = BufLen;
+	memcpy(m_pBuffer, pBuffer, m_Len);
+
+	if ( !SetFilePointerEx(m_Handle, m_Seek, NULL, FILE_BEGIN) ) {
+		m_LastError = ::GetLastError();
+		return FALSE;
+	}
+
+	m_Stat = FOL_HAVEDATA;
+	m_WaitEvent.SetEvent();
+	return TRUE;
+}
+BOOL CFileOverLap::WriteOverLapInit()
+{
+	if ( m_Stat == FOL_INIT ) {
+		m_Stat = FOL_DONE;
+		if ( (m_pThread = AfxBeginThread(WriteOverLapThread, this, THREAD_PRIORITY_NORMAL)) == NULL ) {
+			m_Stat = FOL_INIT;
+			return FALSE;
+		}
+	}
+
+	m_pPostWnd = NULL;
+	m_LastError = 0;
+	return TRUE;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CFileOverLap::DoneNextQue(CCmdQue *pCmdQue, BOOL bResult)
+{
+	ASSERT(pCmdQue != NULL && pCmdQue->m_pSFtp != NULL);
+
+	if ( bResult ) {
+		pCmdQue->m_pSFtp->SendBuffer(&(pCmdQue->m_Msg));
+		pCmdQue->m_pSFtp->AddCmdQue(pCmdQue);
+
+	} else {
+		if ( pCmdQue->m_pOwner == NULL ) {
+			pCmdQue->m_Len = (-4);
+			pCmdQue->m_pSFtp->RemoteMakePacket(pCmdQue, SSH2_FXP_CLOSE);
+			pCmdQue->m_LastError = m_LastError;
+			pCmdQue->m_pSFtp->SendCommand(pCmdQue, &CSFtp::RemoteCloseWriteRes, SENDCMD_NOWAIT);
+		} else {
+			pCmdQue->m_pOwner->m_Max--;
+			delete pCmdQue;
+		}
+	}
+
+	m_Lock.Lock();
+	m_Stat = (m_ReadQue.IsEmpty() ? FOL_DONE : FOL_HAVEDATA);
+	m_Lock.Unlock();
+}
+static UINT ReadOverLapThread(LPVOID pParam)
+{
+	CFileOverLap *pThis = (CFileOverLap *)pParam;
+	pThis->ReadOverLapWork();
+	return 0;
+}
+void CFileOverLap::ReadOverLapWork()
+{
+	int HandleCount;
+	HANDLE HandleTab[2];
+	BOOL bRes = FALSE;
+	DWORD dw;
+	LONGLONG offset;
+	CCmdQue *pCmdQue = NULL;
+
+	for ( ; ; ) {
+		HandleCount = 0;
+		HandleTab[HandleCount++] = m_WaitEvent;
+
+		if ( m_Stat == FOL_HAVEDATA ) {
+			m_Lock.Lock();
+			if ( m_ReadQue.IsEmpty() ) {
+				m_Stat = FOL_DONE;
+				m_Lock.Unlock();
+				continue;
+			}
+			pCmdQue = m_ReadQue.RemoveHead();
+			m_Lock.Unlock();
+
+			if ( m_LastError != 0 ) {
+				DoneNextQue(pCmdQue, FALSE);
+				pCmdQue = NULL;
+				continue;
+			}
+
+			if ( pCmdQue->m_Type != SSH2_FXP_WRITE ) {
+				DoneNextQue(pCmdQue, TRUE);
+				pCmdQue = NULL;
+				continue;
+			}
+
+			m_Handle = pCmdQue->m_hFile;
+			m_Max = 0;
+			m_pBuffer = pCmdQue->m_Msg.GetPos(pCmdQue->m_BufPos);
+			m_Pos = 0;
+			m_Len = pCmdQue->m_Len;
+			m_Seek.QuadPart = pCmdQue->m_Offset;
+
+			m_OverLap.Offset = (DWORD)(pCmdQue->m_Offset);
+			m_OverLap.OffsetHigh = (DWORD)(pCmdQue->m_Offset >> 32);
+
+			if ( !SetFilePointerEx(m_Handle, m_Seek, NULL, FILE_BEGIN) ) {
+				m_LastError = GetLastError();
+				DoneNextQue(pCmdQue, FALSE);
+				pCmdQue = NULL;
+				continue;
+			} else
+				bRes = ::ReadFile(m_Handle, m_pBuffer + m_Pos, m_Len - m_Pos, &dw, &m_OverLap);
+
+		} else if ( m_Stat == FOL_OVERLAP )
+			bRes = GetOverlappedResult(m_Handle, &m_OverLap, &dw, FALSE);
+		else {
+			if ( m_Stat == FOL_OVERWAIT )
+				HandleTab[HandleCount++] = m_OverLap.hEvent;
+			else if ( m_Stat == FOL_INIT )
+				break;
+
+			if ( (dw = WaitForMultipleObjects(HandleCount, HandleTab, FALSE, INFINITE)) == WAIT_FAILED || dw < WAIT_OBJECT_0 || (dw -= WAIT_OBJECT_0) >= (DWORD)HandleCount ) {
+				if ( pCmdQue != NULL ) {
+					m_LastError = GetLastError();
+					DoneNextQue(pCmdQue, FALSE);
+					pCmdQue = NULL;
+				} else {
+					m_LastError = GetLastError();
+					::ThreadMessageBox(_T("CFileOverLap WaitForMultipleObjects Error"));
+				}
+
+			} else if ( HandleTab[dw] == m_OverLap.hEvent )
+				m_Stat = FOL_OVERLAP;
+
+			continue;
+		}
+
+		if ( bRes ) {
+			if ( (m_Pos += dw) >= m_Len ) {
+				DoneNextQue(pCmdQue, TRUE);
+				pCmdQue = NULL;
+			} else {
+				m_Stat = FOL_HAVEDATA;
+				m_Seek.QuadPart += dw;
+
+				offset = ((LONGLONG)(m_OverLap.OffsetHigh) << 32) | (LONGLONG)m_OverLap.Offset;
+				offset += dw;
+				m_OverLap.Offset     = (DWORD)offset;
+				m_OverLap.OffsetHigh = (DWORD)(offset >> 32);
+			}
+
+		} else if ( (dw = ::GetLastError()) == ERROR_IO_INCOMPLETE || dw == ERROR_IO_PENDING ) {
+			m_Stat = FOL_OVERWAIT;
+
+		} else if ( pCmdQue != NULL ) {
+			m_LastError = dw;
+			DoneNextQue(pCmdQue, FALSE);
+			pCmdQue = NULL;
+		}
+	}
+}
+void CFileOverLap::AddReadQue(CCmdQue *pCmdQue)
+{
+	m_Lock.Lock();
+	m_ReadQue.AddTail(pCmdQue);
+	
+	if ( m_Stat == FOL_DONE ) {
+		m_Stat = FOL_HAVEDATA;
+		m_WaitEvent.SetEvent();
+	}
+
+	m_Lock.Unlock();
+}
+BOOL CFileOverLap::ReadOverLapInit()
+{
+	if ( m_Stat == FOL_INIT ) {
+		m_Stat = FOL_DONE;
+		if ( (m_pThread = AfxBeginThread(ReadOverLapThread, this, THREAD_PRIORITY_NORMAL)) == NULL ) {
+			m_Stat = FOL_INIT;
+			return FALSE;
+		}
+	}
+
+	m_pPostWnd = NULL;
+	m_LastError = 0;
+	return TRUE;
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // CSFtp
 
 IMPLEMENT_DYNAMIC(CSFtp, CDialogExt)
@@ -562,6 +894,7 @@ CSFtp::CSFtp(CWnd* pParent /*=NULL*/)
 	m_bUidGid = FALSE;
 	m_bShellExec[0] = m_bShellExec[1] = 0;
 	m_bPostMsg = FALSE;
+	m_bBuzy = FALSE;
 	m_bTheadExec = FALSE;
 	m_pTaskbarList = NULL;
 	m_pFifoSftp = NULL;
@@ -569,6 +902,9 @@ CSFtp::CSFtp(CWnd* pParent /*=NULL*/)
 CSFtp::~CSFtp()
 {
 	CCmdQue *pQue;
+
+	m_WriteOverLap.EndOfThread();
+	m_ReadOverLap.EndOfThread();
 
 	m_RemoteNode.RemoveAll();
 	m_LocalNode.RemoveAll();
@@ -643,6 +979,22 @@ int CSFtp::ReceiveBuffer(CBuffer *bp)
 			return FALSE;
 		}
 	} else {
+#ifdef	USE_READOVERLAP
+		m_CmdQueSema.Lock();
+		POSITION pos = m_CmdQue.GetHeadPosition();
+		while ( pos != NULL ) {
+			pQue = m_CmdQue.GetAt(pos);
+			if ( pQue->m_ExtId == id ) {
+				m_CmdQue.RemoveAt(pos);
+				m_CmdQueSema.Unlock();
+				if ( (this->*(pQue->m_Func))(type, bp, pQue) )
+					delete pQue;
+				goto ENDOF;
+			}
+			m_CmdQue.GetNext(pos);
+		}
+		m_CmdQueSema.Unlock();
+#else
 		POSITION pos = m_CmdQue.GetHeadPosition();
 		while ( pos != NULL ) {
 			pQue = m_CmdQue.GetAt(pos);
@@ -650,14 +1002,15 @@ int CSFtp::ReceiveBuffer(CBuffer *bp)
 				m_CmdQue.RemoveAt(pos);
 				if ( (this->*(pQue->m_Func))(type, bp, pQue) )
 					delete pQue;
-				break;
+				goto ENDOF;
 			}
 			m_CmdQue.GetNext(pos);
 		}
-		if ( pos == NULL )
-			MessageBox(_T("Unkown sftp Message Received"));
+#endif
+		MessageBox(_T("Unkown sftp Message Received"));
 	}
 
+ENDOF:
 	SendWaitQue();
 	return TRUE;
 }
@@ -673,8 +1026,7 @@ void CSFtp::SendCommand(CCmdQue *pQue, int (CSFtp::*pFunc)(int type, CBuffer *bp
 	switch(mode) {
 	case SENDCMD_NOWAIT:
 		SendBuffer(&(pQue->m_Msg));
-		pQue->m_SendTime = CTime::GetCurrentTime();
-		m_CmdQue.AddTail(pQue);
+		AddCmdQue(pQue);
 		break;
 	case SENDCMD_HEAD:
 		m_WaitQue.AddHead(pQue);
@@ -682,12 +1034,22 @@ void CSFtp::SendCommand(CCmdQue *pQue, int (CSFtp::*pFunc)(int type, CBuffer *bp
 	case SENDCMD_TAIL:
 		m_WaitQue.AddTail(pQue);
 		break;
+#ifdef	USE_READOVERLAP
+	case SENDCMD_READOVERLAP:
+		m_ReadOverLap.AddReadQue(pQue);
+		break;
+#endif
 	}
 }
 void CSFtp::SendWaitQue()
 {
 	if ( m_VerId != SSH2_FILEXFER_VERSION || !m_CmdQue.IsEmpty() || m_WaitQue.IsEmpty() )
 		return;
+
+#ifdef	USE_READOVERLAP
+	if ( m_ReadOverLap.IsBuzy() )
+		return;
+#endif
 
 	CCmdQue *pQue = m_WaitQue.RemoveHead();
 
@@ -699,8 +1061,7 @@ void CSFtp::SendWaitQue()
 	} else
 		SendBuffer(&(pQue->m_Msg));
 
-	pQue->m_SendTime = CTime::GetCurrentTime();
-	m_CmdQue.AddTail(pQue);
+	AddCmdQue(pQue);
 }
 void CSFtp::RemoveWaitQue()
 {
@@ -710,10 +1071,12 @@ void CSFtp::RemoveWaitQue()
 		delete pQue;
 	}
 }
-void CSFtp::SetLastErrorMsg()
+void CSFtp::SetLastErrorMsg(DWORD err)
 {
-	DWORD err = GetLastError();
 	LPVOID lpMessageBuffer = NULL;
+
+	if ( err == 0 )
+		err = GetLastError();
 
 	if ( FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMessageBuffer, 0, NULL) != 0 && lpMessageBuffer != NULL ) {
 		m_LastErrorMsg = (LPTSTR)lpMessageBuffer;
@@ -792,6 +1155,12 @@ ERRRET:
 int CSFtp::RemoteMakePacket(class CCmdQue *pQue, int Type)
 {
 	CStringA tmp;
+	
+#ifdef	USE_READOVERLAP
+	pQue->m_Type = Type;
+	pQue->m_LastError = 0;
+	pQue->m_pSFtp = this;
+#endif
 
 	pQue->m_Msg.Clear();
 	pQue->m_Msg.Put32Bit(0);		// Packet Size
@@ -829,6 +1198,9 @@ int CSFtp::RemoteMakePacket(class CCmdQue *pQue, int Type)
 		pQue->m_Msg.PutBuf(pQue->m_Handle.GetPtr(), pQue->m_Handle.GetSize());
 		pQue->m_Msg.Put64Bit(pQue->m_Offset);
 		pQue->m_Msg.Put32Bit(pQue->m_Len);
+#ifdef	USE_READOVERLAP
+		pQue->m_BufPos = pQue->m_Msg.GetSize();
+#endif
 		break;
 	}
 
@@ -1046,6 +1418,7 @@ int CSFtp::RemoteCopyDirRes(int st, class CCmdQue *pQue)
 
 	if ( !CreateDirectory(pQue->m_CopyPath, NULL) ) {
 		if ( ::GetLastError() != ERROR_ALREADY_EXISTS ) {
+			SetLastErrorMsg();
 			DispErrMsg(_T("Create Directory Error"), pQue->m_CopyPath);
 			return TRUE;
 		}
@@ -1383,15 +1756,22 @@ int CSFtp::RemoteDataReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	if ( (n = bp->Get32Bit()) != pQue->m_Len || pOwner->m_hFile == INVALID_HANDLE_VALUE )
 		goto WRITEERR;
 
+#ifdef	USE_WRITEOVERLAP
+	if ( !m_WriteOverLap.SeekWriteFile(pOwner->m_hFile, bp->GetPtr(), n, pQue->m_Offset) ) {
+		SetLastErrorMsg(m_WriteOverLap.m_LastError);
+		goto WRITEERR;
+	}
+#else
 	if ( !SeekWriteFile(pOwner->m_hFile, bp->GetPtr(), n, pQue->m_Offset) )
 		goto WRITEERR;
+#endif
 
 	if ( pOwner == pQue )
 		SetPosProg(pQue->m_Offset + n);
 
 	pQue->m_Offset = pOwner->m_NextOfs;
 	pQue->m_Len = (pOwner->m_FileNode[0].HaveSize() && (pOwner->m_Size - pQue->m_Offset) <= SSH2_FX_TRANSBUFLEN ? (int)(pOwner->m_Size - pQue->m_Offset) : SSH2_FX_TRANSBUFLEN);
-	n = ( m_UpDownRate > 0 ? (pOwner->m_Max * SSH2_FX_TRANSBUFLEN * 100 / m_UpDownRate) : SSH2_FX_TRANSTYPMSEC);
+	n = ( m_UpDownRate > 0 ? (pOwner->m_Max * SSH2_FX_TRANSBUFLEN * 1000 / m_UpDownRate) : SSH2_FX_TRANSTYPMSEC);
 
 	if ( pOwner != pQue && (n > SSH2_FX_TRANSMAXMSEC || (pQue->m_Offset + pQue->m_Len) >= pOwner->m_Size) ) {
 		pOwner->m_Max--;
@@ -1443,7 +1823,11 @@ int CSFtp::RemoteOpenReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		return RemoteCloseReadRes((-1), bp, pQue);
 	bp->GetBuf(&pQue->m_Handle);
 
+#ifdef	USE_WRITEOVERLAP
+	if ( (pQue->m_hFile = CreateFile(pQue->m_CopyPath, GENERIC_WRITE, 0, NULL, (pQue->m_NextOfs != 0 ? OPEN_EXISTING : CREATE_ALWAYS), FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE || !m_WriteOverLap.WriteOverLapInit() ) {
+#else
 	if ( (pQue->m_hFile = CreateFile(pQue->m_CopyPath, GENERIC_WRITE, 0, NULL, (pQue->m_NextOfs != 0 ? OPEN_EXISTING : CREATE_ALWAYS), FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE ) {
+#endif
 		SetLastErrorMsg();
 		pQue->m_Len = (-2);
 		RemoteMakePacket(pQue, SSH2_FXP_CLOSE);
@@ -1677,7 +2061,13 @@ int CSFtp::RemoteCloseWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		else if ( pQue->m_Len == (-2) )
 			DispErrMsg(_T("Remote Write Error"), pQue->m_Path);
 		else if ( pQue->m_Len == (-3) )
-			DispErrMsg(_T("Set Attr Error"), pQue->m_Path);	
+			DispErrMsg(_T("Set Attr Error"), pQue->m_Path);
+#ifdef	USE_READOVERLAP
+		else if ( pQue->m_Len == (-4) ) {
+			SetLastErrorMsg(pQue->m_LastError);
+			DispErrMsg(_T("Read Overlap Error"), pQue->m_Path);
+		}
+#endif
 		else
 			st = SSH2_FX_OK;
 	} else if ( type == (-1) )
@@ -1734,12 +2124,19 @@ int CSFtp::RemoteDataWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		}
 		pQue->m_Len = (m_DoAbort ? 0 : (-2));
 		RemoteMakePacket(pQue, SSH2_FXP_CLOSE);
-		SendCommand(pQue, &CSFtp::RemoteCloseWriteRes, SENDCMD_NOWAIT);
+		SendCommand(pQue, &CSFtp::RemoteCloseWriteRes, SENDCMD_READOVERLAP);
 		return FALSE;
 	}
 
 	if ( pOwner->m_hFile == INVALID_HANDLE_VALUE )
 		goto READERR;
+
+#ifdef	USE_READOVERLAP
+	if ( m_ReadOverLap.m_LastError != 0 ) {
+		SetLastErrorMsg(m_ReadOverLap.m_LastError);
+		goto READERR;
+	}
+#endif
 
 	if ( pQue == pOwner ) {
 		SetPosProg(pQue->m_Offset + pQue->m_Len);
@@ -1747,14 +2144,14 @@ int CSFtp::RemoteDataWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 			RemoteMakePacket(pQue, SSH2_FXP_FSETSTAT);
 			pQue->m_FileNode[0].m_flags &= ~(SSH2_FILEXFER_ATTR_SIZE | SSH2_FILEXFER_ATTR_UIDGID | SSH2_FILEXFER_ATTR_PERMISSIONS);		// Not Copy Permissions XXXXXXXX
 			pQue->m_FileNode[0].EncodeAttr(&(pQue->m_Msg));
-			SendCommand(pQue, &CSFtp::RemoteAttrWriteRes, SENDCMD_NOWAIT);
+			SendCommand(pQue, &CSFtp::RemoteAttrWriteRes, SENDCMD_READOVERLAP);
 			return FALSE;
 		}
 	}
 
 	pQue->m_Offset = pOwner->m_NextOfs;
 	pQue->m_Len = (pOwner->m_FileNode[0].HaveSize() && (pOwner->m_Size - pQue->m_Offset) <= SSH2_FX_TRANSBUFLEN ? (int)(pOwner->m_Size - pQue->m_Offset) : SSH2_FX_TRANSBUFLEN);
-	n = ( m_UpDownRate > 0 ? (pOwner->m_Max * SSH2_FX_TRANSBUFLEN * 100 / m_UpDownRate) : SSH2_FX_TRANSTYPMSEC);
+	n = ( m_UpDownRate > 0 ? (pOwner->m_Max * SSH2_FX_TRANSBUFLEN * 1000 / m_UpDownRate) : SSH2_FX_TRANSTYPMSEC);
 
 	if ( pQue != pOwner && (n > SSH2_FX_TRANSMAXMSEC || (pQue->m_Offset + pQue->m_Len) >= pOwner->m_Size) ) {
 		pOwner->m_Max--;
@@ -1764,28 +2161,34 @@ int CSFtp::RemoteDataWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	RemoteMakePacket(pQue, SSH2_FXP_WRITE);
 	buf = pQue->m_Msg.PutSpc(pQue->m_Len);
 
+#ifndef	USE_READOVERLAP
 	if ( !SeekReadFile(pOwner->m_hFile, buf, pQue->m_Len, pQue->m_Offset) )
 		goto READERR;
+#endif
 
-	SendCommand(pQue, &CSFtp::RemoteDataWriteRes, SENDCMD_NOWAIT);
+	SendCommand(pQue, &CSFtp::RemoteDataWriteRes, SENDCMD_READOVERLAP);
 	pOwner->m_NextOfs += pQue->m_Len;
 
 	if ( n < SSH2_FX_TRANSMINMSEC && pOwner->m_Max < SSH2_FX_MAXQUESIZE && (pOwner->m_NextOfs + SSH2_FX_TRANSBUFLEN) < pOwner->m_Size ) {
 		CCmdQue *pDmy = new CCmdQue;
 		pDmy->m_pOwner = pOwner;
+		pDmy->m_Path   = pOwner->m_Path;
 		pDmy->m_Handle = pOwner->m_Handle;
+		pDmy->m_hFile  = pOwner->m_hFile;
 		pDmy->m_Offset = pOwner->m_NextOfs;
 		pDmy->m_Len    = SSH2_FX_TRANSBUFLEN;
 
 		RemoteMakePacket(pDmy, SSH2_FXP_WRITE);
 		buf = pDmy->m_Msg.PutSpc(pDmy->m_Len);
 
+#ifndef	USE_READOVERLAP
 		if ( !SeekReadFile(pOwner->m_hFile, buf, pDmy->m_Len, pDmy->m_Offset) ) {
 			delete pDmy;
 			goto READERR;
 		}
+#endif
 
-		SendCommand(pDmy, &CSFtp::RemoteDataWriteRes, SENDCMD_NOWAIT);
+		SendCommand(pDmy, &CSFtp::RemoteDataWriteRes, SENDCMD_READOVERLAP);
 		pOwner->m_NextOfs += pDmy->m_Len;
 		pOwner->m_Max++;
 	}
@@ -1814,7 +2217,11 @@ int CSFtp::RemoteOpenWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		return RemoteCloseWriteRes((-3), bp, pQue);
 	bp->GetBuf(&pQue->m_Handle);
 
+#ifdef	USE_READOVERLAP
+	if ( (pQue->m_hFile = CreateFile(pQue->m_FileNode[0].m_path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE || !m_ReadOverLap.ReadOverLapInit() ) {
+#else
 	if ( (pQue->m_hFile = CreateFile(pQue->m_FileNode[0].m_path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE ) {
+#endif
 		SetLastErrorMsg();
 		goto CLOSEWRITE;
 	}
@@ -1830,10 +2237,12 @@ int CSFtp::RemoteOpenWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	RemoteMakePacket(pQue, SSH2_FXP_WRITE);
 	buf = pQue->m_Msg.PutSpc(pQue->m_Len);
 
+#ifndef	USE_READOVERLAP
 	if ( !SeekReadFile(pQue->m_hFile, buf, pQue->m_Len, pQue->m_Offset) )
 		goto CLOSEWRITE;
+#endif
 
-	SendCommand(pQue, &CSFtp::RemoteDataWriteRes, SENDCMD_NOWAIT);
+	SendCommand(pQue, &CSFtp::RemoteDataWriteRes, SENDCMD_READOVERLAP);
 	pQue->m_NextOfs += pQue->m_Len;
 	return FALSE;
 
@@ -2885,7 +3294,11 @@ BOOL CSFtp::OnInitDialog()
 
 	tmp.Format(_T("LoCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, 0);
 	work  = ::AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T("."));
-	LocalSetCwd(work);
+
+	if ( !LocalSetCwd(work) ) {
+		SetLastErrorMsg();
+		DispErrMsg(_T("Can't Change Directory"), tmp);
+	}
 
 	tmp.Format(_T("RemoteUidGid_%s"), (LPCTSTR)m_pSSh->m_HostName);
 	m_bUidGid = AfxGetApp()->GetProfileInt(_T("CSFtp"), tmp, FALSE);
@@ -3011,10 +3424,15 @@ void CSFtp::OnSelendokLocalCwd()
 {
 	int n;
 	CString tmp;
+
 	m_LocalCwd.GetWindowText(tmp);
 	if ( (n = m_LocalCwd.GetCurSel()) != CB_ERR )
 		m_LocalCwd.GetLBText(n, tmp);
-	LocalSetCwd(tmp);
+
+	if ( !LocalSetCwd(tmp) ) {
+		SetLastErrorMsg();
+		DispErrMsg(_T("Can't Change Directory"), tmp);
+	}
 }
 
 void CSFtp::OnSelendokRemoteCwd() 
@@ -3032,9 +3450,15 @@ void CSFtp::OnSelendokRemoteCwd()
 void CSFtp::OnKillfocusLocalCwd() 
 {
 	CString tmp;
+
 	m_LocalCwd.GetWindowText(tmp);
-	if ( tmp.Compare(m_LocalCurDir) != 0 )
-		LocalSetCwd(tmp);
+	if ( tmp.Compare(m_LocalCurDir) == 0 )
+		return;
+
+	if ( !LocalSetCwd(tmp) ) {
+		SetLastErrorMsg();
+		DispErrMsg(_T("Can't Change Directory"), tmp);
+	}
 }
 
 void CSFtp::OnKillfocusRemoteCwd() 
@@ -3475,8 +3899,10 @@ void CSFtp::OnSftpDelete()
 		for ( n = 0 ; n < m_LocalList.GetItemCount() ; n++ ) {
 			if ( m_LocalList.GetItemState(n, LVIS_SELECTED) != 0 ) {
 				i = (int)m_LocalList.GetItemData(n);
-				if ( !LocalDelete(m_LocalNode[i].m_path) )
+				if ( !LocalDelete(m_LocalNode[i].m_path) ) {
+					SetLastErrorMsg();
 					DispErrMsg(_T("Can't Delete Folder"), m_LocalNode[i].m_path);
+				}
 			}
 		}
 		LocalSetCwd(m_LocalCurDir);
@@ -3519,8 +3945,10 @@ void CSFtp::OnSftpMkdir()
 			dlg.m_Edit += _T("\\");
 		if ( dlg.DoModal() != IDOK )
 			return;
-		if ( !CreateDirectory(dlg.m_Edit, NULL) )
+		if ( !CreateDirectory(dlg.m_Edit, NULL) ) {
+			SetLastErrorMsg();
 			DispErrMsg(_T("Can't Create Directory"), dlg.m_Edit);
+		}
 		LocalSetCwd(m_LocalCurDir);
 	} else if ( pList->m_hWnd == m_RemoteList.m_hWnd ) {
 		dlg.m_Edit = m_RemoteCurDir;
@@ -3551,8 +3979,10 @@ void CSFtp::OnSftpRename()
 		dlg.m_Edit = m_LocalNode[n].m_file;
 		if ( dlg.DoModal() != IDOK )
 			return;
-		if ( _trename(m_LocalNode[n].m_file, dlg.m_Edit) )
+		if ( _trename(m_LocalNode[n].m_file, dlg.m_Edit) ) {
+			SetLastErrorMsg();
 			DispErrMsg(_T("Rename Error"), m_LocalNode[n].m_file);
+		}
 		LocalSetCwd(m_LocalCurDir);
 	} else if ( pList->m_hWnd == m_RemoteList.m_hWnd ) {
 		dlg.m_Edit = m_RemoteNode[n].m_path;
@@ -3769,26 +4199,41 @@ LRESULT CSFtp::OnReceiveBuffer(WPARAM wParam, LPARAM lParam)
 
 		} else if ( m_pFifoSftp != NULL ) {	// FD_READ
 			int n;
-			CBuffer buf;
+			BYTE tmp[4];
 
+#ifdef	USE_WRITEOVERLAP
+			if ( m_WriteOverLap.IsBuzy(this) )
+				return TRUE;
+#endif
+
+			m_bBuzy = TRUE;
 			m_bPostMsg = FALSE;
-			n = m_pFifoSftp->MoveBuffer(FIFO_STDIN, &m_RecvBuf);
 
-			while ( m_RecvBuf.GetSize() >= 4 ) {
-				n = m_RecvBuf.PTR32BIT(m_RecvBuf.GetPtr());
+			for ( ; ; ) {
+				if ( m_pFifoSftp->Peek(FIFO_STDIN, tmp, 4) < 4 )
+					break;
+
+				n = m_RecvBuf.PTR32BIT(tmp) + 4;
 
 				if ( n > (256 * 1024) || n < 0 )
 					throw _T("sftp packet length error");
 
-				if ( m_RecvBuf.GetSize() < (n + 4) )
+				m_RecvBuf.Clear();
+				if ( m_pFifoSftp->Peek(FIFO_STDIN, m_RecvBuf.PutSpc(n), n) < n )
 					break;
 
-				buf.Clear();
-				buf.Apend(m_RecvBuf.GetPtr() + 4, n);
-				m_RecvBuf.Consume(n + 4);
+				m_pFifoSftp->Consume(FIFO_STDIN, n);
 
-				ReceiveBuffer(&buf);
+				m_RecvBuf.Consume(4);
+				ReceiveBuffer(&m_RecvBuf);
+
+#ifdef	USE_WRITEOVERLAP
+				if ( m_WriteOverLap.IsBuzy(this) )
+					break;
+#endif
 			}
+
+			m_bBuzy = FALSE;
 		}
 
 	} catch(LPCTSTR msg) {

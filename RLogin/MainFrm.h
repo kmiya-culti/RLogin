@@ -357,7 +357,6 @@ public:
 	CKeyNodeTab m_DefKeyTab;
 	BOOL m_UseBitmapUpdate;
 	UINT_PTR m_IdleTimer;
-	BOOL m_bPostIdleMsg;
 	clock_t m_LastClipUpdate;
 	class CServerSelect *m_pServerSelect;
 	class CHistoryDlg *m_pHistoryDlg;
@@ -397,7 +396,6 @@ public:
 	void SetMidiEvent(int msec, DWORD msg);
 
 	void SetIdleTimer(BOOL bSw);
-	void PostIdleMessage();
 
 	void SetWakeUpSleep(int sec);
 	void WakeUpSleep();
@@ -621,7 +619,6 @@ protected:
 	afx_msg LRESULT OnGetClipboard(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnSetMessageString(WPARAM wParam, LPARAM lParam);
-	afx_msg LRESULT OnNullMessage(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnSpeakMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnFifoMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnDocumentMsg(WPARAM wParam, LPARAM lParam);

@@ -16,7 +16,7 @@
 #define	COLS_MAX		256
 #define	LINE_MAX		128
 
-#define	HIS_MAX			200000			// HIS_MAX * COLS_MAX * sizeof(CCharCell) = 6,553,600,000 byte
+#define	HIS_MAX			200000			// 200000 * 256 * sizeof(CCharCell) = 2,457,600,000 byte
 #define	DEF_TAB			8
 #define	FKEY_MAX		24
 #define	KANBUFMAX		128
@@ -563,7 +563,7 @@ enum EStageNum {
 #define	EATT_FRGBCOL	0x0001
 #define	EATT_BRGBCOL	0x0002
 
-#define	MAXCHARSIZE		12
+#define	MAXCHARSIZE		16
 #define	MAXEXTSIZE		(MAXCHARSIZE - 5)	// WORD eatt + COLORREF frgb + COLORREF brgb = 10 / WCHAR = 5
 
 typedef struct _Vram {
@@ -596,12 +596,12 @@ typedef struct _ExtVram {
 } EXTVRAM;
 
 ///////////////////////////////////////////////////////
-// sizeof(CCharCell) == 20 + 12 = 32 Byte
+// sizeof(CCharCell) == 28 + 12 + 8 = 48 Byte
 
 class CCharCell
 {
 public:
-	WCHAR		m_Data[MAXCHARSIZE - 2];	// WCHAR * (12 - m_Vram.pack.wcbuf[2]) = 20 Byte
+	WCHAR		m_Data[MAXCHARSIZE - 2];	// WCHAR * (16 - m_Vram.pack.wcbuf[2]) = 28 Byte
 	STDVRAM		m_Vram;						// DWORD * 3 = 12 Byte
 	time_t		m_Atime;
 

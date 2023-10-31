@@ -812,7 +812,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_MESSAGE(WM_GETCLIPBOARD, OnGetClipboard)
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 	ON_MESSAGE(WM_SETMESSAGESTRING, OnSetMessageString)
-	ON_MESSAGE(WM_NULL, OnNullMessage)
 	ON_MESSAGE(WM_SPEAKMSG, OnSpeakMsg)
 	ON_MESSAGE(WM_FIFOMSG, OnFifoMsg)
 	ON_MESSAGE(WM_DOCUMENTMSG, OnDocumentMsg)
@@ -956,7 +955,6 @@ CMainFrame::CMainFrame()
 	m_bClipThreadCount = 0;
 	m_ClipTimer = 0;
 	m_IdleTimer = 0;
-	m_bPostIdleMsg = FALSE;
 	m_LastClipUpdate = clock();
 	m_pMidiData = NULL;
 	m_pServerSelect = NULL;
@@ -1696,14 +1694,6 @@ void CMainFrame::SetIdleTimer(BOOL bSw)
 		KillTimer(m_IdleTimer);
 		m_IdleTimer = 0;
 	}
-}
-void CMainFrame::PostIdleMessage()
-{
-	if ( m_bPostIdleMsg || m_IdleTimer != 0 )
-		return;
-
-	m_bPostIdleMsg = TRUE;
-	PostMessage(WM_NULL);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -4123,11 +4113,6 @@ LRESULT CMainFrame::OnSetMessageString(WPARAM wParam, LPARAM lParam)
 		msg.Truncate(n);
 
 	return CMDIFrameWnd::OnSetMessageString(0, (LPARAM)(LPCTSTR)msg);
-}
-LRESULT CMainFrame::OnNullMessage(WPARAM wParam, LPARAM lParam)
-{
-	m_bPostIdleMsg = FALSE;
-	return TRUE;
 }
 
 BOOL CMainFrame::SpeakQueIn()

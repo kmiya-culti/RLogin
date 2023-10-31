@@ -6,6 +6,9 @@
 #include "ToolBarEx.h"
 #include <Shobjidl.h>
 
+#define	USE_WRITEOVERLAP
+#define	USE_READOVERLAP
+
 /* version */
 #define SSH2_FILEXFER_VERSION           3
 
@@ -69,9 +72,9 @@
 #define SSH2_FX_OP_UNSUPPORTED          8
 
 #define	SSH2_FX_TRANSBUFLEN				(31 * 1024)
-#define	SSH2_FX_TRANSMINMSEC			20
-#define	SSH2_FX_TRANSTYPMSEC			25
-#define	SSH2_FX_TRANSMAXMSEC			30
+#define	SSH2_FX_TRANSMINMSEC			95
+#define	SSH2_FX_TRANSTYPMSEC			100
+#define	SSH2_FX_TRANSMAXMSEC			105
 
 #define	SSH2_FX_MAXQUESIZE				32
 
@@ -81,6 +84,12 @@
 #define	SENDCMD_NOWAIT					0
 #define	SENDCMD_HEAD					1
 #define	SENDCMD_TAIL					2
+
+#ifdef	USE_READOVERLAP
+#define	SENDCMD_READOVERLAP				3
+#else
+#define	SENDCMD_READOVERLAP				SENDCMD_NOWAIT
+#endif
 
 #define	THREADCMD_COPY					0
 #define	THREADCMD_MOVE					1
@@ -172,6 +181,10 @@ public:
 	BOOL m_bThrad;
 	class CSFtp *m_pSFtp;
 
+	int m_Type;
+	DWORD m_LastError;
+	int m_BufPos;
+
 	CCmdQue();
 };
 
@@ -187,6 +200,41 @@ public:
 	virtual BOOL OnDrop(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT dropEffect, CPoint point);
 };
 #endif	// USE_OLE
+
+class CFileOverLap : public CObject
+{
+public:
+	HANDLE m_Handle;
+	BYTE *m_pBuffer;
+	DWORD m_Pos;
+	DWORD m_Len;
+	DWORD m_Max;
+	LARGE_INTEGER m_Seek;
+	OVERLAPPED m_OverLap;
+	CEvent m_WaitEvent;
+	class CSFtp *m_pPostWnd;
+	CSemaphore m_Lock;
+	CWinThread *m_pThread;
+	DWORD m_LastError;
+	enum _FolStat { FOL_INIT, FOL_DONE, FOL_HAVEDATA, FOL_OVERLAP, FOL_OVERWAIT } m_Stat;
+	CList<class CCmdQue *, class CCmdQue *> m_ReadQue;
+
+	BOOL IsBuzy(class CSFtp *pWnd = NULL);
+	void DonePostMsg(UINT Msg, WPARAM wParam = 0, LPARAM lParam = 0);
+	void WriteOverLapWork();
+	BOOL SeekWriteFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG SeekPos);
+	BOOL WriteOverLapInit();
+
+	void DoneNextQue(CCmdQue *pCmdQue, BOOL bResult);
+	void ReadOverLapWork();
+	void AddReadQue(CCmdQue *pCmdQue);
+	BOOL ReadOverLapInit();
+
+	void EndOfThread();
+
+	CFileOverLap();
+	~CFileOverLap();
+};
 
 class CSFtp : public CDialogExt
 {
@@ -245,11 +293,15 @@ public:
 	HICON m_hIcon;
 	int m_bShellExec[2];
 	BOOL m_bPostMsg;
+	BOOL m_bBuzy;
 	BOOL m_bTheadExec;
 
 #ifdef	USE_OLE
 	CSFtpDropTarget m_DropTarget;
 #endif
+
+	CFileOverLap m_WriteOverLap;
+	CFileOverLap m_ReadOverLap;
 
 	void OnConnect();
 
@@ -259,13 +311,20 @@ public:
 	CList<class CCmdQue *, class CCmdQue *> m_CmdQue;
 	CList<class CCmdQue *, class CCmdQue *> m_WaitQue;
 
+#ifdef	USE_READOVERLAP
+	CSemaphore m_CmdQueSema;
+	inline void AddCmdQue(CCmdQue *pQue) { pQue->m_SendTime = CTime::GetCurrentTime(); m_CmdQueSema.Lock(); m_CmdQue.AddTail(pQue); m_CmdQueSema.Unlock(); };
+#else
+	inline void AddCmdQue(CCmdQue *pQue) { pQue->m_SendTime = CTime::GetCurrentTime(); m_CmdQue.AddTail(pQue); };
+#endif
+
 	void SendBuffer(CBuffer *bp);
 	int ReceiveBuffer(CBuffer *bp);
 	void SendCommand(class CCmdQue *pQue, int (CSFtp::*pFunc)(int type, CBuffer *bp, class CCmdQue *pQue), int mode);
 	void RemoveWaitQue();
 	void SendWaitQue();
 
-	void SetLastErrorMsg();
+	void SetLastErrorMsg(DWORD err = 0);
 	BOOL SeekReadFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG SeekPos);
 	BOOL SeekWriteFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG SeekPos);
 

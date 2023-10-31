@@ -1872,7 +1872,7 @@ void Cssh::ChannelCheck(int nFd, int fdEvent, void *pParam)
 		pDelayedCheck->type    = 0;
 		pDelayedCheck->nFd     = nFd;
 		pDelayedCheck->fdEvent = fdEvent;
-		if ( (nFd & 1) != 0 && fdEvent == FD_READ && bp != NULL ) {	// EXTOUT SSH -> FifoChennel FD_READ pParam = CBuffer ptr
+		if ( (nFd & 1) != 0 && (fdEvent == FD_READ || fdEvent == FD_OOB) && bp != NULL ) {	// EXTOUT SSH -> FifoChennel FD_READ pParam = CBuffer ptr
 			CBuffer *pTemp = new CBuffer();
 			pTemp->Swap(*bp);
 			pDelayedCheck->pParam  = pTemp;
@@ -1918,6 +1918,14 @@ void Cssh::ChannelCheck(int nFd, int fdEvent, void *pParam)
 	} else {
 		// EXTOUT SSH -> FifoChennel
 		switch(fdEvent) {
+		case FD_OOB:			// SSH2MsgChannelData(SSH2_MSG_CHANNEL_EXTENDED_DATA)
+			if ( pChan->m_Type != SSHFT_STDIO ) {
+#ifdef	DEBUG
+				TRACE("have extended data #%d\n", id);
+				bp->Dump();
+#endif
+				break;
+			}
 		case FD_READ:			// SSH2MsgChannelData
 			ASSERT(m_pFifoMid != NULL);
 			m_pFifoMid->Write(IdToFdOut(id), bp->GetPtr(), bp->GetSize());	// FifoMid(Write)->FifoChannel
@@ -1957,14 +1965,14 @@ void Cssh::ChannelPolling(int id)
 	if ( (pChan->m_Status & (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE)) != (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE) )
 		return;
 
-	if ( (len = pChan->m_LocalComs - m_pFifoMid->GetDataSize(id)) >= (pChan->m_LocalWind * 3 / 4) ) {
+//	TRACE("WindowAdjust #%d %d - %d\n", id, pChan->m_LocalComs, m_pFifoMid->GetDataSize(IdToFdOut(id)));
+
+	if ( (len = pChan->m_LocalComs - m_pFifoMid->GetDataSize(IdToFdOut(id))) >= (pChan->m_LocalWind * 3 / 4) ) {
 		tmp.Clear();
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_WINDOW_ADJUST);
 		tmp.Put32Bit(pChan->m_RemoteID);
 		tmp.Put32Bit(len);
 		SendPacket2(&tmp);
-
-		DEBUGLOG("WindowAdjust #%d %d - %d = %d (%d)", cp->m_LocalID, cp->m_LocalComs, cp->GetSendSize(), n, cp->m_LocalWind);
 
 		pChan->m_LocalComs -= len;
 	}
@@ -4404,7 +4412,7 @@ int Cssh::SSH2MsgChannelData(CBuffer *bp, int type)
 	bp->GetBuf(&tmp);
 	pChan->m_LocalComs += tmp.GetSize();
 
-	ChannelCheck(IdToFdOut(id), FD_READ, (void *)&tmp);
+	ChannelCheck(IdToFdOut(id), (type == SSH2_MSG_CHANNEL_EXTENDED_DATA ? FD_OOB : FD_READ), (void *)&tmp);
 
 	return 0;
 }
