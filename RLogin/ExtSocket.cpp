@@ -148,21 +148,29 @@ BOOL CExtSocket::ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPor
 	m_RealRemotePort = 0;
 	m_RealSocketType = SOCK_STREAM;
 
+#ifdef	_DEBUG
+	mode = 6 | (1 << 3);
+#endif
+
 	switch(mode & 7) {
 	case 0: m_ProxyStatus = PRST_NONE;				break;	// Non
 	case 1: m_ProxyStatus = PRST_HTTP_START;		break;	// HTTP
 	case 2: m_ProxyStatus = PRST_SOCKS4_START;		break;	// SOCKS4
 	case 3: m_ProxyStatus = PRST_SOCKS5_START;		break;	// SOCKS5
 	case 4: m_ProxyStatus = PRST_HTTP_BASIC_START;	break;	// HTTP(Basic)
+	case 6: m_ProxyStatus = PRST_HTTP2_START;		break;	// HTTP/2
+	case 7: m_ProxyStatus = PRST_HTTP3_START;		break;	// HTTP/3
 	}
 
 	switch(mode >> 3) {
-	case 0:  m_SSL_mode = 0; break;	// Non
-	default: m_SSL_mode = 1; break;	// SSL/TLS
+	case 0:  m_SSL_mode = 0; break;									// Non
+	case 7:  m_SSL_mode = 2; m_RealSocketType = SOCK_DGRAM; break;	// QUIC
+	default: m_SSL_mode = 1; break;									// SSL/TLS
 	}
 
-	m_SSL_keep = keep;
+	m_SSL_keep = (m_ProxyStatus != PRST_NONE && m_SSL_mode == 1 ? keep : FALSE);
 	m_ProxyLastError = 0;
+	m_SSL_alpn.Empty();
 
 	PunyCodeAdress(RealHost, m_ProxyHost);
 	m_ProxyPort = RealPort;
@@ -191,21 +199,7 @@ BOOL CExtSocket::ProxyCommand(LPCTSTR pCommand)
 
 //////////////////////////////////////////////////////////////////////
 
-BOOL CExtSocket::Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress, int nSocketType, void *pAddrInfo)
-{
-	FifoUnlink();
-
-	ASSERT(m_pFifoLeft == NULL && m_pFifoMid == NULL && m_pFifoRight == NULL);
-
-	m_pFifoLeft   = new CFifoListen(m_pDocument, this);
-	m_pFifoMid    = new CFifoWnd(m_pDocument, this);
-	m_pFifoRight  = new CFifoDocument(m_pDocument, this);
-
-	CFifoBase::MidLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
-
-	return ((CFifoListen *)m_pFifoLeft)->Open(lpszHostAddress, nHostPort, GetFamily(), nSocketType, 128);
-}
-BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
+BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
 {
 	CString host;
 
@@ -590,6 +584,33 @@ BOOL CExtSocket::GetSockOpt(int nOptionName, void* lpOptionValue, int* lpOptionL
 
 	return m_pFifoLeft->SendCmdWait(FIFO_CMD_MSGQUEIN, FIFO_QCMD_GETSOCKOPT, nOptionName, 0, (void *)lpOptionValue);
 }
+BIO_ADDR *CExtSocket::GetPeerBioAddr(SOCKET fd)
+{
+	struct sockaddr_storage in;
+	socklen_t inlen;
+	BIO_ADDR *bio_addr = NULL;
+
+	memset(&in, 0, sizeof(in));
+	inlen = sizeof(in);
+	getpeername(fd, (struct sockaddr *)&in, &inlen);
+
+	switch(in.ss_family) {
+	case AF_INET:
+		if ( (bio_addr = BIO_ADDR_new()) != NULL ) {
+			struct sockaddr_in *in4 = (struct sockaddr_in *)&in;
+			BIO_ADDR_rawmake(bio_addr, in4->sin_family, (const void *)&(in4->sin_addr), sizeof(in4->sin_addr), in4->sin_port);
+		}
+		break;
+	case AF_INET6:
+		if ( (bio_addr = BIO_ADDR_new()) != NULL ) {
+			struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)&in;
+			BIO_ADDR_rawmake(bio_addr, in6->sin6_family, (const void *)&(in6->sin6_addr), sizeof(in6->sin6_addr), in6->sin6_port);
+		}
+		break;
+	}
+
+	return bio_addr;
+}
 void CExtSocket::GetPeerName(SOCKET fd, CString &host, int *port)
 {
 	struct sockaddr_storage in;
@@ -871,7 +892,7 @@ int CExtSocket::SSLConnect()
 {
 	int n;
 	DWORD val;
-	const SSL_METHOD *method;
+	const SSL_METHOD *method = NULL;
 	long result = 0;
 	X509 *pX509, *cert = NULL;
 	const char *errstr;
@@ -884,6 +905,8 @@ int CExtSocket::SSLConnect()
 	STACK_OF(X509) *pStack;
 	EVP_PKEY *pkey;
 	CEvent waitEvent;
+	int alpn_len;
+	CBuffer alpn;
 
 	m_PauseParam[0] = (void *)(HANDLE)waitEvent;
 	m_PauseParam[1] = NULL;
@@ -894,12 +917,20 @@ int CExtSocket::SSLConnect()
 	if ( !m_pFifoLeft->SendCmdWait(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SSLCONNECT, 0, 0, (void *)m_PauseParam) )
 		return FALSE;
 
-	val = 0;
-	::ioctlsocket(((CFifoSocket *)m_pFifoLeft)->m_hSocket, FIONBIO, &val);
-
 	GetApp()->SSL_Init();
 
-	method = TLS_client_method();
+	switch(m_SSL_mode) {
+	case 1:
+		val = 0;
+		method = TLS_client_method();
+		break;
+	case 2:
+		val = 1;
+		method = OSSL_QUIC_client_method();
+		break;
+	}
+
+	::ioctlsocket(((CFifoSocket *)m_pFifoLeft)->m_hSocket, FIONBIO, &val);
 
 	if ( (m_SSL_pCtx = SSL_CTX_new((SSL_METHOD *)method)) == NULL )
 		goto ERRENDOF;
@@ -930,11 +961,36 @@ int CExtSocket::SSLConnect()
 			X509_STORE_free(pStore);
 	}
 
-	if ( (n = SSL_connect(m_SSL_pSock)) < 0 ) {
-		SSL_get_error(m_SSL_pSock, n);
-		SSL_ERROR_ZERO_RETURN;
-		goto ERRENDOF;
+	m_SSL_alpn.Empty();
+
+	switch(m_ProxyStatus) {
+	case PRST_HTTP_START:				// HTTP
+	case PRST_HTTP_BASIC_START:			// HTTP(Basic)
+		m_SSL_alpn = "http/1.1";
+		break;
+	case PRST_HTTP2_START:				// HTTP/2
+		m_SSL_alpn = "h2";
+		break;
+	case PRST_HTTP3_START:				// HTTP/3
+		m_SSL_alpn = "h3";
+		break;
 	}
+
+	if ( m_SSL_mode == 2 ) {
+		if ( !SSL_set_default_stream_mode(m_SSL_pSock, SSL_DEFAULT_STREAM_MODE_NONE) )
+			goto ERRENDOF;
+	}
+
+	if ( (alpn_len = m_SSL_alpn.GetLength()) > 0 ) {
+		alpn.PutByte(alpn_len);
+		alpn.Apend((BYTE *)(LPCSTR)m_SSL_alpn, alpn_len);
+
+		if ( SSL_set_alpn_protos(m_SSL_pSock, alpn.GetPtr(), alpn.GetSize()) != 0 )
+			goto ERRENDOF;
+	}
+
+	if ( (n = SSL_connect(m_SSL_pSock)) < 0 && SSL_get_error(m_SSL_pSock, n) != SSL_ERROR_NONE )
+		goto ERRENDOF;
 
 	cert   = SSL_get_peer_certificate(m_SSL_pSock);
 	result = SSL_get_verify_result(m_SSL_pSock);
@@ -995,10 +1051,28 @@ int CExtSocket::SSLConnect()
 	if ( cert != NULL )
 		X509_free(cert);
 
+	if ( !m_SSL_alpn.IsEmpty() ) {
+		const unsigned char* ret_alpn = NULL;
+		unsigned int ret_alpn_len = 0; 
+		SSL_get0_alpn_selected(m_SSL_pSock, &ret_alpn, &ret_alpn_len);
+
+		m_SSL_alpn.Empty();
+		while ( ret_alpn_len-- > 0 )
+			m_SSL_alpn += *(ret_alpn++);
+	}
+
 	val = 1;
 	::ioctlsocket(((CFifoSocket *)m_pFifoLeft)->m_hSocket, FIONBIO, &val);
 
-	m_PauseParam[1] = (void *)m_SSL_pSock;
+	if ( m_SSL_mode == 2 ) {
+		if ( (m_PauseParam[1] = (void *)SSL_new_stream(m_SSL_pSock, SSL_STREAM_FLAG_NO_BLOCK | SSL_STREAM_FLAG_ADVANCE)) == NULL )
+			goto ERRENDOF;
+
+		if ( !SSL_set_blocking_mode(m_SSL_pSock, 0) )
+			goto ERRENDOF;
+	} else
+		m_PauseParam[1] = (void *)m_SSL_pSock;
+
 	waitEvent.SetEvent();
 
 	return TRUE;
@@ -1016,12 +1090,22 @@ ERRENDOF:
 void CExtSocket::SSLClose()
 {
 	if ( m_SSL_pSock != NULL ) {
+		SSL *stram = NULL;
+
 		m_PauseParam[0] = NULL;
 		m_PauseParam[1] = NULL;
 
-		if ( m_pFifoLeft != NULL && m_pFifoLeft->m_Type == FIFO_TYPE_SOCKET )
+		if ( m_pFifoLeft != NULL && m_pFifoLeft->m_Type == FIFO_TYPE_SOCKET ) {
+			stram = ((CFifoSocket *)m_pFifoLeft)->m_SSL_pSock;
 			m_pFifoLeft->SendCmdWait(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SSLCONNECT, 0, 0, m_PauseParam);
-	
+		}
+
+		if ( stram != NULL && stram != m_SSL_pSock ) {
+			SSL_shutdown(stram);
+			SSL_free(stram);
+		}
+
+		SSL_shutdown(m_SSL_pSock);
 		SSL_free(m_SSL_pSock);
 		m_SSL_pSock = NULL;
 	}
@@ -1046,6 +1130,7 @@ BOOL CExtSocket::ProxyCheck()
 	if ( m_ProxyLastError == 0 )
 		m_pFifoProxy->SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
 	else {
+		m_pFifoProxy->SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)m_ProxyLastError);
 		m_pFifoProxy->SendFdEvents(FIFO_EXTOUT, FD_CLOSE, (void *)(UINT_PTR)m_ProxyLastError);
 		m_pFifoProxy->Write(FIFO_EXTOUT, NULL, 0);
 	}
@@ -1293,6 +1378,8 @@ BOOL CExtSocket::ProxyFunc()
 				SSLClose();					// XXXXXXXX BUG???
 			break;
 
+		//////////////////////////////////////////////////////////////////////
+
 		case PRST_SOCKS4_START:	// SOCKS4
 			ULONG dw;
 			struct hostent *hp;
@@ -1333,6 +1420,8 @@ BOOL CExtSocket::ProxyFunc()
 			m_ProxyLastError = WSAECONNREFUSED;
 			m_ProxyStatus = PRST_NONE;
 			break;
+
+		//////////////////////////////////////////////////////////////////////
 
 		case PRST_SOCKS5_START:	// SOCKS5
 			buf.Clear();
@@ -1507,8 +1596,455 @@ BOOL CExtSocket::ProxyFunc()
 				m_ProxyStatus = PRST_SOCKS5_CHAPMSG;
 			m_ProxyBuff.Clear();
 			break;
+
+		//////////////////////////////////////////////////////////////////////
+
+		case PRST_HTTP2_START:
+			if ( m_SSL_alpn.CompareNoCase("h2") == 0 ) {
+				m_ProxyStatus = PRST_HTTP2_INIT;
+				break;
+			}
+			A1.Clear();
+			A1.Put16Bit(0x03);		// SETTINGS_MAX_CONCURRENT_STREAMS
+			A1.Put32Bit(100);
+			A1.Put16Bit(0x04);		// SETTINGS_INITIAL_WINDOW_SIZE
+			A1.Put32Bit(0x7FFFFFFF);
+			buf.Base64Encode(A1.GetPtr(), A1.GetSize(), _T('_'));
+
+			mbs.Format("CONNECT %s:%d HTTP/1.1\r\n"\
+					   "Host: %s\r\n"\
+					   "User-Agent: RLogin\r\n"\
+					   "Connection: Upgrade, HTTP2-Settings, keep-alive\r\n"\
+					   "Upgrade: %s\r\n"\
+					   "HTTP2-Settings: %s\r\n"\
+					   "\r\n", 
+					   TstrToMbs(m_ProxyHost), m_ProxyPort,
+					   TstrToMbs(m_ProxyHost),
+					   m_SSL_mode != 0 ? "h2" : "h2c",
+					   TstrToMbs((LPCTSTR)buf));
+			m_pFifoProxy->Write(FIFO_STDOUT, (BYTE *)(LPCSTR)mbs, mbs.GetLength());
+			m_ProxyStatus = PRST_HTTP2_RESULT;
+			m_ProxyStr.Empty();
+			m_ProxyResult.RemoveAll();
+			m_ProxyAuth.RemoveAll();
+			break;
+		case PRST_HTTP2_RESULT:
+			if ( !ProxyReadLine() )
+				return (m_ProxyStatus != PRST_NONE ? TRUE : FALSE);
+			if ( !m_ProxyStr.IsEmpty() ) {
+				if ( (m_ProxyStr[0] == _T('\t') || m_ProxyStr[0] == _T(' ')) && (n = (int)m_ProxyResult.GetSize()) > 0 )
+					m_ProxyResult[n - 1] += m_ProxyStr;
+				else
+					m_ProxyResult.Add(m_ProxyStr);
+				m_ProxyStr.Empty();
+				break;
+			}
+			//	HTTP/1.1 101 Switching Protocols
+			//	Connection: Upgrade
+			//	Upgrade: h2c
+			m_ProxyCode = 0;
+			m_ProxyStr.Empty();
+			m_ProxyLength = 0;
+			m_ProxyBuff.Clear();
+			m_ProxyConnect = FALSE;
+			tmp.Empty();
+			for ( n = 0 ; n < m_ProxyResult.GetSize() ; n++ ) {
+				TRACE(_T("%s\n"), m_ProxyResult[n]);
+				if ( _tcsnicmp(m_ProxyResult[n], _T("HTTP"), 4) == 0 ) {
+					if ( (i = m_ProxyResult[n].Find(_T(' '))) >= 0 )
+						m_ProxyCode = _tstoi(m_ProxyResult[n].Mid(i + 1));
+				} else if ( _tcsnicmp(m_ProxyResult[n], _T("Upgrade:"), 8) == 0 ) {
+					tmp = m_ProxyResult[n].Mid(9);
+					tmp.Trim(_T(" \t\r\n"));
+				} else if ( _tcsnicmp(m_ProxyResult[n], _T("Content-Length:"), 15) == 0 ) {
+					if ( (i = m_ProxyResult[n].Find(_T(' '))) >= 0 )
+						m_ProxyLength = _tstoi(m_ProxyResult[n].Mid(i + 1));
+				} else if ( _tcsnicmp(m_ProxyResult[n], _T("WWW-Authenticate:"), 17) == 0 ) {
+					m_ProxyAuth.SetArray(m_ProxyResult[n]);
+				} else if ( _tcsnicmp(m_ProxyResult[n], _T("Proxy-Authenticate:"), 19) == 0 ) {
+					m_ProxyAuth.SetArray(m_ProxyResult[n]);
+				} else if ( _tcsnicmp(m_ProxyResult[n], _T("Connection:"), 11) == 0 ) {
+					m_ProxyResult[n].MakeLower();
+					if ( m_ProxyResult[n].Find(_T("upgrade")) >= 0 )
+						m_ProxyStr = _T("upgrade");
+					if ( m_ProxyResult[n].Find(_T("keep-alive")) >= 0 )
+						m_ProxyConnect = TRUE;
+				}
+			}
+			if ( m_ProxyCode == 101 && (m_ProxyStr.CompareNoCase(_T("Upgrade")) != 0 || tmp.CompareNoCase(_T("h2c")) != 0) )
+				m_ProxyCode = 0;
+			m_ProxyStatus = PRST_HTTP2_HAVEDATA;
+			// no break;
+		case PRST_HTTP2_HAVEDATA:
+			if ( m_ProxyLength > 0 ) {
+				if ( !ProxyReadBuff(m_ProxyLength) )
+					return (m_ProxyStatus != PRST_NONE ? TRUE : FALSE);
+				m_pFifoProxy->Write(FIFO_EXTOUT, m_ProxyBuff.GetPtr(), m_ProxyBuff.GetSize());
+			}
+			if ( m_ProxyCode == 101 )
+				m_ProxyStatus = PRST_HTTP2_CONNECT;
+			else
+				m_ProxyStatus = PRST_HTTP_CODECHECK;
+			break;
+		case PRST_HTTP2_INIT:
+			A1.Clear();
+			A1.Put16Bit(0x03);		// SETTINGS_MAX_CONCURRENT_STREAMS
+			A1.Put32Bit(100);
+			A1.Put16Bit(0x04);		// SETTINGS_INITIAL_WINDOW_SIZE
+			A1.Put32Bit(0x7FFFFFFF);
+
+			A2.Clear();
+			A2.Apend((LPBYTE)"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n", 24);
+			A2.Put24Bit(A1.GetSize());		// Length (24)
+			A2.Put8Bit(0x04);				// Type (8)
+			A2.Put8Bit(0x00);				// Flags (8)
+			A2.Put32Bit(0x0000);			// |R|Stream Identifier (31)
+			A2.Apend(A1.GetPtr(), A1.GetSize());
+
+			m_pFifoProxy->Write(FIFO_STDOUT, A2.GetPtr(), A2.GetSize());
+			m_ProxyCode = 0;
+			m_ProxyStr.Empty();
+			m_ProxyLength = 0;
+			m_ProxyBuff.Clear();
+			m_ProxyConnect = FALSE;
+			m_ProxyStatus = PRST_HTTP2_REQUEST;
+			// no break;
+		case PRST_HTTP2_REQUEST:
+		case PRST_HTTP2_CONNECT:
+		case PRST_HTTP2_BASIC:
+		case PRST_HTTP2_DIGEST:
+			{
+				int length, type, flag;
+				DWORD sid;
+				if ( (n = m_pFifoProxy->GetDataSize(FIFO_STDIN)) > 0 )
+					ProxyReadBuff(m_ProxyBuff.GetSize() + n);
+				if ( !m_ProxyBuff.GetHPackFrame(length, type, flag, sid) )
+					return (m_ProxyStatus != PRST_NONE ? TRUE : FALSE);
+				if ( m_ProxyBuff.GetSize() < (9 + length) )
+					return (m_ProxyStatus != PRST_NONE ? TRUE : FALSE);
+
+				m_ProxyBuff.Consume(9);
+				buf.Clear();
+				buf.Apend(m_ProxyBuff.GetPtr(), length);
+				m_ProxyBuff.Consume(length);
+
+				TRACE("RecvFrame %d, %02x, #%d, %d\n", type, flag, sid, length);
+
+				switch(type) {
+				case 0:			// DATA
+					if ( (flag & 0x08) != 0 ) {	// PADDED
+						n = buf.Get8Bit();
+						buf.ConsumeEnd(n);
+					}
+					m_pFifoProxy->Write(FIFO_EXTOUT, buf.GetPtr(), buf.GetSize());
+					break;
+				case 1:			// HEADERS
+					if ( (flag & 0x08) != 0 ) {	// PADDED
+						n = buf.Get8Bit();
+						buf.ConsumeEnd(n);
+					}
+					if ( (flag & 0x20) != 0 ) {	// PRIORITY
+						buf.Get32Bit();	// |E|Stream Dependency? (31)  
+						buf.Get8Bit();	// Weight? (8)
+					}
+					while ( buf.GetSize() > 0 ) {
+						CStringA name, value;
+						if ( !buf.GetHPackField(name, value) )
+							break;
+						TRACE("%s: %s\n", name, value);
+						if ( name.CompareNoCase(":status") == 0 )
+							m_ProxyCode = atoi(value);
+						else if ( name.CompareNoCase("authorization") == 0 )
+							m_ProxyAuth.SetArray(MbsToTstr(value));
+						else if ( name.CompareNoCase("WWW-Authenticate") == 0 )
+							m_ProxyAuth.SetArray(MbsToTstr(value));
+						else if ( name.CompareNoCase("Proxy-Authenticate") == 0 )
+							m_ProxyAuth.SetArray(MbsToTstr(value));
+					}
+
+					switch(m_ProxyStatus) {
+					case PRST_HTTP2_CONNECT:
+						switch(m_ProxyCode) {
+						case 200:
+							m_ProxyLastError = 0;
+							m_ProxyStatus = PRST_NONE;
+							break;
+						case 401:	// Authorization Required
+						case 407:	// Proxy-Authorization Required
+							if ( m_ProxyAuth.Find(_T("basic")) >= 0 ) {
+								A1.Clear();
+								A1.PutHPackField(":method", "CONNECT");
+								mbs.Format("%s:%d", TstrToMbs(m_ProxyHost), m_ProxyPort);
+								A1.PutHPackField(":path", mbs);
+								A1.PutHPackField(":scheme", m_SSL_mode == 0 ? "http" : "https");
+								A1.PutHPackField(":authority", TstrToMbs(m_ProxyHost));
+								A1.PutHPackField("user-agent", "RLogin");
+								tmp.Format(_T("%s:%s"), (LPCTSTR)m_ProxyUser, (LPCTSTR)m_ProxyPass);
+								mbs = m_pDocument->RemoteStr(tmp); 
+								buf.Base64Encode((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
+								mbs.Format("basic %s", TstrToMbs((LPCTSTR)buf));
+								A1.PutHPackField("authorization", mbs);
+
+								A2.Clear();
+								A2.Put24Bit(A1.GetSize());		// Length (24)
+								A2.Put8Bit(0x01);				// Type (8)
+								A2.Put8Bit(0x04);				// Flags (8)
+								A2.Put32Bit(0x0001);			// |R|Stream Identifier (31)
+								A2.Apend(A1.GetPtr(), A1.GetSize());
+						
+								m_pFifoProxy->Write(FIFO_STDOUT, A2.GetPtr(), A2.GetSize());
+								m_ProxyStatus = PRST_HTTP2_BASIC;
+								TRACE("Send HEADER CONNECT BASIC\n");
+								break;
+							} else if ( m_ProxyAuth.Find(_T("digest")) >= 0 ) {
+								if (m_ProxyAuth.Find(_T("qop")) < 0 || m_ProxyAuth[_T("algorithm")].m_String.CompareNoCase(_T("md5")) != 0 || m_ProxyAuth.Find(_T("realm")) < 0 || m_ProxyAuth.Find(_T("nonce")) < 0 ) {
+									m_pDocument->m_ErrorPrompt = _T("Authorization Paramter Error");
+									m_ProxyLastError = WSAECONNREFUSED;
+									m_ProxyStatus = PRST_NONE;
+									break;
+								}
+
+								tmp.Format(_T("%s:%d"), (LPCTSTR)m_ProxyHost, m_ProxyPort);
+								m_ProxyAuth[_T("uri")] = tmp;
+								m_ProxyAuth[_T("qop")] = _T("auth");
+								tmp.Format(_T("%08d"), 1);
+								m_ProxyAuth[_T("nc")] = tmp;
+								srand((int)time(NULL));
+								tmp.Format(_T("%04x%04x%04x%04x"), rand(), rand(), rand(), rand());
+								m_ProxyAuth[_T("cnonce")] = tmp;
+
+								tmp.Format(_T("%s:%s:%s"), (LPCTSTR)m_ProxyUser, (LPCTSTR)m_ProxyAuth[_T("realm")], (LPCTSTR)m_ProxyPass);
+								A1.md5(tmp);
+								tmp.Format(_T("%s:%s"), _T("CONNECT"), (LPCTSTR)m_ProxyAuth[_T("uri")]);
+								A2.md5(tmp);
+								tmp.Format(_T("%s:%s:%s:%s:%s:%s"),
+									(LPCTSTR)A1, (LPCTSTR)m_ProxyAuth[_T("nonce")], (LPCTSTR)m_ProxyAuth[_T("nc")],
+									(LPCTSTR)m_ProxyAuth[_T("cnonce")], (LPCTSTR)m_ProxyAuth[_T("qop")], (LPCTSTR)A2);
+								buf.md5(tmp);
+
+								tmp.Format(_T("digest username=\"%s\", realm=\"%s\", nonce=\"%s\",")\
+										   _T(" algorithm=%s, response=\"%s\",")\
+										   _T(" qop=%s, uri=\"%s\",")\
+										   _T(" nc=%s, cnonce=\"%s\""),
+										   (LPCTSTR)m_ProxyUser, (LPCTSTR)m_ProxyAuth[_T("realm")], (LPCTSTR)m_ProxyAuth[_T("nonce")],
+										   (LPCTSTR)m_ProxyAuth[_T("algorithm")], (LPCTSTR)buf,
+										   (LPCTSTR)m_ProxyAuth[_T("qop")], (LPCTSTR)m_ProxyAuth[_T("uri")],
+										   (LPCTSTR)m_ProxyAuth[_T("nc")], (LPCTSTR)m_ProxyAuth[_T("cnonce")]);
+
+								A1.Clear();
+								A1.PutHPackField(":method", "CONNECT");
+								mbs.Format("%s:%d", TstrToMbs(m_ProxyHost), m_ProxyPort);
+								A1.PutHPackField(":path", mbs);
+								A1.PutHPackField(":scheme", m_SSL_mode == 0 ? "http" : "https");
+								A1.PutHPackField(":authority", TstrToMbs(m_ProxyHost));
+								A1.PutHPackField("user-agent", "RLogin");
+								A1.PutHPackField((m_ProxyCode == 407 ? "proxy-authorization" :"authorization"), TstrToMbs(tmp));
+
+								A2.Clear();
+								A2.Put24Bit(A1.GetSize());		// Length (24)
+								A2.Put8Bit(0x01);				// Type (8)
+								A2.Put8Bit(0x04);				// Flags (8)
+								A2.Put32Bit(0x0001);			// |R|Stream Identifier (31)
+								A2.Apend(A1.GetPtr(), A1.GetSize());
+						
+								m_pFifoProxy->Write(FIFO_STDOUT, A2.GetPtr(), A2.GetSize());
+								m_ProxyStatus = PRST_HTTP2_DIGEST;
+								TRACE("Send HEADER CONNECT DIGEST\n");
+								break;
+							}
+							// no break;
+						default:
+							m_ProxyLastError = WSAECONNREFUSED;
+							m_ProxyStatus = PRST_NONE;
+							break;
+						}
+						break;
+					case PRST_HTTP2_BASIC:
+					case PRST_HTTP2_DIGEST:
+						switch(m_ProxyCode) {
+						case 200:
+							m_ProxyLastError = 0;
+							m_ProxyStatus = PRST_NONE;
+							break;
+						default:
+							m_ProxyLastError = WSAECONNREFUSED;
+							m_ProxyStatus = PRST_NONE;
+							break;
+						}
+						break;
+					}
+					break;
+				case 2:			// PRIORITY
+					TRACE("PRIORITY\n");
+					break;
+				case 3:			// RST_STREAM
+					TRACE("RST_STREAM ");
+					n = buf.Get32Bit();		// error code
+					TRACE("%d\n", n);
+					m_ProxyLastError = WSAECONNREFUSED;
+					m_ProxyStatus = PRST_NONE;
+					break;
+				case 4:			// SETTINGS
+					while ( buf.GetSize() >= (2 + 4) )	{	// Identifier (16) + Value (32)
+						n = buf.Get16Bit();
+						TRACE("%d = ", n);
+						n = buf.Get32Bit();
+						TRACE("%d\n", n);
+					}
+					if ( (flag & 0x01) != 0 ) {		// ACK
+						TRACE("SETTINGS ACK\n");
+						if ( m_ProxyStatus == PRST_HTTP2_REQUEST ) {
+							A1.Clear();
+							A1.PutHPackField(":method", "CONNECT");
+							mbs.Format("%s:%d", TstrToMbs(m_ProxyHost), m_ProxyPort);
+							A1.PutHPackField(":path", mbs);
+							A1.PutHPackField(":scheme", m_SSL_mode == 0 ? "http" : "https");
+							A1.PutHPackField(":authority", TstrToMbs(m_ProxyHost));
+							A1.PutHPackField("user-agent", "RLogin");
+
+							A2.Clear();
+							A2.Put24Bit(A1.GetSize());		// Length (24)
+							A2.Put8Bit(0x01);				// Type (8)		HEADERS
+							A2.Put8Bit(0x04);				// Flags (8)	END_HEADERS
+							A2.Put32Bit(0x0001);			// |R|Stream Identifier (31)
+							A2.Apend(A1.GetPtr(), A1.GetSize());
+
+							m_pFifoProxy->Write(FIFO_STDOUT, A2.GetPtr(), A2.GetSize());
+							m_ProxyStatus = PRST_HTTP2_CONNECT;
+							TRACE("Send HEADER CONNECT\n");
+						}
+					} else {
+						A2.Clear();
+						A2.Put24Bit(0);					// Length (24)
+						A2.Put8Bit(0x04);				// Type (8)
+						A2.Put8Bit(0x01);				// Flags (8)
+						A2.Put32Bit(0x0000);			// |R|Stream Identifier (31)
+
+						m_pFifoProxy->Write(FIFO_STDOUT, A2.GetPtr(), A2.GetSize());
+						TRACE("SEND SETTING ACK\n");
+					}
+					break;
+				case 5:			// PUSH_PROMISE
+					TRACE("PUSH_PROMISE\n");
+					break;
+				case 6:			// PING
+					TRACE("PING\n");
+					break;
+				case 7:			// GOAWAY
+					TRACE("GOAWAY ");
+					n = buf.Get32Bit();		// streame id
+					TRACE("#%d: ", n);
+					n = buf.Get32Bit();		// error code
+					TRACE("%d\n", n);
+					if ( buf.GetSize() > 0 )
+						m_pFifoProxy->Write(FIFO_EXTOUT, buf.GetPtr(), buf.GetSize());
+					m_ProxyLastError = (n == 0 ? 0 : WSAECONNREFUSED);
+					m_ProxyStatus = PRST_NONE;
+					break;
+				case 8:			// WINDOW_UPDATE
+					n = buf.Get32Bit();
+					TRACE("Window Update %04x(%d)\n", n, n & 0x7FFFFFFF);
+					break;
+				case 9:			// CONTINUATION
+					TRACE("CONTINUATION\n");
+					break;
+				}
+			}
+			break;
+
+		//////////////////////////////////////////////////////////////////////
+
+		case PRST_HTTP3_START:
+			tmp.Format(_T("%s:%s"), (LPCTSTR)m_ProxyUser, (LPCTSTR)m_ProxyPass);
+			mbs = m_pDocument->RemoteStr(tmp); 
+			buf.Base64Encode((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
+
+			// RFC 9204 - QPACK: Field Compression for HTTP/3
+			// 4.5.1. Encoded Field Section Prefix
+			A1.Clear();
+			A1.PutPackInt(0, 0x00, 8);			// Required Insert Count
+			A1.PutPackInt(0, 0x00, 7);			// Delta Base
+
+			// RFC 9484 - Proxying IP in HTTP
+			A1.PutQPackField(":method", "CONNECT");
+			A1.PutQPackField(":protocol", "connect-ip");
+			A1.PutQPackField(":scheme", "https");
+
+			mbs.Format("basic %s", TstrToMbs((LPCTSTR)buf));
+			A1.PutQPackField("authorization", mbs);
+
+			mbs.Format("%s:%d", TstrToMbs(m_ProxyHost), m_ProxyPort);
+			A1.PutQPackField(":authority", mbs);
+
+			A1.PutQPackField(":path", "/");
+			A1.PutQPackField("user-agent", "RLogin");
+
+			// RFC 9114 - HTTP/3
+			// 11.2.1. Frame Types
+			// HEADERS Frame { Type (i) = 0x01, Length (i), Encoded Field Section (..), }
+			A2.Clear();
+			A2.PutVarInt(0x01);
+			A2.PutVarInt(A1.GetSize());
+			A2.Apend(A1.GetPtr(), A1.GetSize());
+
+			m_pFifoProxy->Write(FIFO_STDOUT, A2.GetPtr(), A2.GetSize());
+			m_ProxyStatus = PRST_HTTP3_TYPE;
+			// no break;
+		case PRST_HTTP3_TYPE:
+			if ( (n = m_pFifoProxy->GetDataSize(FIFO_STDIN)) > 0 )
+				ProxyReadBuff(m_ProxyBuff.GetSize() + n);
+			if ( (m_ProxyCode = (int)m_ProxyBuff.GetVarInt()) < 0 )
+				return (m_ProxyStatus != PRST_NONE ? TRUE : FALSE);
+			m_ProxyStatus = PRST_HTTP3_LENGTH;
+			// no break;
+		case PRST_HTTP3_LENGTH:
+			if ( (n = m_pFifoProxy->GetDataSize(FIFO_STDIN)) > 0 )
+				ProxyReadBuff(m_ProxyBuff.GetSize() + n);
+			if ( (m_ProxyLength = (int)m_ProxyBuff.GetVarInt()) < 0 )
+				return (m_ProxyStatus != PRST_NONE ? TRUE : FALSE);
+			m_ProxyStatus = PRST_HTTP3_DATA;
+			// no break;
+		case PRST_HTTP3_DATA:
+			if ( !ProxyReadBuff(m_ProxyLength) )
+				return (m_ProxyStatus != PRST_NONE ? TRUE : FALSE);
+			buf.Clear();
+			buf.Apend(m_ProxyBuff.GetPtr(), m_ProxyLength);
+			m_ProxyBuff.Consume(m_ProxyLength);
+
+			switch(m_ProxyCode) {
+			case 0x00:	// DATA Frame { Type (i) = 0x00, Length (i), Data (..), }
+				m_pFifoProxy->Write(FIFO_EXTOUT, buf.GetPtr(), buf.GetSize());
+				m_ProxyStatus = PRST_HTTP3_TYPE;
+				break;
+			case 0x01:	// HEADERS Frame { Type (i) = 0x01, Length (i), Encoded Field Section (..), }
+				{
+					ULONGLONG count, base;
+					buf.GetPackInt(&count, NULL, 8);	// Required Insert Count
+					buf.GetPackInt(&base, NULL, 7);		// Delta Base
+
+					m_ProxyCode = 0;
+
+					CStringA name, value;
+					while ( buf.GetQPackField(name, value) ) {
+						if ( name.Compare(":status") == 0 )
+							m_ProxyCode = atoi(value);
+					}
+
+					if ( m_ProxyCode == 200 ) {
+						m_ProxyLastError = 0;
+						m_ProxyStatus = PRST_NONE;
+					} else {
+						m_ProxyLastError = WSAECONNREFUSED;
+						m_ProxyStatus = PRST_NONE;
+					}
+				}
+				break;
+			default:
+				m_ProxyStatus = PRST_HTTP3_TYPE;
+				break;
+			}
+			break;
 		}
 	}
 	return FALSE;
 }
-

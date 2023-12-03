@@ -432,6 +432,15 @@ void CBuffer::Put16Bit(int val)
 	p[1] = (BYTE)(val >> 0);
 	m_Len += 2;
 }
+void CBuffer::Put24Bit(LONG val)
+{
+	ReAlloc(3);
+	register LPBYTE p = m_Data + m_Len;
+	p[0] = (BYTE)(val >> 16);
+	p[1] = (BYTE)(val >>  8);
+	p[2] = (BYTE)(val >>  0);
+	m_Len += 3;
+}
 void CBuffer::Put32Bit(LONG val)
 {
 	ReAlloc(4);
@@ -588,6 +597,17 @@ int CBuffer::Get16Bit()
 	}
 	return ((int)p[0] << 8) |
 		   ((int)p[1] << 0);
+}
+LONG CBuffer::Get24Bit()
+{
+	register LPBYTE p = m_Data + m_Ofs;
+	if ( (m_Ofs += 3) > m_Len ) {
+		m_Len = m_Ofs = 0;
+		throw _T("CBuffer Get24Bit");
+	}
+	return ((LONG)p[1] << 16) |
+		   ((LONG)p[2] <<  8) |
+		   ((LONG)p[3] <<  0);
 }
 LONG CBuffer::Get32Bit()
 {
@@ -914,7 +934,7 @@ LPCWSTR CBuffer::Base64Decode(LPCWSTR str)
 	}
 	return str;
 }
-void CBuffer::Base64Encode(LPBYTE buf, int len)
+void CBuffer::Base64Encode(LPBYTE buf, int len, TCHAR ec)
 {
 	int n;
 	Clear();
@@ -928,12 +948,12 @@ void CBuffer::Base64Encode(LPBYTE buf, int len)
 			PutTChar(Base64EncTab[(buf[0] >> 2) & 077]);
 			PutTChar(Base64EncTab[((buf[0] << 4) | (buf[1] >> 4)) & 077]);
 			PutTChar(Base64EncTab[(buf[1] << 2) & 077]);
-			PutTChar('=');
+			PutTChar(ec);
 		} else {
 			PutTChar(Base64EncTab[(buf[0] >> 2) & 077]);
 			PutTChar(Base64EncTab[(buf[0] << 4) & 077]);
-			PutTChar('=');
-			PutTChar('=');
+			PutTChar(ec);
+			PutTChar(ec);
 		}
 	}
 }
@@ -2015,6 +2035,851 @@ void CBuffer::IshEncNjis(LPBYTE buf, int len)
 			PutByte(ent_nj[du]);					// (0x3FFF - 11193) / 182 = 0-28
 			PutByte(ent_sj2[dl]);					// 0-181
 		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+//
+// RFC 7540 - Hypertext Transfer Protocol Version 2 (HTTP/2)
+// RFC 7541 - HPACK: Header Compression for HTTP/2
+// RFC 9000 - QUIC: A UDP-Based Multiplexed and Secure Transport
+// RFC 9204 - QPACK: Field Compression for HTTP/3
+// RFC 9113 - HTTP/2
+// RFC 9114 - HTTP/3
+
+//	RFC 9000 - QUIC: A UDP-Based Multiplexed and Secure Transport
+//	16. Variable-Length Integer Encoding
+//	+======+========+=============+=======================+
+//	| 2MSB | Length | Usable Bits | Range                 |
+//	+======+========+=============+=======================+
+//	| 00   | 1      | 6           | 0-63                  |
+//	+------+--------+-------------+-----------------------+
+//	| 01   | 2      | 14          | 0-16383               |
+//	+------+--------+-------------+-----------------------+
+//	| 10   | 4      | 30          | 0-1073741823          |
+//	+------+--------+-------------+-----------------------+
+//	| 11   | 8      | 62          | 0-4611686018427387903 |
+//	+------+--------+-------------+-----------------------+
+
+ULONGLONG CBuffer::GetVarInt()
+{
+	int bytes;
+	ULONGLONG data = 0;
+	BYTE *p = GetPtr();
+
+	if ( GetSize() < 1 )
+		return (-1);
+	
+	data = *p & 0x3F;
+	bytes = 1 << (*p >> 6);
+
+	if ( GetSize() < bytes )
+		return (-1);
+
+	for ( int n = 1 ; n < bytes ; n++ )
+		data = (data << 8) | *(++p);
+
+	Consume(bytes);
+
+	return data;
+}
+void CBuffer::PutVarInt(ULONGLONG data)
+{
+	int bytes;
+	int bits;
+
+	if ( data <= 0x3F ) {
+		bytes = 1;
+	} else if ( data <= 0x3FFF ) {
+		bytes = 2;
+		data |= 0x40000000;
+	} else if ( data <= 0x3FFFFFFF ) {
+		bytes = 4;
+		data |= 0x80000000;
+	} else {
+		bytes = 8;
+		data |= 0xC000000000000000;
+	}
+
+	for ( bits = 8 * bytes ; bits >= 8 ; bits -= 8 )
+		PutByte((BYTE)(data >> (bits - 8)));
+}
+
+// RFC 9114 - HTTP/3
+// 7. HTTP Framing Layer
+// +==============+================+================+========+=========+
+// | Frame        | Control Stream | Request        | Push   | Section |
+// |              |                | Stream         | Stream |         |
+// +==============+================+================+========+=========+
+// | DATA         | No             | Yes            | Yes    | Section |
+// |              |                |                |        | 7.2.1   |
+// +--------------+----------------+----------------+--------+---------+
+// | HEADERS      | No             | Yes            | Yes    | Section |
+// |              |                |                |        | 7.2.2   |
+// +--------------+----------------+----------------+--------+---------+
+// | CANCEL_PUSH  | Yes            | No             | No     | Section |
+// |              |                |                |        | 7.2.3   |
+// +--------------+----------------+----------------+--------+---------+
+// | SETTINGS     | Yes (1)        | No             | No     | Section |
+// |              |                |                |        | 7.2.4   |
+// +--------------+----------------+----------------+--------+---------+
+// | PUSH_PROMISE | No             | Yes            | No     | Section |
+// |              |                |                |        | 7.2.5   |
+// +--------------+----------------+----------------+--------+---------+
+// | GOAWAY       | Yes            | No             | No     | Section |
+// |              |                |                |        | 7.2.6   |
+// +--------------+----------------+----------------+--------+---------+
+// | MAX_PUSH_ID  | Yes            | No             | No     | Section |
+// |              |                |                |        | 7.2.7   |
+// +--------------+----------------+----------------+--------+---------+
+// | Reserved     | Yes            | Yes            | Yes    | Section |
+// |              |                |                |        | 7.2.8   |
+// +--------------+----------------+----------------+--------+---------+
+// 11.2.1. Frame Types
+// +==============+=======+===============+
+// | Frame Type   | Value | Specification |
+// +==============+=======+===============+
+// | DATA         |  0x00 | Section 7.2.1 |
+// +--------------+-------+---------------+
+// | HEADERS      |  0x01 | Section 7.2.2 |
+// +--------------+-------+---------------+
+// | Reserved     |  0x02 | This document |
+// +--------------+-------+---------------+
+// | CANCEL_PUSH  |  0x03 | Section 7.2.3 |
+// +--------------+-------+---------------+
+// | SETTINGS     |  0x04 | Section 7.2.4 |
+// +--------------+-------+---------------+
+// | PUSH_PROMISE |  0x05 | Section 7.2.5 |
+// +--------------+-------+---------------+
+// | Reserved     |  0x06 | This document |
+// +--------------+-------+---------------+
+// | GOAWAY       |  0x07 | Section 7.2.6 |
+// +--------------+-------+---------------+
+// | Reserved     |  0x08 | This document |
+// +--------------+-------+---------------+
+// | Reserved     |  0x09 | This document |
+// +--------------+-------+---------------+
+// | MAX_PUSH_ID  |  0x0d | Section 7.2.7 |
+// +--------------+-------+---------------+
+//
+// DATA Frame { Type (i) = 0x00, Length (i), Data (..), }
+// HEADERS Frame { Type (i) = 0x01, Length (i), Encoded Field Section (..), }
+// CANCEL_PUSH Frame { Type (i) = 0x03, Length (i), Push ID (i), }
+// SETTINGS Frame { Type (i) = 0x04, Length (i), Setting { Identifier (i), Value (i) } (..) ..., }
+// PUSH_PROMISE Frame { Type (i) = 0x05, Length (i), Push ID (i), Encoded Field Section (..), }
+// GOAWAY Frame { Type (i) = 0x07, Length (i), Stream ID/Push ID (i), }
+// MAX_PUSH_ID Frame { Type (i) = 0x0d, Length (i), Push ID (i), }
+
+//////////////////////////////////////////////////////////////////////
+// RFC 7541 - HPACK: Header Compression for HTTP/2
+// Appendix B. Huffman Code
+
+#include "huffman.h"
+
+int CBuffer::HuffmanEncodeLength(LPBYTE buf, int len)
+{
+	int bits = 0;
+
+	for ( ; len > 0 ; len-- )
+		bits += huffman_encode_tab[*(buf++)].bits;
+
+	return ((bits + 7) / 8);
+}
+void CBuffer::HuffmanEncode(LPBYTE buf, int len)
+{
+	int bits = 0;
+	ULONGLONG data = 0;		// max 30bits + 7bits = 37bits
+	const struct _huffman_encode_tab *tab;
+
+	for ( ; len > 0 ; len-- ) {
+		tab = &huffman_encode_tab[*(buf++)];
+
+		data = (data << tab->bits) | tab->data;
+		bits += tab->bits;
+
+		while ( bits >= 8 ) {
+			PutByte((BYTE)(data >> (bits - 8)));
+			bits -= 8;
+		}
+	}
+
+	if ( bits > 0 )
+		PutByte((BYTE)(data << (8 - bits)) | (0xFF >> bits));
+}
+BOOL CBuffer::HuffmanDecode(LPBYTE buf, int len)
+{
+  /* We use the decoding algorithm described in
+     http://graphics.ics.uci.edu/pub/Prefix.pdf */
+
+	nghttp3_qpack_huffman_decode_node node = { NGHTTP3_QPACK_HUFFMAN_ACCEPTED, 0 };
+	const nghttp3_qpack_huffman_decode_node *t = &node;
+	BYTE c;
+
+	while ( len > 0 ) {
+		c = *(buf++);
+		len--;
+
+		t = &qpack_huffman_decode_table[t->fstate & 0x1ff][c >> 4];
+		if (t->fstate & NGHTTP3_QPACK_HUFFMAN_SYM)
+			PutByte(t->sym);
+
+		t = &qpack_huffman_decode_table[t->fstate & 0x1ff][c & 0xf];
+		if (t->fstate & NGHTTP3_QPACK_HUFFMAN_SYM)
+			PutByte(t->sym);
+	}
+
+	return ((t->fstate & NGHTTP3_QPACK_HUFFMAN_ACCEPTED) != 0 ? TRUE : FALSE);
+}
+
+// RFC 7541 - HPACK: Header Compression for HTTP/2
+// 5.1. Integer Representation
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | ? | ? | ? |       Value       |
+//   +---+---+---+-------------------+
+//
+//   +---+---+---+---+---+---+---+---+
+//   | ? | ? | ? | 1   1   1   1   1 |
+//   +---+---+---+-------------------+
+//   | 1 |    Value-(2^N-1) LSB      |
+//   +---+---------------------------+
+//                  ...
+//   +---+---------------------------+
+//   | 0 |    Value-(2^N-1) MSB      |
+//   +---+---------------------------+
+
+BOOL CBuffer::GetPackInt(ULONGLONG *pData, int *pFlag, int prefix)
+{
+	int k = (1 << prefix) - 1;		// prefix 4 - 8 = 0x0F - 0xFF
+	ULONGLONG data = 0;
+	int flag;
+	BYTE *p = m_Data + m_Ofs;
+	int len = 0;
+	int sfift = 0;
+
+	if ( m_Ofs >= m_Len )
+		return FALSE;
+
+	flag = p[len] & ~k;
+	data = (ULONGLONG)(p[len++] & k);
+
+	if ( data == (ULONGLONG)k ) {
+		do {
+			if ( (m_Ofs + len) >= m_Len )
+				return FALSE;
+
+			data += ((ULONGLONG)(p[len] & 0x7F) << sfift);
+			sfift += 7;
+		} while ( (p[len++] & 0x80) != 0 );
+	}
+
+	if ( pData != NULL )
+		*pData = data;
+
+	if ( pFlag != NULL )
+		*pFlag = flag;
+
+	m_Ofs += len;
+	return TRUE;
+}
+void CBuffer::PutPackInt(ULONGLONG data, int flags, int prefix)
+{
+	int k = (1 << prefix) - 1;
+	BYTE byte = flags;
+
+	if ( data < (ULONGLONG)k ) {
+		byte |= (BYTE)data;
+		PutByte(byte);
+		return;
+	}
+
+	byte |= (BYTE)k;
+	PutByte(byte);
+
+	data -= k;
+
+	for ( ; data >= 128 ; data >>= 7 )
+		PutByte(0x80 | (BYTE)(data & 0x7F));
+
+	PutByte((BYTE)(data & 0x7F));
+}
+
+// RFC 7541 - HPACK: Header Compression for HTTP/2
+// 5.2. String Literal Representation
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | H |    String Length (7+)     |
+//   +---+---------------------------+
+//   |  String Data (Length octets)  |
+//   +-------------------------------+
+
+BOOL CBuffer::GetPackStr(CStringA &str, int *pFlag, int prefix)
+{
+	int flags, size;
+	CBuffer tmp;
+	ULONGLONG data;
+
+	if ( !GetPackInt(&data, &flags, prefix) )
+		return FALSE;
+
+	size = (int)data;
+
+	if ( (m_Ofs + size) >= m_Len )
+		return FALSE;
+
+	if ( (flags & (1 << prefix)) != 0 )		// huffman
+		tmp.HuffmanDecode(m_Data + m_Ofs, size);
+	else
+		tmp.Apend(m_Data + m_Ofs, size);
+
+	str = (LPCSTR)tmp;
+
+	if ( pFlag != NULL )
+		*pFlag = flags;
+
+	m_Ofs += size;
+	return TRUE;
+}
+void CBuffer::PutPackStr(LPCSTR str, int flags, int prefix)
+{
+	int len = (int)strlen(str);
+	int hlen;
+
+	if ( (hlen = HuffmanEncodeLength((LPBYTE)str, len)) < len ) {
+		PutPackInt((ULONGLONG)hlen, flags | (1 << prefix), prefix);
+		HuffmanEncode((LPBYTE)str, len);
+	} else {
+		PutPackInt((ULONGLONG)len, flags, prefix);
+		Apend((LPBYTE)str, len);
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+// RFC 9204 - QPACK: Field Compression for HTTP/3 (RFC 9204) 
+
+// 4.3. Encoder Instructions
+// 4.3.2. Insert with Name Reference
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 1 | T |    Name Index (6+)    |
+//   +---+---+-----------------------+
+//   | H |     Value Length (7+)     |
+//   +---+---------------------------+
+//   |  Value String (Length bytes)  |
+//   +-------------------------------+
+// 4.3.3. Insert with Literal Name
+//    0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 1 | H | Name Length (5+)  |
+//   +---+---+---+-------------------+
+//   |  Name String (Length bytes)   |
+//   +---+---------------------------+
+//   | H |     Value Length (7+)     |
+//   +---+---------------------------+
+//   |  Value String (Length bytes)  |
+//   +-------------------------------+
+// 4.3.1. Set Dynamic Table Capacity
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 0 | 1 |   Capacity (5+)   |
+//   +---+---+---+-------------------+
+// 4.3.4. Duplicate
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 0 | 0 |    Index (5+)     |
+//   +---+---+---+-------------------+
+
+// 4.4. Decoder Instructions
+// 4.4.1. Section Acknowledgment
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 1 |      Stream ID (7+)       |
+//   +---+---------------------------+
+// 4.4.2. Stream Cancellation
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 1 |     Stream ID (6+)    |
+//   +---+---+-----------------------+
+// 4.4.3. Insert Count Increment
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 0 |     Increment (6+)    |
+//   +---+---+-----------------------+
+
+// 4.5. Field Line Representations
+// 4.5.1. Encoded Field Section Prefix
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   |   Required Insert Count (8+)  |
+//   +---+---------------------------+
+//   | S |      Delta Base (7+)      |
+//   +---+---------------------------+
+//   |      Encoded Field Lines    ...
+//   +-------------------------------+
+
+// 4.5.2. Indexed Field Line
+//   When T=1, the number represents the static table index;
+//   when T=0, the number is the relative index of the entry in the dynamic table.
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 1 | T |      Index (6+)       |
+//   +---+---+-----------------------+
+// 4.5.4. Literal Field Line with Name Reference
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 1 | N | T |Name Index (4+)|
+//   +---+---+---+---+---------------+
+//   | H |     Value Length (7+)     |
+//   +---+---------------------------+
+//   |  Value String (Length bytes)  |
+//   +-------------------------------+
+// 4.5.6. Literal Field Line with Literal Name
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 0 | 1 | N | H |NameLen(3+)|
+//   +---+---+---+---+---+-----------+
+//   |  Name String (Length bytes)   |
+//   +---+---------------------------+
+//   | H |     Value Length (7+)     |
+//   +---+---------------------------+
+//   |  Value String (Length bytes)  |
+//   +-------------------------------+
+// 4.5.3. Indexed Field Line with Post-Base Index
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 0 | 0 | 1 |  Index (4+)   |
+//   +---+---+---+---+---------------+
+// 4.5.5. Literal Field Line with Post-Base Name Reference
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 0 | 0 | 0 | N |NameIdx(3+)|
+//   +---+---+---+---+---+-----------+
+//   | H |     Value Length (7+)     |
+//   +---+---------------------------+
+//   |  Value String (Length bytes)  |
+//   +-------------------------------+
+
+#include "qpack_table.h"
+
+BOOL CBuffer::GetQPackField(CStringA &name, CStringA &value)
+{
+	int flag;
+	ULONGLONG data;
+	int saveOfs = m_Ofs;
+	BYTE *p = m_Data + m_Ofs;
+
+	name.Empty();
+	value.Empty();
+
+	if ( m_Ofs >= m_Len )
+		return FALSE;
+
+	if ( (*p & 0x80) != 0 ) {			// 4.5.2. Indexed Field Line
+		if ( !GetPackInt(&data, &flag, 6) )
+			goto CONTINUE;
+		if ( (flag & 0x40) != 0 && data < QPACK_FIELD_MAX ) {
+			name = qpack_field_tab[(int)data].name;
+			value = qpack_field_tab[(int)data].value;
+		}
+
+	} else if ( (*p & 0x40) != 0 ) {	// 4.5.4. Literal Field Line with Name Reference
+		if ( !GetPackInt(&data, &flag, 4) )
+			goto CONTINUE;
+		if ( !GetPackStr(value, NULL, 7) )
+			goto CONTINUE;
+		if ( (flag & 0x10) != 0 && data < QPACK_FIELD_MAX )
+			name = qpack_field_tab[(int)data].name;
+	
+	} else if ( (*p & 0x20) != 0 ) {	// 4.5.6. Literal Field Line with Literal Name
+		if ( !GetPackStr(name, &flag, 3) )
+			goto CONTINUE;
+		if ( !GetPackStr(value, NULL, 7) )
+			goto CONTINUE;
+
+	} else if ( (*p & 0x10) != 0 ) {	// 4.5.3. Indexed Field Line with Post-Base Index
+		if ( !GetPackInt(&data, &flag, 4) )
+			goto CONTINUE;
+		// no dynamic table
+
+	} else {							// 4.5.5. Literal Field Line with Post-Base Name Reference
+		if ( !GetPackInt(&data, &flag, 3) )
+			goto CONTINUE;
+		if ( !GetPackStr(value, NULL, 7) )
+			goto CONTINUE;
+		// no dynamic table
+	}
+
+	return TRUE;
+
+CONTINUE:
+	m_Ofs = saveOfs;
+	return FALSE;
+}
+void CBuffer::PutQPackField(LPCSTR name, LPCSTR value)
+{
+	int n, i;
+	static CScriptValue QpackField;
+
+	if ( QpackField.GetSize() == 0 ) {
+		QpackField.m_bNoCase = TRUE;
+		for ( n = 0 ; n < QPACK_FIELD_MAX ; n++ ) {
+			if ( QpackField.Find(qpack_field_tab[n].name) < 0 )
+				QpackField[qpack_field_tab[n].name] = n;
+			if ( *qpack_field_tab[n].value != '\0' )
+				QpackField[qpack_field_tab[n].name][qpack_field_tab[n].value] = n;
+		}
+	}
+
+	if ( (n = QpackField.Find(name)) >= 0 ) {
+		if ( (i = QpackField[n].Find(value)) >= 0 ) {
+			// 4.5.2. Indexed Field Line
+			PutPackInt((int)QpackField[n][i], 0xC0, 6);		// 1T, T=1
+		} else {
+			// 4.5.4. Literal Field Line with Name Reference
+			PutPackInt((int)QpackField[n], 0x70, 4);		// 01NT, N=1, T=1
+			PutPackStr(value, 0x00, 7);
+		}
+	} else {
+		// 4.5.6. Literal Field Line with Literal Name
+		PutPackStr(name, 0x30, 3);							// 001N, N=1
+		PutPackStr(value, 0x00, 7);
+	}
+}
+
+// RFC 7540 - Hypertext Transfer Protocol Version 2 (HTTP/2)
+// 4.1. Frame Format
+//    +-----------------------------------------------+
+//    |                 Length (24)                   |
+//    +---------------+---------------+---------------+
+//    |   Type (8)    |   Flags (8)   |
+//    +-+-------------+---------------+-------------------------------+
+//    |R|                 Stream Identifier (31)                      |
+//    +=+=============================================================+
+//    |                   Frame Payload (0...)                      ...
+//    +---------------------------------------------------------------+
+// 11.2. Frame Type Registry
+//   +---------------+------+--------------+
+//   | Frame Type    | Code | Section      |
+//   +---------------+------+--------------+
+//   | DATA          | 0x0  | Section 6.1  |
+//   | HEADERS       | 0x1  | Section 6.2  |
+//   | PRIORITY      | 0x2  | Section 6.3  |
+//   | RST_STREAM    | 0x3  | Section 6.4  |
+//   | SETTINGS      | 0x4  | Section 6.5  |
+//   | PUSH_PROMISE  | 0x5  | Section 6.6  |
+//   | PING          | 0x6  | Section 6.7  |
+//   | GOAWAY        | 0x7  | Section 6.8  |
+//   | WINDOW_UPDATE | 0x8  | Section 6.9  |
+//   | CONTINUATION  | 0x9  | Section 6.10 |
+//   +---------------+------+--------------+
+
+// 6.1. DATA
+// DATA frames (type=0x0)
+// END_STREAM (0x1): When set, bit 0 indicates that this frame is the last that the endpoint 
+// PADDED (0x8): When set, bit 3 indicates that the Pad Length field and any padding that it describes are present.
+//    +---------------+
+//    |Pad Length? (8)|
+//    +---------------+-----------------------------------------------+
+//    |                            Data (*)                         ...
+//    +---------------------------------------------------------------+
+//    |                           Padding (*)                       ...
+//    +---------------------------------------------------------------+
+
+// 6.2. HEADERS
+// HEADERS frame (type=0x1)
+// END_STREAM (0x1): When set, bit 0 indicates that the header block
+// END_HEADERS (0x4): When set, bit 2 indicates that this frame contains an entire header block
+// PADDED (0x8): When set, bit 3 indicates that the Pad Length field and any padding that it describes are present.
+// PRIORITY (0x20): When set, bit 5 indicates that the Exclusive Flag (E), Stream Dependency
+//    +---------------+
+//    |Pad Length? (8)|
+//    +-+-------------+-----------------------------------------------+
+//    |E|                 Stream Dependency? (31)                     |
+//    +-+-------------+-----------------------------------------------+
+//    |  Weight? (8)  |
+//    +-+-------------+-----------------------------------------------+
+//    |                   Header Block Fragment (*)                 ...
+//    +---------------------------------------------------------------+
+//    |                           Padding (*)                       ...
+//    +---------------------------------------------------------------+
+// E: A single-bit flag indicating that the stream dependency is exclusive (see Section 5.3). This field is only present if the PRIORITY flag is set.
+// Stream Dependency: A 31-bit stream identifier for the stream that this stream depends on (see Section 5.3). This field is only present if the PRIORITY flag is set.
+// Weight: An unsigned 8-bit integer representing a priority weight for the stream
+// Header Block Fragment: A header block fragment
+
+// 6.3. PRIORITY
+//    +-+-------------------------------------------------------------+
+//    |E|                  Stream Dependency (31)                     |
+//    +-+-------------+-----------------------------------------------+
+//    |   Weight (8)  |
+//    +-+-------------+
+
+// 6.4. RST_STREAM
+//    +---------------------------------------------------------------+
+//    |                        Error Code (32)                        |
+//    +---------------------------------------------------------------+
+
+// 6.5. SETTINGS
+// SETTINGS frame (type=0x4)
+// ACK (0x1) When set, bit 0 indicates that this frame acknowledges receipt and application of the peer's SETTINGS frame. When this bit is set, the payload of the SETTINGS frame MUST be empty.
+// stream identifier for a SETTINGS frame MUST be zero (0x0). 
+//    +-------------------------------+
+//    |       Identifier (16)         |
+//    +-------------------------------+-------------------------------+
+//    |                        Value (32)                             |
+//    +---------------------------------------------------------------+
+// 6.5.2. Defined SETTINGS Parameters
+// SETTINGS_HEADER_TABLE_SIZE (0x1)				4096
+// SETTINGS_ENABLE_PUSH (0x2)					1
+// SETTINGS_MAX_CONCURRENT_STREAMS (0x3)		0		= 100
+// SETTINGS_INITIAL_WINDOW_SIZE (0x4)			65535	+= 0x7FFF0000
+// SETTINGS_MAX_FRAME_SIZE (0x5)				16384
+// SETTINGS_MAX_HEADER_LIST_SIZE (0x6)			0
+// SETTINGS_ENABLE_CONNECT_PROTOCOL (0x8)		0		RFC 8441 - Bootstrapping WebSockets with HTTP/2
+
+// 6.6. PUSH_PROMISE
+//    +---------------+
+//    |Pad Length? (8)|
+//    +-+-------------+-----------------------------------------------+
+//    |R|                  Promised Stream ID (31)                    |
+//    +-+-----------------------------+-------------------------------+
+//    |                   Header Block Fragment (*)                 ...
+//    +---------------------------------------------------------------+
+//    |                           Padding (*)                       ...
+//    +---------------------------------------------------------------+
+
+// 6.7. PING
+//    +---------------------------------------------------------------+
+//    |                      Opaque Data (64)                         |
+//    |                                                               |
+//    +---------------------------------------------------------------+
+
+// 6.8. GOAWAY
+//    +-+-------------------------------------------------------------+
+//    |R|                  Last-Stream-ID (31)                        |
+//    +-+-------------------------------------------------------------+
+//    |                      Error Code (32)                          |
+//    +---------------------------------------------------------------+
+//    |                  Additional Debug Data (*)                    |
+//    +---------------------------------------------------------------+
+
+// 6.9. WINDOW_UPDATE
+//    +-+-------------------------------------------------------------+
+//    |R|              Window Size Increment (31)                     |
+//    +-+-------------------------------------------------------------+
+
+// 6.10. CONTINUATION
+// END_HEADERS (0x4): When set, bit 2 indicates that this frame ends a header block
+//    +---------------------------------------------------------------+
+//    |                   Header Block Fragment (*)                 ...
+//    +---------------------------------------------------------------+
+
+BOOL CBuffer::GetHPackFrame(int &length, int &type, int &flag, DWORD &sid)
+{
+	BYTE *p = m_Data + m_Ofs;
+
+	if ( (m_Len - m_Ofs) < 9 )
+		return FALSE;
+
+	// network byte order (big endian)
+
+	length  = *(p++) << 16;
+	length |= *(p++) << 8;
+	length |= *(p++);
+
+	type = *(p++);
+	flag = *(p++);
+
+	sid  = *(p++) << 24;
+	sid |= *(p++) << 16;
+	sid |= *(p++) << 8;
+	sid |= *(p++);
+
+	return TRUE;
+}
+
+// RFC 7541 - HPACK: Header Compression for HTTP/2
+// 6.1. Indexed Header Field Representation
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 1 |        Index (7+)         |
+//   +---+---------------------------+
+// 6.2.1. Literal Header Field with Incremental Indexing
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 1 |      Index (6+)       |
+//   +---+---+-----------------------+
+//   | H |     Value Length (7+)     |
+//   +---+---------------------------+
+//   | Value String (Length octets)  |
+//   +-------------------------------+
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 1 |           0           |
+//   +---+---+-----------------------+
+//   | H |     Name Length (7+)      |
+//   +---+---------------------------+
+//   |  Name String (Length octets)  |
+//   +---+---------------------------+
+//   | H |     Value Length (7+)     |
+//   +---+---------------------------+
+//   | Value String (Length octets)  |
+//   +-------------------------------+
+// 6.3. Dynamic Table Size Update
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 0 | 1 |   Max size (5+)   |
+//   +---+---------------------------+
+// 6.2.3. Literal Header Field Never Indexed
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 0 | 0 | 1 |  Index (4+)   |
+//   +---+---+-----------------------+
+//   | H |     Value Length (7+)     |
+//   +---+---------------------------+
+//   | Value String (Length octets)  |
+//   +-------------------------------+
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 0 | 0 | 1 |       0       |
+//   +---+---+-----------------------+
+//   | H |     Name Length (7+)      |
+//   +---+---------------------------+
+//   |  Name String (Length octets)  |
+//   +---+---------------------------+
+//   | H |     Value Length (7+)     |
+//   +---+---------------------------+
+//   | Value String (Length octets)  |
+//   +-------------------------------+
+// 6.2.2. Literal Header Field without Indexing
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 0 | 0 | 0 |  Index (4+)   |
+//   +---+---+-----------------------+
+//   | H |     Value Length (7+)     |
+//   +---+---------------------------+
+//   | Value String (Length octets)  |
+//   +-------------------------------+
+//     0   1   2   3   4   5   6   7
+//   +---+---+---+---+---+---+---+---+
+//   | 0 | 0 | 0 | 0 |       0       |
+//   +---+---+-----------------------+
+//   | H |     Name Length (7+)      |
+//   +---+---------------------------+
+//   |  Name String (Length octets)  |
+//   +---+---------------------------+
+//   | H |     Value Length (7+)     |
+//   +---+---------------------------+
+//   | Value String (Length octets)  |
+//   +-------------------------------+
+
+BOOL CBuffer::GetHPackField(CStringA &name, CStringA &value)
+{
+	int flag, index;
+	ULONGLONG data;
+	int saveOfs = m_Ofs;
+	BYTE *p = m_Data + m_Ofs;
+
+	name.Empty();
+	value.Empty();
+
+	if ( m_Ofs >= m_Len )
+		return FALSE;
+
+	if ( (*p & 0x80) != 0 ) {
+		// 6.1. Indexed Header Field Representation
+		if ( !GetPackInt(&data, &flag, 7) )
+			goto CONTINUE;
+		if ( (index = (int)data - 1) >= 0 && index < QPACK_FIELD_MAX ) {
+			name = hpack_field_tab[index].name;
+			value = hpack_field_tab[index].value;
+		}
+
+	} else if ( (*p & 0x40) != 0 ) {
+		// 6.2.1. Literal Header Field with Incremental Indexing
+		if ( !GetPackInt(&data, &flag, 6) )
+			goto CONTINUE;
+
+		if ( data == 0 ) {
+			// Figure 7: Literal Header Field with Incremental Indexing -- New Name
+			if ( !GetPackStr(name, NULL, 7) )
+				goto CONTINUE;
+		} else if ( (index = (int)data - 1) >= 0 && index < QPACK_FIELD_MAX )
+			// Figure 6: Literal Header Field with Incremental Indexing -- Indexed Name
+			name = hpack_field_tab[index].name;
+
+		if ( !GetPackStr(value, NULL, 7) )
+			goto CONTINUE;
+
+	} else if ( (*p & 0x20) != 0 ) {
+		// 6.3. Dynamic Table Size Update
+		if ( !GetPackInt(&data, &flag, 5) )
+			goto CONTINUE;
+
+	} else if ( (*p & 0x10) != 0 ) {
+		// 6.2.3. Literal Header Field Never Indexed
+		if ( !GetPackInt(&data, &flag, 4) )
+			goto CONTINUE;
+
+		if ( data == 0 ) {
+			if ( !GetPackStr(name, NULL, 7) )
+				goto CONTINUE;
+		} else if ( (index = (int)data - 1) >= 0 && index < QPACK_FIELD_MAX )
+			name = hpack_field_tab[index].name;
+
+		if ( !GetPackStr(value, NULL, 7) )
+			goto CONTINUE;
+
+	} else {
+		// 6.2.2. Literal Header Field without Indexing
+		if ( !GetPackInt(&data, &flag, 4) )
+			goto CONTINUE;
+
+		if ( data == 0 ) {
+			if ( !GetPackStr(name, NULL, 7) )
+				goto CONTINUE;
+		} else if ( (index = (int)data - 1) >= 0 && index < QPACK_FIELD_MAX )
+			name = hpack_field_tab[index].name;
+
+		if ( !GetPackStr(value, NULL, 7) )
+			goto CONTINUE;
+	}
+
+	return TRUE;
+
+CONTINUE:
+	m_Ofs = saveOfs;
+	return FALSE;
+}
+void CBuffer::PutHPackField(LPCSTR name, LPCSTR value)
+{
+	int n, i;
+	static CScriptValue HpackField;
+
+	if ( HpackField.GetSize() == 0 ) {
+		HpackField.m_bNoCase = TRUE;
+		for ( n = 0 ; n < HPACK_FIELD_MAX ; n++ ) {
+			if ( HpackField.Find(hpack_field_tab[n].name) < 0 )
+				HpackField[hpack_field_tab[n].name] = n + 1;
+			if ( *hpack_field_tab[n].value != '\0' )
+				HpackField[hpack_field_tab[n].name][hpack_field_tab[n].value] = n + 1;
+		}
+	}
+
+	if ( (n = HpackField.Find(name)) >= 0 ) {
+		if ( (i = HpackField[n].Find(value)) >= 0 ) {
+			// 6.1. Indexed Header Field Representation
+			PutPackInt((int)HpackField[n][i], 0x80, 7);
+		} else {
+			// 6.2.2. Literal Header Field without Indexing
+			PutPackInt((int)HpackField[n], 0x00, 4);
+			PutPackStr(value, 0x00, 7);
+		}
+	} else {
+		// 6.2.2. Literal Header Field without Indexing
+		PutPackInt(0, 0x00, 4);
+		PutPackStr(name, 0x00, 7);
+		PutPackStr(value, 0x00, 7);
 	}
 }
 

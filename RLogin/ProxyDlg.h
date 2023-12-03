@@ -23,6 +23,7 @@ public:
 	CString m_PassWord;
 	int m_ProxyType;
 	int m_ProxyMode;
+	int m_SSLType;
 	int m_SSLMode;
 	BOOL m_SSL_Keep;
 	BOOL m_UsePassDlg;

@@ -481,7 +481,7 @@ CFifoBase *CComSock::FifoLinkLeft()
 {
 	return new CFifoCom(m_pDocument, this);
 }
-BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
+BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
 {
 	int n;
 	COMMTIMEOUTS ComTime;

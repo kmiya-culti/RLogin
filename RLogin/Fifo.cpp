@@ -2044,6 +2044,18 @@ BOOL CFifoSocket::SocketLoop()
 					SendFdEvents(FIFO_STDOUT, FD_CONNECT, NULL);
 			}
 
+			if ( (NetworkEvents.lNetworkEvents & FD_CLOSE) != 0 ) {
+				if ( NetworkEvents.iErrorCode[FD_CLOSE_BIT] != 0 ) {
+					m_nLastError = WSAGetLastError();
+					return FALSE;
+				} else {
+					Read(FIFO_STDIN, NULL, 0);				// Endof Set
+					if ( (NetworkEvents.lNetworkEvents & FD_READ) == 0 )
+						Write(FIFO_STDOUT, NULL, 0);		// Endof Set
+					bClose |= 003;
+				}
+			}
+
 			SOCKETEVENT:
 
 			if ( (NetworkEvents.lNetworkEvents & FD_READ) != 0 ) {
@@ -2088,6 +2100,8 @@ BOOL CFifoSocket::SocketLoop()
 
 							if ( len <= 0 ) {
 								fdEvents |= FD_READ;
+								if ( (bClose & 002) != 0 )
+									Write(FIFO_STDOUT, NULL, 0);
 								break;
 							} else if ( Write(FIFO_STDOUT, buffer, len) < 0 ) {
 								fdEvents &= ~FD_READ;
@@ -2180,17 +2194,6 @@ BOOL CFifoSocket::SocketLoop()
 					sbuf.len = len;
 					sbuf.buf = (CHAR *)buffer;
 					SendFdEvents(FIFO_STDOUT, FD_OOB, &sbuf);
-				}
-			}
-
-			if ( (NetworkEvents.lNetworkEvents & FD_CLOSE) != 0 ) {
-				if ( NetworkEvents.iErrorCode[FD_CLOSE_BIT] != 0 ) {
-					m_nLastError = WSAGetLastError();
-					return FALSE;
-				} else {
-					Read(FIFO_STDIN, NULL, 0);			// Endof Set
-					Write(FIFO_STDOUT, NULL, 0);		// Endof Set
-					bClose |= 003;
 				}
 			}
 

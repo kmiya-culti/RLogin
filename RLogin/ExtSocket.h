@@ -14,6 +14,7 @@
 #include <openssl/rsa.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/quic.h>
 
 #define	RECVDEFSIZ			(2 * 1024)
 
@@ -64,7 +65,21 @@ enum EProxyStat {
 	PRST_SOCKS5_CHAPMSG,
 	PRST_SOCKS5_CHAPCODE,
 	PRST_SOCKS5_CHAPSTAT,
-	PRST_SOCKS5_CHAPCHECK
+	PRST_SOCKS5_CHAPCHECK,
+
+	PRST_HTTP2_START,
+	PRST_HTTP2_RESULT,
+	PRST_HTTP2_HAVEDATA,
+	PRST_HTTP2_INIT,
+	PRST_HTTP2_REQUEST,
+	PRST_HTTP2_CONNECT,
+	PRST_HTTP2_BASIC,
+	PRST_HTTP2_DIGEST,
+
+	PRST_HTTP3_START,
+	PRST_HTTP3_TYPE,
+	PRST_HTTP3_LENGTH,
+	PRST_HTTP3_DATA,
 };
 
 class CExtSocket : public CObject  
@@ -111,6 +126,7 @@ public:
 	SSL *m_SSL_pSock;
 	BOOL m_SSL_keep;
 	CString m_SSL_Msg;
+	CStringA m_SSL_alpn;
 	void *m_PauseParam[2];
 
 public:
@@ -127,8 +143,7 @@ public:
 	virtual void FifoLink();
 	virtual void FifoUnlink();
 
-	virtual BOOL Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress = NULL, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
-	virtual BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
+	virtual BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
 	virtual void Close();
 
 	virtual void SendSocket(const void *lpBuf, int nBufLen, int nFlags = 0);
@@ -182,6 +197,7 @@ public:
 	BOOL SetSockOpt(int nOptionName, const void* lpOptionValue, int nOptionLen, int nLevel = SOL_SOCKET );
 	BOOL GetSockOpt(int nOptionName, void* lpOptionValue, int* lpOptionLen, int nLevel = SOL_SOCKET );
 
+	static BIO_ADDR *GetPeerBioAddr(SOCKET fd);
 	static void GetPeerName(SOCKET fd, CString &host, int *port);
 	static void GetSockName(SOCKET fd, CString &host, int *port);
 	static void GetHostName(struct sockaddr *addr, int addrlen, CString &host);

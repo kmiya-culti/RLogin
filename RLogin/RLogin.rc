@@ -711,13 +711,13 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,206,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,225,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.28.7 (2023/11/01)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.28.8 (2023/12/04)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2023 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 3.1.4 24 Oct 2023",IDC_STATIC,44,53,189,8
+    LTEXT           "OpenSSL 3.2.0 23 Nov 2023",IDC_STATIC,44,53,189,8
     LTEXT           "Copyright (c) 1998-2023 The OpenSSL Project",IDC_STATIC,44,63,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,72,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,81,189,8
-    LTEXT           "zlib 1.2.13 (13 Oct 2022)",IDC_STATIC,44,94,189,8
+    LTEXT           "zlib 1.3 (18 Aug 2023)",IDC_STATIC,44,94,189,8
     LTEXT           "Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,103,189,8
     LTEXT           "iconv (GNU libiconv 1.17)",IDC_STATIC,44,116,189,8
     LTEXT           "Copyright (C) 2000-2017 Free Software Foundation, Inc.",IDC_STATIC,44,125,189,8
@@ -1373,6 +1373,7 @@ BEGIN
     CONTROL         "SOCKS5",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,166,36,55,10
     CONTROL         "使用しない",IDC_SSL_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,16,70,55,10
     CONTROL         "SSL/TLS",IDC_SSL_RADIO2,"Button",BS_AUTORADIOBUTTON,91,70,55,10
+    CONTROL         "QUIC",IDC_SSL_RADIO3,"Button",BS_AUTORADIOBUTTON,166,70,55,10
     CONTROL         "コネクション確立後もSSL/TLSを維持する",IDC_SSL_KEEP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,91,85,130,10
     EDITTEXT        IDC_SERVERNAME,16,131,145,13,ES_AUTOHSCROLL
     COMBOBOX        IDC_SOCKNO,169,131,54,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
@@ -2264,8 +2265,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,28,7,0
- PRODUCTVERSION 2,28,7,0
+ FILEVERSION 2,28,8,0
+ PRODUCTVERSION 2,28,8,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2282,12 +2283,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.28.7.0"
+            VALUE "FileVersion", "2.28.8.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.28.7.0"
+            VALUE "ProductVersion", "2.28.8.0"
         END
     END
     BLOCK "VarFileInfo"

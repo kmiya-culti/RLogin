@@ -19,6 +19,7 @@ CProxyDlg::CProxyDlg(CWnd* pParent /*=NULL*/)
 	m_PassWord   = _T("");
 	m_ProxyType  = 0;
 	m_ProxyMode  = 0;
+	m_SSLType    = 0;
 	m_SSLMode    = 0;
 	m_SSL_Keep   = FALSE;
 	m_UsePassDlg = FALSE;
@@ -38,7 +39,7 @@ void CProxyDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_USERNAME, m_UserName);
 	DDX_Text(pDX, IDC_PASSWORD, m_PassWord);
 	DDX_Radio(pDX, IDC_RADIO1, m_ProxyType);
-	DDX_Radio(pDX, IDC_SSL_RADIO1, m_SSLMode);
+	DDX_Radio(pDX, IDC_SSL_RADIO1, m_SSLType);
 	DDX_Check(pDX, IDC_SSL_KEEP, m_SSL_Keep);
 	DDX_Check(pDX, IDC_CHECK1, m_UsePassDlg);
 	DDX_Check(pDX, IDC_CHECK2, m_CmdFlag);
@@ -80,7 +81,7 @@ void CProxyDlg::OnProtoType(UINT nID)
 	if ( nID >= IDC_SSL_RADIO1 && nID <= IDC_SSL_RADIO6 )
 		nID = IDC_RADIO1 + m_ProxyType;
 
-	if ( m_ProxyType == 0 && m_SSLMode != 0 )
+	if ( m_ProxyType == 0 && m_SSLType != 0 )
 		nID = IDC_RADIO1 + 5;
 
 	for ( n = 0 ; ItemTab[n].nId != 0 ; n++ ) {
@@ -89,38 +90,85 @@ void CProxyDlg::OnProtoType(UINT nID)
 	}
 
 	if ( (pWnd = GetDlgItem(IDC_SSL_KEEP)) != NULL )
-		pWnd->EnableWindow(m_SSLMode != 0 ? TRUE : FALSE);
+		pWnd->EnableWindow(m_ProxyType != 0 && m_SSLType == 1 ? TRUE : FALSE);
 
 	for ( n = 0 ; n <= 5 ; n++ ) {
 		if ( (pWnd = GetDlgItem(IDC_RADIO1 + n)) != NULL )
 			pWnd->EnableWindow(m_CmdFlag ? FALSE : TRUE);
 	}
 
-	for ( n = 0 ; n <= 1 ; n++ ) {
+	for ( n = 0 ; n <= 2 ; n++ ) {
 		if ( (pWnd = GetDlgItem(IDC_SSL_RADIO1 + n)) != NULL )
 			pWnd->EnableWindow(m_CmdFlag ? FALSE : TRUE);
 	}
 
 	if ( (pWnd = GetDlgItem(IDC_PROXYCMD)) != NULL )
 		pWnd->EnableWindow(m_CmdFlag ? TRUE : FALSE);
-}
 
+}
+ 
 BOOL CProxyDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
 
-	// 0=0, 1=1, 2=3, 3=4, 4=2
-	if ( (m_ProxyType = m_ProxyMode) == 5 ) {
-		m_CmdFlag = TRUE;
-		m_ProxyType = 0;
-		m_SSLMode = 0;
-	} else if ( m_ProxyType == 4  )
-		m_ProxyType = 2;
-	else if ( m_ProxyType >= 2  )
-		m_ProxyType += 1;
+	// m_ProxyMode = CServerEntry::m_ProxyMode & 7
+	// m_ProxyMode 0 == None			m_ProxyType = 0
+	// m_ProxyMode 1 == HTTP			m_ProxyType = 1
+	// m_ProxyMode 2 == SOCKS4			m_ProxyType = 3
+	// m_ProxyMode 3 == SOCKS5			m_ProxyType = 4
+	// m_ProxyMode 4 == HTTP(Basic)		m_ProxyType = 2
+	// m_ProxyMode 5 == ProxyCommand	m_CmdFlag = TRUE
+	// m_ProxyMode 6 == HTTP/2			m_ProxyType = 5
+	// m_ProxyMode 7 == HTTP/3			m_ProxyType = 6
 
-	if ( m_SSLMode != 0 )
-		m_SSLMode = 1;
+	// m_SSLMode = CServerEntry::m_ProxyMode >> 3
+	// m_SSLMode 0   == None			m_SSLType = 0
+	// m_SSLMode 1-6 == SSL/TLS			m_SSLType = 1
+	// m_SSLMode 7   == QUIC			m_SSLType = 2
+
+	m_CmdFlag = FALSE;
+
+	switch(m_ProxyMode) {
+	case 0:		// None
+		m_ProxyType = 0;
+		break;
+	case 1:		// HTTP
+		m_ProxyType = 1;
+		break;
+	case 2:		// SOCKS4
+		m_ProxyType = 3;
+		break;
+	case 3:		// SOCKS5
+		m_ProxyType = 4;
+		break;
+	case 4:		// HTTP(Basic)
+		m_ProxyType = 2;
+		break;
+	case 5:		// ProxyCommand
+		m_ProxyType = 0;
+		m_SSLMode   = 0;
+		m_CmdFlag   = TRUE;
+		break;
+	case 6:		// HTTP/2
+		m_ProxyType = 5;
+		break;
+	case 7:		// HTTP/3
+		m_ProxyType = 6;
+		break;
+	}
+
+	switch(m_SSLMode) {
+	case 0:		// Nome
+		m_SSLType = 0;
+		break;
+	case 1:		// SSL/TLS
+	case 2:	case 3: case 4: case 5:	case 6:
+		m_SSLType = 1;
+		break;
+	case 7:		// QUIC
+		m_SSLType = 2;
+		break;
+	}
 
 	UpdateData(FALSE);
 
@@ -135,15 +183,46 @@ void CProxyDlg::OnOK()
 {
 	UpdateData(TRUE);
 
-	// 0=0, 1=1, 2=4, 3=2, 4=3
-	if ( (m_ProxyMode = m_ProxyType) == 0 && m_SSLMode == 0 && m_CmdFlag )
+	if ( m_CmdFlag ) {
 		m_ProxyMode = 5;
-	else if ( m_ProxyType == 2  )
-		m_ProxyMode = 4;
-	else if ( m_ProxyType > 2  )
-		m_ProxyMode -= 1;
+		m_SSLMode = 0;
+	} else {
+		switch(m_ProxyType) {
+		case 0:		// None
+			m_ProxyMode = 0;
+			break;
+		case 1:		// HTTP
+			m_ProxyMode = 1;
+			break;
+		case 2:		// HTTP(Basic)
+			m_ProxyMode = 4;
+			break;
+		case 3:		// SOCKS4
+			m_ProxyMode = 2;
+			break;
+		case 4:		// SOCKS5
+			m_ProxyMode = 3;
+			break;
+		case 5:		// HTTP/2
+			m_ProxyMode = 6;
+			break;
+		case 6:		// HTTP/3
+			m_ProxyMode = 7;
+			break;
+		}
 
-	UpdateData(FALSE);
+		switch(m_SSLType) {
+		case 0:		// Nome
+			m_SSLMode = 0;
+			break;
+		case 1:		// SSL/TLS
+			m_SSLMode = 1;
+			break;
+		case 2:		// QUIC
+			m_SSLMode = 7;
+			break;
+		}
+	}
 
 	CDialogExt::OnOK();
 }

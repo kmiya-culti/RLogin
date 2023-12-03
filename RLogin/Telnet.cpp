@@ -262,7 +262,7 @@ CFifoBase *CTelnet::FifoLinkMid()
 {
 	return new CFifoTelnet(m_pDocument, this);
 }
-BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
+BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
 {
     int n;
 
@@ -324,7 +324,7 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 	CpcOpt.modemmask   = 0xFF;
 	CpcOpt.flowcontrol = FALSE;
 
-	if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType, pAddrInfo) )
+	if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType) )
 		return FALSE;
 
 	if ( !m_pDocument->m_TextRam.IsOptEnable(TO_RLTENAT) &&

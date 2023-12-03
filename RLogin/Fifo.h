@@ -412,6 +412,8 @@ public:
 
 	BOOL AddInfoOpen();
 	BOOL SocketLoop();
+
+	BIO_ADDR *GetBioAddr();
 };
 
 class CFifoListen : public CFifoASync

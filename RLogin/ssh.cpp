@@ -207,7 +207,7 @@ CFifoDocument *Cssh::FifoLinkRight()
 {
 	return new CFifoStdio(m_pDocument, this);
 }
-int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
+int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
 {
 	try {
 		int n, i;
@@ -377,7 +377,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		n = m_pDocument->m_ParamTab.GetPropNode(2, 0, str);
 		m_CompMode = (n == FALSE || str.Compare(_T("none")) == 0 ? FALSE : TRUE);
 
-		if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType, pAddrInfo) )
+		if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType) )
 			return FALSE;
 
 		return TRUE;

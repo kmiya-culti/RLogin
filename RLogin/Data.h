@@ -92,6 +92,7 @@ public:
 
 	void Put8Bit(int val);
 	void Put16Bit(int val);
+	void Put24Bit(LONG val);
 	void Put32Bit(LONG val);
 	void Put64Bit(LONGLONG val);
 	void PutBuf(LPBYTE buf, int len);
@@ -107,6 +108,7 @@ public:
 
 	int Get8Bit();
 	int Get16Bit();
+	LONG Get24Bit();
 	LONG Get32Bit();
 	LONGLONG Get64Bit();
 	int GetStr(CStringA &str);
@@ -134,7 +136,7 @@ public:
 
 	LPCSTR Base64Decode(LPCSTR str);
 	LPCWSTR Base64Decode(LPCWSTR str);
-	void Base64Encode(LPBYTE buf, int len);
+	void Base64Encode(LPBYTE buf, int len, TCHAR ec = _T('='));
 	LPCTSTR Base64urlDecode(LPCTSTR str);
 	void Base64urlEncode(LPBYTE buf, int len);
 	LPCTSTR Base32Decode(LPCTSTR str, BOOL bHex = FALSE);
@@ -159,6 +161,26 @@ public:
 	void IshEncSjis(LPBYTE buf, int len);
 	LPCSTR IshDecNjis(LPCSTR str);
 	void IshEncNjis(LPBYTE buf, int len);
+
+	int HuffmanEncodeLength(LPBYTE buf, int len);
+	void HuffmanEncode(LPBYTE buf, int len);
+	BOOL HuffmanDecode(LPBYTE buf, int len);
+
+	ULONGLONG GetVarInt();
+	void PutVarInt(ULONGLONG data);
+
+	BOOL GetPackInt(ULONGLONG *pData, int *pFlag, int prefix);
+	void PutPackInt(ULONGLONG data, int flags, int prefix);
+
+	BOOL GetPackStr(CStringA &str, int *pFlag = NULL, int prefix = 7);
+	void PutPackStr(LPCSTR str, int flags = 0, int prefix = 7);
+
+	BOOL GetQPackField(CStringA &name, CStringA &value);
+	void PutQPackField(LPCSTR name, LPCSTR value);
+
+	BOOL GetHPackFrame(int &length, int &type, int &flag, DWORD &sid);
+	BOOL GetHPackField(CStringA &name, CStringA &value);
+	void PutHPackField(LPCSTR name, LPCSTR value);
 
 	void md5(LPCTSTR str);
 	BOOL LoadFile(LPCTSTR filename);

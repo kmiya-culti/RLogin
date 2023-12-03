@@ -101,9 +101,9 @@ CFifoBase *CLogin::FifoLinkMid()
 {
 	return new CFifoLogin(m_pDocument, this);
 }
-int CLogin::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
+int CLogin::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
 {
-	return CExtSocket::Open(lpszHostAddress, nHostPort, IPPORT_RESERVED - 1, nSocketType, pAddrInfo);
+	return CExtSocket::Open(lpszHostAddress, nHostPort, IPPORT_RESERVED - 1, nSocketType);
 }
 void CLogin::SendWindSize()
 {
