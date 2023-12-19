@@ -747,6 +747,14 @@ public:
 #define sntrup761_CIPHERTEXTBYTES		1039
 #define sntrup761_BYTES					32
 
+#define	KEXSTRICT_CHECK					0
+#define	KEXSTRICT_DISABLE				1
+#define	KEXSTRICT_ENABLE				2
+
+#define	EXTINFOSTAT_CHECK				0
+#define	EXTINFOSTAT_SEND				1
+#define	EXTINFOSTAT_DONE				2
+
 enum EAuthStat {
 	AST_START = 0,
 	AST_PUBKEY_TRY,
@@ -832,6 +840,7 @@ public:
 	CBuffer m_MyPeer;
 	CBuffer m_SessHash;
 	int m_NeedKeyLen;
+	int m_KexStrictStat;
 
 	int m_DhMode;
 	DH *m_SaveDh;
@@ -868,7 +877,7 @@ public:
 
 	//CRcpUpload m_RcpCmd;
 
-	BOOL m_bExtInfo;
+	int m_ExtInfoStat;
 	CStringIndex m_ExtInfo;
 
 	int m_KeepAliveTiimerId;

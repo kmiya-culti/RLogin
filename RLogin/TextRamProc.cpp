@@ -2007,16 +2007,18 @@ int CTextRam::IsKanjiCode(WORD code, const WORD *tab, int len)
 }
 void CTextRam::KanjiCodeInit(KANCODEWORK *work)
 {
-	work->sjis_st = work->euc_st = work->utf8_st = 0;
-	work->sjis_bk = work->euc_bk = 0;
-	work->sjis_rs = work->euc_rs = work->utf8_rs = 0.5;
+	work->sjis_st = work->euc_st = work->utf8_st = work->utf7_st = work->u16_st = work->u32_st = 0;
+	work->sjis_bk = work->euc_bk = work->u16_bk = work->u32_bk = 0;
+	work->sjis_rs = work->euc_rs = work->utf8_rs = work->utf7_rs = 0.5;
+	work->u16be_rs = work->u16le_rs = work->u32be_rs = work->u32le_rs = 0.5;
 }
-void CTextRam::KanjiCodeCheck(int ch, KANCODEWORK *work)
+void CTextRam::KanjiCodeCheck(DWORD ch, KANCODEWORK *work, BOOL bExt)
 {
 
 #define	POSITIVE(r)		(1.0 - (1.0 - (r)) * 0.9)
 #define	HPOSITIVE(r)	(1.0 - (1.0 - (r)) * 0.99)
 #define	NEGATIVE(r)		((r) * 0.7)
+#define	HNEGATIVE(r)	((r) * 0.5)
 
 	// SJIS
 	// 1 Byte	0x81 - 0x9F or 0xE0 - 0xFC or 0xA0-0xDF
@@ -2033,7 +2035,7 @@ void CTextRam::KanjiCodeCheck(int ch, KANCODEWORK *work)
 		break;
 	case 1:
 		work->sjis_st = 0;
-		if ( issjis2(ch) && IsKanjiCode((work->sjis_bk << 8) | ch, UnDefCp932, 47) )
+		if ( issjis2(ch) && IsKanjiCode((WORD)((work->sjis_bk << 8) | ch), UnDefCp932, 47) )
 			work->sjis_rs = POSITIVE(work->sjis_rs);
 		else
 			work->sjis_rs = NEGATIVE(work->sjis_rs);
@@ -2059,7 +2061,7 @@ void CTextRam::KanjiCodeCheck(int ch, KANCODEWORK *work)
 		break;
 	case 1:		// EUCJP-MS-1	2 Byte
 		work->euc_st = 0;
-		if ( ch >= 0xA1 && ch <= 0xFE && IsKanjiCode((work->euc_bk << 8) | ch, UnDefEuc1, 42) )
+		if ( ch >= 0xA1 && ch <= 0xFE && IsKanjiCode((WORD)((work->euc_bk << 8) | ch), UnDefEuc1, 42) )
 			work->euc_rs = POSITIVE(work->euc_rs);
 		else
 			work->euc_rs = NEGATIVE(work->euc_rs);
@@ -2075,7 +2077,7 @@ void CTextRam::KanjiCodeCheck(int ch, KANCODEWORK *work)
 		break;
 	case 3:		// EUCJP-MS-2	2 Byte
 		work->euc_st = 0;
-		if ( ch >= 0xA1 && ch <= 0xFE && IsKanjiCode((work->euc_bk << 8) | ch, UnDefEuc2, 48) )
+		if ( ch >= 0xA1 && ch <= 0xFE && IsKanjiCode((WORD)((work->euc_bk << 8) | ch), UnDefEuc2, 48) )
 			work->euc_rs = POSITIVE(work->euc_rs);
 		else
 			work->euc_rs = NEGATIVE(work->euc_rs);
@@ -2136,6 +2138,71 @@ void CTextRam::KanjiCodeCheck(int ch, KANCODEWORK *work)
 		else
 			work->utf8_rs = NEGATIVE(work->utf8_rs);
 		break;
+	}
+
+	// fc_KANCHK‚Å‚ÍAˆÈ‰º‚ðŽg—p‚µ‚È‚¢
+
+	if ( !bExt )
+		return;
+
+	// UTF-7
+
+	switch(work->utf7_st) {
+	case 0:
+		if ( (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || strchr(" '(),-./:?", ch) != NULL )
+			work->utf7_rs = POSITIVE(work->utf7_rs);
+		else if ( ch == '+' )
+			work->utf7_st = 1;
+		else if ( ch > ' ' )
+			work->utf7_rs = HNEGATIVE(work->utf7_rs);
+		break;
+	case 1:
+		if ( (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || strchr("+/", ch) != NULL )
+			work->utf7_rs = POSITIVE(work->utf7_rs);
+		else
+			work->utf7_st = 0;
+		break;
+	}
+
+	// UTF-16(BE/LE)
+
+	work->u16_bk <<= 8;
+	work->u16_bk |= (ch & 0xFF);
+	if ( ++work->u16_st >= 2 ) {
+		if ( (work->u16_bk & 0xFF00) == 0 && (work->u16_bk & 0x00FF) != 0 ) {
+			work->u16be_rs = POSITIVE(work->u16be_rs);
+			work->u16le_rs = NEGATIVE(work->u16le_rs);
+		} else if ( (work->u16_bk & 0xFF00) != 0 && (work->u16_bk & 0x00FF) == 0 ) {
+			work->u16be_rs = NEGATIVE(work->u16be_rs);
+			work->u16le_rs = POSITIVE(work->u16le_rs);
+		} else if ( work->u16_bk == 0 ) {
+			work->u16be_rs = HNEGATIVE(work->u16be_rs);
+			work->u16le_rs = HNEGATIVE(work->u16le_rs);
+		}
+		work->u16_st = 0;
+		work->u16_bk = 0;
+	}
+
+	// UTF-32(BE/LE)
+
+	work->u32_bk <<= 8;
+	work->u32_bk |= (ch & 0xFF);
+	if ( ++work->u32_st >= 4 ) {
+		if ( (work->u32_bk & 0xFFFFFF00) == 0 && (work->u32_bk & 0x000000FF) != 0 ) {
+			work->u32be_rs = HPOSITIVE(work->u32be_rs);
+			work->u32le_rs = HNEGATIVE(work->u32le_rs);
+		} else if ( (work->u32_bk & 0xFFFF0000) == 0 && (work->u32_bk & 0x0000FFFF) != 0 ) {
+			work->u32be_rs = POSITIVE(work->u32be_rs);
+			work->u32le_rs = NEGATIVE(work->u32le_rs);
+		} else if ( (work->u32_bk & 0xFFFF0000) != 0 && (work->u32_bk & 0x0000FFFF) == 0 ) {
+			work->u32be_rs = NEGATIVE(work->u32be_rs);
+			work->u32le_rs = POSITIVE(work->u32le_rs);
+		} else if ( (work->u32_bk & 0xFF000000) != 0 && (work->u32_bk & 0x00FFFFFF) == 0 ) {
+			work->u32be_rs = HNEGATIVE(work->u32be_rs);
+			work->u32le_rs = HPOSITIVE(work->u32le_rs);
+		}
+		work->u32_st = 0;
+		work->u32_bk = 0;
 	}
 }
 

@@ -31,6 +31,9 @@ BOOL IsDigits(LPCTSTR p);
 #define	KANJI_UTF8		3
 #define	KANJI_UTF16LE	4
 #define	KANJI_UTF16BE	5
+#define	KANJI_UTF32LE	6
+#define	KANJI_UTF32BE	7
+#define	KANJI_UTF7		8
 
 #define	MAPING_FILL		0
 #define	MAPING_FIT		1
@@ -175,18 +178,14 @@ public:
 	BOOL GetPackStr(CStringA &str, int *pFlag = NULL, int prefix = 7);
 	void PutPackStr(LPCSTR str, int flags = 0, int prefix = 7);
 
-	BOOL GetQPackField(CStringA &name, CStringA &value);
-	void PutQPackField(LPCSTR name, LPCSTR value);
+	void Hash(LPCTSTR algo, LPCSTR str);
 
-	BOOL GetHPackFrame(int &length, int &type, int &flag, DWORD &sid);
-	BOOL GetHPackField(CStringA &name, CStringA &value);
-	void PutHPackField(LPCSTR name, LPCSTR value);
-
-	void md5(LPCTSTR str);
 	BOOL LoadFile(LPCTSTR filename);
 	BOOL SaveFile(LPCTSTR filename);
 	int KanjiCheck(int type = KANJI_UNKNOWN);
 	void KanjiConvert(int type);
+	void WstrConvert(LPCTSTR toCode, int nCrLf = 0);
+	void StrConvert(LPCTSTR fromCode);
 	BOOL ReadString(CString &str);
 
 	void SetMbsStr(LPCTSTR str);
@@ -367,26 +366,29 @@ public:
 
 	const CStringIndex & operator = (CStringIndex &data);
 	CStringIndex & operator [] (LPCTSTR str);
-	CStringIndex & operator [] (int nIndex) { return m_Array[nIndex]; }
-	const LPCTSTR operator = (LPCTSTR str) { m_bString = TRUE; m_bEmpty = FALSE; return (m_String = str); }
-	operator LPCTSTR () const { return m_String; }
-	const int operator = (int val) { m_bString = FALSE; m_bEmpty = FALSE; return (m_Value = val); }
-	operator int () const { return (m_bString ? _tstoi(m_String) : m_Value); }
 
-	BOOL IsEmpty() { return m_bEmpty; }
-	int GetSize() { return (int)m_Array.GetSize(); }
-	void SetSize(int nIndex) { m_Array.SetSize(nIndex); }
-	LPCTSTR GetIndex() { return m_nIndex; }
-	void RemoveAll() { m_Array.RemoveAll(); m_bEmpty = TRUE; }
-	void RemoveAt(int index) { m_Array.RemoveAt(index); }
-	int Add(LPCTSTR str) { CStringIndex tmp(m_bNoCase, m_bNoSort); tmp = str; return (int)m_Array.Add(tmp); }
-	int Add(int value) { CStringIndex tmp(m_bNoCase, m_bNoSort); tmp = value; return (int)m_Array.Add(tmp); }
-	int Add(CStringIndex &data) { int n = (int)m_Array.Add(data); return n; }
-	CStringIndex & Add() { CStringIndex tmp(m_bNoCase, m_bNoSort); int n = (int)m_Array.Add(tmp); return m_Array[n]; }
-	void SetNoCase(BOOL b) { m_bNoCase = b; }
-	void SetNoSort(BOOL b) { m_bNoSort = b; }
+	inline CStringIndex & operator [] (int nIndex) { return m_Array[nIndex]; }
+	inline const LPCTSTR operator = (LPCTSTR str) { m_bString = TRUE; m_bEmpty = FALSE; return (m_String = str); }
+	inline operator LPCTSTR () const { return m_String; }
+	inline const int operator = (int val) { m_bString = FALSE; m_bEmpty = FALSE; return (m_Value = val); }
+	inline operator int () const { return (m_bString ? _tstoi(m_String) : m_Value); }
 
+	inline BOOL IsEmpty() { return m_bEmpty; }
+	inline int GetSize() { return (int)m_Array.GetSize(); }
+	inline void SetSize(int nIndex) { m_Array.SetSize(nIndex); }
+	inline LPCTSTR GetIndex() { return m_nIndex; }
+	inline void RemoveAll() { m_Array.RemoveAll(); m_bEmpty = TRUE; }
+	inline void RemoveAt(int index) { m_Array.RemoveAt(index); }
+	inline int Add(LPCTSTR str) { CStringIndex tmp(m_bNoCase, m_bNoSort); tmp = str; return (int)m_Array.Add(tmp); }
+	inline int Add(int value) { CStringIndex tmp(m_bNoCase, m_bNoSort); tmp = value; return (int)m_Array.Add(tmp); }
+	inline int Add(CStringIndex &data) { int n = (int)m_Array.Add(data); return n; }
+	inline CStringIndex & Add() { CStringIndex tmp(m_bNoCase, m_bNoSort); int n = (int)m_Array.Add(tmp); return m_Array[n]; }
+	inline void SetNoCase(BOOL b) { m_bNoCase = b; }
+	inline void SetNoSort(BOOL b) { m_bNoSort = b; }
+
+	BOOL IsDupIndex(LPCTSTR str);
 	int Find(LPCTSTR str);
+	int FindAt(LPCTSTR str, int pos);
 	void SetArray(LPCTSTR str);
 
 	CStringIndex &AddPath(LPCTSTR path, BOOL *pNest = NULL);
@@ -425,6 +427,17 @@ public:
 	void GetQueryString(LPCTSTR str);
 	void AddQueryString(CStringA &mbs, LPCTSTR str, BOOL bUtf8);
 	void SetQueryString(CStringA &mbs, LPCSTR base = NULL, BOOL bUtf8 = FALSE);
+
+	WCHAR SubXmlEscChar(LPCTSTR str);
+	void SubXmlEscDec(LPCTSTR str, CString &out);
+	void SubXmlEscEnc(LPCTSTR str, CString &out);
+	void SubXmlValue(LPCTSTR &str, CString &value);
+	void SubXmlTag(LPCTSTR &str, CString &tag);
+	void SubXmlSkip(LPCTSTR &str, TCHAR dem);
+	BOOL SubXmlElemnt(LPCTSTR &str);
+	BOOL GetXmlFormat(LPCTSTR str);
+	void SubSetXmlElemnt(CBuffer &str, int nest);
+	void SetXmlFormat(CBuffer &str);
 
 #ifdef	DEBUG
 	void Dump(int nest);

@@ -26,8 +26,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.28.8)</TD>
-            <TD width="20%" align="right">2023/12/04</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.28.9)</TD>
+            <TD width="20%" align="right">2023/12/20</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -433,6 +433,15 @@ TD {
       <BR>
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
+          <TR>
+            <TD align="center">2023/12/20</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.9/">2.28.9</A></TD>
+            <TD>サーバー・プロキシ設定にHTTP/2とHTTP/3を追加<BR>
+            ソケットステータスにSSL/TLS/QUIC時のバージョンなどを追加<BR>
+            スクリプトにloadxml/savexml/loadjson/savejsonなどを追加<BR>
+            スクリプトの連想配列の内部文字をUNICODEに変更<BR>
+            openssh-9.6p1のstrict key exchangeに対応</TD>
+          </TR>
           <TR>
             <TD align="center">2023/12/04</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.8/">2.28.8</A></TD>
@@ -2792,14 +2801,67 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">Select Proxy...</TD>
-                  <TD>使用するプロキシサーバーをHTTP/SOCKS4/SOCKS5の中から選択します<BR>
-                  ※「使用しない」を選択するとProxy Server Address/Socket Portを使用せずにServer EntryのServer
-                  Address/Portを使用して接続します</TD>
+                  <TD>使用するプロキシサーバーを選択します<BR>
+                  <TABLE cellpadding="3">
+                    <TBODY>
+                      <TR>
+                        <TD>使用<BR>
+                        しない</TD>
+                        <TD>下記のProxy Server Address/Socket Portを使用しません。Server EntryのServer Address/Portを使用して接続しますのでご注意ください</TD>
+                      </TR>
+                      <TR>
+                        <TD>HTTP</TD>
+                        <TD>ユーザー認証をBasic/Digestを自動で識別します。Connection: keep-aliveが無効の場合に再接続が起こり使用できないサーバーがあります</TD>
+                      </TR>
+                      <TR>
+                        <TD>HTTP<BR>
+                        (Basic)</TD>
+                        <TD>ユーザー認証をBasicと仮定して接続します。サーバーとのネゴシエーションが無いので再接続が起こりません</TD>
+                      </TR>
+                      <TR>
+                        <TD>HTTP/2</TD>
+                        <TD>SSL/TLS/QUICでALPNが&quot;h2&quot;で接続した場合のみHTTP/2プロトコルで接続をします。それ以外の場合は、HTTPにフォールダウンします</TD>
+                      </TR>
+                      <TR>
+                        <TD>HTTP/3</TD>
+                        <TD>SSL/TLS/QUICでALPNが&quot;h3&quot;で接続した場合のみHTTP/3プロトコルで接続をします。それ以外の場合は、HTTPにフォールダウンします<BR>
+                        <FONT color="#ff0000">※まだ試験的な実装です。ご注意ください</FONT></TD>
+                      </TR>
+                      <TR>
+                        <TD>SOCKS4</TD>
+                        <TD>ユーザー認証ありません</TD>
+                      </TR>
+                      <TR>
+                        <TD>SOCKS5</TD>
+                        <TD>平文での認証しか対応していません</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
                 </TR>
                 <TR>
                   <TD align="center">Over SSL</TD>
-                  <TD>SSL/TLSを通して暗号化します<BR>
-                  HTTP+SSL/TLSでhttpsとして利用できます</TD>
+                  <TD>
+                  <TABLE cellpadding="3">
+                    <TBODY>
+                      <TR>
+                        <TD>使用<BR>
+                        しない</TD>
+                        <TD>サーバ－認証や暗号化を行いません</TD>
+                      </TR>
+                      <TR>
+                        <TD>SSL/TLS</TD>
+                        <TD>接続先によりSSL/TLSを自動で選択して接続します。上記のProxy ProtocolによりALPNでプロトコルネゴシエーションを行います<BR>
+                        ※コネクション確率後のチェックは、通常オンだと思いますが一部の古いサーバーでSSL/TLSを維持しない場合があるのでオプションにしています。ご注意ください</TD>
+                      </TR>
+                      <TR>
+                        <TD>QUIC</TD>
+                        <TD>ソケットタイプをデータグラムに変更してUDP接続します。上記のProxy ProtocolによりALPNでプロトコルネゴシエーションを行います<BR>
+                        <FONT color="#ff0000">※まだ試験的な実装です。ご注意ください</FONT></TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">Proxy Server</TD>
@@ -2829,13 +2891,8 @@ fi</PRE>
                 </TR>
               </TBODY>
             </TABLE>
-            <BR>
-            ※HTTPは、Basic/Digestを自動で識別して認証します<BR>
-            ※HTTP(Basic)は、Basic認証のみ使用します<BR>
-            ※SOCKS4には、ユーザー認証ありません<BR>
-            ※SOCKS5は、平文での認証しか対応していません<BR>
-            ※QUICは、試験的な実装です。ご注意ください</TD>
-            <TD valign="top" align="left"><IMG src="image012.jpg" width="420" height="459" border="0"></TD>
+            </TD>
+            <TD valign="top" align="left"><IMG src="image012.jpg" width="420" height="479" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

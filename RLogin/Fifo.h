@@ -447,10 +447,8 @@ public:
 	BOOL ListenProc();
 };
 
-class CFifoProxy : public CFifoWnd
+class CFifoProxy : public CFifoThread
 {
-public:
-
 public:
 	CFifoProxy(class CRLoginDoc *pDoc, class CExtSocket *pSock);
 	~CFifoProxy();

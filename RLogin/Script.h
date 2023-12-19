@@ -1,4 +1,8 @@
+//////////////////////////////////////////////////////////////////////
+// Script.h
+
 #pragma once
+
 #include "afx.h"
 #include <afxtempl.h>
 #include <afxmt.h>
@@ -56,7 +60,7 @@
 #define	PTRTYPE_PIPE		2
 
 typedef struct _ScriptCmdsDefs {
-	LPCSTR		name;
+	LPCTSTR		name;
 	int			cmds;
 } ScriptCmdsDefs;
 
@@ -90,7 +94,7 @@ public:
 class CScriptValue : public CObject
 {
 public:
-	CStringA m_Index;
+	CString m_Index;
 	int m_Type;
 	union {
 		int			m_Int;
@@ -117,9 +121,9 @@ public:
 
 	const CScriptValue & operator = (CScriptValue &data);
 	void operator = (class CScriptLex &lex);
-	CScriptValue & operator [] (LPCSTR str);
+	CScriptValue & operator [] (LPCTSTR str);
 	CScriptValue & operator [] (int index);
-	CScriptValue & GetAt(LPCSTR str);
+	CScriptValue & GetAt(LPCTSTR str);
 	CScriptValue & GetAt(int index);
 
 	const int		operator = (int value);
@@ -158,9 +162,10 @@ public:
 	operator void * ();
 
 	void BufCopy(CScriptValue &data);
-	int Find(LPCSTR str);
+	int Find(LPCTSTR str);
+	int FindAt(LPCTSTR str, int pos);
 	int Add(CScriptValue &data);
-	int Add(LPCSTR str);
+	int Add(LPCTSTR str);
 	int GetSize() { return (int)m_Array.GetSize(); }
 	void ArrayCopy(CScriptValue &data);
 	void RemoveAll();
@@ -179,8 +184,8 @@ public:
 	void SetArray(CStringArrayExt &ary, int mode);
 	void SetStr(CString &str, int mode);
 	void SetInt(int &val, int mode);
-	void SetNodeStr(LPCSTR node, CString &str, int mode);
-	void SetNodeInt(LPCSTR node, int &val, int mode);
+	void SetNodeStr(LPCTSTR node, CString &str, int mode);
+	void SetNodeInt(LPCTSTR node, int &val, int mode);
 	void SetIndex(CStringIndex &index);
 	void GetIndex(CStringIndex &index);
 
@@ -273,7 +278,7 @@ enum CScriptVCpuCode
 
 typedef struct _ScriptFunc
 {
-	char	*name;
+	LPCTSTR	name;
 	int		cmd;
 	int		(CScript::*proc)(int cmd, CScriptValue &local);
 } ScriptFunc;
@@ -376,7 +381,7 @@ public:
 	CString m_FormatStr;
 
 	int	InChar(int ch, CHAR *ptn);
-	int	StrBin(int mx, const CHAR *ptn[], LPCSTR str);
+	int	StrBin(int mx, const TCHAR *ptn[], LPCTSTR str);
 
 	int GetChar();
 	void UnGetChar(int ch);

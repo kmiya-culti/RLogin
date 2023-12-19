@@ -64,7 +64,7 @@
 #define IDD_PRNTEXTDLG                  160
 #define IDD_QUICKBAR                    161
 #define IDD_FILEUPDLG                   162
-#define IDD_FILEUPCONVDLG               162
+#define IDD_FILEUPCONVDLG               163
 #define IDD_EXTFILEDLG                  164
 #define IDD_FILEUPSENDDLG               165
 #define IDD_FILEDOWNDLG                 166
@@ -72,9 +72,7 @@
 #define IDD_HISTORYDLG                  168
 #define IDD_VOICEBAR                    169
 #define IDR_TOOLBAR2                    170
-#define IDB_BITMAP10                    172
-#define IDB_BITMAP11                    173
-#define IDB_BITMAP12                    174
+#define IDD_CONVFILEDLG                 171
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -84,7 +82,7 @@
 #define IDR_TEKWND                      306
 #define IDR_STATUSWND                   307
 #define IDR_GRAPWND1                    308
-#define IDR_TRACEWND                    308
+#define IDR_TRACEWND                    309
 #define IDB_ATTR1                       400
 #define IDB_ATTR2                       401
 #define IDB_ATTR3                       402
@@ -113,7 +111,10 @@
 #define IDB_CHECKBOX1                   425
 #define IDB_CHECKBOX2                   426
 #define IDB_CHECKBOX3                   427
-#define IDI_ACTIVE                      430
+#define IDB_BITMAP10                    428
+#define IDB_BITMAP11                    429
+#define IDB_BITMAP12                    430
+#define IDI_ACTIVE                      450
 #define IDS_AGENT_DELKEY                500
 #define IDS_ALLINITREQ                  501
 #define IDS_CERTTRASTREQ                502
@@ -809,6 +810,7 @@
 #define IDC_RECVCRLF                    2303
 #define IDC_RADIO6                      2303
 #define IDC_RECVSTR                     2304
+#define IDC_RADIO7                      2304
 #define IDC_REMOTE_CWD                  2305
 #define IDC_REMOTE_LIST                 2306
 #define IDC_REMOTE_UP                   2307
@@ -1204,7 +1206,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        175
+#define _APS_NEXT_RESOURCE_VALUE        171
 #define _APS_NEXT_COMMAND_VALUE         5155
 #define _APS_NEXT_CONTROL_VALUE         2537
 #define _APS_NEXT_SYMED_VALUE           662

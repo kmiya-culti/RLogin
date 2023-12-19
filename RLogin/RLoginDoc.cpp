@@ -2564,29 +2564,29 @@ void CRLoginDoc::OnUpdateCmdhis(CCmdUI *pCmdUI)
 /////////////////////////////////////////////////////////////////////////////
 
 static const ScriptCmdsDefs DocBase[] = {
-	{	"Entry",		1	},
-	{	"Screen",		2	},
-	{	"KeyCode",		3	},
-	{	"KeyMacro",		4	},
-	{	"ssh",			5	},
-	{	"Title",		6	},
-	{	"Command",		7	},
-	{	"Log",			8	},
-	{	"Open",			9	},
-	{	"Close",		10	},
-	{	"Destroy",		11	},
-	{	"DoOpen",		12	},
-	{	"Connect",		13	},
-	{	"Abort",		14	},
-	{	"CmdLine",		15	},
-	{	NULL,			0	},
+	{	_T("Entry"),		1	},
+	{	_T("Screen"),		2	},
+	{	_T("KeyCode"),		3	},
+	{	_T("KeyMacro"),		4	},
+	{	_T("ssh"),			5	},
+	{	_T("Title"),		6	},
+	{	_T("Command"),		7	},
+	{	_T("Log"),			8	},
+	{	_T("Open"),			9	},
+	{	_T("Close"),		10	},
+	{	_T("Destroy"),		11	},
+	{	_T("DoOpen"),		12	},
+	{	_T("Connect"),		13	},
+	{	_T("Abort"),		14	},
+	{	_T("CmdLine"),		15	},
+	{	NULL,				0	},
 }, DocLog[] = {
-	{	"File",			20	},
-	{	"Mode",			21	},
-	{	"Code",			22	},
-	{	"Open",			23	},
-	{	"Close",		24	},
-	{	NULL,			0	},
+	{	_T("File"),			20	},
+	{	_T("Mode"),			21	},
+	{	_T("Code"),			22	},
+	{	_T("Open"),			23	},
+	{	_T("Close"),		24	},
+	{	NULL,				0	},
 };
 
 void CRLoginDoc::ScriptInit(int cmds, int shift, class CScriptValue &value)
@@ -2603,7 +2603,7 @@ void CRLoginDoc::ScriptInit(int cmds, int shift, class CScriptValue &value)
 		value[DocBase[n].name].m_DocCmds = (DocBase[n].cmds << shift) | cmds;
 
 	for ( int n = 0 ; DocLog[n].name != NULL ; n++ )
-		value["Log"][DocLog[n].name].m_DocCmds = (DocLog[n].cmds << shift) | cmds;
+		value[_T("Log")][DocLog[n].name].m_DocCmds = (DocLog[n].cmds << shift) | cmds;
 }
 void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 {

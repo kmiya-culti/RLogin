@@ -250,11 +250,12 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		SetRecvBufSize(CHAN_SES_PACKET_DEFAULT);
 		srand((UINT)time(NULL));
 		m_bPfdConnect = 0;
-		m_bExtInfo = FALSE;
+		m_ExtInfoStat = EXTINFOSTAT_CHECK;
 		m_ExtInfo.RemoveAll();
 		m_DhGexReqBits = 4096;
 		m_bKnownHostUpdate = TRUE;
 		m_bReqRsaSha1 = FALSE;
+		m_KexStrictStat = KEXSTRICT_CHECK;
 
 		m_KeepAliveSendCount = m_KeepAliveReplyCount = 0;
 		m_KeepAliveRecvGlobalCount = m_KeepAliveRecvChannelCount = 0;
@@ -2485,12 +2486,15 @@ void Cssh::SendMsgNewKeys()
 	tmp.Put8Bit(SSH2_MSG_NEWKEYS);
 	SendPacket2(&tmp);
 
+	if ( m_KexStrictStat ==  KEXSTRICT_ENABLE )
+		m_SendPackSeq = 0;
+
 	if ( !m_EncCip.Init(m_VProp[PROP_ENC_ALGS_CTOS], MODE_ENC, m_VKey[2], (-1), m_VKey[0]) ||
 		 !m_EncMac.Init(m_VProp[PROP_MAC_ALGS_CTOS], m_VKey[4], (-1)) ||
 		 !m_EncCmp.Init(m_VProp[PROP_COMP_ALGS_CTOS], MODE_ENC, COMPLEVEL) )
 		Close();
 
-	if ( m_bExtInfo ) {
+	if ( m_ExtInfoStat == EXTINFOSTAT_SEND ) {
 		tmp.Clear();
 		tmp.Put8Bit(SSH2_MSG_EXT_INFO);
 		tmp.Put32Bit(1);
@@ -2498,7 +2502,7 @@ void Cssh::SendMsgNewKeys()
 		tmp.PutStr("rsa-sha2-256,rsa-sha2-512");
 		SendPacket2(&tmp);
 		// 最初だけ送れば良い？
-		m_bExtInfo = FALSE;
+		m_ExtInfoStat = EXTINFOSTAT_DONE;
 	}
 }
 
@@ -3238,14 +3242,23 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	if ( kextab[n].name == NULL )
 		return (-1);
 
-	if ( _tcsstr(m_SProp[PROP_KEX_ALGS], _T("ext-info-s")) != NULL ) {
-		// ext-info-sによりSSH2_MSG_NEWKEYSの後にSSH2_MSG_EXT_INFOを送る必要があるのか？
-		// PROP_HOST_KEY_ALGSで"rsa-sha2-256/512"を指定するのだから不用なような気がする
-		m_bExtInfo = TRUE;
+	if ( m_ExtInfoStat == EXTINFOSTAT_CHECK ) {
+		if ( _tcsstr(m_SProp[PROP_KEX_ALGS], _T("ext-info-s")) != NULL ) {
+			// ext-info-sによりSSH2_MSG_NEWKEYSの後にSSH2_MSG_EXT_INFOを送る必要があるのか？
+			// PROP_HOST_KEY_ALGSで"rsa-sha2-256/512"を指定するのだから不用なような気がする
+			m_ExtInfoStat = EXTINFOSTAT_SEND;
+			m_VProp[PROP_KEX_ALGS] += _T(",ext-info-c");
+		} else
+			m_ExtInfoStat = EXTINFOSTAT_DONE;
+	}
 
-		// ext-info-cは、常に送るのが正解？
-		// これもrsa-sha2-256/512でサインを試せば良いだけのように思う
-		m_VProp[PROP_KEX_ALGS] += _T(",ext-info-c");
+	if ( m_KexStrictStat == KEXSTRICT_CHECK ) {
+		if ( _tcsstr(m_SProp[PROP_KEX_ALGS], _T("kex-strict-s-v00@openssh.com")) != NULL ) {
+			// openssh-9.6p1から導入された(CVE-2023-48795)
+			m_KexStrictStat = KEXSTRICT_ENABLE;
+			m_VProp[PROP_KEX_ALGS] += _T(",kex-strict-c-v00@openssh.com");
+		} else
+			m_KexStrictStat = KEXSTRICT_DISABLE;
 	}
 
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 ) {
@@ -3837,6 +3850,9 @@ int Cssh::SSH2MsgNewKeys(CBuffer *bp)
 		 !m_DecMac.Init(m_VProp[PROP_MAC_ALGS_STOC], m_VKey[5], (-1)) ||
 		 !m_DecCmp.Init(m_VProp[PROP_COMP_ALGS_STOC], MODE_DEC, COMPLEVEL) )
 		return (-1);
+
+	if ( m_KexStrictStat == KEXSTRICT_ENABLE )
+		m_RecvPackSeq = 0;
 
 	return 0;
 }
@@ -4996,16 +5012,18 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		AfxMessageBox(LocalStr(tmp));
 		break;
 
-	case SSH2_MSG_IGNORE:
-	case SSH2_MSG_UNIMPLEMENTED:
-		break;
 	case SSH2_MSG_DEBUG:
 #ifdef	DEBUG_XXX
 		bp->Get8Bit();
 		bp->GetStr(str);
 		tmp.Format("SSH2 Debug Message\n%s", str);
 		AfxMessageBox(LocalStr(tmp), MB_ICONINFORMATION);
+		// no break
 #endif
+	case SSH2_MSG_IGNORE:
+	case SSH2_MSG_UNIMPLEMENTED:
+		if ( m_KexStrictStat == KEXSTRICT_ENABLE && (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
+			goto DISCONNECT;
 		break;
 
 	default:

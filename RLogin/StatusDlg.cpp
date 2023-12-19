@@ -10,6 +10,7 @@
 #include "StatusDlg.h"
 #include "Script.h"
 #include "PrnTextDlg.h"
+#include "ExtFileDialog.h"
 
 // CStatusDlg ダイアログ
 
@@ -38,6 +39,7 @@ void CStatusDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CStatusDlg, CDialogExt)
 	ON_WM_SIZE()
 	ON_WM_CLOSE()
+	ON_WM_DROPFILES()
 	ON_COMMAND(IDM_TEK_SAVE, &CStatusDlg::OnStatusSave)
 	ON_COMMAND(IDM_TEK_CLOSE, &CStatusDlg::OnStatusClose)
 	ON_COMMAND(IDM_TEK_CLEAR, &CStatusDlg::OnStatusClear)
@@ -52,6 +54,8 @@ END_MESSAGE_MAP()
 BOOL CStatusDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
+
+	DragAcceptFiles(TRUE);
 
 	CWnd *pWnd;
 	HMENU hMenu;
@@ -88,14 +92,13 @@ void CStatusDlg::OnSize(UINT nType, int cx, int cy)
 	CDialogExt::OnSize(nType, cx, cy);
 }
 
-void CStatusDlg::GetStatusText(CString &status)
+LPCTSTR CStatusDlg::GetStatusText()
 {
-	if ( m_bEdit )
+	if ( m_bEdit && m_StatusWnd.GetModify() )
 		m_StatusWnd.GetWindowText(m_StatusText);
 
-	status = m_StatusText;
+	return m_StatusText;
 }
-
 void CStatusDlg::SetStatusText(LPCTSTR status)
 {
 	m_StatusText = status;
@@ -126,7 +129,7 @@ void CStatusDlg::PostNcDestroy()
 	if ( m_pValue != NULL ) {
 		switch(m_OwnerType) {
 		case 1:
-			((CScriptValue *)m_pValue)->GetAt("pWnd") = (void *)NULL;
+			((CScriptValue *)m_pValue)->GetAt(_T("pWnd")) = (void *)NULL;
 			break;
 		case 2:
 			((CRLoginDoc *)m_pValue)->m_pStatusWnd = NULL;
@@ -156,19 +159,24 @@ void CStatusDlg::OnClose()
 
 void CStatusDlg::OnStatusSave()
 {
+	int s, e;
+	INT_PTR res;
 	CFile File;
-	CStringA mbs;
-	CFileDialog dlg(FALSE, _T("txt"), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), this);
+	CBuffer tmp;
+	CConvFileDialog dlg(FALSE, _T("txt"), _T(""), OFN_OVERWRITEPROMPT | OFN_ENABLESIZING, CStringLoad(IDS_FILEDLGALLFILE), this);
 
-	if ( DpiAwareDoModal(dlg) != IDOK )
+	m_StatusWnd.GetSel(s, e);
+	res = DpiAwareDoModal(dlg);
+	m_StatusWnd.SetSel(s, e, TRUE);
+
+	if ( res != IDOK )
 		return;
 
 	try {
 		if ( File.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeReadWrite | CFile::shareExclusive) ) {
-			if ( m_bEdit )
-				m_StatusWnd.GetWindowText(m_StatusText);
-			mbs = m_StatusText;
-			File.Write((LPCSTR)mbs, mbs.GetLength());
+			tmp = (LPCTSTR)GetStatusText();
+			tmp.WstrConvert(dlg.m_Code, dlg.m_CrLf);
+			File.Write(tmp.GetPtr(), tmp.GetSize());
 			File.Close();
 		}
 	} catch(...) {
@@ -195,12 +203,8 @@ void CStatusDlg::OnStatusCopy()
 
 	if ( sta != end )
 		m_StatusWnd.Copy();
-	else {
-		if ( m_bEdit )
-			m_StatusWnd.GetWindowText(m_StatusText);
-
-		((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(m_StatusText);
-	}
+	else
+		((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(GetStatusText());
 }
 
 void CStatusDlg::OnFilePrintSetup()
@@ -260,8 +264,7 @@ void CStatusDlg::OnFilePrint()
 	dc.SetBkColor(RGB(255, 255, 255));
 	dc.SetBkMode(TRANSPARENT);
 
-	if ( m_bEdit )
-		m_StatusWnd.GetWindowText(m_StatusText);
+	GetStatusText();
 
 	dc.StartDoc(&docinfo);
 	dc.StartPage();
@@ -342,4 +345,23 @@ LRESULT CStatusDlg::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 	}
 
 	return result;
+}
+
+void CStatusDlg::OnDropFiles(HDROP hDropInfo)
+{
+    int i;
+	TCHAR FileName[MAX_PATH * 2];
+    int FileCount;
+
+    FileCount = DragQueryFile(hDropInfo, 0xffffffff, FileName, sizeof(FileName));
+
+	for( i = 0 ; i < FileCount ; i++ ) {
+		DragQueryFile(hDropInfo, i, FileName, sizeof(FileName));
+
+		CBuffer text;
+		text.LoadFile(FileName);
+		text.KanjiConvert(text.KanjiCheck());
+
+		SetStatusText((LPCTSTR)text);
+	}
 }

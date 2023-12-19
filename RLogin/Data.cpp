@@ -1,6 +1,5 @@
-// Data.cpp: CData クラスのインプリメンテーション
-//
 //////////////////////////////////////////////////////////////////////
+// Data.cpp: CData クラスのインプリメンテーション
 
 #include "stdafx.h"
 #include "RLogin.h"
@@ -18,6 +17,7 @@
 #include <olectl.h>
 #include <ole2.h>
 #include <afxinet.h>
+#include <mbctype.h>
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -2039,14 +2039,6 @@ void CBuffer::IshEncNjis(LPBYTE buf, int len)
 }
 
 //////////////////////////////////////////////////////////////////////
-//
-// RFC 7540 - Hypertext Transfer Protocol Version 2 (HTTP/2)
-// RFC 7541 - HPACK: Header Compression for HTTP/2
-// RFC 9000 - QUIC: A UDP-Based Multiplexed and Secure Transport
-// RFC 9204 - QPACK: Field Compression for HTTP/3
-// RFC 9113 - HTTP/2
-// RFC 9114 - HTTP/3
-
 //	RFC 9000 - QUIC: A UDP-Based Multiplexed and Secure Transport
 //	16. Variable-Length Integer Encoding
 //	+======+========+=============+=======================+
@@ -2104,71 +2096,6 @@ void CBuffer::PutVarInt(ULONGLONG data)
 	for ( bits = 8 * bytes ; bits >= 8 ; bits -= 8 )
 		PutByte((BYTE)(data >> (bits - 8)));
 }
-
-// RFC 9114 - HTTP/3
-// 7. HTTP Framing Layer
-// +==============+================+================+========+=========+
-// | Frame        | Control Stream | Request        | Push   | Section |
-// |              |                | Stream         | Stream |         |
-// +==============+================+================+========+=========+
-// | DATA         | No             | Yes            | Yes    | Section |
-// |              |                |                |        | 7.2.1   |
-// +--------------+----------------+----------------+--------+---------+
-// | HEADERS      | No             | Yes            | Yes    | Section |
-// |              |                |                |        | 7.2.2   |
-// +--------------+----------------+----------------+--------+---------+
-// | CANCEL_PUSH  | Yes            | No             | No     | Section |
-// |              |                |                |        | 7.2.3   |
-// +--------------+----------------+----------------+--------+---------+
-// | SETTINGS     | Yes (1)        | No             | No     | Section |
-// |              |                |                |        | 7.2.4   |
-// +--------------+----------------+----------------+--------+---------+
-// | PUSH_PROMISE | No             | Yes            | No     | Section |
-// |              |                |                |        | 7.2.5   |
-// +--------------+----------------+----------------+--------+---------+
-// | GOAWAY       | Yes            | No             | No     | Section |
-// |              |                |                |        | 7.2.6   |
-// +--------------+----------------+----------------+--------+---------+
-// | MAX_PUSH_ID  | Yes            | No             | No     | Section |
-// |              |                |                |        | 7.2.7   |
-// +--------------+----------------+----------------+--------+---------+
-// | Reserved     | Yes            | Yes            | Yes    | Section |
-// |              |                |                |        | 7.2.8   |
-// +--------------+----------------+----------------+--------+---------+
-// 11.2.1. Frame Types
-// +==============+=======+===============+
-// | Frame Type   | Value | Specification |
-// +==============+=======+===============+
-// | DATA         |  0x00 | Section 7.2.1 |
-// +--------------+-------+---------------+
-// | HEADERS      |  0x01 | Section 7.2.2 |
-// +--------------+-------+---------------+
-// | Reserved     |  0x02 | This document |
-// +--------------+-------+---------------+
-// | CANCEL_PUSH  |  0x03 | Section 7.2.3 |
-// +--------------+-------+---------------+
-// | SETTINGS     |  0x04 | Section 7.2.4 |
-// +--------------+-------+---------------+
-// | PUSH_PROMISE |  0x05 | Section 7.2.5 |
-// +--------------+-------+---------------+
-// | Reserved     |  0x06 | This document |
-// +--------------+-------+---------------+
-// | GOAWAY       |  0x07 | Section 7.2.6 |
-// +--------------+-------+---------------+
-// | Reserved     |  0x08 | This document |
-// +--------------+-------+---------------+
-// | Reserved     |  0x09 | This document |
-// +--------------+-------+---------------+
-// | MAX_PUSH_ID  |  0x0d | Section 7.2.7 |
-// +--------------+-------+---------------+
-//
-// DATA Frame { Type (i) = 0x00, Length (i), Data (..), }
-// HEADERS Frame { Type (i) = 0x01, Length (i), Encoded Field Section (..), }
-// CANCEL_PUSH Frame { Type (i) = 0x03, Length (i), Push ID (i), }
-// SETTINGS Frame { Type (i) = 0x04, Length (i), Setting { Identifier (i), Value (i) } (..) ..., }
-// PUSH_PROMISE Frame { Type (i) = 0x05, Length (i), Push ID (i), Encoded Field Section (..), }
-// GOAWAY Frame { Type (i) = 0x07, Length (i), Stream ID/Push ID (i), }
-// MAX_PUSH_ID Frame { Type (i) = 0x0d, Length (i), Push ID (i), }
 
 //////////////////////////////////////////////////////////////////////
 // RFC 7541 - HPACK: Header Compression for HTTP/2
@@ -2355,545 +2282,54 @@ void CBuffer::PutPackStr(LPCSTR str, int flags, int prefix)
 }
 
 //////////////////////////////////////////////////////////////////////
-// RFC 9204 - QPACK: Field Compression for HTTP/3 (RFC 9204) 
 
-// 4.3. Encoder Instructions
-// 4.3.2. Insert with Name Reference
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 1 | T |    Name Index (6+)    |
-//   +---+---+-----------------------+
-//   | H |     Value Length (7+)     |
-//   +---+---------------------------+
-//   |  Value String (Length bytes)  |
-//   +-------------------------------+
-// 4.3.3. Insert with Literal Name
-//    0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 1 | H | Name Length (5+)  |
-//   +---+---+---+-------------------+
-//   |  Name String (Length bytes)   |
-//   +---+---------------------------+
-//   | H |     Value Length (7+)     |
-//   +---+---------------------------+
-//   |  Value String (Length bytes)  |
-//   +-------------------------------+
-// 4.3.1. Set Dynamic Table Capacity
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 0 | 1 |   Capacity (5+)   |
-//   +---+---+---+-------------------+
-// 4.3.4. Duplicate
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 0 | 0 |    Index (5+)     |
-//   +---+---+---+-------------------+
-
-// 4.4. Decoder Instructions
-// 4.4.1. Section Acknowledgment
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 1 |      Stream ID (7+)       |
-//   +---+---------------------------+
-// 4.4.2. Stream Cancellation
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 1 |     Stream ID (6+)    |
-//   +---+---+-----------------------+
-// 4.4.3. Insert Count Increment
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 0 |     Increment (6+)    |
-//   +---+---+-----------------------+
-
-// 4.5. Field Line Representations
-// 4.5.1. Encoded Field Section Prefix
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   |   Required Insert Count (8+)  |
-//   +---+---------------------------+
-//   | S |      Delta Base (7+)      |
-//   +---+---------------------------+
-//   |      Encoded Field Lines    ...
-//   +-------------------------------+
-
-// 4.5.2. Indexed Field Line
-//   When T=1, the number represents the static table index;
-//   when T=0, the number is the relative index of the entry in the dynamic table.
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 1 | T |      Index (6+)       |
-//   +---+---+-----------------------+
-// 4.5.4. Literal Field Line with Name Reference
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 1 | N | T |Name Index (4+)|
-//   +---+---+---+---+---------------+
-//   | H |     Value Length (7+)     |
-//   +---+---------------------------+
-//   |  Value String (Length bytes)  |
-//   +-------------------------------+
-// 4.5.6. Literal Field Line with Literal Name
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 0 | 1 | N | H |NameLen(3+)|
-//   +---+---+---+---+---+-----------+
-//   |  Name String (Length bytes)   |
-//   +---+---------------------------+
-//   | H |     Value Length (7+)     |
-//   +---+---------------------------+
-//   |  Value String (Length bytes)  |
-//   +-------------------------------+
-// 4.5.3. Indexed Field Line with Post-Base Index
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 0 | 0 | 1 |  Index (4+)   |
-//   +---+---+---+---+---------------+
-// 4.5.5. Literal Field Line with Post-Base Name Reference
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 0 | 0 | 0 | N |NameIdx(3+)|
-//   +---+---+---+---+---+-----------+
-//   | H |     Value Length (7+)     |
-//   +---+---------------------------+
-//   |  Value String (Length bytes)  |
-//   +-------------------------------+
-
-#include "qpack_table.h"
-
-BOOL CBuffer::GetQPackField(CStringA &name, CStringA &value)
-{
-	int flag;
-	ULONGLONG data;
-	int saveOfs = m_Ofs;
-	BYTE *p = m_Data + m_Ofs;
-
-	name.Empty();
-	value.Empty();
-
-	if ( m_Ofs >= m_Len )
-		return FALSE;
-
-	if ( (*p & 0x80) != 0 ) {			// 4.5.2. Indexed Field Line
-		if ( !GetPackInt(&data, &flag, 6) )
-			goto CONTINUE;
-		if ( (flag & 0x40) != 0 && data < QPACK_FIELD_MAX ) {
-			name = qpack_field_tab[(int)data].name;
-			value = qpack_field_tab[(int)data].value;
-		}
-
-	} else if ( (*p & 0x40) != 0 ) {	// 4.5.4. Literal Field Line with Name Reference
-		if ( !GetPackInt(&data, &flag, 4) )
-			goto CONTINUE;
-		if ( !GetPackStr(value, NULL, 7) )
-			goto CONTINUE;
-		if ( (flag & 0x10) != 0 && data < QPACK_FIELD_MAX )
-			name = qpack_field_tab[(int)data].name;
-	
-	} else if ( (*p & 0x20) != 0 ) {	// 4.5.6. Literal Field Line with Literal Name
-		if ( !GetPackStr(name, &flag, 3) )
-			goto CONTINUE;
-		if ( !GetPackStr(value, NULL, 7) )
-			goto CONTINUE;
-
-	} else if ( (*p & 0x10) != 0 ) {	// 4.5.3. Indexed Field Line with Post-Base Index
-		if ( !GetPackInt(&data, &flag, 4) )
-			goto CONTINUE;
-		// no dynamic table
-
-	} else {							// 4.5.5. Literal Field Line with Post-Base Name Reference
-		if ( !GetPackInt(&data, &flag, 3) )
-			goto CONTINUE;
-		if ( !GetPackStr(value, NULL, 7) )
-			goto CONTINUE;
-		// no dynamic table
-	}
-
-	return TRUE;
-
-CONTINUE:
-	m_Ofs = saveOfs;
-	return FALSE;
-}
-void CBuffer::PutQPackField(LPCSTR name, LPCSTR value)
-{
-	int n, i;
-	static CScriptValue QpackField;
-
-	if ( QpackField.GetSize() == 0 ) {
-		QpackField.m_bNoCase = TRUE;
-		for ( n = 0 ; n < QPACK_FIELD_MAX ; n++ ) {
-			if ( QpackField.Find(qpack_field_tab[n].name) < 0 )
-				QpackField[qpack_field_tab[n].name] = n;
-			if ( *qpack_field_tab[n].value != '\0' )
-				QpackField[qpack_field_tab[n].name][qpack_field_tab[n].value] = n;
-		}
-	}
-
-	if ( (n = QpackField.Find(name)) >= 0 ) {
-		if ( (i = QpackField[n].Find(value)) >= 0 ) {
-			// 4.5.2. Indexed Field Line
-			PutPackInt((int)QpackField[n][i], 0xC0, 6);		// 1T, T=1
-		} else {
-			// 4.5.4. Literal Field Line with Name Reference
-			PutPackInt((int)QpackField[n], 0x70, 4);		// 01NT, N=1, T=1
-			PutPackStr(value, 0x00, 7);
-		}
-	} else {
-		// 4.5.6. Literal Field Line with Literal Name
-		PutPackStr(name, 0x30, 3);							// 001N, N=1
-		PutPackStr(value, 0x00, 7);
-	}
-}
-
-// RFC 7540 - Hypertext Transfer Protocol Version 2 (HTTP/2)
-// 4.1. Frame Format
-//    +-----------------------------------------------+
-//    |                 Length (24)                   |
-//    +---------------+---------------+---------------+
-//    |   Type (8)    |   Flags (8)   |
-//    +-+-------------+---------------+-------------------------------+
-//    |R|                 Stream Identifier (31)                      |
-//    +=+=============================================================+
-//    |                   Frame Payload (0...)                      ...
-//    +---------------------------------------------------------------+
-// 11.2. Frame Type Registry
-//   +---------------+------+--------------+
-//   | Frame Type    | Code | Section      |
-//   +---------------+------+--------------+
-//   | DATA          | 0x0  | Section 6.1  |
-//   | HEADERS       | 0x1  | Section 6.2  |
-//   | PRIORITY      | 0x2  | Section 6.3  |
-//   | RST_STREAM    | 0x3  | Section 6.4  |
-//   | SETTINGS      | 0x4  | Section 6.5  |
-//   | PUSH_PROMISE  | 0x5  | Section 6.6  |
-//   | PING          | 0x6  | Section 6.7  |
-//   | GOAWAY        | 0x7  | Section 6.8  |
-//   | WINDOW_UPDATE | 0x8  | Section 6.9  |
-//   | CONTINUATION  | 0x9  | Section 6.10 |
-//   +---------------+------+--------------+
-
-// 6.1. DATA
-// DATA frames (type=0x0)
-// END_STREAM (0x1): When set, bit 0 indicates that this frame is the last that the endpoint 
-// PADDED (0x8): When set, bit 3 indicates that the Pad Length field and any padding that it describes are present.
-//    +---------------+
-//    |Pad Length? (8)|
-//    +---------------+-----------------------------------------------+
-//    |                            Data (*)                         ...
-//    +---------------------------------------------------------------+
-//    |                           Padding (*)                       ...
-//    +---------------------------------------------------------------+
-
-// 6.2. HEADERS
-// HEADERS frame (type=0x1)
-// END_STREAM (0x1): When set, bit 0 indicates that the header block
-// END_HEADERS (0x4): When set, bit 2 indicates that this frame contains an entire header block
-// PADDED (0x8): When set, bit 3 indicates that the Pad Length field and any padding that it describes are present.
-// PRIORITY (0x20): When set, bit 5 indicates that the Exclusive Flag (E), Stream Dependency
-//    +---------------+
-//    |Pad Length? (8)|
-//    +-+-------------+-----------------------------------------------+
-//    |E|                 Stream Dependency? (31)                     |
-//    +-+-------------+-----------------------------------------------+
-//    |  Weight? (8)  |
-//    +-+-------------+-----------------------------------------------+
-//    |                   Header Block Fragment (*)                 ...
-//    +---------------------------------------------------------------+
-//    |                           Padding (*)                       ...
-//    +---------------------------------------------------------------+
-// E: A single-bit flag indicating that the stream dependency is exclusive (see Section 5.3). This field is only present if the PRIORITY flag is set.
-// Stream Dependency: A 31-bit stream identifier for the stream that this stream depends on (see Section 5.3). This field is only present if the PRIORITY flag is set.
-// Weight: An unsigned 8-bit integer representing a priority weight for the stream
-// Header Block Fragment: A header block fragment
-
-// 6.3. PRIORITY
-//    +-+-------------------------------------------------------------+
-//    |E|                  Stream Dependency (31)                     |
-//    +-+-------------+-----------------------------------------------+
-//    |   Weight (8)  |
-//    +-+-------------+
-
-// 6.4. RST_STREAM
-//    +---------------------------------------------------------------+
-//    |                        Error Code (32)                        |
-//    +---------------------------------------------------------------+
-
-// 6.5. SETTINGS
-// SETTINGS frame (type=0x4)
-// ACK (0x1) When set, bit 0 indicates that this frame acknowledges receipt and application of the peer's SETTINGS frame. When this bit is set, the payload of the SETTINGS frame MUST be empty.
-// stream identifier for a SETTINGS frame MUST be zero (0x0). 
-//    +-------------------------------+
-//    |       Identifier (16)         |
-//    +-------------------------------+-------------------------------+
-//    |                        Value (32)                             |
-//    +---------------------------------------------------------------+
-// 6.5.2. Defined SETTINGS Parameters
-// SETTINGS_HEADER_TABLE_SIZE (0x1)				4096
-// SETTINGS_ENABLE_PUSH (0x2)					1
-// SETTINGS_MAX_CONCURRENT_STREAMS (0x3)		0		= 100
-// SETTINGS_INITIAL_WINDOW_SIZE (0x4)			65535	+= 0x7FFF0000
-// SETTINGS_MAX_FRAME_SIZE (0x5)				16384
-// SETTINGS_MAX_HEADER_LIST_SIZE (0x6)			0
-// SETTINGS_ENABLE_CONNECT_PROTOCOL (0x8)		0		RFC 8441 - Bootstrapping WebSockets with HTTP/2
-
-// 6.6. PUSH_PROMISE
-//    +---------------+
-//    |Pad Length? (8)|
-//    +-+-------------+-----------------------------------------------+
-//    |R|                  Promised Stream ID (31)                    |
-//    +-+-----------------------------+-------------------------------+
-//    |                   Header Block Fragment (*)                 ...
-//    +---------------------------------------------------------------+
-//    |                           Padding (*)                       ...
-//    +---------------------------------------------------------------+
-
-// 6.7. PING
-//    +---------------------------------------------------------------+
-//    |                      Opaque Data (64)                         |
-//    |                                                               |
-//    +---------------------------------------------------------------+
-
-// 6.8. GOAWAY
-//    +-+-------------------------------------------------------------+
-//    |R|                  Last-Stream-ID (31)                        |
-//    +-+-------------------------------------------------------------+
-//    |                      Error Code (32)                          |
-//    +---------------------------------------------------------------+
-//    |                  Additional Debug Data (*)                    |
-//    +---------------------------------------------------------------+
-
-// 6.9. WINDOW_UPDATE
-//    +-+-------------------------------------------------------------+
-//    |R|              Window Size Increment (31)                     |
-//    +-+-------------------------------------------------------------+
-
-// 6.10. CONTINUATION
-// END_HEADERS (0x4): When set, bit 2 indicates that this frame ends a header block
-//    +---------------------------------------------------------------+
-//    |                   Header Block Fragment (*)                 ...
-//    +---------------------------------------------------------------+
-
-BOOL CBuffer::GetHPackFrame(int &length, int &type, int &flag, DWORD &sid)
-{
-	BYTE *p = m_Data + m_Ofs;
-
-	if ( (m_Len - m_Ofs) < 9 )
-		return FALSE;
-
-	// network byte order (big endian)
-
-	length  = *(p++) << 16;
-	length |= *(p++) << 8;
-	length |= *(p++);
-
-	type = *(p++);
-	flag = *(p++);
-
-	sid  = *(p++) << 24;
-	sid |= *(p++) << 16;
-	sid |= *(p++) << 8;
-	sid |= *(p++);
-
-	return TRUE;
-}
-
-// RFC 7541 - HPACK: Header Compression for HTTP/2
-// 6.1. Indexed Header Field Representation
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 1 |        Index (7+)         |
-//   +---+---------------------------+
-// 6.2.1. Literal Header Field with Incremental Indexing
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 1 |      Index (6+)       |
-//   +---+---+-----------------------+
-//   | H |     Value Length (7+)     |
-//   +---+---------------------------+
-//   | Value String (Length octets)  |
-//   +-------------------------------+
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 1 |           0           |
-//   +---+---+-----------------------+
-//   | H |     Name Length (7+)      |
-//   +---+---------------------------+
-//   |  Name String (Length octets)  |
-//   +---+---------------------------+
-//   | H |     Value Length (7+)     |
-//   +---+---------------------------+
-//   | Value String (Length octets)  |
-//   +-------------------------------+
-// 6.3. Dynamic Table Size Update
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 0 | 1 |   Max size (5+)   |
-//   +---+---------------------------+
-// 6.2.3. Literal Header Field Never Indexed
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 0 | 0 | 1 |  Index (4+)   |
-//   +---+---+-----------------------+
-//   | H |     Value Length (7+)     |
-//   +---+---------------------------+
-//   | Value String (Length octets)  |
-//   +-------------------------------+
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 0 | 0 | 1 |       0       |
-//   +---+---+-----------------------+
-//   | H |     Name Length (7+)      |
-//   +---+---------------------------+
-//   |  Name String (Length octets)  |
-//   +---+---------------------------+
-//   | H |     Value Length (7+)     |
-//   +---+---------------------------+
-//   | Value String (Length octets)  |
-//   +-------------------------------+
-// 6.2.2. Literal Header Field without Indexing
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 0 | 0 | 0 |  Index (4+)   |
-//   +---+---+-----------------------+
-//   | H |     Value Length (7+)     |
-//   +---+---------------------------+
-//   | Value String (Length octets)  |
-//   +-------------------------------+
-//     0   1   2   3   4   5   6   7
-//   +---+---+---+---+---+---+---+---+
-//   | 0 | 0 | 0 | 0 |       0       |
-//   +---+---+-----------------------+
-//   | H |     Name Length (7+)      |
-//   +---+---------------------------+
-//   |  Name String (Length octets)  |
-//   +---+---------------------------+
-//   | H |     Value Length (7+)     |
-//   +---+---------------------------+
-//   | Value String (Length octets)  |
-//   +-------------------------------+
-
-BOOL CBuffer::GetHPackField(CStringA &name, CStringA &value)
-{
-	int flag, index;
-	ULONGLONG data;
-	int saveOfs = m_Ofs;
-	BYTE *p = m_Data + m_Ofs;
-
-	name.Empty();
-	value.Empty();
-
-	if ( m_Ofs >= m_Len )
-		return FALSE;
-
-	if ( (*p & 0x80) != 0 ) {
-		// 6.1. Indexed Header Field Representation
-		if ( !GetPackInt(&data, &flag, 7) )
-			goto CONTINUE;
-		if ( (index = (int)data - 1) >= 0 && index < QPACK_FIELD_MAX ) {
-			name = hpack_field_tab[index].name;
-			value = hpack_field_tab[index].value;
-		}
-
-	} else if ( (*p & 0x40) != 0 ) {
-		// 6.2.1. Literal Header Field with Incremental Indexing
-		if ( !GetPackInt(&data, &flag, 6) )
-			goto CONTINUE;
-
-		if ( data == 0 ) {
-			// Figure 7: Literal Header Field with Incremental Indexing -- New Name
-			if ( !GetPackStr(name, NULL, 7) )
-				goto CONTINUE;
-		} else if ( (index = (int)data - 1) >= 0 && index < QPACK_FIELD_MAX )
-			// Figure 6: Literal Header Field with Incremental Indexing -- Indexed Name
-			name = hpack_field_tab[index].name;
-
-		if ( !GetPackStr(value, NULL, 7) )
-			goto CONTINUE;
-
-	} else if ( (*p & 0x20) != 0 ) {
-		// 6.3. Dynamic Table Size Update
-		if ( !GetPackInt(&data, &flag, 5) )
-			goto CONTINUE;
-
-	} else if ( (*p & 0x10) != 0 ) {
-		// 6.2.3. Literal Header Field Never Indexed
-		if ( !GetPackInt(&data, &flag, 4) )
-			goto CONTINUE;
-
-		if ( data == 0 ) {
-			if ( !GetPackStr(name, NULL, 7) )
-				goto CONTINUE;
-		} else if ( (index = (int)data - 1) >= 0 && index < QPACK_FIELD_MAX )
-			name = hpack_field_tab[index].name;
-
-		if ( !GetPackStr(value, NULL, 7) )
-			goto CONTINUE;
-
-	} else {
-		// 6.2.2. Literal Header Field without Indexing
-		if ( !GetPackInt(&data, &flag, 4) )
-			goto CONTINUE;
-
-		if ( data == 0 ) {
-			if ( !GetPackStr(name, NULL, 7) )
-				goto CONTINUE;
-		} else if ( (index = (int)data - 1) >= 0 && index < QPACK_FIELD_MAX )
-			name = hpack_field_tab[index].name;
-
-		if ( !GetPackStr(value, NULL, 7) )
-			goto CONTINUE;
-	}
-
-	return TRUE;
-
-CONTINUE:
-	m_Ofs = saveOfs;
-	return FALSE;
-}
-void CBuffer::PutHPackField(LPCSTR name, LPCSTR value)
-{
-	int n, i;
-	static CScriptValue HpackField;
-
-	if ( HpackField.GetSize() == 0 ) {
-		HpackField.m_bNoCase = TRUE;
-		for ( n = 0 ; n < HPACK_FIELD_MAX ; n++ ) {
-			if ( HpackField.Find(hpack_field_tab[n].name) < 0 )
-				HpackField[hpack_field_tab[n].name] = n + 1;
-			if ( *hpack_field_tab[n].value != '\0' )
-				HpackField[hpack_field_tab[n].name][hpack_field_tab[n].value] = n + 1;
-		}
-	}
-
-	if ( (n = HpackField.Find(name)) >= 0 ) {
-		if ( (i = HpackField[n].Find(value)) >= 0 ) {
-			// 6.1. Indexed Header Field Representation
-			PutPackInt((int)HpackField[n][i], 0x80, 7);
-		} else {
-			// 6.2.2. Literal Header Field without Indexing
-			PutPackInt((int)HpackField[n], 0x00, 4);
-			PutPackStr(value, 0x00, 7);
-		}
-	} else {
-		// 6.2.2. Literal Header Field without Indexing
-		PutPackInt(0, 0x00, 4);
-		PutPackStr(name, 0x00, 7);
-		PutPackStr(value, 0x00, 7);
-	}
-}
-
-//////////////////////////////////////////////////////////////////////
-
-void CBuffer::md5(LPCTSTR str)
+void CBuffer::Hash(LPCTSTR algo, LPCSTR str)
 {
 	int dlen;
+	const EVP_MD *md = EVP_md5();
 	u_char digest[EVP_MAX_MD_SIZE];
-	CStringA tmp(str);
 
-	dlen = MD_digest(EVP_md5(), (BYTE *)(LPCSTR)tmp, tmp.GetLength(), digest, sizeof(digest));
+	if ( algo == NULL || *algo == _T('\0') || _tcsicmp(algo, _T("md5")) == 0 )
+		md = EVP_md5();
+	else if ( _tcsicmp(algo, _T("ripemd160")) == 0 )
+		md = EVP_ripemd160();
+	else if ( _tcsicmp(algo, _T("whirlpool")) == 0 )
+		md = EVP_whirlpool();
+
+	else if ( _tcsicmp(algo, _T("sha-1")) == 0 || _tcsicmp(algo, _T("sha1")) == 0 )
+		md = EVP_sha256();
+	else if ( _tcsicmp(algo, _T("sha-224")) == 0 || _tcsicmp(algo, _T("sha224")) == 0 || _tcsicmp(algo, _T("sha2-224")) == 0 )
+		md = EVP_sha224();
+	else if ( _tcsicmp(algo, _T("sha-256")) == 0 || _tcsicmp(algo, _T("sha256")) == 0 || _tcsicmp(algo, _T("sha2-256")) == 0 )
+		md = EVP_sha256();
+	else if ( _tcsicmp(algo, _T("sha-384")) == 0 || _tcsicmp(algo, _T("sha384")) == 0 || _tcsicmp(algo, _T("sha2-384")) == 0 )
+		md = EVP_sha384();
+	else if ( _tcsicmp(algo, _T("sha-512")) == 0 || _tcsicmp(algo, _T("sha512")) == 0 || _tcsicmp(algo, _T("sha2-512")) == 0 )
+		md = EVP_sha512();
+
+	else if ( _tcsicmp(algo, _T("sha3-224")) == 0 )
+		md = EVP_sha3_224();
+	else if ( _tcsicmp(algo, _T("sha3-256")) == 0 )
+		md = EVP_sha3_256();
+	else if ( _tcsicmp(algo, _T("sha3-384")) == 0 )
+		md = EVP_sha3_384();
+	else if ( _tcsicmp(algo, _T("sha3-512")) == 0 )
+		md = EVP_sha3_512();
+
+	else if ( _tcsicmp(algo, _T("shake-128")) == 0 || _tcsicmp(algo, _T("shake128")) == 0 )
+		md = EVP_shake128();
+	else if ( _tcsicmp(algo, _T("shake-256")) == 0 || _tcsicmp(algo, _T("shake256")) == 0 )
+		md = EVP_shake256();
+
+	else if ( _tcsicmp(algo, _T("blake2b-512")) == 0 || _tcsicmp(algo, _T("blake2b512")) == 0 )
+		md = EVP_blake2b512();
+	else if ( _tcsicmp(algo, _T("blake2s-256")) == 0 || _tcsicmp(algo, _T("blake2s256")) == 0 )
+		md = EVP_blake2s256();
+
+	dlen = MD_digest(md, (BYTE *)str, (int)strlen(str), digest, sizeof(digest));
 	Base16Encode(digest, dlen);
 }
+
 BOOL CBuffer::LoadFile(LPCTSTR filename)
 {
 	CFile file;
@@ -2994,7 +2430,11 @@ int CBuffer::KanjiCheck(int type)
 	int n;
 	CTextRam::KANCODEWORK work;
 
-	if ( GetSize() >= 2 && m_Data[m_Ofs] == 0xFF && m_Data[m_Ofs + 1] == 0xFE )
+	if ( GetSize() >= 4 && m_Data[m_Ofs] == 0xFF && m_Data[m_Ofs + 1] == 0xFE && m_Data[m_Ofs + 2] == 0x00 && m_Data[m_Ofs + 3] == 0x00 )
+		return KANJI_UTF32LE;
+	else if ( GetSize() >= 4 && m_Data[m_Ofs] == 0x00 && m_Data[m_Ofs + 1] == 0x00 && m_Data[m_Ofs + 2] == 0xFE && m_Data[m_Ofs + 3] == 0xFF )
+		return KANJI_UTF32BE;
+	else if ( GetSize() >= 2 && m_Data[m_Ofs] == 0xFF && m_Data[m_Ofs + 1] == 0xFE )
 		return KANJI_UTF16LE;
 	else if ( GetSize() >= 2 && m_Data[m_Ofs] == 0xFE && m_Data[m_Ofs + 1] == 0xFF )
 		return KANJI_UTF16BE;
@@ -3002,7 +2442,7 @@ int CBuffer::KanjiCheck(int type)
 	CTextRam::KanjiCodeInit(&work);
 
 	for ( n = m_Ofs ; n < m_Len ; n++ ) {
-		CTextRam::KanjiCodeCheck(m_Data[n], &work);
+		CTextRam::KanjiCodeCheck(m_Data[n], &work, TRUE);
 
 		if ( work.sjis_rs > 0.9 && work.sjis_rs > (work.euc_rs * 1.5) && work.sjis_rs > (work.utf8_rs * 1.5) )
 			return KANJI_SJIS;
@@ -3012,15 +2452,37 @@ int CBuffer::KanjiCheck(int type)
 			return KANJI_UTF8;
 	}
 
-	return type;
+	TRACE("sjis=%f, euc=%f, utf8=%f, utf7=%f, u16be=%f, u16le=%f, u32be=%f, u32le=%f\n", 
+		work.sjis_rs, work.euc_rs, work.utf8_rs, work.utf7_rs,
+		work.u16be_rs, work.u16le_rs, work.u32be_rs, work.u32le_rs);
+
+	if ( work.sjis_rs > 0.6 && work.sjis_rs > work.euc_rs && work.sjis_rs > work.utf8_rs && work.sjis_rs > work.utf7_rs )
+		return KANJI_SJIS;
+	else if ( work.euc_rs > 0.6 && work.euc_rs > work.sjis_rs && work.euc_rs > work.utf8_rs && work.euc_rs > work.utf7_rs )
+		return KANJI_EUC;
+	else if ( work.utf8_rs > 0.6 && work.utf8_rs > work.sjis_rs && work.utf8_rs > work.euc_rs && work.utf8_rs > work.utf7_rs )
+		return KANJI_UTF8;
+	else if ( work.utf7_rs > 0.9 && work.utf7_rs > work.sjis_rs && work.utf7_rs > work.euc_rs && work.utf7_rs > work.utf8_rs )
+		return KANJI_UTF7;
+	else if ( work.u32be_rs > 0.9 && work.u32be_rs > work.u16be_rs )
+		return KANJI_UTF32BE;
+	else if ( work.u32le_rs > 0.9 && work.u32le_rs > work.u16le_rs )
+		return KANJI_UTF32LE;
+	else if ( work.u16be_rs > 0.9 && work.u16be_rs > work.u32be_rs )
+		return KANJI_UTF16BE;
+	else if ( work.u16le_rs > 0.9 && work.u16le_rs > work.u32le_rs )
+		return KANJI_UTF16LE;
+	else
+		return type;
 }
 void CBuffer::KanjiConvert(int type)
 {
 	int n;
 	TCHAR ch;
+	DCHAR dch;
 	CStringA mbs;
 	CString str;
-	CBuffer work;
+	CBuffer work, in;
 	CIConv iconv;
 
 	switch(type) {
@@ -3037,7 +2499,7 @@ void CBuffer::KanjiConvert(int type)
 			str = mbs;
 			work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
 		}
-		Move(work);
+		Swap(work);
 		break;
 
 	case KANJI_EUC:
@@ -3053,7 +2515,7 @@ void CBuffer::KanjiConvert(int type)
 			iconv.RemoteToStr(_T("EUCJP-MS"), mbs, str);
 			work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
 		}
-		Move(work);
+		Swap(work);
 		break;
 
 	case KANJI_SJIS:
@@ -3069,7 +2531,7 @@ void CBuffer::KanjiConvert(int type)
 			iconv.RemoteToStr(_T("CP932"), mbs, str);
 			work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
 		}
-		Move(work);
+		Swap(work);
 		break;
 
 	case KANJI_UTF8:
@@ -3085,7 +2547,7 @@ void CBuffer::KanjiConvert(int type)
 			iconv.RemoteToStr(_T("UTF-8"), mbs, str);
 			work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
 		}
-		Move(work);
+		Swap(work);
 		break;
 
 	case KANJI_UTF16LE:
@@ -3099,7 +2561,7 @@ void CBuffer::KanjiConvert(int type)
 		}
 		if ( !str.IsEmpty() )
 			work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
-		Move(work);
+		Swap(work);
 		break;
 
 	case KANJI_UTF16BE:
@@ -3113,8 +2575,136 @@ void CBuffer::KanjiConvert(int type)
 		}
 		if ( !str.IsEmpty() )
 			work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
-		Move(work);
+		Swap(work);
 		break;
+
+	case KANJI_UTF32LE:
+		for ( n = m_Ofs ; (n + 3) < m_Len ; n += 4 ) {
+			in.Apend(m_Data + n, 4);
+			dch = m_Data[n] | (m_Data[n + 1] << 8) | (m_Data[n + 2] << 16) | (m_Data[n + 3] << 24);
+			if ( dch == _T('\n') ) {
+				iconv.IConvBuf(_T("UTF-32LE"), _T("UTF-16LE"), &in, &work);
+				in.Clear();
+			}
+		}
+		if ( in.GetSize() > 0 )
+			iconv.IConvBuf(_T("UTF-32LE"), _T("UTF-16LE"), &in, &work);
+		Swap(work);
+		break;
+
+	case KANJI_UTF32BE:
+		for ( n = m_Ofs ; (n + 3) < m_Len ; n += 4 ) {
+			in.Apend(m_Data + n, 4);
+			dch = m_Data[n + 3] | (m_Data[n + 2] << 8) | (m_Data[n + 1] << 16) | (m_Data[n] << 24);
+			if ( dch == _T('\n') ) {
+				iconv.IConvBuf(_T("UTF-32BE"), _T("UTF-16LE"), &in, &work);
+				in.Clear();
+			}
+		}
+		if ( in.GetSize() > 0 )
+			iconv.IConvBuf(_T("UTF-32BE"), _T("UTF-16LE"), &in, &work);
+		Swap(work);
+		break;
+
+	case KANJI_UTF7:
+		for ( n = m_Ofs ; n < m_Len ; n++ ) {
+			mbs += (CHAR)m_Data[n];
+			if ( m_Data[n] == '\n' ) {
+				iconv.RemoteToStr(_T("UTF-7"), mbs, str);
+				work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+				mbs.Empty();
+			}
+		}
+		if ( !mbs.IsEmpty() ) {
+			iconv.RemoteToStr(_T("UTF-7"), mbs, str);
+			work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+		}
+		Swap(work);
+		break;
+	}
+
+	if ( GetSize() >= 2 && m_Data[m_Ofs] == 0xFF && m_Data[m_Ofs + 1] == 0xFE )
+		Consume(2);
+}
+void CBuffer::WstrConvert(LPCTSTR toCode, int nCrLf)
+{
+	int n;
+	TCHAR ch;
+	CBuffer work, in, out;
+	CIConv iconv;
+	CString codePage;
+
+	if ( toCode == NULL || _tcsicmp(toCode, _T("DEFAULT")) == 0 ) {
+		codePage.Format(_T("CP%d"), _getmbcp());
+		toCode = codePage;
+	}
+
+	if ( (_tcsncmp(toCode, _T("UTF-"), 4) == 0 && toCode[4] != _T('7') && toCode[4] != _T('8')) || _tcsncmp(toCode, _T("UCS-"), 4) == 0 )
+		in.PutWord(0xFEFF);		// BOM
+
+	for ( n = m_Ofs ; (n + 1) < m_Len ; n += 2 ) {
+		ch = m_Data[n] | (m_Data[n + 1] << 8);
+		if ( ch == _T('\r') ) {
+			if ( (m_Data[n + 2] | (m_Data[n + 3] << 8)) == _T('\n') )
+				n += 2;
+			ch = _T('\n');
+		}
+
+		if ( ch == _T('\n') ) {
+			switch(nCrLf) {
+			case 0:		// CR+LF
+				in += _T("\r\n");
+				break;
+			case 1:		// CR
+				in += _T("\r");
+				break;
+			case 2:		// LF
+				in += _T("\n");
+				break;
+			}
+
+			iconv.StrToRemote(toCode, &in, &out);
+			work.Apend(out.GetPtr(), out.GetSize());
+			in.Clear();
+			out.Clear();
+		} else
+			in.PutWord(ch);
+	}
+
+	if ( in.GetSize() > 0 ) {
+		iconv.StrToRemote(toCode, &in, &out);
+		work.Apend(out.GetPtr(), out.GetSize());
+	}
+
+	Swap(work);
+}
+void CBuffer::StrConvert(LPCTSTR fromCode)
+{
+	LPCTSTR p;
+	CBuffer out;
+	CIConv iconv;
+	CString codePage;
+
+	if ( fromCode == NULL || _tcsicmp(fromCode, _T("DEFAULT")) == 0 ) {
+		codePage.Format(_T("CP%d"), _getmbcp());
+		fromCode = codePage;
+	}
+
+	iconv.RemoteToStr(fromCode, &(*this), &out);
+
+	Clear();
+
+	for ( p = out ; *p != '\0' ; ) {
+		if ( p[0] == _T('\r') && p[1] == _T('\n') ) {
+			PutWord(_T('\r'));
+			PutWord(_T('\n'));
+			p += 2;
+		} else if ( p[0] == _T('\r') || p[0] == _T('\n') ) {
+			PutWord(_T('\r'));
+			PutWord(_T('\n'));
+			p++;
+		} else
+			PutWord(*(p++));
 	}
 
 	if ( GetSize() >= 2 && m_Data[m_Ofs] == 0xFF && m_Data[m_Ofs + 1] == 0xFE )
@@ -5565,31 +5155,31 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 }
 
 static const ScriptCmdsDefs DocEntry[] = {
-	{	"Host",			1	},
-	{	"Port",			2	},
-	{	"User",			3	},
-	{	"Pass",			4	},
-	{	"Term",			5	},
-	{	"KeyFile",		6	},
-	{	"Memo",			7	},
-	{	"Group",		8	},
-	{	"Script",		9	},
-	{	"AddScript",	10	},
-	{	"CodeSet",		11	},
-	{	"Protocol",		12	},
-	{	"Chat",			13	},
-	{	"Proxy",		14	},
-	{	"Before",		15	},
-	{	"SSLKeep",		16	},
-	{	NULL,			0	},
+	{	_T("Host"),			1	},
+	{	_T("Port"),			2	},
+	{	_T("User"),			3	},
+	{	_T("Pass"),			4	},
+	{	_T("Term"),			5	},
+	{	_T("KeyFile"),		6	},
+	{	_T("Memo"),			7	},
+	{	_T("Group"),		8	},
+	{	_T("Script"),		9	},
+	{	_T("AddScript"),	10	},
+	{	_T("CodeSet"),		11	},
+	{	_T("Protocol"),		12	},
+	{	_T("Chat"),			13	},
+	{	_T("Proxy"),		14	},
+	{	_T("Before"),		15	},
+	{	_T("SSLKeep"),		16	},
+	{	NULL,				0	},
 }, DocEntryProxy[] = {
-	{	"Mode",			20	},
-	{	"Host",			21	},
-	{	"Port",			22	},
-	{	"User",			23	},
-	{	"Pass",			24	},
-	{	"Cmd",			25	},
-	{	NULL,			0	},
+	{	_T("Mode"),			20	},
+	{	_T("Host"),			21	},
+	{	_T("Port"),			22	},
+	{	_T("User"),			23	},
+	{	_T("Pass"),			24	},
+	{	_T("Cmd"),			25	},
+	{	NULL,				0	},
 };
 
 void CServerEntry::ScriptInit(int cmds, int shift, class CScriptValue &value)
@@ -5602,7 +5192,7 @@ void CServerEntry::ScriptInit(int cmds, int shift, class CScriptValue &value)
 		value[DocEntry[n].name].m_DocCmds = (DocEntry[n].cmds << shift) | cmds;
 
 	for ( n = 0 ; DocEntryProxy[n].name != NULL ; n++ )
-		value["Proxy"][DocEntryProxy[n].name].m_DocCmds = (DocEntryProxy[n].cmds << shift) | cmds;
+		value[_T("Proxy")][DocEntryProxy[n].name].m_DocCmds = (DocEntryProxy[n].cmds << shift) | cmds;
 }
 void CServerEntry::ScriptValue(int cmds, class CScriptValue &value, int mode)
 {
@@ -7482,8 +7072,8 @@ void CKeyNodeTab::ScriptInit(int cmds, int shift, class CScriptValue &value)
 {
 	value.m_DocCmds = cmds;
 
-	value["Add" ].m_DocCmds = (1 << shift) | cmds;
-	value["Find"].m_DocCmds = (2 << shift) | cmds;
+	value[_T("Add") ].m_DocCmds = (1 << shift) | cmds;
+	value[_T("Find")].m_DocCmds = (2 << shift) | cmds;
 }
 void CKeyNodeTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 {
@@ -7495,18 +7085,18 @@ void CKeyNodeTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 			if ( value.GetSize() >= 3 ) {
 				value = (int)0;
 				Add((int)value[0], (int)value[1], (LPCTSTR)value[2]);
-			} else if ( value[0].Find("Code") >= 0 && value[0].Find("Mask") >= 0 && value[0].Find("Maps") >= 0 ) {
+			} else if ( value[0].Find(_T("Code")) >= 0 && value[0].Find(_T("Mask")) >= 0 && value[0].Find(_T("Maps")) >= 0 ) {
 				value = (int)0;
-				Add((int)value[0]["Code"], (int)value[0]["Mask"], (LPCTSTR)value[0]["Maps"]);
+				Add((int)value[0][_T("Code")], (int)value[0][_T("Mask")], (LPCTSTR)value[0][_T("Maps")]);
 			} else
 				value = (int)1;
 			break;
 		case 2:				// Document.KeyCode.Find(code, mask)
 			if ( Find((int)value[0], (int)(value[1]), &n) ) {
 				value = (int)0;
-				value["Code"] = (int)(m_Node[n].m_Code);
-				value["Mask"] = (int)(m_Node[n].m_Mask);
-				value["Maps"] = (LPCTSTR)m_Node[n].GetMaps();
+				value[_T("Code")] = (int)(m_Node[n].m_Code);
+				value[_T("Mask")] = (int)(m_Node[n].m_Mask);
+				value[_T("Maps")] = (LPCTSTR)m_Node[n].GetMaps();
 			} else
 				value = (int)1;
 			break;
@@ -7515,14 +7105,14 @@ void CKeyNodeTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 	} else if ( mode == DOC_MODE_IDENT && cmds == 0 ) {			// Document.KeyCode
 		value.RemoveAll();
 		for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
-			value[n]["Code"] = (int)m_Node[n].m_Code;
-			value[n]["Mask"] = (int)m_Node[n].m_Mask;
-			value[n]["Maps"] = m_Node[n].GetMaps();
+			value[n][_T("Code")] = (int)m_Node[n].m_Code;
+			value[n][_T("Mask")] = (int)m_Node[n].m_Mask;
+			value[n][_T("Maps")] = m_Node[n].GetMaps();
 		}
 
 	} else if ( mode == DOC_MODE_SAVE && cmds == 0 ) {			// Document.KeyCode
 		for ( n = 0 ; n < value.GetSize() ; n++ )
-			Add((int)value[n]["Code"], (int)value[n]["Mask"], (LPCTSTR)value[n]["Maps"]);
+			Add((int)value[n][_T("Code")], (int)value[n][_T("Mask")], (LPCTSTR)value[n][_T("Maps")]);
 	}
 }
 const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
@@ -8195,7 +7785,7 @@ void CKeyMacTab::ScriptInit(int cmds, int shift, class CScriptValue &value)
 {
 	value.m_DocCmds = cmds;
 
-	value["Add" ].m_DocCmds = (1 << shift) | cmds;
+	value[_T("Add")].m_DocCmds = (1 << shift) | cmds;
 }
 void CKeyMacTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 {
@@ -8917,28 +8507,28 @@ void CParamTab::DiffIndex(CParamTab &orig, CStringIndex &index)
 }
 
 static const ScriptCmdsDefs DocSsh[] = {
-	{	"Protocol",		1	},
-	{	"PortForward",	2	},
-	{	"XDisplay",		3	},
-	{	"Environ",		4	},
-	{	"TtyMode",		17	},
-	{	"RsaExt",		18	},
-	{	"VerIdent",		19	},
-	{	NULL,			0	},
+	{	_T("Protocol"),		1	},
+	{	_T("PortForward"),	2	},
+	{	_T("XDisplay"),		3	},
+	{	_T("Environ"),		4	},
+	{	_T("TtyMode"),		17	},
+	{	_T("RsaExt"),		18	},
+	{	_T("VerIdent"),		19	},
+	{	NULL,				0	},
 }, DocSshProtocol[] = {
-	{	"ssh1Cip",		5	},
-	{	"ssh1Mac",		6	},
-	{	"ssh1Comp",		7	},
-	{	"InpCip",		8	},
-	{	"InpMac",		9	},
-	{	"InpComp",		10	},
-	{	"OutCip",		11	},
-	{	"OutMac",		12	},
-	{	"OutComp",		13	},
-	{	"Kexs",			14	},
-	{	"HostKey",		15	},
-	{	"UserAuth",		16	},
-	{	NULL,			0	},
+	{	_T("ssh1Cip"),		5	},
+	{	_T("ssh1Mac"),		6	},
+	{	_T("ssh1Comp"),		7	},
+	{	_T("InpCip"),		8	},
+	{	_T("InpMac"),		9	},
+	{	_T("InpComp"),		10	},
+	{	_T("OutCip"),		11	},
+	{	_T("OutMac"),		12	},
+	{	_T("OutComp"),		13	},
+	{	_T("Kexs"),			14	},
+	{	_T("HostKey"),		15	},
+	{	_T("UserAuth"),		16	},
+	{	NULL,				0	},
 };
 
 void CParamTab::ScriptInit(int cmds, int shift, class CScriptValue &value)
@@ -8951,7 +8541,7 @@ void CParamTab::ScriptInit(int cmds, int shift, class CScriptValue &value)
 		value[DocSsh[n].name].m_DocCmds = (DocSsh[n].cmds << shift) | cmds;
 
 	for ( n = 0 ; DocSshProtocol[n].name != NULL ; n++ )
-		value["Protocol"][DocSshProtocol[n].name].m_DocCmds = (DocSshProtocol[n].cmds << shift) | cmds;
+		value[_T("Protocol")][DocSshProtocol[n].name].m_DocCmds = (DocSshProtocol[n].cmds << shift) | cmds;
 }
 void CParamTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 {
@@ -8990,10 +8580,10 @@ void CParamTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 			m_PortFwd.RemoveAll();
 			for ( n = 0 ; n < value.GetSize() ; n++ ) {
 				tmp.SetSize(5);
-				value[n].SetNodeStr("LocalHost", tmp[0], mode);
-				value[n].SetNodeStr("LocalPort", tmp[1], mode);
-				value[n].SetNodeStr("RemoteHost", tmp[2], mode);
-				value[n].SetNodeStr("RemotePort", tmp[3], mode);
+				value[n].SetNodeStr(_T("LocalHost"),  tmp[0], mode);
+				value[n].SetNodeStr(_T("LocalPort"),  tmp[1], mode);
+				value[n].SetNodeStr(_T("RemoteHost"), tmp[2], mode);
+				value[n].SetNodeStr(_T("RemotePort"), tmp[3], mode);
 				tmp[4].Format(_T("%d"), (int)value[n]);
 				tmp.SetString(str);
 				if ( !tmp[0].IsEmpty() && !tmp[1].IsEmpty() && !tmp[2].IsEmpty() && !tmp[3].IsEmpty() )
@@ -9005,11 +8595,11 @@ void CParamTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 				tmp.GetString(m_PortFwd[n]);
 				if ( tmp.GetSize() < 5 )
 					continue;
-				value[n]["LocalHost"]  = (LPCTSTR)tmp[0];
-				value[n]["LocalPort"]  = (LPCTSTR)tmp[1];
-				value[n]["RemoteHost"] = (LPCTSTR)tmp[2];
-				value[n]["RemotePort"] = (LPCTSTR)tmp[3];
-				value[n]               = _tstoi(tmp[4]);
+				value[n][_T("LocalHost")]  = (LPCTSTR)tmp[0];
+				value[n][_T("LocalPort")]  = (LPCTSTR)tmp[1];
+				value[n][_T("RemoteHost")] = (LPCTSTR)tmp[2];
+				value[n][_T("RemotePort")] = (LPCTSTR)tmp[3];
+				value[n]				   = _tstoi(tmp[4]);
 			}
 		}
 		break;
@@ -9020,13 +8610,13 @@ void CParamTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		if ( mode == DOC_MODE_SAVE ) {
 			env.RemoveAll();
 			for ( n = 0 ; n < value.GetSize() ; n++ )
-				env[MbsToTstr(value[n].m_Index)].m_String = (LPCTSTR)value[n];
+				env[value[n].m_Index].m_String = (LPCTSTR)value[n];
 			env.SetString(m_ExtEnvStr);
 		} else if ( mode == DOC_MODE_IDENT ) {
 			env.GetString(m_ExtEnvStr);
 			value.RemoveAll();
 			for ( n = 0 ; n < env.GetSize() ; n++ )
-				value[TstrToMbs(env[n].m_nIndex)] = (LPCTSTR)env[n].m_String;
+				value[env[n].m_nIndex] = (LPCTSTR)env[n].m_String;
 		}
 		break;
 
@@ -9303,6 +8893,16 @@ CStringIndex & CStringIndex::operator [] (LPCTSTR str)
 	m_Array.InsertAt(n, tmpData);
 	return m_Array[n];
 }
+BOOL CStringIndex::IsDupIndex(LPCTSTR str)
+{
+	int n, c = 0;
+
+	for ( n = 0 ; n < m_Array.GetSize() ; n++ ) {
+		if ( m_Array[n].m_nIndex.Compare(str) == 0 )
+			c++;
+	}
+	return (c > 1 ? TRUE : FALSE);
+}
 int CStringIndex::Find(LPCTSTR str)
 {
 	int n;
@@ -9317,6 +8917,14 @@ int CStringIndex::Find(LPCTSTR str)
 			return n;
 	}
 
+	return (-1);
+}
+int CStringIndex::FindAt(LPCTSTR str, int pos)
+{
+	for ( ; pos < m_Array.GetSize() ; pos++ ) {
+		if ( (m_bNoCase ? m_Array[pos].m_nIndex.CompareNoCase(str) : m_Array[pos].m_nIndex.Compare(str)) == 0 )
+			return pos;
+	}
 	return (-1);
 }
 void CStringIndex::SetArray(LPCTSTR str)
@@ -10170,7 +9778,7 @@ BOOL CStringIndex::GetJsonFormat(LPCTSTR str)
 	// {"aaa":"bbb","ccc":{"ddd":"eee"},"fff":["ggg","hhh"]}
 	//
 	// index["aaa"] = "bbb"
-	// index["bbb"]["ddd"] = "eee";
+	// index["ccc"]["ddd"] = "eee";
 	// index["fff"][0] = "ggg";
 	// index["fff"][1] = "hhh";
 
@@ -10505,6 +10113,494 @@ void CStringIndex::SetQueryString(CStringA &mbs, LPCSTR base, BOOL bUtf8)
 
 //////////////////////////////////////////////////////////////////////
 
+#include "xmlesctab.h"
+
+#define	XMLTAGCHAR	_T("!\"#$%&'()^\\=|`[];+*<>?,/")
+
+static int XmlEscCmp(const void *s, const void *d)
+{
+	struct _XmlEsc *dp = (struct _XmlEsc *)d;
+	return _tcscmp((LPCTSTR)s, dp->name);
+}
+WCHAR CStringIndex::SubXmlEscChar(LPCTSTR str)
+{
+	int n;
+	if ( BinaryFind((void *)str, (void *)XmlEsc, sizeof(struct _XmlEsc), (sizeof(XmlEsc) / sizeof(struct _XmlEsc)), XmlEscCmp, &n) )
+		return XmlEsc[n].code;
+	return 0;
+}
+void CStringIndex::SubXmlEscDec(LPCTSTR str, CString &out)
+{
+	int n;
+	TCHAR ch;
+	CString tmp;
+
+	out.Empty();
+
+	while ( *str != _T('\0') ) {
+		if ( str[0] == _T('&') && str[1] == _T('#') && (str[2] == _T('X') || str[2] == _T('x') || str[2] == _T('U') || str[2] == _T('u')) ) {
+			str += 3;
+			ch = 0;
+			while ( (*str >= _T('0') && *str <= _T('9')) || (*str >= _T('A') && *str <= _T('F')) || (*str >= _T('a') && *str <= _T('f')) ) {
+				if ( *str >= _T('A') && *str <= _T('F') )
+					ch = ch * 16 + (*str - _T('A') + 10);
+				else if ( *str >= _T('a') && *str <= _T('f') )
+					ch = ch * 16 + (*str - _T('a') + 10);
+				else
+					ch = ch * 16 + (*str - _T('0'));
+			}
+			out += ch;
+			if ( *str != _T(';') )
+				throw _T("xml escape char not &#x...;");
+			str++;
+		} else if ( str[0] == _T('&') && str[1] == _T('#') && (str[2] == _T('O') || str[2] == _T('o')) ) {
+			str += 3;
+			ch = 0;
+			while ( *str >= _T('0') && *str <= _T('7') )
+				ch = ch * 8 + (*str - _T('0'));
+			out += ch;
+			if ( *str != _T(';') )
+				throw _T("xml escape char not &#o...;");
+			str++;
+		} else if ( str[0] == _T('&') && str[1] == _T('#') ) {
+			str += 2;
+			ch = 0;
+			while ( *str >= _T('0') && *str <= _T('9') )
+				ch = ch * 10 + (*str - _T('0'));
+			out += ch;
+			if ( *str != _T(';') )
+				throw _T("xml escape char not &#...;");
+			str++;
+		} else if ( *str == _T('&') ) {
+			tmp.Empty();
+			while ( *str != _T('\0') && *str != _T(';') )
+				tmp += *(str++);
+			if ( *str != _T(';') )
+				throw _T("xml escape char not &...;");
+			tmp += *(str++);
+			if ( m_pOwner != NULL && (n = m_pOwner->Find(tmp)) >= 0 )
+				out += (LPCTSTR)(m_pOwner->m_Array[n]);
+			else if ( (ch = SubXmlEscChar(tmp)) != 0 )
+				out += ch;
+		} else
+			out += *(str++);
+	}
+}
+void CStringIndex::SubXmlEscEnc(LPCTSTR str, CString &out)
+{
+	CString tmp;
+
+	out.Empty();
+
+	for ( ; *str != _T('\0') ; str++ ) {
+		if ( *str == _T('"') )
+			out += _T("&quot;");
+		else if ( *str == _T('\'') )
+			out += _T("&apos;");
+		else if ( *str == _T('&') )
+			out += _T("&amp;");
+		else if ( *str == _T('<') )
+			out += _T("&lt;");
+		else if ( *str == _T('>') )
+			out += _T("&gt;");
+		else if ( *str == _T(' ') )
+			out += _T("&nbsp;");
+		else if ( *str < _T(' ') ) {
+			tmp.Format(_T("&#%d;"), *str);
+			out += (LPCTSTR)tmp;
+		} else
+			out += *str;
+	}
+}
+void CStringIndex::SubXmlValue(LPCTSTR &str, CString &value)
+{
+	TCHAR dem;
+	CString tmp;
+
+	value.Empty();
+
+	while ( *str != _T('\0') && *str <= _T(' ') )
+		str++;
+
+	if ( *str == _T('"') || *str == _T('\'') ) {
+		dem = *str++;
+		tmp.Empty();
+		while ( *str != _T('\0') && *str != dem )
+			tmp += *(str++);
+		if ( *str != dem )
+			throw _T("xml string not \" or '");
+		str++;
+		SubXmlEscDec(tmp, value);
+	} else {
+		while ( *str != _T('\0') && *str > _T(' ') && _tcschr(XMLTAGCHAR, *str) == NULL )
+			value += *(str++);
+	}
+}
+void CStringIndex::SubXmlTag(LPCTSTR &str, CString &tag)
+{
+	tag.Empty();
+
+	while ( *str != _T('\0') && *str <= _T(' ') )
+		str++;
+
+	while ( *str != _T('\0') && *str > _T(' ') && _tcschr(XMLTAGCHAR, *str) == NULL )
+		tag += *(str++);
+}
+void CStringIndex::SubXmlSkip(LPCTSTR &str, TCHAR dem)
+{
+	while ( *str != _T('\0') ) {
+		while ( *str != _T('\0') && *str <= _T(' ') )
+			str++;
+		if ( *str == dem ) {
+			break;
+		} else if ( *str == _T('"') ) {
+			str++;
+			while ( *str != _T('\0') && *str != _T('"') )
+				str++;
+			if ( *str != _T('"') )
+				throw _T("xmp string not \"");
+			str++;
+		} else if ( *str == _T('\'') ) {
+			str++;
+			while ( *str != _T('\0') && *str != _T('\'') )
+				str++;
+			if ( *str != _T('"') )
+				throw _T("xml string not '");
+			str++;
+		} else if ( *str == _T('[') ) {
+			str++;
+			SubXmlSkip(str, _T(']'));
+			if ( *str != _T(']') )
+				throw _T("xml object not [...]");
+			str++;
+		} else
+			str++;
+	}
+}
+BOOL CStringIndex::SubXmlElemnt(LPCTSTR &str)
+{
+	BOOL bEnd = FALSE;
+	CString tag, value, text;
+
+	if ( *str != _T('<') )
+		throw _T("xml start tag use <");
+	str++;
+
+	while ( *str != _T('\0') && *str <= _T(' ') )
+		str++;
+
+	if ( *str == _T('?') ) {
+		// 単純に無視
+		// <?xml version="1.0" encoding="UTF-8" ?>
+		str++;
+		SubXmlTag(str, tag);	// xml
+		while ( *str != _T('\0') ) {
+			while ( *str != _T('\0') && *str <= _T(' ') )
+				str++;
+			if ( *str == _T('?') ) {
+				str++;
+				while ( *str != _T('\0') && *str <= _T(' ') )
+					str++;
+				if ( *str != _T('>') )
+					throw _T("xml option tag not <?...?>");
+				str++;
+				break;
+			}
+			SubXmlTag(str, tag);
+			while ( *str != _T('\0') && *str <= _T(' ') )
+				str++;
+			if ( *str == _T('=') ) {
+				str++;
+				SubXmlValue(str, value);
+			}
+		}
+		return FALSE;
+
+	} else if ( str[0] == _T('!') && str[1] == _T('-') && str[2] == _T('-') ) {
+		// <!-- comment -->
+		str += 3;
+		while ( *str != _T('\0') ) {
+			if ( str[0] == _T('-') && str[1] == _T('-') && str[2] == _T('>') )
+				break;
+			else
+				str++;
+		}
+		if ( *str != _T('-') )
+			throw _T("xml comment not <!--...-->");
+		str += 3;
+		return FALSE;
+
+	} else if ( _tcsncmp(str, _T("![CDATA["), 8) == 0 ) {
+		// <![CDATA[...]]>
+		str += 8;
+		text.Empty();
+		while ( *str != _T('\0') ) {
+			if ( str[0] == _T(']') && str[1] == _T(']') && str[2] == _T('>') )
+				break;
+			else
+				text += *(str++);
+		}
+		if ( *str != _T(']') )
+			throw _T("xml cdata not <![[...]]>");
+		str += 3;
+		*this = text;
+		return FALSE;
+
+	} else if ( *str == _T('!') ) {
+		// Well-Formed XML Document ?
+		// <!DOCTYPE ...>
+		// <!ELEMENT ...>
+		// <!ATTLIST ...>
+		// <!NOTATION ...>
+		// <!ENTITY ...>
+		str++;
+		SubXmlTag(str, tag);
+		if ( m_pOwner != NULL && tag.Compare(_T("ENTITY")) == 0 ) {
+			SubXmlTag(str, tag);
+			SubXmlValue(str, value);
+			if ( !tag.IsEmpty() && !value.IsEmpty() && value.Compare(_T("SYSTEM")) != 0 ) {
+				tag.Insert(0, _T('&'));
+				tag += _T(';');
+				SubXmlEscDec(value, text);
+				(*m_pOwner)[tag] = (LPCTSTR)text;
+				text.Empty();
+			}
+		}
+		SubXmlSkip(str, _T('>'));
+		if ( *str != _T('>') )
+			throw _T("xml dtd tag not <!..!>");
+		str++;
+		return FALSE;
+	}
+
+	SubXmlTag(str, m_nIndex);
+	if ( m_nIndex.IsEmpty() )
+		throw _T("xml not tag");
+
+	while ( *str != _T('\0') ) {
+		while ( *str != _T('\0') && *str <= _T(' ') )
+			str++;
+		if ( *str == _T('/') ) {
+			str++;
+			bEnd = TRUE;
+		} else if ( *str == _T('>') ) {
+			break;
+		} else if ( _tcschr(XMLTAGCHAR, *str) == NULL ) {
+			SubXmlTag(str, tag);
+			if ( tag.IsEmpty() )
+				throw _T("xml not elemnt");
+			while ( *str != _T('\0') && *str <= _T(' ') )
+				str++;
+			if ( *str == _T('=') ) {
+				str++;
+				SubXmlValue(str, value);
+				(*this)[tag] = value;
+			} else
+				(*this)[tag];
+		} else
+			throw _T("xml not elemnt char");
+	}
+
+	if ( *str != _T('>') )
+		throw _T("xml tag not <...>");
+	str++;
+
+	if ( bEnd )
+		return TRUE;
+
+	bEnd = FALSE;
+	text.Empty();
+
+	while ( *str != _T('\0') ) {
+		if ( str[0] == _T('<') && str[1] == _T('/') ) {
+			str += 2;
+			SubXmlTag(str, tag);
+			if ( m_nIndex.Compare(tag) != 0 )
+				throw _T("xml tag name nomatch </???>");
+			while ( *str != _T('\0') && *str <= _T(' ') )
+				str++;
+			break;
+		} else if ( *str == _T('<') ) {
+			CStringIndex tmp(m_bNoCase, m_bNoSort);
+			tmp.m_pOwner = m_pOwner;
+			if ( tmp.SubXmlElemnt(str) )
+				Add(tmp);
+			else if ( !tmp.IsEmpty() ) {	// <![CDATA[...]]>
+				if ( !text.IsEmpty() ) {
+					SubXmlEscDec(text, value);
+					m_String += value;
+				}
+				m_String += (LPCTSTR)tmp;
+				m_bEmpty = FALSE;
+				m_bString = TRUE;
+				bEnd = FALSE;
+				text.Empty();
+			}
+		} else if ( *str > _T(' ') ) {
+			bEnd = TRUE;
+			text += *(str++);
+		} else if ( bEnd && *str == _T(' ') ) {
+			text += *(str++);
+		} else if ( bEnd && (*str == _T('\r') || *str == _T('\n')) ) {
+			bEnd = FALSE;
+			str++;
+		} else
+			str++;
+	}
+
+	if ( !text.IsEmpty() ) {
+		SubXmlEscDec(text, value);
+		m_String += value;
+		m_bEmpty = FALSE;
+		m_bString = TRUE;
+	}
+
+	if ( *str != _T('>') )
+		throw _T("xml tag end mark not </...>");
+	str++;
+
+	return TRUE;
+}
+BOOL CStringIndex::GetXmlFormat(LPCTSTR str)
+{
+	// <a b="0" c="1">
+	//   <d e="2">
+	//     Text1
+	//   </d>
+	//   Text2
+	//   <f g="3" />
+	// </a>
+
+	// index["a"]="Text2"
+	// index["a"]["b"]="0"
+	// index["a"]["c"]="1"
+	// index["a"]["d"]="Text1"
+	// index["a"]["d"]["e"]="2"
+	// index["a"]["f"]["g"]="3"
+
+	LPCTSTR start = str;
+	CString text, value;
+	BOOL bEnd = FALSE;
+	CStringIndex entity;
+
+	RemoveAll();
+
+	try {
+		while ( *str != _T('\0') ) {
+			if ( *str == _T('<') ) {
+				CStringIndex tmp(m_bNoCase, m_bNoSort);
+				tmp.m_pOwner = &entity;
+				if ( tmp.SubXmlElemnt(str) )
+					Add(tmp);
+				else if ( !tmp.IsEmpty() ) {	// <![CDATA[...]]>
+					if ( !text.IsEmpty() ) {
+						SubXmlEscDec(text, value);
+						m_String += value;
+					}
+					m_String += (LPCTSTR)tmp;
+					m_bEmpty = FALSE;
+					m_bString = TRUE;
+					bEnd = FALSE;
+					text.Empty();
+				}
+			} else if ( *str > _T(' ') ) {
+				bEnd = TRUE;
+				text += *(str++);
+			} else if ( bEnd && *str == _T(' ') ) {
+				text += *(str++);
+			} else if ( bEnd && (*str == _T('\r') || *str == _T('\n')) ) {
+				bEnd = FALSE;
+				str++;
+			} else
+				str++;
+		}
+
+		if ( !text.IsEmpty() ) {
+			SubXmlEscDec(text, value);
+			m_String += value;
+			m_bEmpty = FALSE;
+			m_bString = TRUE;
+		}
+
+	} catch(LPCTSTR msg) {
+		LPCTSTR end = str;
+		if ( (str -= 40) < start )
+			str = start;
+		text = _T("'");
+		while ( str <= end ) {
+			if ( *str < _T(' ') ) {
+				text += _T('.');
+				str++;
+			} else
+				text += *(str++);
+		}
+		text += _T("'\r\n");
+		text += msg;
+
+		TRACE(_T("%s\n"), text);
+		(*this) = (LPCTSTR)text;
+		return FALSE;
+
+	} catch(...) {
+		return FALSE;
+	}
+	return TRUE;
+}
+void CStringIndex::SubSetXmlElemnt(CBuffer &str, int nest)
+{
+	int n;
+	CDWordArray tags;
+	CString tmp;
+
+	for ( n = 0 ; n < nest ; n++ ) str += _T(" ");
+	tmp.Format(_T("<%s"), m_nIndex.IsEmpty() ? _T("NoName") : m_nIndex);
+	str += (LPCTSTR)tmp;
+
+	for ( n = 0 ; n < GetSize() ; n++ ) {
+		if ( m_Array[n].GetSize() == 0 && !m_Array[n].m_nIndex.IsEmpty() && !IsDupIndex(m_Array[n].m_nIndex) ) {
+			tmp.Format(_T(" %s"), m_Array[n].m_nIndex);
+			str += (LPCTSTR)tmp;
+			if ( !m_Array[n].IsEmpty() ) {
+				str += _T("=\"");
+				if ( !m_Array[n].m_bString )
+					m_Array[n].m_String.Format(_T("%d"), m_Array[n].m_Value);
+				SubXmlEscEnc(m_Array[n], tmp);
+				str += (LPCTSTR)tmp;
+				str += _T("\"");
+			}
+		} else
+			tags.Add(n);
+	}
+
+	if ( tags.GetSize() > 0 || !IsEmpty() ) {
+		str += _T(">\r\n");
+
+		if ( !IsEmpty() ) {
+			if ( !m_bString )
+				m_String.Format(_T("%d"), m_Value);
+			for ( n = 0 ; n < nest ; n++ ) str += _T(" ");
+			SubXmlEscEnc(m_String, tmp);
+			str += (LPCTSTR)tmp;
+			str += _T("\r\n");
+		}
+
+		for ( n = 0 ; n < tags.GetSize() ; n++ )
+			m_Array[(int)tags[n]].SubSetXmlElemnt(str, nest + 1);
+
+		for ( n = 0 ; n < nest ; n++ ) str += _T(" ");
+		tmp.Format(_T("</%s>\r\n"), m_nIndex.IsEmpty() ? _T("NoName") : m_nIndex);
+		str += (LPCTSTR)tmp;
+	} else
+		str += _T(" />\r\n");
+}
+void CStringIndex::SetXmlFormat(CBuffer &str)
+{
+	for ( int n = 0 ; n < GetSize() ; n++ )
+		m_Array[n].SubSetXmlElemnt(str, 0);
+}
+
+//////////////////////////////////////////////////////////////////////
+
 #ifdef	DEBUG
 void CStringIndex::Dump(int nest)
 {
@@ -10512,9 +10608,9 @@ void CStringIndex::Dump(int nest)
 		TRACE(_T(" "));
 
 	if ( m_bString )
-		TRACE(_T("'%s' = \"%s\"\n"), m_nIndex, m_String);
+		TRACE("'%s' = \"%s\"\n", TstrToMbs(m_nIndex), TstrToMbs(m_String));
 	else
-		TRACE(_T("'%s' = %d\n"), m_nIndex, m_Value);
+		TRACE("'%s' = %d\n", TstrToMbs(m_nIndex), m_Value);
 
 	for ( int n = 0 ; n < m_Array.GetSize() ; n++ )
 		m_Array[n].Dump(nest + 1);

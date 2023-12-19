@@ -27,7 +27,7 @@ public:
 	void *m_pValue;
 	BOOL m_bEdit;
 
-	void GetStatusText(CString &status);
+	LPCTSTR GetStatusText();
 	void SetStatusText(LPCTSTR status);
 	void AddStatusText(LPCTSTR status);
 
@@ -50,4 +50,5 @@ protected:
 	afx_msg void OnFilePrintSetup();
 	afx_msg void OnFilePrint();
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnDropFiles(HDROP hDropInfo);
 };

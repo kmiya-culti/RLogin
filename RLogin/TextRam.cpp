@@ -3863,30 +3863,30 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 }
 
 static const ScriptCmdsDefs DocScrn[] = {
-	{	"Cursol",		1	},
-	{	"Size",			2	},
-	{	"Style",		3	},
-	{	"Color",		4	},
-	{	"Mode",			10	},
-	{	"ExtMode",		11	},
-	{	"Sleep",		12	},
-	{	NULL,			0	},
+	{	_T("Cursol"),		1	},
+	{	_T("Size"),			2	},
+	{	_T("Style"),		3	},
+	{	_T("Color"),		4	},
+	{	_T("Mode"),			10	},
+	{	_T("ExtMode"),		11	},
+	{	_T("Sleep"),		12	},
+	{	NULL,				0	},
 }, DocScrnCursol[] = {
-	{	"x",			20	},
-	{	"y",			21	},
-	{	"Display",		22	},
-	{	"Style",		23	},
-	{	NULL,			0	},
+	{	_T("x"),			20	},
+	{	_T("y"),			21	},
+	{	_T("Display"),		22	},
+	{	_T("Style"),		23	},
+	{	NULL,				0	},
 }, DocScrnSize[] = {
-	{	"x",			24	},
-	{	"y",			25	},
-	{	NULL,			0	},
+	{	_T("x"),			24	},
+	{	_T("y"),			25	},
+	{	NULL,				0	},
 }, DocScrnStyle[] = {
-	{	"Color",		26	},
-	{	"BackColor",	27	},
-	{	"Attribute",	28	},
-	{	"FontNumber",	29	},
-	{	NULL,			0	},
+	{	_T("Color"),		26	},
+	{	_T("BackColor"),	27	},
+	{	_T("Attribute"),	28	},
+	{	_T("FontNumber"),	29	},
+	{	NULL,				0	},
 };
 
 void CTextRam::ScriptInit(int cmds, int shift, class CScriptValue &value)
@@ -3899,13 +3899,13 @@ void CTextRam::ScriptInit(int cmds, int shift, class CScriptValue &value)
 		value[DocScrn[n].name].m_DocCmds = (DocScrn[n].cmds << shift) | cmds;
 
 	for ( n = 0 ; DocScrnCursol[n].name != NULL ; n++ )
-		value["Cursol"][DocScrnCursol[n].name].m_DocCmds = (DocScrnCursol[n].cmds << shift) | cmds;
+		value[_T("Cursol")][DocScrnCursol[n].name].m_DocCmds = (DocScrnCursol[n].cmds << shift) | cmds;
 
 	for ( n = 0 ; DocScrnSize[n].name != NULL ; n++ )
-		value["Size"][DocScrnSize[n].name].m_DocCmds = (DocScrnSize[n].cmds << shift) | cmds;
+		value[_T("Size")][DocScrnSize[n].name].m_DocCmds = (DocScrnSize[n].cmds << shift) | cmds;
 
 	for ( n = 0 ; DocScrnStyle[n].name != NULL ; n++ )
-		value["Style"][DocScrnStyle[n].name].m_DocCmds = (DocScrnStyle[n].cmds << shift) | cmds;
+		value[_T("Style")][DocScrnStyle[n].name].m_DocCmds = (DocScrnStyle[n].cmds << shift) | cmds;
 }
 void CTextRam::ScriptTable(const struct _ScriptCmdsDefs *defs, class CScriptValue &value, int mode)
 {

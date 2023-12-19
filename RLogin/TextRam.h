@@ -1513,14 +1513,15 @@ public:
 	BYTE *m_Kan_Buf;
 
 	typedef struct _KANCODEWORK {
-		int		sjis_st, euc_st, utf8_st;
-		int		sjis_bk, euc_bk;
-		double	sjis_rs, euc_rs, utf8_rs;
+		int		sjis_st, euc_st, utf8_st, utf7_st, u16_st, u32_st;
+		DWORD	sjis_bk, euc_bk, u16_bk, u32_bk;
+		double	sjis_rs, euc_rs, utf8_rs, utf7_rs;
+		double  u16be_rs, u16le_rs, u32be_rs, u32le_rs;
 	} KANCODEWORK;
 	
 	static int IsKanjiCode(WORD code, const WORD *tab, int len);
 	static void KanjiCodeInit(KANCODEWORK *work);
-	static void KanjiCodeCheck(int ch, KANCODEWORK *work);
+	static void KanjiCodeCheck(DWORD ch, KANCODEWORK *work, BOOL bExt = FALSE);
 
 	void fc_KANJI(DWORD ch);
 	void fc_KANBRK();

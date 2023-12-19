@@ -297,6 +297,7 @@
     <ClCompile Include="GhostWnd.cpp" />
     <ClCompile Include="GrapWnd.cpp" />
     <ClCompile Include="HisPage.cpp" />
+    <ClCompile Include="HttpCtx.cpp" />
     <ClCompile Include="IConv.cpp" />
     <ClCompile Include="IConvDlg.cpp" />
     <ClCompile Include="IdKeyFileDlg.cpp" />
@@ -406,6 +407,7 @@
     <ClInclude Include="GhostWnd.h" />
     <ClInclude Include="GrapWnd.h" />
     <ClInclude Include="HisPage.h" />
+    <ClInclude Include="HttpCtx.h" />
     <ClInclude Include="huffman.h" />
     <ClInclude Include="IConv.h" />
     <ClInclude Include="IConvDlg.h" />
@@ -477,6 +479,7 @@
     <ClInclude Include="UpdateDlg.h" />
     <ClInclude Include="ExtFileDialog.h" />
     <ClInclude Include="UserFlowDlg.h" />
+    <ClInclude Include="xmlesctab.h" />
     <ClInclude Include="zm.h" />
     <ClInclude Include="ZModem.h" />
   </ItemGroup>

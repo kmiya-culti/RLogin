@@ -12,69 +12,23 @@
 //////////////////////////////////////////////////////////////////////
 // CDialogRes 
 
-IMPLEMENT_DYNAMIC(CDialogRes, CDialog)
+IMPLEMENT_DYNAMIC(CDialogRes, CDialogExt)
 
-CDialogRes::CDialogRes(UINT nIDTemplate, CWnd *pParent)	: CDialog(nIDTemplate, pParent)
+CDialogRes::CDialogRes(UINT nIDTemplate, CWnd *pParent)	: CDialogExt(nIDTemplate, pParent)
 {
-	m_nIDTemplate = nIDTemplate;
-	
-	m_FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
-	m_FontSize = ::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9);
 }
 CDialogRes::~CDialogRes()
 {
 }
-BOOL CDialogRes::Create(LPCTSTR lpszTemplateName, CWnd* pParentWnd)
-{
-	HGLOBAL hDialog;
-	HGLOBAL hInitData = NULL;
-	void* lpInitData = NULL;
-	LPCDLGTEMPLATE lpDialogTemplate;
 
-	m_lpszTemplateName = lpszTemplateName;
-
-	if ( IS_INTRESOURCE(m_lpszTemplateName) && m_nIDHelp == 0 )
-		m_nIDHelp = LOWORD((DWORD_PTR)m_lpszTemplateName);
-
-	if ( !((CRLoginApp *)AfxGetApp())->LoadResDialog(m_lpszTemplateName, hDialog, hInitData) )
-		return (-1);
-
-	if ( hInitData != NULL )
-		lpInitData = (void *)LockResource(hInitData);
-
-	lpDialogTemplate = (LPCDLGTEMPLATE)LockResource(hDialog);
-
-	CDialogTemplate dlgTemp(lpDialogTemplate);
-
-	if ( IsDefineFont() )
-		dlgTemp.SetFont(m_FontName, m_FontSize);
-	else {
-		CString name;
-		WORD size;
-		dlgTemp.GetFont(name, size);
-		if ( m_FontSize != size )
-			dlgTemp.SetFont(name, m_FontSize);
-	}
-
-	lpDialogTemplate = (LPCDLGTEMPLATE)LockResource(dlgTemp.m_hTemplate);
-
-	BOOL bResult = CreateIndirect(lpDialogTemplate, pParentWnd, lpInitData);
-
-	UnlockResource(dlgTemp.m_hTemplate);
-
-	UnlockResource(hDialog);
-	FreeResource(hDialog);
-
-	if ( hInitData != NULL ) {
-		UnlockResource(hInitData);
-		FreeResource(hInitData);
-	}
-
-	return bResult;
-}
-
-BEGIN_MESSAGE_MAP(CDialogRes, CDialog)
+BEGIN_MESSAGE_MAP(CDialogRes, CDialogExt)
+	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 END_MESSAGE_MAP()
+
+LRESULT CDialogRes::OnDpiChanged(WPARAM wParam, LPARAM lParam)
+{
+	return FALSE;
+}
 
 //////////////////////////////////////////////////////////////////////
 // CFileDownPage
@@ -118,6 +72,25 @@ void CFileDownPage::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CFileDownPage, CDialogRes)
 END_MESSAGE_MAP()
 
+static const INITDLGTAB DownItemTab[] = {
+	{ IDC_RADIO1,	ITM_RIGHT_RIGHT },
+	{ IDC_RADIO2,	ITM_RIGHT_RIGHT },
+	{ IDC_RADIO3,	ITM_RIGHT_RIGHT },
+
+	{ IDC_CHECK1,	ITM_RIGHT_RIGHT },
+	{ IDC_CHECK2,	ITM_RIGHT_RIGHT },
+	{ IDC_CHECK3,	ITM_RIGHT_RIGHT },
+	{ IDC_CHECK4,	ITM_RIGHT_RIGHT },
+
+	{ IDC_COMBO1,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_COMBO2,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_COMBO3,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_COMBO4,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_EDIT1,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+
+	{ 0,	0 },
+};
+
 BOOL CFileDownPage::OnInitDialog()
 {
 	int n;
@@ -125,6 +98,8 @@ BOOL CFileDownPage::OnInitDialog()
 	CStringArray stra;
 
 	CDialogRes::OnInitDialog();
+
+	InitItemOffset(DownItemTab);
 
 	CIConv::SetListArray(stra);
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_COMBO1)) != NULL ) {
@@ -201,8 +176,23 @@ void CFileUpConvPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX, IDC_COMBO4, m_UpCrLfMode);
 }
 
-BEGIN_MESSAGE_MAP(CFileUpConvPage, CDialog)
+BEGIN_MESSAGE_MAP(CFileUpConvPage, CDialogRes)
 END_MESSAGE_MAP()
+
+static const INITDLGTAB UpConvItemTab[] = {
+	{ IDC_RADIO1,	ITM_RIGHT_RIGHT },
+	{ IDC_RADIO2,	ITM_RIGHT_RIGHT },
+	{ IDC_RADIO3,	ITM_RIGHT_RIGHT },
+
+	{ IDC_CHECK1,	ITM_RIGHT_RIGHT },
+
+	{ IDC_COMBO1,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_COMBO2,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_COMBO3,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_COMBO4,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+
+	{ 0,	0 },
+};
 
 BOOL CFileUpConvPage::OnInitDialog()
 {
@@ -211,6 +201,8 @@ BOOL CFileUpConvPage::OnInitDialog()
 	CStringArray stra;
 
 	CDialogRes::OnInitDialog();
+
+	InitItemOffset(UpConvItemTab);
 
 	CIConv::SetListArray(stra);
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_COMBO1)) != NULL ) {
@@ -290,12 +282,34 @@ void CFileUpSendPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT6, m_CrLfMsec);
 }
 
-BEGIN_MESSAGE_MAP(CFileUpSendPage, CDialog)
+BEGIN_MESSAGE_MAP(CFileUpSendPage, CDialogRes)
 END_MESSAGE_MAP()
+
+static const INITDLGTAB UpSendItemTab[] = {
+	{ IDC_RADIO4,	ITM_RIGHT_RIGHT },
+	{ IDC_RADIO5,	ITM_RIGHT_RIGHT },
+	{ IDC_RADIO6,	ITM_RIGHT_RIGHT },
+
+	{ IDC_CHECK2,	ITM_RIGHT_RIGHT },
+	{ IDC_CHECK3,	ITM_RIGHT_RIGHT },
+	{ IDC_CHECK4,	ITM_RIGHT_RIGHT },
+	{ IDC_CHECK5,	ITM_RIGHT_RIGHT },
+
+	{ IDC_EDIT1,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_EDIT2,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_EDIT3,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_EDIT4,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_EDIT5,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_EDIT6,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+
+	{ 0,	0 },
+};
 
 BOOL CFileUpSendPage::OnInitDialog()
 {
 	CDialogRes::OnInitDialog();
+
+	InitItemOffset(UpSendItemTab);
 
 	m_SendMode = m_pUpDown->m_SendMode;
 	m_RecvWait = m_pUpDown->m_bRecvWait;
@@ -341,13 +355,13 @@ BOOL CFileUpSendPage::OnApply()
 
 IMPLEMENT_DYNAMIC(CExtFileDialog, CFileDialog)
 
-
 CExtFileDialog::CExtFileDialog(BOOL bOpenFileDialog, LPCTSTR lpszDefExt, LPCTSTR lpszFileName,
 		DWORD dwFlags, LPCTSTR lpszFilter, CWnd* pParentWnd, DWORD dwSize, BOOL bVistaStyle, int nDialogMode, class CSyncSock *pOwner) :
 		CFileDialog(bOpenFileDialog, lpszDefExt, lpszFileName, dwFlags, lpszFilter, pParentWnd, dwSize, bVistaStyle)
 {
 	m_DialogMode = nDialogMode;
 	m_pOwner = pOwner;
+	m_FrameRightOfs = 10;
 
 	m_pUpConv   = NULL;
 	m_pUpSend   = NULL;
@@ -389,6 +403,7 @@ void CExtFileDialog::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CExtFileDialog, CFileDialog)
 	ON_WM_DESTROY()
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CExtFileDialog::OnTcnSelchangeTab1)
+	ON_WM_SIZE()
 END_MESSAGE_MAP()
 	
 void CExtFileDialog::FontSizeCheck()
@@ -443,10 +458,65 @@ void CExtFileDialog::FontSizeCheck()
 	SetWindowPos(NULL, 0, 0, rect.Width() + AddSize.cx, rect.Height() + AddSize.cy, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_SHOWWINDOW);
 }
 
+void CExtFileDialog::WindowSizeCheck(int cx, int cy)
+{
+	int n;
+	WINDOWPLACEMENT place;
+
+	if ( m_WindowSize.cx == cx && m_WindowSize.cy == cy )
+		return;
+
+	if ( m_TabCtrl.GetSafeHwnd() != NULL ) {
+		m_TabCtrl.GetWindowPlacement(&place);
+		place.rcNormalPosition.right = cx - m_FrameRightOfs;
+		m_TabCtrl.SetWindowPlacement(&place);
+		m_TabCtrl.Invalidate(FALSE);
+	}
+
+	if ( m_Frame.GetSafeHwnd() != NULL ) {
+		m_Frame.GetWindowPlacement(&place);
+		place.rcNormalPosition.right = cx - m_FrameRightOfs;
+		m_Frame.SetWindowPlacement(&place);
+		m_Frame.Invalidate(FALSE);
+	}
+
+	switch(m_DialogMode) {
+	case EXTFILEDLG_DOWNLOAD:
+		if ( m_pDownPage->GetSafeHwnd() == NULL )
+			break;
+		m_pDownPage->GetWindowPlacement(&place);
+		place.rcNormalPosition.right = cx - m_FrameRightOfs;
+		m_pDownPage->SetWindowPlacement(&place);
+		m_pDownPage->Invalidate(FALSE);
+		break;
+
+	case EXTFILEDLG_UPLOAD:
+		if ( m_pUpConv->GetSafeHwnd() == NULL || m_pUpSend->GetSafeHwnd() == NULL )
+			break;
+		m_pUpConv->GetWindowPlacement(&place);
+		place.rcNormalPosition.right = cx - m_FrameRightOfs;
+		m_pUpConv->SetWindowPlacement(&place);
+		m_pUpConv->Invalidate(FALSE);
+
+		m_pUpSend->GetWindowPlacement(&place);
+		place.rcNormalPosition.right = cx - m_FrameRightOfs;
+		m_pUpSend->SetWindowPlacement(&place);
+		m_pUpSend->Invalidate(FALSE);
+
+		n = m_TabCtrl.GetCurSel();
+		m_pUpConv->ShowWindow(n == 0 ? SW_SHOW : SW_HIDE);
+		m_pUpSend->ShowWindow(n == 1 ? SW_SHOW : SW_HIDE);
+		break;
+	}
+
+	m_WindowSize.cx = cx;
+	m_WindowSize.cy = cy;
+}
+
 BOOL CExtFileDialog::OnInitDialog()
 {
 	CString title;
-	CRect frame;
+	CRect frame, rect;
 
 	CFileDialog::OnInitDialog();
 
@@ -456,6 +526,15 @@ BOOL CExtFileDialog::OnInitDialog()
 	if ( m_DialogMode != 0 ) {
 		ModifyStyleEx(0, WS_EX_CONTROLPARENT);
 		FontSizeCheck();
+	}
+
+	GetWindowRect(rect);
+	m_WindowSize.cx = rect.Width();
+	m_WindowSize.cy = rect.Height();
+
+	if ( m_Frame.GetSafeHwnd() != NULL ) {
+		m_Frame.GetWindowRect(frame);
+		m_FrameRightOfs = frame.left - rect.left;	// ¶‰E“¯‚¶—]”’
 	}
 
 	switch(m_DialogMode) {
@@ -515,6 +594,16 @@ BOOL CExtFileDialog::OnInitDialog()
 	return TRUE;
 }
 
+void CExtFileDialog::OnInitDone()
+{
+	CRect rect;
+
+	GetWindowRect(rect);
+	WindowSizeCheck(rect.Width(), rect.Height());
+
+	CFileDialog::OnInitDone();
+}
+
 void CExtFileDialog::OnTcnSelchangeTab1(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	int n = m_TabCtrl.GetCurSel();
@@ -542,4 +631,145 @@ void CExtFileDialog::OnDestroy()
 	}
 
 	CFileDialog::OnDestroy();
+}
+
+void CExtFileDialog::OnSize(UINT nType, int cx, int cy)
+{
+	CFileDialog::OnSize(nType, cx, cy);
+
+	if ( nType != SIZE_MINIMIZED )
+		WindowSizeCheck(cx, cy);
+}
+
+//////////////////////////////////////////////////////////////////////
+// CConvFileDialog
+
+IMPLEMENT_DYNAMIC(CConvFileDialog, CFileDialog)
+
+CConvFileDialog::CConvFileDialog(BOOL bOpenFileDialog, LPCTSTR lpszDefExt, LPCTSTR lpszFileName,
+		DWORD dwFlags, LPCTSTR lpszFilter, CWnd* pParentWnd, DWORD dwSize, BOOL bVistaStyle) :
+		CFileDialog(bOpenFileDialog, lpszDefExt, lpszFileName, dwFlags, lpszFilter, pParentWnd, dwSize, bVistaStyle)
+{
+	m_Code = _T("CP932");
+	m_CrLf = 0;
+
+	if ( !bVistaStyle )
+		SetTemplate(0, IDD);
+}
+CConvFileDialog::~CConvFileDialog()
+{
+}
+void CConvFileDialog::DoDataExchange(CDataExchange* pDX)
+{
+	CFileDialog::DoDataExchange(pDX);
+
+	DDX_CBStringExact(pDX, IDC_COMBO1, m_Code);
+	DDX_CBIndex(pDX, IDC_COMBO2, m_CrLf);
+}
+
+BEGIN_MESSAGE_MAP(CConvFileDialog, CFileDialog)
+	ON_WM_DESTROY()
+	ON_WM_SIZE()
+END_MESSAGE_MAP()
+
+void CConvFileDialog::WindowSizeCheck(int cx, int cy)
+{
+	CWnd *pWnd;
+	WINDOWPLACEMENT place;
+
+	if ( m_WindowSize.cx == cx && m_WindowSize.cy == cy )
+		return;
+
+	if ( (pWnd = GetDlgItem(IDC_COMBO1)) != NULL ) {
+		pWnd->GetWindowPlacement(&place);
+		place.rcNormalPosition.right = cx - m_ComboRightOfs;
+		pWnd->SetWindowPlacement(&place);
+		pWnd->Invalidate(FALSE);
+	}
+
+	if ( (pWnd = GetDlgItem(IDC_COMBO2)) != NULL ) {
+		pWnd->GetWindowPlacement(&place);
+		place.rcNormalPosition.right = cx - m_ComboRightOfs;
+		pWnd->SetWindowPlacement(&place);
+		pWnd->Invalidate(FALSE);
+	}
+
+	m_WindowSize.cx = cx;
+	m_WindowSize.cy = cy;
+}
+
+BOOL CConvFileDialog::OnInitDialog()
+{
+	CRect rect;
+	CComboBox *pWnd;
+	WINDOWPLACEMENT place;
+
+	CFileDialog::OnInitDialog();
+
+	//ModifyStyleEx(0, WS_EX_CONTROLPARENT);
+
+	GetWindowRect(rect);
+	m_WindowSize.cx = rect.Width();
+	m_WindowSize.cy = rect.Height();
+
+	if ( (pWnd = (CComboBox *)GetDlgItem(IDC_COMBO1)) != NULL ) {
+		pWnd->GetWindowPlacement(&place);
+		m_ComboRightOfs = m_WindowSize.cx - place.rcNormalPosition.right;
+		pWnd->AddString(_T("DEFAULT"));
+		pWnd->AddString(_T("CP932"));
+		pWnd->AddString(_T("SHIFT-JIS"));
+		pWnd->AddString(_T("EUC-JP-MS"));
+		pWnd->AddString(_T("EUC-JP"));
+		pWnd->AddString(_T("UTF-7"));
+		pWnd->AddString(_T("UTF-8"));
+		pWnd->AddString(_T("UTF-16BE"));
+		pWnd->AddString(_T("UTF-16LE"));
+		pWnd->AddString(_T("UTF-32BE"));
+		pWnd->AddString(_T("UTF-32LE"));
+		pWnd->AddString(_T("UCS-2BE"));
+		pWnd->AddString(_T("UCS-2LE"));
+		pWnd->AddString(_T("UCS-4BE"));
+		pWnd->AddString(_T("UCS-4LE"));
+	}
+
+	if ( (pWnd = (CComboBox *)GetDlgItem(IDC_COMBO2)) != NULL ) {
+		pWnd->AddString(_T("CR+LF"));
+		pWnd->AddString(_T("CR"));
+		pWnd->AddString(_T("LF"));
+	}
+
+	m_Code = ::AfxGetApp()->GetProfileString(_T("ConvFileDialog"), _T("Code"), _T("DEFAULT"));
+	m_CrLf = ::AfxGetApp()->GetProfileInt(_T("ConvFileDialog"), _T("CrLf"), 0);
+
+	UpdateData(FALSE);
+
+	return TRUE;
+}
+
+void CConvFileDialog::OnInitDone()
+{
+	CRect rect;
+
+	GetWindowRect(rect);
+	WindowSizeCheck(rect.Width(), rect.Height());
+
+	CFileDialog::OnInitDone();
+}
+
+void CConvFileDialog::OnDestroy()
+{
+	UpdateData(TRUE);
+
+	::AfxGetApp()->WriteProfileString(_T("ConvFileDialog"), _T("Code"), m_Code);
+	::AfxGetApp()->WriteProfileInt(_T("ConvFileDialog"), _T("CrLf"), m_CrLf);
+
+	CFileDialog::OnDestroy();
+}
+
+void CConvFileDialog::OnSize(UINT nType, int cx, int cy)
+{
+	CFileDialog::OnSize(nType, cx, cy);
+
+	if ( nType != SIZE_MINIMIZED )
+		WindowSizeCheck(cx, cy);
 }

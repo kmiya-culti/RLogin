@@ -1,3 +1,6 @@
+//////////////////////////////////////////////////////////////////////
+// Script.cpp
+
 #include "StdAfx.h"
 #include <afxdb.h>
 #include <math.h>
@@ -181,7 +184,7 @@ int CScriptValue::GetDocCmds()
 		return ((CScriptValue *)(m_Value.m_Ptr))->GetDocCmds();
 	return m_DocCmds;
 }
-CScriptValue & CScriptValue::GetAt(LPCSTR str)
+CScriptValue & CScriptValue::GetAt(LPCTSTR str)
 {
 	if ( m_Type == VALTYPE_IDENT )
 		return ((CScriptValue *)(m_Value.m_Ptr))->GetAt(str);
@@ -252,13 +255,13 @@ void CScriptValue::operator = (class CScriptLex &lex)
 	case LEX_INT64:
 		*this = (LONGLONG)lex;
 		break;
-	case LEX_LABEL:
-	case LEX_LABELA:
 	case LEX_STRING:
 		m_Type = VALTYPE_STRING;
 		m_Buf.Clear();
 		m_Buf.Apend(lex.m_Buf.m_Ptr, lex.m_Buf.m_Len);
 		break;
+	case LEX_LABEL:
+	case LEX_LABELA:
 	case LEX_WSTRING:
 		m_Type = VALTYPE_WSTRING;
 		m_Buf.Clear();
@@ -407,11 +410,11 @@ int CScriptValue::Add(CScriptValue &data)
 	sp->m_bNoCase = m_bNoCase;
 	return sp->m_ArrayPos;
 }
-int CScriptValue::Find(LPCSTR str)
+int CScriptValue::Find(LPCTSTR str)
 {
 	int c;
 	CScriptValue *tp;
-	CStringA tmp;
+	CString tmp;
 
 	if ( m_bNoCase ) {
 		tmp = str;
@@ -428,7 +431,22 @@ int CScriptValue::Find(LPCSTR str)
 	}
 	return (-1);
 }
-int CScriptValue::Add(LPCSTR str)
+int CScriptValue::FindAt(LPCTSTR str, int pos)
+{
+	CString tmp;
+
+	if ( m_bNoCase ) {
+		tmp = str;
+		tmp.MakeLower();
+		str = tmp;
+	}
+	for ( ; pos < m_Array.GetSize() ; pos++ ) {
+		if ( m_Array[pos] != NULL && ((CScriptValue *)m_Array[pos])->m_Index.Compare(str) == 0 )
+			return pos;
+	}
+	return (-1);
+}
+int CScriptValue::Add(LPCTSTR str)
 {
 	int n;
 	CScriptValue *tp;
@@ -444,9 +462,11 @@ int CScriptValue::Add(LPCSTR str)
 		return n;
 
 	tmp.m_Index = str;
+	if ( m_bNoCase )
+		tmp.m_Index.MakeLower();
 	return Add(tmp);
 }
-CScriptValue & CScriptValue::operator [] (LPCSTR str)
+CScriptValue & CScriptValue::operator [] (LPCTSTR str)
 {
 	return *(CScriptValue *)m_Array[Add(str)];
 }
@@ -1107,7 +1127,7 @@ void CScriptValue::SetInt(int &val, int mode)
 		break;
 	}
 }
-void CScriptValue::SetNodeStr(LPCSTR node, CString &str, int mode)
+void CScriptValue::SetNodeStr(LPCTSTR node, CString &str, int mode)
 {
 	int n;
 
@@ -1121,7 +1141,7 @@ void CScriptValue::SetNodeStr(LPCSTR node, CString &str, int mode)
 		break;
 	}
 }
-void CScriptValue::SetNodeInt(LPCSTR node, int &val, int mode)
+void CScriptValue::SetNodeInt(LPCTSTR node, int &val, int mode)
 {
 	int n;
 
@@ -1144,9 +1164,10 @@ void CScriptValue::Serialize(int mode, CBuffer *bp)
 
 	int n, len;
 	CBuffer tmp;
+	CStringA mbs;
 
 	if ( mode ) {	// Write
-		bp->PutStr(m_Index);
+		bp->PutStr(TstrToMbs(m_Index));
 		bp->Put8Bit(m_Type);
 		bp->Put8Bit(m_bNoCase);
 
@@ -1186,7 +1207,8 @@ void CScriptValue::Serialize(int mode, CBuffer *bp)
 		}
 
 	} else {		// Read
-		bp->GetStr(m_Index);
+		bp->GetStr(mbs);
+		m_Index = MbsToTstr(mbs);
 		m_Type = bp->Get8Bit();
 		m_bNoCase = bp->Get8Bit();
 
@@ -1250,6 +1272,9 @@ void CScriptValue::SetIndex(CStringIndex &index)
 	index.SetNoSort(TRUE);
 	index.m_nIndex = m_Index;
 
+	index.RemoveAll();
+	index.SetSize(GetSize());
+
 	switch(GetType()) {
 	case VALTYPE_INT:
 	case VALTYPE_DOUBLE:
@@ -1281,9 +1306,6 @@ void CScriptValue::SetIndex(CStringIndex &index)
 		break;
 	}
 
-	index.RemoveAll();
-	index.SetSize(GetSize());
-
 	for ( n = 0 ; n < m_Array.GetSize() ; n++ ) {
 		if ( m_Array[n] != NULL )
 			GetAt(n).SetIndex(index[n]);
@@ -1308,10 +1330,9 @@ void CScriptValue::GetIndex(CStringIndex &index)
 
 	RemoveAll();
 	for ( n = 0 ; n < index.GetSize() ; n++ ) {
-		if ( index[n].m_nIndex.IsEmpty() )
-			i = Add(NULL);
-		else
-			i = Add(TstrToMbs(index[n].m_nIndex));
+		CScriptValue tmp;
+		tmp.m_Index = index[n].m_nIndex;
+		i = Add(tmp);
 		GetAt(i).GetIndex(index[n]);
 	}
 }
@@ -1325,7 +1346,7 @@ void CScriptValue::Debug(CString &str)
 		_T("wstr"),		_T("dstr"),		_T("pbyte"),	_T("pwchar"),	_T("pdchar"),
 		_T("pdouble"),	_T("ident"),	_T("ptr"),		_T("empty") };
 
-	str.Format(_T("%s:(%s)="), MbsToTstr(m_Index), typestr[m_Type]);
+	str.Format(_T("%s:(%s)="), m_Index, typestr[m_Type]);
 	switch(m_Type) {
 	case VALTYPE_INT:
 		tmp.Format(_T("%d"), m_Value.m_Int);
@@ -1533,7 +1554,7 @@ int	CScript::InChar(int ch, CHAR *ptn)
     }
     return (-1);
 }
-int	CScript::StrBin(int mx, const CHAR *ptn[], LPCSTR str)
+int	CScript::StrBin(int mx, const TCHAR *ptn[], LPCTSTR str)
 {
     int n, c;
     int bs = 0;
@@ -1541,7 +1562,7 @@ int	CScript::StrBin(int mx, const CHAR *ptn[], LPCSTR str)
 	mx--;
     while ( bs <= mx ) {
 		n = (bs + mx) / 2;
-		if ( (c = _stricmp(ptn[n], str)) == 0 )
+		if ( (c = _tcsicmp(ptn[n], str)) == 0 )
 		    return n;
 		else if ( c < 0 )
 		    bs = n + 1;
@@ -1762,11 +1783,11 @@ int CScript::LexEscape(int ch, CStringW *save)
 CScriptLex *CScript::Lex()
 {
 #define IDTR_MAX   	(5 * 3 + 2)
-    static const CHAR *func[] = {
-		"break",	"case", 	"class",	"continue",	"default",
-		"do",		"else", 	"for",		"foreach",	"function",
-		"if",		"in",		"return",	"switch",	"this",	
-		"var",		"while",
+    static const TCHAR *func[] = {
+		_T("break"),	_T("case"), 	_T("class"),	_T("continue"),	_T("default"),
+		_T("do"),		_T("else"), 	_T("for"),		_T("foreach"),	_T("function"),
+		_T("if"),		_T("in"),		_T("return"),	_T("switch"),	_T("this"),	
+		_T("var"),		_T("while"),
     };
 	static const int adr_tbl[]={
 		LEX_ANDAND, LEX_OROR, LEX_INC, LEX_DEC
@@ -1845,15 +1866,15 @@ LOOP:
 			UnGetChar(nx);
 
 			do {
-				tmp += (WCHAR)ch;
+				buf.PutWord(ch);
 				ch = GetChar();
 			} while ( (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' );
 		    UnGetChar(ch);
 
-			if ( (n = StrBin(IDTR_MAX, func, tmp)) >= 0 )
+			if ( (n = StrBin(IDTR_MAX, func, (LPCTSTR)buf)) >= 0 )
 				ch = LEX_BREAK + n;
 			else {
-				m_LexTmp.SetBuf((LPBYTE)(LPCSTR)tmp, tmp.GetLength());
+				m_LexTmp.SetBuf(buf.GetPtr(), buf.GetSize());
 				if ( ch == '.' ) {
 					GetChar();	// skip '.'
 					ch = LEX_LABELA;
@@ -2002,7 +2023,7 @@ void CScript::LoadIdent(CScriptValue *sp, int index, int cmd)
 		CodeAddPos(index);
 	} else {
 		CScriptLex lex;
-		lex.SetBuf((void *)(LPCSTR)(*sp)[index].m_Index, (*sp)[index].m_Index.GetLength());
+		lex.SetBuf((void *)(LPCTSTR)(*sp)[index].m_Index, (*sp)[index].m_Index.GetLength() * sizeof(TCHAR));
 		lex.m_Type = LEX_LABEL;
 		CodeAdd(CM_PUSH);
 		CodeAdd(CM_VALUE);
@@ -2036,24 +2057,24 @@ expr	:	LABEL
 		// no break
 	case LEX_LABEL:
 	case LEX_LABELA:
-		if ( m_Local != NULL && (n = m_Local->Find((LPCSTR)*lex)) != (-1) ) {
+		if ( m_Local != NULL && (n = m_Local->Find((LPCTSTR)*lex)) != (-1) ) {
 			CodeAdd(CM_LOCAL);
 			CodeAddPos(n);
 		} else if ( nf ) {
-			LoadIdent(m_Class, m_Class->Add((LPCSTR)*lex), CM_LOAD);
+			LoadIdent(m_Class, m_Class->Add((LPCTSTR)*lex), CM_LOAD);
 		} else {
 			CScriptValue *sp = NULL;
 			for ( sp = m_Class ; sp != NULL ; sp = sp->m_Next ) {
-				if ( (n = sp->Find((LPCSTR)*lex)) != (-1) ) {
+				if ( (n = sp->Find((LPCTSTR)*lex)) != (-1) ) {
 					LoadIdent(sp, n, CM_LOAD);
 					break;
 				}
 			}
 			if ( sp == NULL ) {
-				if ( strcmp((LPCSTR)*lex, "System") == 0 )
-					LoadIdent(&SystemValue, SystemValue.Add((LPCSTR)*lex), CM_SYSTEM);
+				if ( _tcsicmp((LPCTSTR)*lex, _T("System")) == 0 )
+					LoadIdent(&SystemValue, SystemValue.Add((LPCTSTR)*lex), CM_SYSTEM);
 				else
-					LoadIdent(&m_Data, m_Data.Add((LPCSTR)*lex), CM_LOAD);
+					LoadIdent(&m_Data, m_Data.Add((LPCTSTR)*lex), CM_LOAD);
 			}
 		}
 		n = CodeAdd(CM_IDENT);
@@ -2888,14 +2909,14 @@ CScriptLex *CScript::Stage02(CScriptLex *lex)
 			lex = Lex();
 			if ( lex->m_Type != LEX_LABEL && lex->m_Type != LEX_LABELA )
 				THROW(lex);
-			b = m_Class->Add((LPCSTR)*lex);
+			b = m_Class->Add((LPCTSTR)*lex);
 			sp = &((*m_Class)[b]);
 
 			while ( lex->m_Type == LEX_LABELA ) {
 				lex = Lex();
 				if ( lex->m_Type != LEX_LABEL && lex->m_Type != LEX_LABELA )
 					THROW(lex);
-				b = sp->Add((LPCSTR)*lex);
+				b = sp->Add((LPCTSTR)*lex);
 				sp = &((*sp)[b]);
 			}
 			lex = Lex();
@@ -2906,7 +2927,7 @@ CScriptLex *CScript::Stage02(CScriptLex *lex)
 			while ( lex->m_Type != ')' ) {
 				if ( lex->m_Type != LEX_LABEL )
 					THROW(lex);
-				local[(LPCSTR)*lex];
+				local[(LPCTSTR)*lex];
 				lex = Lex();
 				if ( lex->m_Type == ',' )
 					lex = Lex();
@@ -2936,7 +2957,7 @@ CScriptLex *CScript::Stage02(CScriptLex *lex)
 			lex = Lex();
 			if ( lex->m_Type != LEX_LABEL )
 				THROW(lex);
-			CScriptValue *sp = &((*m_Class)[(LPCSTR)*lex]);
+			CScriptValue *sp = &((*m_Class)[(LPCTSTR)*lex]);
 			sp->m_Next = m_Class;
 			m_Class = sp;
 			lex = Stage01(Lex());
@@ -3066,7 +3087,7 @@ int CScript::LoadFile(LPCTSTR filename)
 	LPTSTR ptr;
 	int pos;
 
-	if ( (n = m_IncFile.Find(TstrToMbs(filename))) >= 0 )
+	if ( (n = m_IncFile.Find(filename)) >= 0 )
 		return n;
 	
 	//if ( (fp = _tfopen(filename, _T("rb"))) == NULL )
@@ -3106,7 +3127,7 @@ int CScript::LoadFile(LPCTSTR filename)
 	if ( (pos = ParseBuff(buf, size)) < 0 )
 		return (-1);
 
-	n = m_IncFile.Add(TstrToMbs(filename));
+	n = m_IncFile.Add(filename);
 	m_IncFile[n] = (int)0;
 	m_IncFile[n].m_FuncPos = pos;
 	m_IncFile[n].m_SrcTextPos = m_SrcMax;
@@ -3146,7 +3167,7 @@ int CScript::LoadStr(LPCTSTR str)
 	if ( (pos = ParseBuff(ptr, size)) < 0 )
 		return (-1);
 
-	n = m_IncFile.Add((LPCSTR)NULL);
+	n = m_IncFile.Add((LPCTSTR)NULL);
 	m_IncFile[n] = (int)0;
 	m_IncFile[n].m_FuncPos = pos;
 	m_IncFile[n].m_SrcTextPos = m_SrcMax;
@@ -3398,7 +3419,7 @@ int CScript::Exec()
 			if ( sp == NULL )
 				throw _T("Stack AddArray Over");
 			if ( sp->m_Type == VALTYPE_IDENT )
-				*(m_Stack->m_Next) = &((*((CScriptValue *)(*sp)))[(LPCSTR)NULL]);
+				*(m_Stack->m_Next) = &((*((CScriptValue *)(*sp)))[(LPCTSTR)NULL]);
 			else
 				*(m_Stack->m_Next) = (int)0;
 			StackPop();
@@ -3415,7 +3436,7 @@ int CScript::Exec()
 					*(m_Stack->m_Next) = &((*sp)[(int)*m_Stack]);
 					break;
 				default:
-					*(m_Stack->m_Next) = &((*sp)[(LPCSTR)*m_Stack]);
+					*(m_Stack->m_Next) = &((*sp)[(LPCTSTR)*m_Stack]);
 					break;
 				}
 			} else
@@ -3828,15 +3849,15 @@ int CScript::Exec()
 				if ( m_Stack->m_Next->GetType() == VALTYPE_INT )
 					sp = &((*(m_Stack->m_Next->m_Next))[(int)(*(m_Stack->m_Next))]);
 				else
-					sp = &((*(m_Stack->m_Next->m_Next))[(LPCSTR)(*(m_Stack->m_Next))]);
-				CStringA index = sp->m_Index;
+					sp = &((*(m_Stack->m_Next->m_Next))[(LPCTSTR)(*(m_Stack->m_Next))]);
+				CString index = sp->m_Index;
 				*sp = *m_Stack;
 				sp->m_Index = index;
 				StackPop();
 			}
 			break;
 		case CM_VALARRAY:
-			sp = &((*(m_Stack->m_Next))[(LPCSTR)NULL]);
+			sp = &((*(m_Stack->m_Next))[(LPCTSTR)NULL]);
 			*sp = *m_Stack;
 			sp->m_Index.Empty();
 			break;
@@ -4053,15 +4074,14 @@ int CScript::ComFunc(int cmd, CScriptValue &local)
 int CScript::TextWnd(int cmd, CScriptValue &local)
 {
 	static const ScriptFunc textwndfuncs[] = {
-		{ "open",		1,	&CScript::TextWnd },	{ "close",		2,	&CScript::TextWnd },
-		{ "gettext",	3,	&CScript::TextWnd },	{ "settext",	4,	&CScript::TextWnd },
-		{ "addtext",	5,	&CScript::TextWnd },
+		{ _T("open"),		1,	&CScript::TextWnd },	{ _T("close"),		2,	&CScript::TextWnd },
+		{ _T("gettext"),	3,	&CScript::TextWnd },	{ _T("settext"),	4,	&CScript::TextWnd },
+		{ _T("addtext"),	5,	&CScript::TextWnd },
 
 		{ NULL,			0,	NULL }
 	};
 
 	CStatusDlg *pWnd;
-	CString text;
 	CScriptValue *acc = (CScriptValue *)local;
 	CScriptValue *base = (CScriptValue *)*acc;
 	acc->Empty();
@@ -4071,48 +4091,47 @@ int CScript::TextWnd(int cmd, CScriptValue &local)
 
 	switch(cmd) {
 	case 0:		// textwnd(title, text)
-		(*acc)["pWnd"] = (void *)NULL;
-		(*acc)["TitleText"] = (LPCTSTR)local[0];
-		(*acc)["StatusText"] = (LPCTSTR)local[1];
+		(*acc)[_T("pWnd")] = (void *)NULL;
+		(*acc)[_T("TitleText")] = (LPCTSTR)local[0];
+		(*acc)[_T("StatusText")] = (LPCTSTR)local[1];
 		for ( int n = 0 ; textwndfuncs[n].name != NULL ; n++ ) {
-			(*acc)[(LPCSTR)textwndfuncs[n].name].m_FuncPos = (textwndfuncs[n].cmd | 0x80000000L);
-			(*acc)[(LPCSTR)textwndfuncs[n].name].m_FuncExt = textwndfuncs[n].proc;
+			(*acc)[textwndfuncs[n].name].m_FuncPos = (textwndfuncs[n].cmd | 0x80000000L);
+			(*acc)[textwndfuncs[n].name].m_FuncExt = textwndfuncs[n].proc;
 		}
 		break;
 	case 1:		// textwnd.open()
 		if ( base == NULL )
 			break;
-		if ( (pWnd = (CStatusDlg *)((void *)(base->GetAt("pWnd")))) != NULL )
+		if ( (pWnd = (CStatusDlg *)((void *)(base->GetAt(_T("pWnd"))))) != NULL )
 			break;
 		pWnd = new CStatusDlg(NULL);
-		pWnd->m_Title = (LPCTSTR)(base->GetAt("TitleText"));
+		pWnd->m_Title = (LPCTSTR)(base->GetAt(_T("TitleText")));
 		pWnd->m_OwnerType = 1;
 		pWnd->m_pValue = (void *)base;
-		base->GetAt("pWnd") = (void *)pWnd;
+		base->GetAt(_T("pWnd")) = (void *)pWnd;
 		if ( pWnd->Create(IDD_STATUS_DLG, CWnd::GetDesktopWindow()) ) {
 			pWnd->ShowWindow(SW_SHOW);
-			pWnd->SetStatusText((LPCTSTR)(base->GetAt("StatusText")));
+			pWnd->SetStatusText((LPCTSTR)(base->GetAt(_T("StatusText"))));
 		}
 		break;
 	case 2:		// textwnd.close()
-		if ( base == NULL || (pWnd = (CStatusDlg *)((void *)(base->GetAt("pWnd")))) == NULL )
+		if ( base == NULL || (pWnd = (CStatusDlg *)((void *)(base->GetAt(_T("pWnd"))))) == NULL )
 			break;
 		pWnd->DestroyWindow();
-		base->GetAt("pWnd") = (void *)NULL;
+		base->GetAt(_T("pWnd")) = (void *)NULL;
 		break;
 	case 3:		// textwnd.gettext()
-		if ( base == NULL || (pWnd = (CStatusDlg *)((void *)(base->GetAt("pWnd")))) == NULL )
+		if ( base == NULL || (pWnd = (CStatusDlg *)((void *)(base->GetAt(_T("pWnd"))))) == NULL )
 			break;
-		pWnd->GetStatusText(text);
-		(*acc) = (LPCTSTR)text;
+		(*acc) = (LPCTSTR)(pWnd->GetStatusText());
 		break;
 	case 4:		// textwnd.settext()
-		if ( base == NULL || (pWnd = (CStatusDlg *)((void *)(base->GetAt("pWnd")))) == NULL )
+		if ( base == NULL || (pWnd = (CStatusDlg *)((void *)(base->GetAt(_T("pWnd"))))) == NULL )
 			break;
 		pWnd->SetStatusText((LPCTSTR)local[0]);
 		break;
 	case 5:		// textwnd.addtext()
-		if ( base == NULL || (pWnd = (CStatusDlg *)((void *)(base->GetAt("pWnd")))) == NULL )
+		if ( base == NULL || (pWnd = (CStatusDlg *)((void *)(base->GetAt(_T("pWnd"))))) == NULL )
 			break;
 		pWnd->AddStatusText((LPCTSTR)local[0]);
 		break;
@@ -4126,9 +4145,9 @@ int CScript::TextWnd(int cmd, CScriptValue &local)
 int CScript::DataBs(int cmd, CScriptValue &local)
 {
 	static const ScriptFunc databsfuncs[] = {
-		{ "open",		1,	&CScript::DataBs },	{ "close",		2,	&CScript::DataBs },
-		{ "sql",		3,	&CScript::DataBs },	{ "count",		4,	&CScript::DataBs },
-		{ "fetch",		5,	&CScript::DataBs },	{ "move",		6,	&CScript::DataBs },
+		{ _T("open"),		1,	&CScript::DataBs },	{ _T("close"),		2,	&CScript::DataBs },
+		{ _T("sql"),		3,	&CScript::DataBs },	{ _T("count"),		4,	&CScript::DataBs },
+		{ _T("fetch"),		5,	&CScript::DataBs },	{ _T("move"),		6,	&CScript::DataBs },
 
 		{ NULL,			0,	NULL }
 	};
@@ -4144,17 +4163,17 @@ int CScript::DataBs(int cmd, CScriptValue &local)
 	case 0:		// database()
 		{
 			CDatabase *pDb = new CDatabase;
-			(*acc)["pDatabase"]   = (void *)pDb;
-			(*acc)["pRecordset "] = (void *)NULL;
+			(*acc)[_T("pDatabase")]   = (void *)pDb;
+			(*acc)[_T("pRecordset")] = (void *)NULL;
 			for ( int n = 0 ; databsfuncs[n].name != NULL ; n++ ) {
-				(*acc)[(LPCSTR)databsfuncs[n].name].m_FuncPos = (databsfuncs[n].cmd | 0x80000000L);
-				(*acc)[(LPCSTR)databsfuncs[n].name].m_FuncExt = databsfuncs[n].proc;
+				(*acc)[databsfuncs[n].name].m_FuncPos = (databsfuncs[n].cmd | 0x80000000L);
+				(*acc)[databsfuncs[n].name].m_FuncExt = databsfuncs[n].proc;
 			}
 		}
 		break;
 	case 1:		// database.open(name, mode)
 		if ( base != NULL ) {
-			CDatabase *pDb = (CDatabase *)(void *)base->GetAt("pDatabase");
+			CDatabase *pDb = (CDatabase *)(void *)base->GetAt(_T("pDatabase"));
 			if ( pDb != NULL ) {
 				try {
 					(*acc) = (int)pDb->OpenEx((LPCTSTR)local[0], (DWORD)(int)local[1]);
@@ -4168,31 +4187,31 @@ int CScript::DataBs(int cmd, CScriptValue &local)
 		break;
 	case 2:		// database.close()
 		if ( base != NULL ) {
-			CRecordset *pRs = (CRecordset *)(void *)base->GetAt("pRecordset");
-			CDatabase *pDb = (CDatabase *)(void *)base->GetAt("pDatabase");
+			CRecordset *pRs = (CRecordset *)(void *)base->GetAt(_T("pRecordset"));
+			CDatabase *pDb = (CDatabase *)(void *)base->GetAt(_T("pDatabase"));
 			if ( pRs != NULL ) {
 				pRs->Close();
 				delete pRs;
-				base->GetAt("pRecordset") = (void *)NULL;
+				base->GetAt(_T("pRecordset")) = (void *)NULL;
 			}
 			if ( pDb != NULL ) {
 				pDb->Close();
 				delete pDb;
-				base->GetAt("pDatabase") = (void *)NULL;
+				base->GetAt(_T("pDatabase")) = (void *)NULL;
 			}
 		}
 		break;
 	case 3:		// database.sql(sql)
 		if ( base != NULL ) {
-			CDatabase *pDb = (CDatabase *)(void *)base->GetAt("pDatabase");
-			CRecordset *pRs = (CRecordset *)(void *)base->GetAt("pRecordset");
+			CDatabase *pDb = (CDatabase *)(void *)base->GetAt(_T("pDatabase"));
+			CRecordset *pRs = (CRecordset *)(void *)base->GetAt(_T("pRecordset"));
 			if ( pDb == NULL )
 				break;
 			if ( pRs != NULL )
 				pRs->Close();
 			else {
 				pRs = new CRecordset(pDb);
-				base->GetAt("pRecordset") = (void *)pRs;
+				base->GetAt(_T("pRecordset")) = (void *)pRs;
 			}
 			try {
 				(*acc) = (int)pRs->Open(AFX_DB_USE_DEFAULT_TYPE, (LPCTSTR)local[0]);
@@ -4204,7 +4223,7 @@ int CScript::DataBs(int cmd, CScriptValue &local)
 		break;
 	case 4:		// database.count()
 		if ( base != NULL ) {
-			CRecordset *pRs = (CRecordset *)(void *)base->GetAt("pRecordset");
+			CRecordset *pRs = (CRecordset *)(void *)base->GetAt(_T("pRecordset"));
 			if ( pRs != NULL ) {
 				try {
 					int len = 0;
@@ -4227,14 +4246,14 @@ int CScript::DataBs(int cmd, CScriptValue &local)
 		(*acc).RemoveAll();
 		(*acc).Empty();
 		if ( base != NULL ) {
-			CRecordset *pRs = (CRecordset *)(void *)base->GetAt("pRecordset");
+			CRecordset *pRs = (CRecordset *)(void *)base->GetAt(_T("pRecordset"));
 			if ( pRs == NULL || pRs->IsEOF() )
 				break;
 			try {
 				int n;
 				int len = pRs->GetODBCFieldCount();
 				CODBCFieldInfo fieldInfo;
-				CStringA name;
+				CString name;
 				CDBVariant val;
 
 				for ( n = 0 ; n < len ; n++ ) {
@@ -4314,7 +4333,7 @@ int CScript::DataBs(int cmd, CScriptValue &local)
 		break;
 	case 6:			// database.move(pos)
 		if ( base != NULL ) {
-			CRecordset *pRs = (CRecordset *)(void *)base->GetAt("pRecordset");
+			CRecordset *pRs = (CRecordset *)(void *)base->GetAt(_T("pRecordset"));
 			if ( pRs == NULL )
 				break;
 			try {
@@ -4340,16 +4359,16 @@ int CScript::DataBs(int cmd, CScriptValue &local)
 int CScript::Dialog(int cmd, CScriptValue &local)
 {
 	static const ScriptFunc dialogfuncs[] = {
-		{ "add",		1,	&CScript::Dialog },	{ "open",		2,	&CScript::Dialog },
-		{ "close",		3,	&CScript::Dialog },	{ "center",		4,	&CScript::Dialog },
-		{ "show",		5,	&CScript::Dialog },	{ "wait",		6,	&CScript::Dialog },
-		{ "gettext",	7,	&CScript::Dialog },	{ "getcheck",	8,	&CScript::Dialog },
-		{ "getradio",	9,	&CScript::Dialog },	{ "getselect",	10,	&CScript::Dialog },
-		{ "settext",	11,	&CScript::Dialog },	{ "setcheck",	12,	&CScript::Dialog },
-		{ "setradio",	13,	&CScript::Dialog },	{ "setselect",	14,	&CScript::Dialog },
-		{ "setlist",	15,	&CScript::Dialog },	{ "setrange",	16,	&CScript::Dialog },
-		{ "setpos",		17,	&CScript::Dialog },	{ "modstyle",	18,	&CScript::Dialog },
-		{ "sendmsg",	19,	&CScript::Dialog },
+		{ _T("add"),		1,	&CScript::Dialog },	{ _T("open"),		2,	&CScript::Dialog },
+		{ _T("close"),		3,	&CScript::Dialog },	{ _T("center"),		4,	&CScript::Dialog },
+		{ _T("show"),		5,	&CScript::Dialog },	{ _T("wait"),		6,	&CScript::Dialog },
+		{ _T("gettext"),	7,	&CScript::Dialog },	{ _T("getcheck"),	8,	&CScript::Dialog },
+		{ _T("getradio"),	9,	&CScript::Dialog },	{ _T("getselect"),	10,	&CScript::Dialog },
+		{ _T("settext"),	11,	&CScript::Dialog },	{ _T("setcheck"),	12,	&CScript::Dialog },
+		{ _T("setradio"),	13,	&CScript::Dialog },	{ _T("setselect"),	14,	&CScript::Dialog },
+		{ _T("setlist"),	15,	&CScript::Dialog },	{ _T("setrange"),	16,	&CScript::Dialog },
+		{ _T("setpos"),		17,	&CScript::Dialog },	{ _T("modstyle"),	18,	&CScript::Dialog },
+		{ _T("sendmsg"),	19,	&CScript::Dialog },
 
 		{ NULL,			0,	NULL }
 	};
@@ -4365,47 +4384,47 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 	case 0:	// dialog(name, size, child)
 		{
 			int n;
-			(*acc)["pWnd"] = (void *)NULL;
-			(*acc)["WindowText"] = (LPCTSTR)local[0];
-			(*acc)["Size"]["sx"] = (int)(local[1].GetAt(0));
-			(*acc)["Size"]["sy"] = (int)(local[1].GetAt(1));
-			(*acc)["Size"]["cx"] = (int)(local[1].GetAt(2));
-			(*acc)["Size"]["cy"] = (int)(local[1].GetAt(3));
+			(*acc)[_T("pWnd")] = (void *)NULL;
+			(*acc)[_T("WindowText")] = (LPCTSTR)local[0];
+			(*acc)[_T("Size")][_T("sx")] = (int)(local[1].GetAt(0));
+			(*acc)[_T("Size")][_T("sy")] = (int)(local[1].GetAt(1));
+			(*acc)[_T("Size")][_T("cx")] = (int)(local[1].GetAt(2));
+			(*acc)[_T("Size")][_T("cy")] = (int)(local[1].GetAt(3));
 			for ( n = 0 ; n < local[2].GetSize() ; n++ ) {
-				(*acc)["Child"][n]["pWnd"]       = (void *)NULL;
-				(*acc)["Child"][n]["Type"]       = (LPCSTR)(local[2].GetAt(n).GetAt(0));
-				(*acc)["Child"][n]["Size"]["sx"] = (int)(local[2].GetAt(n).GetAt(1).GetAt(0));
-				(*acc)["Child"][n]["Size"]["sy"] = (int)(local[2].GetAt(n).GetAt(1).GetAt(1));
-				(*acc)["Child"][n]["Size"]["cx"] = (int)(local[2].GetAt(n).GetAt(1).GetAt(2));
-				(*acc)["Child"][n]["Size"]["cy"] = (int)(local[2].GetAt(n).GetAt(1).GetAt(3));
-				(*acc)["Child"][n]["Text"]       = (LPCTSTR)(local[2].GetAt(n).GetAt(2));
-				(*acc)["Child"][n]["Check"]	     = (int)(local[2].GetAt(n).GetAt(3));
-				(*acc)["Child"][n]["Func"]	     = (LPCSTR)(local[2].GetAt(n).GetAt(4));
-				(*acc)["Child"][n]["Value"]	     = (int)(-1);
-				(*acc)["Child"][n]["Group"]	     = (int)(-1);
+				(*acc)[_T("Child")][n][_T("pWnd")]       = (void *)NULL;
+				(*acc)[_T("Child")][n][_T("Type")]       = (LPCSTR)(local[2].GetAt(n).GetAt(0));
+				(*acc)[_T("Child")][n][_T("Size")][_T("sx")] = (int)(local[2].GetAt(n).GetAt(1).GetAt(0));
+				(*acc)[_T("Child")][n][_T("Size")][_T("sy")] = (int)(local[2].GetAt(n).GetAt(1).GetAt(1));
+				(*acc)[_T("Child")][n][_T("Size")][_T("cx")] = (int)(local[2].GetAt(n).GetAt(1).GetAt(2));
+				(*acc)[_T("Child")][n][_T("Size")][_T("cy")] = (int)(local[2].GetAt(n).GetAt(1).GetAt(3));
+				(*acc)[_T("Child")][n][_T("Text")]       = (LPCTSTR)(local[2].GetAt(n).GetAt(2));
+				(*acc)[_T("Child")][n][_T("Check")]	     = (int)(local[2].GetAt(n).GetAt(3));
+				(*acc)[_T("Child")][n][_T("Func")]	     = (LPCSTR)(local[2].GetAt(n).GetAt(4));
+				(*acc)[_T("Child")][n][_T("Value")]	     = (int)(-1);
+				(*acc)[_T("Child")][n][_T("Group")]	     = (int)(-1);
 			}
-			(*acc)["FontPoint"] = (int)local[3];
-			(*acc)["FontName"]  = (LPCTSTR)local[4];
+			(*acc)[_T("FontPoint")] = (int)local[3];
+			(*acc)[_T("FontName")]  = (LPCTSTR)local[4];
 			for ( n = 0 ; dialogfuncs[n].name != NULL ; n++ ) {
-				(*acc)[(LPCSTR)dialogfuncs[n].name].m_FuncPos = (dialogfuncs[n].cmd | 0x80000000L);
-				(*acc)[(LPCSTR)dialogfuncs[n].name].m_FuncExt = dialogfuncs[n].proc;
+				(*acc)[dialogfuncs[n].name].m_FuncPos = (dialogfuncs[n].cmd | 0x80000000L);
+				(*acc)[dialogfuncs[n].name].m_FuncExt = dialogfuncs[n].proc;
 			}
 		}
 		break;
 	case 1:	// dialog.add(type, size, text, state, func)
 		if ( base != NULL ) {
-			int n = base->GetAt("Child").GetSize();
-			base->GetAt("Child").GetAt(n).GetAt("pWnd")       = (void *)NULL;
-			base->GetAt("Child").GetAt(n).GetAt("Type")       = (LPCSTR)(local[0]);
-			base->GetAt("Child").GetAt(n).GetAt("Size")["sx"] = (int)(local[1].GetAt(0));
-			base->GetAt("Child").GetAt(n).GetAt("Size")["sy"] = (int)(local[1].GetAt(1));
-			base->GetAt("Child").GetAt(n).GetAt("Size")["cx"] = (int)(local[1].GetAt(2));
-			base->GetAt("Child").GetAt(n).GetAt("Size")["cy"] = (int)(local[1].GetAt(3));
-			base->GetAt("Child").GetAt(n).GetAt("Text")       = (LPCTSTR)(local[2]);
-			base->GetAt("Child").GetAt(n).GetAt("Check")     = (int)(local[3]);
-			base->GetAt("Child").GetAt(n).GetAt("Func")	     = (LPCSTR)(local[4]);
-			base->GetAt("Child").GetAt(n).GetAt("Value")     = (int)(-1);
-			base->GetAt("Child").GetAt(n).GetAt("Group")     = (int)(-1);
+			int n = base->GetAt(_T("Child")).GetSize();
+			base->GetAt(_T("Child")).GetAt(n).GetAt(_T("pWnd"))       = (void *)NULL;
+			base->GetAt(_T("Child")).GetAt(n).GetAt(_T("Type"))       = (LPCSTR)(local[0]);
+			base->GetAt(_T("Child")).GetAt(n).GetAt(_T("Size"))[_T("sx")] = (int)(local[1].GetAt(0));
+			base->GetAt(_T("Child")).GetAt(n).GetAt(_T("Size"))[_T("sy")] = (int)(local[1].GetAt(1));
+			base->GetAt(_T("Child")).GetAt(n).GetAt(_T("Size"))[_T("cx")] = (int)(local[1].GetAt(2));
+			base->GetAt(_T("Child")).GetAt(n).GetAt(_T("Size"))[_T("cy")] = (int)(local[1].GetAt(3));
+			base->GetAt(_T("Child")).GetAt(n).GetAt(_T("Text"))       = (LPCTSTR)(local[2]);
+			base->GetAt(_T("Child")).GetAt(n).GetAt(_T("Check"))     = (int)(local[3]);
+			base->GetAt(_T("Child")).GetAt(n).GetAt(_T("Func"))	     = (LPCSTR)(local[4]);
+			base->GetAt(_T("Child")).GetAt(n).GetAt(_T("Value"))     = (int)(-1);
+			base->GetAt(_T("Child")).GetAt(n).GetAt(_T("Group"))     = (int)(-1);
 			(*acc) = (int)n;
 		} else
 			(*acc) = (int)(-1);
@@ -4414,22 +4433,22 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 	case 2:	// dialog.open()
 		if ( base != NULL ) {
 			CTempWnd *pWnd;
-			CRect rect((int)base->GetAt("Size")["sx"], (int)base->GetAt("Size")["sy"],
-					   (int)base->GetAt("Size")["cx"], (int)base->GetAt("Size")["cy"]);
+			CRect rect((int)base->GetAt(_T("Size"))[_T("sx")], (int)base->GetAt(_T("Size"))[_T("sy")],
+					   (int)base->GetAt(_T("Size"))[_T("cx")], (int)base->GetAt(_T("Size"))[_T("cy")]);
 			rect.right += rect.left; rect.bottom += rect.top;
 
-			pWnd = (CTempWnd *)(void *)base->GetAt("pWnd");
+			pWnd = (CTempWnd *)(void *)base->GetAt(_T("pWnd"));
 			if ( pWnd != NULL ) pWnd->DestroyWindow();
 
 			pWnd = new CTempWnd;
-			base->GetAt("pWnd") = (void *)pWnd;
+			base->GetAt(_T("pWnd")) = (void *)pWnd;
 			pWnd->m_pScript = this;
 			pWnd->m_pValue  = base;
 
 			if ( pWnd->CreateEx(WS_EX_WINDOWEDGE,
 					AfxRegisterWndClass(CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS,
 						AfxGetApp()->LoadCursor(IDC_ARROW), (HBRUSH)(COLOR_WINDOW)),
-					(LPCTSTR)base->GetAt("WindowText"),
+					(LPCTSTR)base->GetAt(_T("WindowText")),
 					WS_POPUP  | WS_CAPTION | WS_SYSMENU | WS_BORDER,	// WS_VISIBLE
 					rect, NULL, NULL, NULL) )
 				(*acc) = (int)1;
@@ -4437,7 +4456,7 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 		break;
 	case 3:	// dialog.close()
 		if ( base != NULL ) {
-			CTempWnd *pWnd = (CTempWnd *)((void *)(base->GetAt("pWnd")));
+			CTempWnd *pWnd = (CTempWnd *)((void *)(base->GetAt(_T("pWnd"))));
 			if ( pWnd != NULL )
 				pWnd->DestroyWindow();
 		}
@@ -4447,8 +4466,8 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 		if ( base != NULL ) {
 			CWnd *pWnd;
 			CRect frame;
-			CRect rect((int)base->GetAt("Size")["sx"], (int)base->GetAt("Size")["sy"],
-					   (int)base->GetAt("Size")["cx"], (int)base->GetAt("Size")["cy"]);
+			CRect rect((int)base->GetAt(_T("Size"))[_T("sx")], (int)base->GetAt(_T("Size"))[_T("sy")],
+					   (int)base->GetAt(_T("Size"))[_T("cx")], (int)base->GetAt(_T("Size"))[_T("cy")]);
 			rect.right += rect.left; rect.bottom += rect.top;
 
 			int cx = rect.Width();
@@ -4464,20 +4483,20 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 			rect.right  = rect.left + cx;
 			rect.bottom = rect.top  + cy;
 
-			if ( (pWnd = (CWnd *)(void *)base->GetAt("pWnd")) != NULL )
+			if ( (pWnd = (CWnd *)(void *)base->GetAt(_T("pWnd"))) != NULL )
 				pWnd->SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER | SWP_NOACTIVATE);
 		}
 		break;
 	case 5:	// dialog.show(f)
 		if ( base != NULL ) {
-			CTempWnd *pWnd = (CTempWnd *)(void *)base->GetAt("pWnd");
+			CTempWnd *pWnd = (CTempWnd *)(void *)base->GetAt(_T("pWnd"));
 			if ( pWnd != NULL )
 				pWnd->ShowWindow((int)local[0] == 0 ? SW_HIDE : SW_SHOW);
 		}
 		break;
 	case 6:	// dialog.wait()
 		if ( base != NULL ) {
-			CTempWnd *pWnd = (CTempWnd *)(void *)base->GetAt("pWnd");
+			CTempWnd *pWnd = (CTempWnd *)(void *)base->GetAt(_T("pWnd"));
 			if ( pWnd != NULL )
 				return SetEvent(SCP_EVENT_DIALOG);
 		}
@@ -4485,62 +4504,62 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 
 	case 7:	// dialog.gettext(id)
 		if ( base != NULL )
-			(*acc) = (LPCTSTR)base->GetAt("Child").GetAt((int)local[0]).GetAt("Text");
+			(*acc) = (LPCTSTR)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("Text"));
 		else
 			(*acc) = (LPCSTR)"";
 		break;
 	case 8:	// dialog.getcheck(id)
 		if ( base != NULL )
-			(*acc) = (int)base->GetAt("Child").GetAt((int)local[0]).GetAt("Check");
+			(*acc) = (int)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("Check"));
 		else
 			(*acc) = (int)0;
 		break;
 	case 9:	// dialog.getradio(id)
 		if ( base != NULL )
-			(*acc) = (int)base->GetAt("Child").GetAt((int)local[0]).GetAt("Value");
+			(*acc) = (int)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("Value"));
 		else
 			(*acc) = (int)(-1);
 		break;
 	case 10:	// dialog.getselect(id)
 		if ( base != NULL )
-			(*acc) = (int)base->GetAt("Child").GetAt((int)local[0]).GetAt("Value");
+			(*acc) = (int)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("Value"));
 		else
 			(*acc) = (int)(-1);
 		break;
 
 	case 11:	// dialog.settext(id, str)
 		if ( base != NULL ) {
-			CWnd *pWnd = (CWnd *)(void *)base->GetAt("Child").GetAt((int)local[0]).GetAt("pWnd");
+			CWnd *pWnd = (CWnd *)(void *)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("pWnd"));
 			if ( pWnd == NULL )
 				break;
 			pWnd->SetWindowText((LPCTSTR)local[1]);
-			base->GetAt("Child").GetAt((int)local[0]).GetAt("Text") = (LPCTSTR)local[1];
+			base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("Text")) = (LPCTSTR)local[1];
 		}
 		break;
 	case 12:	// dialog.setcheck(id, state)
 		if ( base != NULL ) {
-			CButton *pWnd = (CButton *)(void *)base->GetAt("Child").GetAt((int)local[0]).GetAt("pWnd");
+			CButton *pWnd = (CButton *)(void *)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("pWnd"));
 			if ( pWnd == NULL )
 				break;
 			pWnd->SetCheck((int)local[1]);
-			base->GetAt("Child").GetAt((int)local[0]).GetAt("Check") = (int)local[1];
+			base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("Check")) = (int)local[1];
 		}
 		break;
 	case 13:	// dialog.setradio(id, vallue)
 		if ( base != NULL ) {
-			int id = (int)base->GetAt("Child").GetAt((int)local[0]).GetAt("Group");
+			int id = (int)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("Group"));
 			if ( id == (-1) )
 				break;
 			int nd = id + (int)local[1];
-			for ( int n = id ; n < base->GetAt("Child").GetSize() ; n++ ) {
-				if ( (int)base->GetAt("Child").GetAt(n).GetAt("Group") != id )
+			for ( int n = id ; n < base->GetAt(_T("Child")).GetSize() ; n++ ) {
+				if ( (int)base->GetAt(_T("Child")).GetAt(n).GetAt(_T("Group")) != id )
 					break;
-				CButton *pWnd = (CButton *)(void *)base->GetAt("Child").GetAt(n).GetAt("pWnd");
+				CButton *pWnd = (CButton *)(void *)base->GetAt(_T("Child")).GetAt(n).GetAt(_T("pWnd"));
 				if ( pWnd == NULL )
 					continue;
 				if ( n == nd ) {
 					pWnd->SetCheck(BST_CHECKED);
-					base->GetAt("Child").GetAt(id).GetAt("Value") = (int)(n - id);
+					base->GetAt(_T("Child")).GetAt(id).GetAt(_T("Value")) = (int)(n - id);
 				} else
 					pWnd->SetCheck(BST_UNCHECKED);
 			}
@@ -4548,16 +4567,16 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 		break;
 	case 14:	// setselect(id, num)
 		if ( base != NULL ) {
-			CComboBox *pWnd = (CComboBox *)(void *)base->GetAt("Child").GetAt((int)local[0]).GetAt("pWnd");
+			CComboBox *pWnd = (CComboBox *)(void *)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("pWnd"));
 			if ( pWnd == NULL )
 				break;
 			pWnd->SetCurSel((int)local[1]);
-			base->GetAt("Child").GetAt((int)local[0]).GetAt("Value") = (int)local[1];
+			base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("Value")) = (int)local[1];
 		}
 		break;
 	case 15:	// setlistt(id, list)
 		if ( base != NULL ) {
-			CComboBox *pWnd = (CComboBox *)(void *)base->GetAt("Child").GetAt((int)local[0]).GetAt("pWnd");
+			CComboBox *pWnd = (CComboBox *)(void *)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("pWnd"));
 			if ( pWnd == NULL )
 				break;
 			for ( int n = 0 ; n < local[1].GetSize() ; n++ )
@@ -4567,7 +4586,7 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 
 	case 16:	// setrange(id, min, max)
 		if ( base != NULL ) {
-			CProgressCtrl *pWnd = (CProgressCtrl *)(void *)base->GetAt("Child").GetAt((int)local[0]).GetAt("pWnd");
+			CProgressCtrl *pWnd = (CProgressCtrl *)(void *)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("pWnd"));
 			if ( pWnd == NULL )
 				break;
 			pWnd->SetRange32((int)local[1], (int)local[2]);
@@ -4575,7 +4594,7 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 		break;
 	case 17:	// setpos(id, pos)
 		if ( base != NULL ) {
-			CProgressCtrl *pWnd = (CProgressCtrl *)(void *)base->GetAt("Child").GetAt((int)local[0]).GetAt("pWnd");
+			CProgressCtrl *pWnd = (CProgressCtrl *)(void *)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("pWnd"));
 			if ( pWnd == NULL )
 				break;
 			pWnd->SetPos((int)local[1]);
@@ -4584,7 +4603,7 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 
 	case 18:	// modstyle(id, del, add, delex, addex)
 		if ( base != NULL ) {
-			CWnd *pWnd = (CWnd *)(void *)base->GetAt("Child").GetAt((int)local[0]).GetAt("pWnd");
+			CWnd *pWnd = (CWnd *)(void *)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("pWnd"));
 			if ( pWnd == NULL )
 				break;
 			pWnd->ModifyStyle((int)local[1], (int)local[2]);
@@ -4594,7 +4613,7 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 		break;
 	case 19:	// sendmsg(id, message, rparam, lparam)
 		if ( base != NULL ) {
-			CWnd *pWnd = (CWnd *)(void *)base->GetAt("Child").GetAt((int)local[0]).GetAt("pWnd");
+			CWnd *pWnd = (CWnd *)(void *)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("pWnd"));
 			if ( pWnd == NULL )
 				break;
 			if ( local.GetSize() > 3 ) {
@@ -4619,22 +4638,22 @@ int CScript::TekStyle(int idx, CScriptValue &local)
 	int color, style, size;
 
 	if ( local.GetSize() > idx )
-		color = m_Data["tek"]["color"] = (int)local[idx];
+		color = m_Data[_T("tek")][_T("color")] = (int)local[idx];
 	else
-		color = m_Data["tek"]["color"];
+		color = m_Data[_T("tek")][_T("color")];
 
 	if ( local.GetSize() > (idx + 1) )
-		style = m_Data["tek"]["style"] = (int)local[idx + 1];
+		style = m_Data[_T("tek")][_T("style")] = (int)local[idx + 1];
 	else
-		style = m_Data["tek"]["style"];
+		style = m_Data[_T("tek")][_T("style")];
 
 	if ( local.GetSize() > (idx + 2) )
-		size = m_Data["tek"]["size"] = (int)local[idx + 2];
+		size = m_Data[_T("tek")][_T("size")] = (int)local[idx + 2];
 	else
-		size = m_Data["tek"]["size"];
+		size = m_Data[_T("tek")][_T("size")];
 
 	if ( local.GetSize() > (idx + 3) )
-		m_Data["tek"]["flush"] = (int)local[idx + 3];
+		m_Data[_T("tek")][_T("flush")] = (int)local[idx + 3];
 
 	if ( size < 1 )
 		size = 1;
@@ -4806,19 +4825,19 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 		m_pDoc->m_TextRam.TekClose();
 		break;
 	case 2:		// tekclear(f)
-		m_Data["tek"]["flush"] = (int)local[0];
+		m_Data[_T("tek")][_T("flush")] = (int)local[0];
 		m_pDoc->m_TextRam.TekClear((int)local[0] == 0 ? TRUE : FALSE);
 		break;
 	case 3:		// tekmark(no, sx, sy, color, style, size, flush)
 		st = TekStyle(3, local);
 		m_pDoc->m_TextRam.TekMark(st, (int)local[0], (int)local[1], (int)local[2]);
-		if ( (int)m_Data["tek"]["flush"] == 0 )
+		if ( (int)m_Data[_T("tek")][_T("flush")] == 0 )
 			m_pDoc->m_TextRam.TekFlush();
 		break;
 	case 4:		// tekline(sx, sy, ex, ey, color, style, size, flush)	st = wccccsss
 		st = TekStyle(4, local);
 		m_pDoc->m_TextRam.TekLine(st, (int)local[0], (int)local[1], (int)local[2], (int)local[3]);
-		if ( (int)m_Data["tek"]["flush"] == 0 )
+		if ( (int)m_Data[_T("tek")][_T("flush")] == 0 )
 			m_pDoc->m_TextRam.TekFlush();
 		break;
 	case 5:		// tektext(sx, sy, str, color, size, angle, flush)		st = 0ccccsss
@@ -4826,19 +4845,19 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 			int n, ch, col = 0, fsz = 0, ang = 0;
 			LPCWSTR p = (LPCWSTR)local[2];
 			if ( local.GetSize() > 3 )
-				col = m_Data["tek"]["color"] = (int)local[3];
+				col = m_Data[_T("tek")][_T("color")] = (int)local[3];
 			else
-				col = m_Data["tek"]["color"];
+				col = m_Data[_T("tek")][_T("color")];
 			if ( local.GetSize() > 4 )
-				fsz = m_Data["tek"]["font"] = (int)local[4];
+				fsz = m_Data[_T("tek")][_T("font")] = (int)local[4];
 			else
-				fsz = m_Data["tek"]["font"];
+				fsz = m_Data[_T("tek")][_T("font")];
 			if ( local.GetSize() > 5 )
-				ang = m_Data["tek"]["angle"] = (int)local[5];
+				ang = m_Data[_T("tek")][_T("angle")] = (int)local[5];
 			else
-				ang = m_Data["tek"]["angle"];
+				ang = m_Data[_T("tek")][_T("angle")];
 			if ( local.GetSize() > 6 )
-				m_Data["tek"]["flush"] = (int)local[6];
+				m_Data[_T("tek")][_T("flush")] = (int)local[6];
 			st |= ((col & 15) << 3);
 			st |= (fsz & 7);
 			m_pDoc->m_TextRam.m_Tek_cX = (int)local[0];
@@ -4854,7 +4873,7 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 				for ( n = m_pDoc->m_TextRam.UnicodeWidth(ch) ; n > 0 ; n-- )
 					m_pDoc->m_TextRam.fc_TEK_RIGHT(0x09);
 			}
-			if ( (int)m_Data["tek"]["flush"] == 0 )
+			if ( (int)m_Data[_T("tek")][_T("flush")] == 0 )
 				m_pDoc->m_TextRam.TekFlush();
 		}
 		break;
@@ -4869,7 +4888,7 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 			m_pDoc->m_TextRam.TekLine(st, ex, sy, ex, ey);
 			m_pDoc->m_TextRam.TekLine(st, ex, ey, sx, ey);
 			m_pDoc->m_TextRam.TekLine(st, sx, ey, sx, sy);
-			if ( (int)m_Data["tek"]["flush"] == 0 )
+			if ( (int)m_Data[_T("tek")][_T("flush")] == 0 )
 				m_pDoc->m_TextRam.TekFlush();
 		}
 		break;
@@ -4893,7 +4912,7 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 					sy = ey;
 				}
 			}
-			if ( (int)m_Data["tek"]["flush"] == 0 )
+			if ( (int)m_Data[_T("tek")][_T("flush")] == 0 )
 				m_pDoc->m_TextRam.TekFlush();
 		}
 		break;
@@ -4909,15 +4928,15 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 					ex = (int)((CComplex &)((*sp)[n])).re;
 					ey = (int)((CComplex &)((*sp)[n])).im;
 				} else {
-					ex = (*sp)[n].GetAt("x");
-					ey = (*sp)[n].GetAt("y");
+					ex = (*sp)[n].GetAt(_T("x"));
+					ey = (*sp)[n].GetAt(_T("y"));
 				}
 				if ( n > 0 )
 					m_pDoc->m_TextRam.TekLine(st, sx, sy, ex, ey);
 				sx = ex;
 				sy = ey;
 			}
-			if ( (int)m_Data["tek"]["flush"] == 0 )
+			if ( (int)m_Data[_T("tek")][_T("flush")] == 0 )
 				m_pDoc->m_TextRam.TekFlush();
 		}
 		break;
@@ -4933,7 +4952,7 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 				if ( (*sp)[n].GetType() == VALTYPE_COMPLEX )
 					po.Add(CPoint((int)(((CComplex &)((*sp)[n])).re), (int)(((CComplex &)((*sp)[n])).im)));
 				else
-					po.Add(CPoint((int)((*sp)[n].GetAt("x")), (int)((*sp)[n].GetAt("y"))));
+					po.Add(CPoint((int)((*sp)[n].GetAt(_T("x"))), (int)((*sp)[n].GetAt(_T("y")))));
 			}
 			for ( n = 0 ; n < (po.GetSize() - 3) ; n += 3 ) {
 				int m = (int)(sqrt(pow((double)po[n].x - (double)po[n + 3].x, 2) + pow((double)po[n].y - (double)po[n + 3].y, 2)) / 10.0);
@@ -4948,7 +4967,7 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 			for ( n = 1 ; n < da.GetSize() ; n++ )
 				m_pDoc->m_TextRam.TekLine(st, da[n - 1].x, da[n - 1].y, da[n].x, da[n].y);
 
-			if ( (int)m_Data["tek"]["flush"] == 0 )
+			if ( (int)m_Data[_T("tek")][_T("flush")] == 0 )
 				m_pDoc->m_TextRam.TekFlush();
 		}
 		break;
@@ -4965,7 +4984,7 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 				if ( (*sp)[n].GetType() == VALTYPE_COMPLEX )
 					da.Add(CPoint((int)(((CComplex &)((*sp)[n])).re), (int)(((CComplex &)((*sp)[n])).im)));
 				else
-					da.Add(CPoint((int)((*sp)[n].GetAt("x")), (int)((*sp)[n].GetAt("y"))));
+					da.Add(CPoint((int)((*sp)[n].GetAt(_T("x"))), (int)((*sp)[n].GetAt(_T("y")))));
 			}
 			int max = (int)da.GetSize();
 			if ( max < 3 ) {
@@ -5034,7 +5053,7 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 			for ( n = 1 ; n < da.GetSize() ; n++ )
 				m_pDoc->m_TextRam.TekLine(st, da[n - 1].x, da[n - 1].y, da[n].x, da[n].y);
 
-			if ( (int)m_Data["tek"]["flush"] == 0 )
+			if ( (int)m_Data[_T("tek")][_T("flush")] == 0 )
 				m_pDoc->m_TextRam.TekFlush();
 		}
 		break;
@@ -5051,7 +5070,7 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 				if ( (*sp)[n].GetType() == VALTYPE_COMPLEX )
 					da.Add(CPoint((int)(((CComplex &)((*sp)[n])).re), (int)(((CComplex &)((*sp)[n])).im)));
 				else
-					da.Add(CPoint((int)((*sp)[n].GetAt("x")), (int)((*sp)[n].GetAt("y"))));
+					da.Add(CPoint((int)((*sp)[n].GetAt(_T("x"))), (int)((*sp)[n].GetAt(_T("y")))));
 			}
 			int max = (int)da.GetSize();
 			if ( da[0] == da[max - 1] ) {
@@ -5118,7 +5137,7 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 			for ( n = 1 ; n < po.GetSize() ; n++ )
 				m_pDoc->m_TextRam.TekLine(st, po[n - 1].x, po[n - 1].y, po[n].x, po[n].y);
 
-			if ( (int)m_Data["tek"]["flush"] == 0 )
+			if ( (int)m_Data[_T("tek")][_T("flush")] == 0 )
 				m_pDoc->m_TextRam.TekFlush();
 		}
 		break;
@@ -5137,8 +5156,8 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 					x.Add(((CComplex &)((*sp)[n])).re);
 					y.Add(((CComplex &)((*sp)[n])).im);
 				} else {
-					x.Add((double)(*sp)[n].GetAt("x"));
-					y.Add((double)(*sp)[n].GetAt("y"));
+					x.Add((double)(*sp)[n].GetAt(_T("x")));
+					y.Add((double)(*sp)[n].GetAt(_T("y")));
 				}
 			}
 			sai2pow(x.GetData(), y.GetData(), (int)x.GetSize(), nn, xx);
@@ -5162,13 +5181,13 @@ int CScript::TekGrp(int cmd, CScriptValue &local)
 			for ( n = 1 ; n < po.GetSize() ; n++ )
 				m_pDoc->m_TextRam.TekLine(st, po[n - 1].x, po[n - 1].y, po[n].x, po[n].y);
 
-			if ( (int)m_Data["tek"]["flush"] == 0 )
+			if ( (int)m_Data[_T("tek")][_T("flush")] == 0 )
 				m_pDoc->m_TextRam.TekFlush();
 		}
 		break;
 	case 13:		// tekflush(f)
-		m_Data["tek"]["flush"] = (int)local[0];
-		if ( (int)m_Data["tek"]["flush"] == 0 )
+		m_Data[_T("tek")][_T("flush")] = (int)local[0];
+		if ( (int)m_Data[_T("tek")][_T("flush")] == 0 )
 			m_pDoc->m_TextRam.TekFlush();
 		break;
 	}
@@ -5574,7 +5593,7 @@ int CScript::Func08(int cmd, CScriptValue &local)
 			int ms = (int)local[0];
 			if ( m_ConsBuff.GetSize() >= (2 * sizeof(DWORD)) ) {
 				(*acc)    = (int)CTextRam::UCS2toUCS4(m_ConsBuff.GetDword());
-				(*acc)["pos"] = (int)m_ConsBuff.GetDword();
+				(*acc)[_T("pos")] = (int)m_ConsBuff.GetDword();
 			} else if ( !IsConnect() || (m_EventMode & SCP_EVENT_TIMER) != 0 || ms < 0 ) {
 				(*acc) = (int)(-1);
 			} else if ( ms > 0 ) {
@@ -5614,7 +5633,7 @@ int CScript::Func08(int cmd, CScriptValue &local)
 						m_ConsBuff.Consume(sizeof(DWORD));
 					n -= 2;
 				}
-				(*acc)["pos"] = (int)pos;
+				(*acc)[_T("pos")] = (int)pos;
 			} else if ( !IsConnect() || (m_EventMode & SCP_EVENT_TIMER) != 0 || ms < 0 ) {
 				(*acc) = (LPCSTR)"";
 			} else if ( ms > 0 ) {
@@ -5712,10 +5731,10 @@ int CScript::Func08(int cmd, CScriptValue &local)
 			CCharCell *vp = m_pDoc->m_TextRam.GETVRAM(x, y - m_pDoc->m_TextRam.m_HisPos);
 
 			(*acc)       = (int)CTextRam::UCS2toUCS4((DWORD)(*vp));
-			(*acc)["fc"] = (int)vp->m_Vram.fcol;
-			(*acc)["bc"] = (int)vp->m_Vram.bcol;
-			(*acc)["at"] = (int)vp->m_Vram.attr;
-			(*acc)["ft"] = (int)vp->m_Vram.font;
+			(*acc)[_T("fc")] = (int)vp->m_Vram.fcol;
+			(*acc)[_T("bc")] = (int)vp->m_Vram.bcol;
+			(*acc)[_T("at")] = (int)vp->m_Vram.attr;
+			(*acc)[_T("ft")] = (int)vp->m_Vram.font;
 		}
 		break;
 	case 10:	// setchar(ch, pos)
@@ -5731,10 +5750,10 @@ int CScript::Func08(int cmd, CScriptValue &local)
 			CCharCell *vp = m_pDoc->m_TextRam.GETVRAM(x, y - m_pDoc->m_TextRam.m_HisPos);
 
 			*vp = CTextRam::UCS4toUCS2((int)local[0]);
-			vp->m_Vram.fcol = (int)local[0].GetAt("fc");
-			vp->m_Vram.bcol = (int)local[0].GetAt("bc");
-			vp->m_Vram.attr = (int)local[0].GetAt("at");
-			vp->m_Vram.font = (int)local[0].GetAt("ft");
+			vp->m_Vram.fcol = (int)local[0].GetAt(_T("fc"));
+			vp->m_Vram.bcol = (int)local[0].GetAt(_T("bc"));
+			vp->m_Vram.attr = (int)local[0].GetAt(_T("at"));
+			vp->m_Vram.font = (int)local[0].GetAt(_T("ft"));
 
 			y -= m_pDoc->m_TextRam.m_HisPos;
 			while ( y < 0 )
@@ -5840,7 +5859,7 @@ int CScript::Func07(int cmd, CScriptValue &local)
 			acc->RemoveAll();
 			for ( n = 0 ; n < res.GetSize() ; n++ ) {
 				(*acc)[n] = (LPCTSTR)(res.m_Data[n].m_Str);
-				(*acc)[n]["pos"] = (int)res.m_Idx[n];
+				(*acc)[n][_T("pos")] = (int)res.m_Idx[n];
 			}
 		} else {
 			(*acc) = (int)0;
@@ -6291,6 +6310,8 @@ int CScript::Func04(int cmd, CScriptValue &local)
 
 int CScript::Func03(int cmd, CScriptValue &local)
 {
+	CBuffer text;
+	CStringIndex index;
 	CScriptValue *acc = (CScriptValue *)local;
 	acc->Empty();
 
@@ -6410,7 +6431,7 @@ int CScript::Func03(int cmd, CScriptValue &local)
 			acc->RemoveAll();
 			if ( (fp = _tfopen((LPCTSTR)local[0], _T("r"))) != NULL ) {
 				for ( n = 0 ; fgets(tmp, 4096, fp) != NULL; n++ )
-					(*acc)[(LPCSTR)NULL] = (LPCSTR)tmp;
+					(*acc)[(LPCTSTR)NULL] = (LPCSTR)tmp;
 				(*acc) = (int)n;
 				fclose(fp);
 			} else
@@ -6423,17 +6444,17 @@ int CScript::Func03(int cmd, CScriptValue &local)
 			if ( _stat32i64((LPCSTR)local[0], &st) == 0 ) {
 				(*acc) = (int)1;
 				acc->RemoveAll();
-				(*acc)["dev"]   = (int)st.st_dev;
-				(*acc)["ino"]   = (int)st.st_ino;
-				(*acc)["mode"]  = (int)st.st_mode;
-				(*acc)["nlink"] = (int)st.st_nlink;
-				(*acc)["uid"]   = (int)st.st_uid;
-				(*acc)["gid"]   = (int)st.st_gid;
-				(*acc)["rdev"]  = (int)st.st_rdev;
-				(*acc)["size"]  = (LONGLONG)st.st_size;
-				(*acc)["atime"] = (int)st.st_atime;
-				(*acc)["mtime"] = (int)st.st_mtime;
-				(*acc)["ctime"] = (int)st.st_ctime;
+				(*acc)[_T("dev")]   = (int)st.st_dev;
+				(*acc)[_T("ino")]   = (int)st.st_ino;
+				(*acc)[_T("mode")]  = (int)st.st_mode;
+				(*acc)[_T("nlink")] = (int)st.st_nlink;
+				(*acc)[_T("uid")]   = (int)st.st_uid;
+				(*acc)[_T("gid")]   = (int)st.st_gid;
+				(*acc)[_T("rdev")]  = (int)st.st_rdev;
+				(*acc)[_T("size")]  = (LONGLONG)st.st_size;
+				(*acc)[_T("atime")] = (int)st.st_atime;
+				(*acc)[_T("mtime")] = (int)st.st_mtime;
+				(*acc)[_T("ctime")] = (int)st.st_ctime;
 			} else
 				(*acc) = (int)0;
 		}
@@ -6509,7 +6530,56 @@ int CScript::Func03(int cmd, CScriptValue &local)
 		if ( local[0].GetPtrType() != PTRTYPE_NONE )
 			(*acc) = (int)fputs(TstrToMbs(Format(local, 1)), (FILE *)(void *)local[0]);
 		else
-			throw _T("fputs not (f|p)open ptr");
+			throw _T("fprintf not (f|p)open ptr");
+		break;
+
+	case 27:	// loadjson(filename, iconv)
+		if ( !text.LoadFile((LPCTSTR)local[0]) ) {
+			(*acc).Empty();
+			break;
+		}
+		if ( local.GetSize() > 1 )
+			text.StrConvert((LPCTSTR)local[1]);
+		else
+			text.KanjiConvert(text.KanjiCheck(KANJI_SJIS));
+		if ( !index.GetJsonFormat((LPCTSTR)text) ) {
+			(*acc).Empty();
+			break;
+		}
+		(*acc).GetIndex(index);
+		break;
+	case 28:	// savejson(filename, data, iconv, crlf)
+		local[1].SetIndex(index);
+		index.SetJsonFormat(text, 0, JSON_UTF16);
+		if ( local.GetSize() <= 2 ) local[2] = _T("DEFAULT");
+		if ( local.GetSize() <= 3 ) local[3] = 0;
+		text.WstrConvert((LPCTSTR)local[2], (int)local[3]);
+		(*acc) = (int)text.SaveFile((LPCTSTR)local[0]);
+		break;
+
+	case 29:	// loadxml(filename, iconv)
+		if ( !text.LoadFile((LPCTSTR)local[0]) ) {
+			(*acc).Empty();
+			break;
+		}
+		if ( local.GetSize() > 1 )
+			text.StrConvert((LPCTSTR)local[1]);
+		else
+			text.KanjiConvert(text.KanjiCheck(KANJI_SJIS));
+		if ( !index.GetXmlFormat((LPCTSTR)text) ) {
+			//::AfxMessageBox((LPCTSTR)index, MB_ICONERROR);
+			(*acc).Empty();
+			break;
+		}
+		(*acc).GetIndex(index);
+		break;
+	case 30:	// savexml(filename, data, iconv, crlf)
+		local[1].SetIndex(index);
+		index.SetXmlFormat(text);
+		if ( local.GetSize() <= 2 ) local[2] = _T("DEFAULT");
+		if ( local.GetSize() <= 3 ) local[3] = 0;
+		text.WstrConvert((LPCTSTR)local[2], (int)local[3]);
+		(*acc) = (int)text.SaveFile((LPCTSTR)local[0]);
 		break;
 	}
 	return FUNC_RET_NOMAL;
@@ -6627,17 +6697,17 @@ int CScript::Func02(int cmd, CScriptValue &local)
 			tm = localtime(&t);
 			acc->RemoveAll();
 			(*acc) = (int)t;
-			(*acc)["seconds"] = (int)tm->tm_sec;
-			(*acc)["minutes"] = (int)tm->tm_min;
-			(*acc)["hours"]   = (int)tm->tm_hour;
-			(*acc)["mday"]    = (int)tm->tm_mday;
-			(*acc)["wday"]    = (int)tm->tm_wday;
-			(*acc)["mon"]     = (int)tm->tm_mon  + 1;
-			(*acc)["year"]    = (int)tm->tm_year + 1900;
-			(*acc)["yday"]    = (int)tm->tm_yday;
-			(*acc)["sec"]     = (int)tm->tm_sec;
-			(*acc)["min"]     = (int)tm->tm_min;
-			(*acc)["hour"]    = (int)tm->tm_hour;
+			(*acc)[_T("seconds")] = (int)tm->tm_sec;
+			(*acc)[_T("minutes")] = (int)tm->tm_min;
+			(*acc)[_T("hours")]   = (int)tm->tm_hour;
+			(*acc)[_T("mday")]    = (int)tm->tm_mday;
+			(*acc)[_T("wday")]    = (int)tm->tm_wday;
+			(*acc)[_T("mon")]     = (int)tm->tm_mon  + 1;
+			(*acc)[_T("year")]    = (int)tm->tm_year + 1900;
+			(*acc)[_T("yday")]    = (int)tm->tm_yday;
+			(*acc)[_T("sec")]     = (int)tm->tm_sec;
+			(*acc)[_T("min")]     = (int)tm->tm_min;
+			(*acc)[_T("hour")]    = (int)tm->tm_hour;
 		}
 		break;
 	case 9:	// mktime(hour, minute, second, month, day, year, is_dst)
@@ -6853,7 +6923,7 @@ int CScript::Func01(int cmd, CScriptValue &local)
 		sp = &(local[0]);
 		while ( sp->m_Type == VALTYPE_IDENT )
 			sp = (CScriptValue *)(*sp);
-		(*acc) = (LPCSTR)(sp->m_Index);
+		(*acc) = (LPCTSTR)(sp->m_Index);
 		break;
 	case 14:	// reset(s)
 		sp = &(local[0]);
@@ -6960,6 +7030,27 @@ int CScript::Func01(int cmd, CScriptValue &local)
 				(*acc) = (int)d;
 		}
 		break;
+
+	case 26:	// find(val, name, pos)
+		{
+			int pos = 0;
+			if ( local.GetSize() > 2 )
+				pos = (int)local[2];
+			sp = &(local[0]);
+			while ( sp->m_Type == VALTYPE_IDENT )
+				sp = (CScriptValue *)(*sp);
+			(*acc) = sp->FindAt((LPCTSTR)local[1], pos);
+		}
+		break;
+	case 27:	// add(val, name)
+		{
+			CScriptValue tmp;
+			sp = &(local[0]);
+			while ( sp->m_Type == VALTYPE_IDENT )
+				sp = (CScriptValue *)(*sp);
+			tmp.m_Index = (LPCTSTR)local[1];
+			(*acc) = sp->Add(tmp);
+		}
 	}
 	return FUNC_RET_NOMAL;
 }
@@ -6969,154 +7060,156 @@ int CScript::Func01(int cmd, CScriptValue &local)
 void CScript::FuncInit()
 {
 	static const ScriptFunc funcs[] = {
-		{ "echo",		0,	&CScript::Func01 },
-		{ "include",	1,	&CScript::Func01 },	{ "exit",		2,	&CScript::Func01 },
-		{ "int",		3,	&CScript::Func01 },	{ "int64",		4,	&CScript::Func01 },	
-		{ "str",		5,	&CScript::Func01 },	{ "wstr",		6,	&CScript::Func01 },
-		{ "length",		7,	&CScript::Func01 },	{ "sort",		8,	&CScript::Func01 },
-		{ "rsort",		9,	&CScript::Func01 },	{ "ksort",		10,	&CScript::Func01 },
-		{ "krsort",		11,	&CScript::Func01 },	{ "count",		12,	&CScript::Func01 },
-		{ "key",		13,	&CScript::Func01 },	{ "reset",		14, &CScript::Func01 },
-		{ "sleep",		15,	&CScript::Func01 },	{ "debug",		16, &CScript::Func01 },
-		{ "dstr",		17, &CScript::Func01 },	{ "beep",		18,	&CScript::Func01 },
-		{ "pack",		19,	&CScript::Func01 },	{ "unpack",		20,	&CScript::Func01 },
-		{ "execstr",	21,	&CScript::Func01 },	{ "inport",		22,	&CScript::Func01 },
-		{ "export",		23,	&CScript::Func01 },	{ "hex",		24,	&CScript::Func01 },
-		{ "oct",		25,	&CScript::Func01 },
+		{ _T("echo"),		0,	&CScript::Func01 },	{ _T("include"),	1,	&CScript::Func01 },
+		{ _T("exit"),		2,	&CScript::Func01 },	{ _T("int"),		3,	&CScript::Func01 },
+		{ _T("int64"),		4,	&CScript::Func01 },	{ _T("str"),		5,	&CScript::Func01 },
+		{ _T("wstr"),		6,	&CScript::Func01 },	{ _T("length"),		7,	&CScript::Func01 },
+		{ _T("sort"),		8,	&CScript::Func01 },	{ _T("rsort"),		9,	&CScript::Func01 },
+		{ _T("ksort"),		10,	&CScript::Func01 },	{ _T("krsort"),		11,	&CScript::Func01 },
+		{ _T("count"),		12,	&CScript::Func01 },	{ _T("key"),		13,	&CScript::Func01 },
+		{ _T("reset"),		14, &CScript::Func01 },	{ _T("sleep"),		15,	&CScript::Func01 },
+		{ _T("debug"),		16, &CScript::Func01 },	{ _T("dstr"),		17, &CScript::Func01 },
+		{ _T("beep"),		18,	&CScript::Func01 },	{ _T("pack"),		19,	&CScript::Func01 },
+		{ _T("unpack"),		20,	&CScript::Func01 },	{ _T("execstr"),	21,	&CScript::Func01 },
+		{ _T("inport"),		22,	&CScript::Func01 },	{ _T("export"),		23,	&CScript::Func01 },
+		{ _T("hex"),		24,	&CScript::Func01 },	{ _T("oct"),		25,	&CScript::Func01 },
+		{ _T("find"),		26,	&CScript::Func01 },	{ _T("add"),		27,	&CScript::Func01 },
 
-		{ "substr",		0,	&CScript::Func02 },	{ "strstr",		1,	&CScript::Func02 },
-		{ "ereg",		2,	&CScript::Func02 },	{ "replace",	3,	&CScript::Func02 },
-		{ "split",		4,	&CScript::Func02 },	{ "sprintf",	5,	&CScript::Func02 },
-		{ "time",		6,	&CScript::Func02 },	{ "strftime",	7,	&CScript::Func02 },
-		{ "getdate",	8,	&CScript::Func02 },	{ "mktime",		9,	&CScript::Func02 },
-		{ "trim",		10,	&CScript::Func02 },	{ "trimleft",	11,	&CScript::Func02 },
-		{ "trimright",	12,	&CScript::Func02 },	{ "ctos",		13,	&CScript::Func02 },
-		{ "escshell",	14,	&CScript::Func02 },	{ "getenv",		15,	&CScript::Func02 },
-		{ "getdoc",		16,	&CScript::Func02 },	{ "strcmp",		17,	&CScript::Func02 },
-		{ "stricmp",	18,	&CScript::Func02 },	{ "strwcmp",	19,	&CScript::Func02 },
-		{ "strdcmp",	20,	&CScript::Func02 },
+		{ _T("substr"),		0,	&CScript::Func02 },	{ _T("strstr"),		1,	&CScript::Func02 },
+		{ _T("ereg"),		2,	&CScript::Func02 },	{ _T("replace"),	3,	&CScript::Func02 },
+		{ _T("split"),		4,	&CScript::Func02 },	{ _T("sprintf"),	5,	&CScript::Func02 },
+		{ _T("time"),		6,	&CScript::Func02 },	{ _T("strftime"),	7,	&CScript::Func02 },
+		{ _T("getdate"),	8,	&CScript::Func02 },	{ _T("mktime"),		9,	&CScript::Func02 },
+		{ _T("trim"),		10,	&CScript::Func02 },	{ _T("trimleft"),	11,	&CScript::Func02 },
+		{ _T("trimright"),	12,	&CScript::Func02 },	{ _T("ctos"),		13,	&CScript::Func02 },
+		{ _T("escshell"),	14,	&CScript::Func02 },	{ _T("getenv"),		15,	&CScript::Func02 },
+		{ _T("getdoc"),		16,	&CScript::Func02 },	{ _T("strcmp"),		17,	&CScript::Func02 },
+		{ _T("stricmp"),	18,	&CScript::Func02 },	{ _T("strwcmp"),	19,	&CScript::Func02 },
+		{ _T("strdcmp"),	20,	&CScript::Func02 },
 
-		{ "fopen",		0,	&CScript::Func03 },	{ "fclose",		1,	&CScript::Func03 },
-		{ "fread",		2,	&CScript::Func03 },	{ "fwrite",		3,	&CScript::Func03 },
-		{ "fgets",		4,	&CScript::Func03 },	{ "fputs",		5,	&CScript::Func03 },
-		{ "fgetc",		6,	&CScript::Func03 },	{ "fputc",		7,	&CScript::Func03 },
-		{ "feof",		8,	&CScript::Func03 },	{ "ferror",		9,	&CScript::Func03 },
-		{ "fflush",		10,	&CScript::Func03 },	{ "ftell",		11,	&CScript::Func03 },
-		{ "fseek",		12,	&CScript::Func03 },	{ "file",		13,	&CScript::Func03 },
-		{ "stat",		14,	&CScript::Func03 },	{ "basename",	15,	&CScript::Func03 },
-		{ "dirname",	16,	&CScript::Func03 },	{ "copy",		17,	&CScript::Func03 },
-		{ "rename",		18,	&CScript::Func03 },	{ "delete",		19,	&CScript::Func03 },
-		{ "getcwd",		20,	&CScript::Func03 },	{ "chdir",		21,	&CScript::Func03 },
-		{ "play",		22,	&CScript::Func03 },	{ "speak",		23, &CScript::Func03 },
-		{ "popen",		24,	&CScript::Func03 },	{ "pclose",		25, &CScript::Func03 },
-		{ "fprintf",	25,	&CScript::Func03 },
+		{ _T("fopen"),		0,	&CScript::Func03 },	{ _T("fclose"),		1,	&CScript::Func03 },
+		{ _T("fread"),		2,	&CScript::Func03 },	{ _T("fwrite"),		3,	&CScript::Func03 },
+		{ _T("fgets"),		4,	&CScript::Func03 },	{ _T("fputs"),		5,	&CScript::Func03 },
+		{ _T("fgetc"),		6,	&CScript::Func03 },	{ _T("fputc"),		7,	&CScript::Func03 },
+		{ _T("feof"),		8,	&CScript::Func03 },	{ _T("ferror"),		9,	&CScript::Func03 },
+		{ _T("fflush"),		10,	&CScript::Func03 },	{ _T("ftell"),		11,	&CScript::Func03 },
+		{ _T("fseek"),		12,	&CScript::Func03 },	{ _T("file"),		13,	&CScript::Func03 },
+		{ _T("stat"),		14,	&CScript::Func03 },	{ _T("basename"),	15,	&CScript::Func03 },
+		{ _T("dirname"),	16,	&CScript::Func03 },	{ _T("copy"),		17,	&CScript::Func03 },
+		{ _T("rename"),		18,	&CScript::Func03 },	{ _T("delete"),		19,	&CScript::Func03 },
+		{ _T("getcwd"),		20,	&CScript::Func03 },	{ _T("chdir"),		21,	&CScript::Func03 },
+		{ _T("play"),		22,	&CScript::Func03 },	{ _T("speak"),		23, &CScript::Func03 },
+		{ _T("popen"),		24,	&CScript::Func03 },	{ _T("pclose"),		25, &CScript::Func03 },
+		{ _T("fprintf"),	26,	&CScript::Func03 },	{ _T("loadjson"),	27, &CScript::Func03 },
+		{ _T("savejson"),	28, &CScript::Func03 },	{ _T("loadxml"),	29, &CScript::Func03 },
+		{ _T("savexml"),	30, &CScript::Func03 },
 
-		{ "rand",		0,	&CScript::Func04 },	{ "srand",		1,	&CScript::Func04 },
-		{ "floor",		2,	&CScript::Func04 },	{ "asin",		3,	&CScript::Func04 },
-		{ "sqrt",		4,	&CScript::Func04 },	{ "tan",		5,	&CScript::Func04 },
-		{ "acos",		6,	&CScript::Func04 },	{ "abs",		7,	&CScript::Func04 },
-		{ "cos",		8,	&CScript::Func04 },	{ "exp",		9,	&CScript::Func04 },
-		{ "fmod",		10,	&CScript::Func04 },	{ "atan",		11,	&CScript::Func04 },
-		{ "sin",		12,	&CScript::Func04 },	{ "pow",		13,	&CScript::Func04 },
-		{ "ceil",		14,	&CScript::Func04 },	{ "sinh",		15,	&CScript::Func04 },
-		{ "cosh",		16,	&CScript::Func04 },	{ "tanh",		17,	&CScript::Func04 },
-		{ "log",		18,	&CScript::Func04 },	{ "log10",		19,	&CScript::Func04 },
-		{ "atan2",		20,	&CScript::Func04 },
+		{ _T("rand"),		0,	&CScript::Func04 },	{ _T("srand"),		1,	&CScript::Func04 },
+		{ _T("floor"),		2,	&CScript::Func04 },	{ _T("asin"),		3,	&CScript::Func04 },
+		{ _T("sqrt"),		4,	&CScript::Func04 },	{ _T("tan"),		5,	&CScript::Func04 },
+		{ _T("acos"),		6,	&CScript::Func04 },	{ _T("abs"),		7,	&CScript::Func04 },
+		{ _T("cos"),		8,	&CScript::Func04 },	{ _T("exp"),		9,	&CScript::Func04 },
+		{ _T("fmod"),		10,	&CScript::Func04 },	{ _T("atan"),		11,	&CScript::Func04 },
+		{ _T("sin"),		12,	&CScript::Func04 },	{ _T("pow"),		13,	&CScript::Func04 },
+		{ _T("ceil"),		14,	&CScript::Func04 },	{ _T("sinh"),		15,	&CScript::Func04 },
+		{ _T("cosh"),		16,	&CScript::Func04 },	{ _T("tanh"),		17,	&CScript::Func04 },
+		{ _T("log"),		18,	&CScript::Func04 },	{ _T("log10"),		19,	&CScript::Func04 },
+		{ _T("atan2"),		20,	&CScript::Func04 },
 
-		{ "cpow",		0,	&CScript::Func05 },	{ "csqrt",		1,	&CScript::Func05 },
-		{ "csin",		2,	&CScript::Func05 },	{ "ccos",		3,	&CScript::Func05 },
-		{ "ctan",		4,	&CScript::Func05 },	{ "clog",		5,	&CScript::Func05 },
-		{ "cexp",		6,	&CScript::Func05 },	{ "cabs",		7,	&CScript::Func05 },
-		{ "carg",		8,	&CScript::Func05 },	{ "complex",	9,	&CScript::Func05 },
-		{ "creal",		10,	&CScript::Func05 },	{ "cimg",		11,	&CScript::Func05 },
+		{ _T("cpow"),		0,	&CScript::Func05 },	{ _T("csqrt"),		1,	&CScript::Func05 },
+		{ _T("csin"),		2,	&CScript::Func05 },	{ _T("ccos"),		3,	&CScript::Func05 },
+		{ _T("ctan"),		4,	&CScript::Func05 },	{ _T("clog"),		5,	&CScript::Func05 },
+		{ _T("cexp"),		6,	&CScript::Func05 },	{ _T("cabs"),		7,	&CScript::Func05 },
+		{ _T("carg"),		8,	&CScript::Func05 },	{ _T("complex"),	9,	&CScript::Func05 },
+		{ _T("creal"),		10,	&CScript::Func05 },	{ _T("cimg"),		11,	&CScript::Func05 },
 
-		{ "iconv",		0,	&CScript::Func06 },	{ "iconvw",		1,	&CScript::Func06 },
-		{ "iconvd",		2,	&CScript::Func06 },	{ "md5",		3,	&CScript::Func06 },
-		{ "sha1",		4,	&CScript::Func06 },	{ "sha256",		5,	&CScript::Func06 },	
-		{ "sha512",		6,	&CScript::Func06 },	{ "base64e",	7,	&CScript::Func06 },
-		{ "base64d",	8,	&CScript::Func06 },	{ "quotede",	9,	&CScript::Func06 },
-		{ "quotedd",	10,	&CScript::Func06 },	{ "base16e",	11,	&CScript::Func06 },
-		{ "base16d",	12,	&CScript::Func06 },	{ "crc16",		13,	&CScript::Func06 },
-		{ "crc32",		14,	&CScript::Func06 },	{ "escstr",		15,	&CScript::Func06 },
-		{ "tolower",	16,	&CScript::Func06 },	{ "toupper",	17,	&CScript::Func06 },
+		{ _T("iconv"),		0,	&CScript::Func06 },	{ _T("iconvw"),		1,	&CScript::Func06 },
+		{ _T("iconvd"),		2,	&CScript::Func06 },	{ _T("md5"),		3,	&CScript::Func06 },
+		{ _T("sha1"),		4,	&CScript::Func06 },	{ _T("sha256"),		5,	&CScript::Func06 },	
+		{ _T("sha512"),		6,	&CScript::Func06 },	{ _T("base64e"),	7,	&CScript::Func06 },
+		{ _T("base64d"),	8,	&CScript::Func06 },	{ _T("quotede"),	9,	&CScript::Func06 },
+		{ _T("quotedd"),	10,	&CScript::Func06 },	{ _T("base16e"),	11,	&CScript::Func06 },
+		{ _T("base16d"),	12,	&CScript::Func06 },	{ _T("crc16"),		13,	&CScript::Func06 },
+		{ _T("crc32"),		14,	&CScript::Func06 },	{ _T("escstr"),		15,	&CScript::Func06 },
+		{ _T("tolower"),	16,	&CScript::Func06 },	{ _T("toupper"),	17,	&CScript::Func06 },
 
-		{ "regopen",	0,	&CScript::Func07 },	{ "regclose",	1,	&CScript::Func07 },
-		{ "regchar",	2,	&CScript::Func07 },	{ "regstr",		3,	&CScript::Func07 },
-		{ "cipopen",	4,	&CScript::Func07 },	{ "cipclose",	5,	&CScript::Func07 },
-		{ "cipstr",		6,	&CScript::Func07 },	{ "regmode",	7,	&CScript::Func07 },
-		{ "regconv",	8,	&CScript::Func07 },
+		{ _T("regopen"),	0,	&CScript::Func07 },	{ _T("regclose"),	1,	&CScript::Func07 },
+		{ _T("regchar"),	2,	&CScript::Func07 },	{ _T("regstr"),		3,	&CScript::Func07 },
+		{ _T("cipopen"),	4,	&CScript::Func07 },	{ _T("cipclose"),	5,	&CScript::Func07 },
+		{ _T("cipstr"),		6,	&CScript::Func07 },	{ _T("regmode"),	7,	&CScript::Func07 },
+		{ _T("regconv"),	8,	&CScript::Func07 },
 
-		{ "cgetc",		0,	&CScript::Func08 },	{ "cgets",		1,	&CScript::Func08 },
-		{ "cread",		2,	&CScript::Func08 },	{ "cputc",		3,	&CScript::Func08 },
-		{ "cputs",		4,	&CScript::Func08 },	{ "cwrite",		5,	&CScript::Func08 },
-		{ "copen",		6,	&CScript::Func08 },	{ "cclose",		7,	&CScript::Func08 },
-		{ "swait",		8,	&CScript::Func08 },	{ "getchar",	9,	&CScript::Func08 },
-		{ "setchar",	10,	&CScript::Func08 },	{ "locate",		11,	&CScript::Func08 },
-		{ "getpos",		12,	&CScript::Func08 },	{ "xypos",		13,	&CScript::Func08 },
-		{ "getstr",		14,	&CScript::Func08 },	{ "cprintf",	15,	&CScript::Func08 },
+		{ _T("cgetc"),		0,	&CScript::Func08 },	{ _T("cgets"),		1,	&CScript::Func08 },
+		{ _T("cread"),		2,	&CScript::Func08 },	{ _T("cputc"),		3,	&CScript::Func08 },
+		{ _T("cputs"),		4,	&CScript::Func08 },	{ _T("cwrite"),		5,	&CScript::Func08 },
+		{ _T("copen"),		6,	&CScript::Func08 },	{ _T("cclose"),		7,	&CScript::Func08 },
+		{ _T("swait"),		8,	&CScript::Func08 },	{ _T("getchar"),	9,	&CScript::Func08 },
+		{ _T("setchar"),	10,	&CScript::Func08 },	{ _T("locate"),		11,	&CScript::Func08 },
+		{ _T("getpos"),		12,	&CScript::Func08 },	{ _T("xypos"),		13,	&CScript::Func08 },
+		{ _T("getstr"),		14,	&CScript::Func08 },	{ _T("cprintf"),	15,	&CScript::Func08 },
 
-		{ "sgetc",		0,	&CScript::Func09 },	{ "sgets",		1,	&CScript::Func09 },
-		{ "sread",		2,	&CScript::Func09 },	{ "sputc",		3,	&CScript::Func09 },
-		{ "sputs",		4,	&CScript::Func09 },	{ "swrite",		5,	&CScript::Func09 },
-		{ "sopen",		6,	&CScript::Func09 },	{ "sclose",		7,	&CScript::Func09 },
-		{ "remotestr",	8,	&CScript::Func09 },	{ "localstr",	9,	&CScript::Func09 },
-		{ "wait",		10,	&CScript::Func09 },	{ "sendstr",	11,	&CScript::Func09 },
-		{ "broadcast",	12,	&CScript::Func09 },	{ "tprintf",	13,	&CScript::Func09 },
+		{ _T("sgetc"),		0,	&CScript::Func09 },	{ _T("sgets"),		1,	&CScript::Func09 },
+		{ _T("sread"),		2,	&CScript::Func09 },	{ _T("sputc"),		3,	&CScript::Func09 },
+		{ _T("sputs"),		4,	&CScript::Func09 },	{ _T("swrite"),		5,	&CScript::Func09 },
+		{ _T("sopen"),		6,	&CScript::Func09 },	{ _T("sclose"),		7,	&CScript::Func09 },
+		{ _T("remotestr"),	8,	&CScript::Func09 },	{ _T("localstr"),	9,	&CScript::Func09 },
+		{ _T("wait"),		10,	&CScript::Func09 },	{ _T("sendstr"),	11,	&CScript::Func09 },
+		{ _T("broadcast"),	12,	&CScript::Func09 },	{ _T("tprintf"),	13,	&CScript::Func09 },
 
-		{ "msgdlg",		0,	&CScript::Func10 },	{ "yesnodlg",	1,	&CScript::Func10 },
-		{ "inputdlg",	2,	&CScript::Func10 },	{ "filedlg",	3,	&CScript::Func10 },
-		{ "command",	4,	&CScript::Func10 },	{ "shellexec",	5,	&CScript::Func10 },
-		{ "passdlg",	6,	&CScript::Func10 },	{ "dump",		7,	&CScript::Func10 },
-		{ "menu",		8,	&CScript::Func10 },	{ "iconstyle",	9,	&CScript::Func10 },
-		{ "getproint",	10,	&CScript::Func10 },	{ "putproint",	11,	&CScript::Func10 },
-		{ "getprostr",	12,	&CScript::Func10 },	{ "putprostr",	13,	&CScript::Func10 },
-		{ "menucall",	14,	&CScript::Func10 },	{ "menucheck",	15,	&CScript::Func10 },
-		{ "menuenable",	16,	&CScript::Func10 },
+		{ _T("msgdlg"),		0,	&CScript::Func10 },	{ _T("yesnodlg"),	1,	&CScript::Func10 },
+		{ _T("inputdlg"),	2,	&CScript::Func10 },	{ _T("filedlg"),	3,	&CScript::Func10 },
+		{ _T("command"),	4,	&CScript::Func10 },	{ _T("shellexec"),	5,	&CScript::Func10 },
+		{ _T("passdlg"),	6,	&CScript::Func10 },	{ _T("dump"),		7,	&CScript::Func10 },
+		{ _T("menu"),		8,	&CScript::Func10 },	{ _T("iconstyle"),	9,	&CScript::Func10 },
+		{ _T("getproint"),	10,	&CScript::Func10 },	{ _T("putproint"),	11,	&CScript::Func10 },
+		{ _T("getprostr"),	12,	&CScript::Func10 },	{ _T("putprostr"),	13,	&CScript::Func10 },
+		{ _T("menucall"),	14,	&CScript::Func10 },	{ _T("menucheck"),	15,	&CScript::Func10 },
+		{ _T("menuenable"),	16,	&CScript::Func10 },
 
-		{ "tekopen",	0,	&CScript::TekGrp },	{ "tekclose",	1,	&CScript::TekGrp },
-		{ "tekclear",	2,	&CScript::TekGrp },	{ "tekmark",	3,	&CScript::TekGrp },
-		{ "tekline",	4,	&CScript::TekGrp },	{ "tektext",	5,	&CScript::TekGrp },
-		{ "tekbox",		6,	&CScript::TekGrp },	{ "tekarc",		7,	&CScript::TekGrp },
-		{ "tekpoly",	8,	&CScript::TekGrp },	{ "tekbezier",	9,	&CScript::TekGrp },
-		{ "teksmooth",	10,	&CScript::TekGrp },	{ "tekspline",	11,	&CScript::TekGrp },
-		{ "teklesq",	12,	&CScript::TekGrp },	{ "tekflush",	13,	&CScript::TekGrp },
+		{ _T("tekopen"),	0,	&CScript::TekGrp },	{ _T("tekclose"),	1,	&CScript::TekGrp },
+		{ _T("tekclear"),	2,	&CScript::TekGrp },	{ _T("tekmark"),	3,	&CScript::TekGrp },
+		{ _T("tekline"),	4,	&CScript::TekGrp },	{ _T("tektext"),	5,	&CScript::TekGrp },
+		{ _T("tekbox"),		6,	&CScript::TekGrp },	{ _T("tekarc"),		7,	&CScript::TekGrp },
+		{ _T("tekpoly"),	8,	&CScript::TekGrp },	{ _T("tekbezier"),	9,	&CScript::TekGrp },
+		{ _T("teksmooth"),	10,	&CScript::TekGrp },	{ _T("tekspline"),	11,	&CScript::TekGrp },
+		{ _T("teklesq"),	12,	&CScript::TekGrp },	{ _T("tekflush"),	13,	&CScript::TekGrp },
 
-		{ "dialog",		0,	&CScript::Dialog },	{ "database",	0,	&CScript::DataBs },
-		{ "textwnd",	0,	&CScript::TextWnd },
+		{ _T("dialog"),		0,	&CScript::Dialog },	{ _T("database"),	0,	&CScript::DataBs },
+		{ _T("textwnd"),	0,	&CScript::TextWnd },
 
-		{ "comset",		0,	&CScript::ComFunc },{ "comdtr",		1,	&CScript::ComFunc },
-		{ "comrts",		2,	&CScript::ComFunc },{ "combreak",	3,	&CScript::ComFunc },
+		{ _T("comset"),		0,	&CScript::ComFunc },{ _T("comdtr"),		1,	&CScript::ComFunc },
+		{ _T("comrts"),		2,	&CScript::ComFunc },{ _T("combreak"),	3,	&CScript::ComFunc },
 
 		{ NULL,			0,	NULL }
 	};
 	int n;
 
 	for ( n = 0 ; funcs[n].name != NULL ; n++ ) {
-		m_Data[(LPCSTR)funcs[n].name].m_FuncPos = (funcs[n].cmd | 0x80000000L);
-		m_Data[(LPCSTR)funcs[n].name].m_FuncExt = funcs[n].proc;
+		m_Data[funcs[n].name].m_FuncPos = (funcs[n].cmd | 0x80000000L);
+		m_Data[funcs[n].name].m_FuncExt = funcs[n].proc;
 	}
 
-	m_Data["TRUE"] = 1;
-	m_Data["FALSE"] = 0;
-	m_Data["EOF"] = (-1);
+	m_Data[_T("TRUE")] = 1;
+	m_Data[_T("FALSE")] = 0;
+	m_Data[_T("EOF")] = (-1);
 
-	m_Data["E"]  = 2.71828182845904523536;
-	m_Data["PI"] = 3.14159265358979323846;
+	m_Data[_T("E")]  = 2.71828182845904523536;
+	m_Data[_T("PI")] = 3.14159265358979323846;
 
-	m_Data["OPEN_LOOK"]  = (int)0;
-	m_Data["OPEN_CATCH"] = (int)1;
+	m_Data[_T("OPEN_LOOK")]  = (int)0;
+	m_Data[_T("OPEN_CATCH")] = (int)1;
 
-	m_Data["CONNECT"] = (int)0;
-	m_Data["CLOSE"]   = (int)1;
+	m_Data[_T("CONNECT")] = (int)0;
+	m_Data[_T("CLOSE")]   = (int)1;
 
-	m_Data["SH_DENYNO"] = (int)0;
-	m_Data["SH_DENYRD"] = (int)1;
-	m_Data["SH_DENYWR"] = (int)2;
-	m_Data["SH_DENYRW"] = (int)3;
+	m_Data[_T("SH_DENYNO")] = (int)0;
+	m_Data[_T("SH_DENYRD")] = (int)1;
+	m_Data[_T("SH_DENYWR")] = (int)2;
+	m_Data[_T("SH_DENYRW")] = (int)3;
 
-	m_Data["SEEK_SET"] = (int)0;
-	m_Data["SEEK_CUR"] = (int)1;
-	m_Data["SEEK_END"] = (int)2;
+	m_Data[_T("SEEK_SET")] = (int)0;
+	m_Data[_T("SEEK_CUR")] = (int)1;
+	m_Data[_T("SEEK_END")] = (int)2;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -7135,8 +7228,8 @@ void CScript::ResetEvent(int flag)
 void CScript::SetDocument(class CRLoginDoc *pDoc)
 {
 	m_pDoc = pDoc;
-	m_Data["Document"].m_bNoCase = TRUE;
-	m_pDoc->ScriptInit(0, 2, m_Data["Document"]);
+	m_Data[_T("Document")].m_bNoCase = TRUE;
+	m_pDoc->ScriptInit(0, 2, m_Data[_T("Document")]);
 	m_bOpenSock = TRUE;
 }
 void CScript::SetMenu(CMenu *pMenu)
@@ -7336,7 +7429,7 @@ int CScript::Call(LPCTSTR func, CScriptValue *local)
 	for ( n = 0 ; n < node.GetSize() ; n++ ) {
 		if ( node[n].IsEmpty() )
 			continue;
-		if ( (i = sp->Find(TstrToMbs(node[n]))) < 0 )
+		if ( (i = sp->Find(node[n])) < 0 )
 			return FALSE;
 		sp = &((*sp)[i]);
 	}
@@ -7353,9 +7446,9 @@ int CScript::Call(LPCTSTR func, CScriptValue *local)
 }
 void CScript::ScriptSystemInit(LPCTSTR path, LPCTSTR prog, LPCTSTR work)
 {
-	SystemValue["System"]["FullPath"] = path;
-	SystemValue["System"]["AppName"]  = prog;
-	SystemValue["System"]["WorkDir"]  = work;
+	SystemValue[_T("System")][_T("FullPath")] = path;
+	SystemValue[_T("System")][_T("AppName")]  = prog;
+	SystemValue[_T("System")][_T("WorkDir")]  = work;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -7378,7 +7471,7 @@ END_MESSAGE_MAP()
 void CTempWnd::PostNcDestroy()
 {
 	if ( m_pValue != NULL ) {
-		m_pValue->GetAt("pWnd") = (void *)NULL;
+		m_pValue->GetAt(_T("pWnd")) = (void *)NULL;
 
 		if ( m_pScript != NULL )
 			m_pScript->m_EventFlag &= ~SCP_EVENT_DIALOG;
@@ -7386,13 +7479,13 @@ void CTempWnd::PostNcDestroy()
 		int n;
 		CWnd *pWnd;
 		CScriptValue *dp;
-		CScriptValue *sp = &(m_pValue->GetAt("Child"));
+		CScriptValue *sp = &(m_pValue->GetAt(_T("Child")));
 
 		for ( n = 0 ; n < sp->GetSize() ; n++ ) {
 			dp = &(sp->GetAt(n));
-			if ( (pWnd = (CWnd *)(void *)dp->GetAt("pWnd")) == NULL )
+			if ( (pWnd = (CWnd *)(void *)dp->GetAt(_T("pWnd"))) == NULL )
 				continue;
-			dp->GetAt("pWnd") = (void *)NULL;
+			dp->GetAt(_T("pWnd")) = (void *)NULL;
 			delete pWnd;
 		}
 	}
@@ -7409,94 +7502,94 @@ int CTempWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	int n;
 	int group = (-1);
-	CScriptValue *sp = &(m_pValue->GetAt("Child"));
+	CScriptValue *sp = &(m_pValue->GetAt(_T("Child")));
 	CScriptValue *dp;
 
-	if ( (n = (int)m_pValue->GetAt("FontPoint")) < 10 )
+	if ( (n = (int)m_pValue->GetAt(_T("FontPoint"))) < 10 )
 		n = 90;
-	m_Font.CreatePointFont(MulDiv(n, SCREEN_DPI_Y, SYSTEM_DPI_Y), (LPCTSTR)(m_pValue->GetAt("FontName")));
+	m_Font.CreatePointFont(MulDiv(n, SCREEN_DPI_Y, SYSTEM_DPI_Y), (LPCTSTR)(m_pValue->GetAt(_T("FontName"))));
 	SetFont(&m_Font, FALSE);
 
 	for ( n = 0 ; n < sp->GetSize() ; n++ ) {
 		dp = &(sp->GetAt(n));
-		if ( (void *)dp->GetAt("pWnd") != NULL )
+		if ( (void *)dp->GetAt(_T("pWnd")) != NULL )
 			continue;
 
-		LPCSTR type = dp->GetAt("Type");
-		CRect rect((int)dp->GetAt("Size")["sx"], (int)dp->GetAt("Size")["sy"],
-				   (int)dp->GetAt("Size")["cx"], (int)dp->GetAt("Size")["cy"]);
+		LPCSTR type = dp->GetAt(_T("Type"));
+		CRect rect((int)dp->GetAt(_T("Size"))[_T("sx")], (int)dp->GetAt(_T("Size"))[_T("sy")],
+				   (int)dp->GetAt(_T("Size"))[_T("cx")], (int)dp->GetAt(_T("Size"))[_T("cy")]);
 		rect.right += rect.left; rect.bottom += rect.top;
-		LPCTSTR text = dp->GetAt("Text");
+		LPCTSTR text = dp->GetAt(_T("Text"));
 		int style = WS_CHILD | WS_VISIBLE;
-		int state = dp->GetAt("Check");
+		int state = dp->GetAt(_T("Check"));
 
 		if ( _stricmp(type, "static") == 0 ) {
 			CStatic *pWnd = new CStatic;
 			pWnd->Create(text, style, rect, this, 3000 + n);
 			pWnd->SetFont(&m_Font, FALSE);
-			dp->GetAt("pWnd") = (void *)pWnd;
+			dp->GetAt(_T("pWnd")) = (void *)pWnd;
 		} else if ( _stricmp(type, "edit") == 0 ) {
 			CEdit *pWnd = new CEdit;
 			pWnd->Create(ES_AUTOHSCROLL | WS_TABSTOP | style, rect, this, 3000 + n);
 			pWnd->ModifyStyleEx(0, WS_EX_CLIENTEDGE, SWP_FRAMECHANGED);
 			pWnd->SetFont(&m_Font, FALSE);
 			pWnd->SetWindowText(text);
-			dp->GetAt("pWnd") = (void *)pWnd;
+			dp->GetAt(_T("pWnd")) = (void *)pWnd;
 
 		} else if ( _stricmp(type, "check") == 0 ) {
 			CButton *pWnd = new CButton;
 			pWnd->Create(text, BS_AUTOCHECKBOX | WS_TABSTOP | style, rect, this, 3000 + n);
 			pWnd->SetFont(&m_Font, FALSE);
 			pWnd->SetCheck(state);
-			dp->GetAt("pWnd") = (void *)pWnd;
+			dp->GetAt(_T("pWnd")) = (void *)pWnd;
 
 		} else if ( _stricmp(type, "radiotop") == 0 ) {
 			CButton *pWnd = new CButton;
 			pWnd->Create(text, BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP | style, rect, this, 3000 + n);
 			pWnd->SetFont(&m_Font, FALSE);
 			pWnd->SetCheck(state);
-			dp->GetAt("pWnd") = (void *)pWnd;
-			dp->GetAt("Group") = group = n;
+			dp->GetAt(_T("pWnd")) = (void *)pWnd;
+			dp->GetAt(_T("Group")) = group = n;
 			if ( (state == BST_CHECKED) )
-				sp->GetAt("Child").GetAt(group).GetAt("Value") = (int)(n - group);
+				sp->GetAt(_T("Child")).GetAt(group).GetAt(_T("Value")) = (int)(n - group);
 		} else if ( _stricmp(type, "radio") == 0 ) {
 			CButton *pWnd = new CButton;
 			pWnd->Create(text, BS_AUTORADIOBUTTON | WS_TABSTOP | style, rect, this, 3000 + n);
 			pWnd->SetFont(&m_Font, FALSE);
 			pWnd->SetCheck(state);
-			dp->GetAt("pWnd") = (void *)pWnd;
-			dp->GetAt("Group") = group;
+			dp->GetAt(_T("pWnd")) = (void *)pWnd;
+			dp->GetAt(_T("Group")) = group;
 			if ( group >= 0 && (state == BST_CHECKED) )
-				sp->GetAt("Child").GetAt(group).GetAt("Value") = (int)(n - group);
+				sp->GetAt(_T("Child")).GetAt(group).GetAt(_T("Value")) = (int)(n - group);
 
 		} else if ( _stricmp(type, "group") == 0 ) {
 			CButton *pWnd = new CButton;
 			pWnd->Create(text, BS_GROUPBOX | style, rect, this, 3000 + n);
 			pWnd->SetFont(&m_Font, FALSE);
-			dp->GetAt("pWnd") = (void *)pWnd;
+			dp->GetAt(_T("pWnd")) = (void *)pWnd;
 		} else if ( _stricmp(type, "button") == 0 ) {
 			CButton *pWnd = new CButton;
 			pWnd->Create(text, WS_TABSTOP | style, rect, this, 3000 + n);
 			pWnd->SetFont(&m_Font, FALSE);
-			dp->GetAt("pWnd") = (void *)pWnd;
+			dp->GetAt(_T("pWnd")) = (void *)pWnd;
 
 		} else if ( _stricmp(type, "combo") == 0 ) {
 			CComboBox *pWnd = new CComboBox;
 			pWnd->Create(CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP | style, rect, this, 3000 + n);
 			pWnd->SetFont(&m_Font, FALSE);
 			pWnd->SetWindowText(text);
-			dp->GetAt("pWnd") = (void *)pWnd;
+			dp->GetAt(_T("pWnd")) = (void *)pWnd;
 		} else if ( _stricmp(type, "list") == 0 ) {
 			CComboBox *pWnd = new CComboBox;
 			pWnd->Create(CBS_DROPDOWNLIST | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP | style, rect, this, 3000 + n);
 			pWnd->SetFont(&m_Font, FALSE);
 			pWnd->SetWindowText(text);
-			dp->GetAt("pWnd") = (void *)pWnd;
+			dp->GetAt(_T("pWnd")) = (void *)pWnd;
 
 		} else if ( _stricmp(type, "progress") == 0 ) {
 			CProgressCtrl *pWnd = new CProgressCtrl;
 			pWnd->Create(style, rect, this, 3000 + n);
-			dp->GetAt("pWnd") = (void *)pWnd;
+			dp->GetAt(_T("pWnd")) = (void *)pWnd;
 		}
 	}
 
@@ -7508,7 +7601,7 @@ void CTempWnd::OnClose()
 }
 void CTempWnd::FuncCall(int nID)
 {
-	LPCTSTR func = (LPCTSTR)m_pValue->GetAt("Child").GetAt(nID - 3000).GetAt("Func");
+	LPCTSTR func = (LPCTSTR)m_pValue->GetAt(_T("Child")).GetAt(nID - 3000).GetAt(_T("Func"));
 
 	if ( *func == _T('\0') )
 		return;
@@ -7529,15 +7622,15 @@ BOOL CTempWnd::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* p
 	case BN_CLICKED:
 		{
 			int n;
-			CScriptValue *sp = &(m_pValue->GetAt("Child").GetAt(nID - 3000));
-			CButton *pWnd = (CButton *)(void *)(sp->GetAt("pWnd"));
+			CScriptValue *sp = &(m_pValue->GetAt(_T("Child")).GetAt(nID - 3000));
+			CButton *pWnd = (CButton *)(void *)(sp->GetAt(_T("pWnd")));
 			if ( pWnd == NULL )
 				break;
 
-			sp->GetAt("Check") = (int)pWnd->GetCheck();
+			sp->GetAt(_T("Check")) = (int)pWnd->GetCheck();
 
-			if ( (n = sp->GetAt("Group")) >= 0 )
-				m_pValue->GetAt("Child").GetAt(n).GetAt("Value") = (int)(nID - 3000 - n);
+			if ( (n = sp->GetAt(_T("Group"))) >= 0 )
+				m_pValue->GetAt(_T("Child")).GetAt(n).GetAt(_T("Value")) = (int)(nID - 3000 - n);
 
 			FuncCall(nID);
 		}
@@ -7547,8 +7640,8 @@ BOOL CTempWnd::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* p
 		{
 			int n;
 			CString text;
-			CScriptValue *sp = &(m_pValue->GetAt("Child").GetAt(nID - 3000));
-			CComboBox *pWnd = (CComboBox *)(void *)(sp->GetAt("pWnd"));
+			CScriptValue *sp = &(m_pValue->GetAt(_T("Child")).GetAt(nID - 3000));
+			CComboBox *pWnd = (CComboBox *)(void *)(sp->GetAt(_T("pWnd")));
 
 			if ( pWnd == NULL )
 				break;
@@ -7558,8 +7651,8 @@ BOOL CTempWnd::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* p
 			else
 				pWnd->GetWindowText(text);
 
-			sp->GetAt("Value") = n;
-			sp->GetAt("Text") = text;
+			sp->GetAt(_T("Value")) = n;
+			sp->GetAt(_T("Text")) = text;
 
 			FuncCall(nID);
 		}
@@ -7568,15 +7661,15 @@ BOOL CTempWnd::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* p
 	case CBN_EDITUPDATE:
 		{
 			CString text;
-			CScriptValue *sp = &(m_pValue->GetAt("Child").GetAt(nID - 3000));
-			CComboBox *pWnd = (CComboBox *)(void *)(sp->GetAt("pWnd"));
+			CScriptValue *sp = &(m_pValue->GetAt(_T("Child")).GetAt(nID - 3000));
+			CComboBox *pWnd = (CComboBox *)(void *)(sp->GetAt(_T("pWnd")));
 
 			if ( pWnd == NULL )
 				break;
 
 			pWnd->GetWindowText(text);
-			sp->GetAt("Value") = (-1);
-			sp->GetAt("Text") = text;
+			sp->GetAt(_T("Value")) = (-1);
+			sp->GetAt(_T("Text")) = text;
 
 			FuncCall(nID);
 		}
@@ -7585,14 +7678,14 @@ BOOL CTempWnd::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* p
 	case EN_UPDATE:
 		{
 			CString text;
-			CScriptValue *sp = &(m_pValue->GetAt("Child").GetAt(nID - 3000));
-			CEdit *pWnd = (CEdit *)(void *)(sp->GetAt("pWnd"));
+			CScriptValue *sp = &(m_pValue->GetAt(_T("Child")).GetAt(nID - 3000));
+			CEdit *pWnd = (CEdit *)(void *)(sp->GetAt(_T("pWnd")));
 
 			if ( pWnd == NULL )
 				break;
 
 			pWnd->GetWindowText(text);
-			sp->GetAt("Text") = text;
+			sp->GetAt(_T("Text")) = text;
 
 			FuncCall(nID);
 		}

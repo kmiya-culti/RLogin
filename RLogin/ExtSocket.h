@@ -68,18 +68,17 @@ enum EProxyStat {
 	PRST_SOCKS5_CHAPCHECK,
 
 	PRST_HTTP2_START,
-	PRST_HTTP2_RESULT,
-	PRST_HTTP2_HAVEDATA,
-	PRST_HTTP2_INIT,
+	PRST_HTTP2_TUNNEL,
 	PRST_HTTP2_REQUEST,
 	PRST_HTTP2_CONNECT,
 	PRST_HTTP2_BASIC,
 	PRST_HTTP2_DIGEST,
 
 	PRST_HTTP3_START,
-	PRST_HTTP3_TYPE,
-	PRST_HTTP3_LENGTH,
-	PRST_HTTP3_DATA,
+	PRST_HTTP3_TUNNEL,
+	PRST_HTTP3_CONNECT,
+	PRST_HTTP3_BASIC,
+	PRST_HTTP3_DIGEST,
 };
 
 class CExtSocket : public CObject  
@@ -120,6 +119,9 @@ public:
 	BOOL m_ProxyConnect;
 	CBuffer m_ProxyBuff;
 	BOOL m_ProxyCmdMode;
+
+	class CHttp2Ctx *m_pHttp2Ctx;
+	class CHttp3Ctx *m_pHttp3Ctx;
 
 	int m_SSL_mode;
 	SSL_CTX *m_SSL_pCtx;
@@ -191,6 +193,7 @@ public:
 	BOOL ProxyCheck();
 	BOOL ProxyReadLine();
 	BOOL ProxyReadBuff(int len);
+	BOOL ProxyMakeDigest(CString &digest);
 	BOOL ProxyFunc();
 
 	BOOL IOCtl(long lCommand, DWORD* lpArgument );

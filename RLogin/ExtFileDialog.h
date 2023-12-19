@@ -7,7 +7,7 @@
 
 //////////////////////////////////////////////////////////////////////
 
-class CDialogRes : public CDialog
+class CDialogRes : public CDialogExt
 {
 	DECLARE_DYNAMIC(CDialogRes)
 
@@ -18,20 +18,13 @@ public:
 
 // クラスデータ
 public:
-	UINT m_nIDTemplate;
-	CString m_FontName;
-	int m_FontSize;
-
-public:
-	inline BOOL IsDefineFont() { return (m_FontName.IsEmpty() ? FALSE : TRUE); }
 
 // オーバーライド
 public:
-	virtual BOOL Create(LPCTSTR lpszTemplateName, CWnd* pParentWnd = NULL);
-	inline BOOL Create(UINT nIDTemplate, CWnd* pParentWnd = NULL) { return Create(ATL_MAKEINTRESOURCE(nIDTemplate), pParentWnd); }
 
 protected:
 	DECLARE_MESSAGE_MAP()
+	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -174,17 +167,59 @@ public:
 	CFileDownPage   *m_pDownPage;
 
 	CFont m_NewFont;
+	int m_FrameRightOfs;
+	CSize m_WindowSize;
 
 	void FontSizeCheck();
+	void WindowSizeCheck(int cx, int cy);
 
 public:
 	virtual BOOL OnInitDialog();
+	virtual void OnInitDone();
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
 
 public:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnDestroy();
 	afx_msg void OnTcnSelchangeTab1(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnSize(UINT nType, int cx, int cy);
 };
 
+//////////////////////////////////////////////////////////////////////
+// CConvFileDialog
 
+class CConvFileDialog : public CFileDialog
+{
+	DECLARE_DYNAMIC(CConvFileDialog)
+
+public:
+	CConvFileDialog(BOOL bOpenFileDialog, // FileOpen に TRUE を、FileSaveAs に FALSE を指定します。
+		LPCTSTR lpszDefExt = NULL,
+		LPCTSTR lpszFileName = NULL,
+		DWORD dwFlags = OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
+		LPCTSTR lpszFilter = NULL,
+		CWnd* pParentWnd = NULL,
+		DWORD dwSize = 0,
+		BOOL bVistaStyle = FALSE);
+	virtual ~CConvFileDialog();
+
+	enum { IDD = IDD_CONVFILEDLG };
+
+public:
+	CString m_Code;
+	int m_CrLf;
+	CSize m_WindowSize;
+	int m_ComboRightOfs;
+
+	void WindowSizeCheck(int cx, int cy);
+
+public:
+	virtual BOOL OnInitDialog();
+	virtual void OnInitDone();
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
+
+public:
+	DECLARE_MESSAGE_MAP()
+	afx_msg void OnDestroy();
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+};

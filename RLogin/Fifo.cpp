@@ -2541,7 +2541,7 @@ CFifoSocket		CFifoProxy					CFifoMiddle									CFifoDocument
 	STDOUT		STDIN->ProxyCheck	EXTOUT	STDIN->OnRecvSocket  SendDocument->EXTOUT	STDIN->OnRecvDocument->CDocument::OnSocketReceive
 	STDINT		STDOUT<-ProxyCheck	EXTIN	STDOUT<-SendSocket	OnRecvProtocol<-EXTIN	STDOUT<-SendProtocol<-CDocument::SocketSend
 */
-CFifoProxy::CFifoProxy(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoWnd(pDoc, pSock)
+CFifoProxy::CFifoProxy(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoThread(pDoc, pSock)
 {
 }
 CFifoProxy::~CFifoProxy()
@@ -2550,7 +2550,7 @@ CFifoProxy::~CFifoProxy()
 void CFifoProxy::OnRead(int nFd)
 {
 	// ProxyCheck“à‚ÅCFifoProxy‚ðUnLink/Destroy‚·‚é‚Ì‚Å’ˆÓ
-	if ( nFd == FIFO_STDIN )
+	if ( nFd == FIFO_STDIN || nFd == FIFO_EXTIN )
 		m_pSock->ProxyCheck();
 }
 void CFifoProxy::OnWrite(int nFd)
