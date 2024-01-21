@@ -321,6 +321,8 @@ BOOL CToolDlg::OnInitDialog()
 	InitList(TRUE);
 	m_ToolSize.SetCurSel((sz - 10) / 2);
 
+	SetSaveProfile(_T("ToolDlg"));
+
 	return TRUE;
 }
 

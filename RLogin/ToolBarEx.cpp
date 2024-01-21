@@ -14,13 +14,15 @@ static char THIS_FILE[] = __FILE__;
 
 IMPLEMENT_DYNAMIC(CToolBarEx, CToolBar)
 
-CToolBarEx::CToolBarEx()
+CToolBarEx::CToolBarEx() : CToolBar()
 {
+	m_bDarkMode = FALSE;
 }
 CToolBarEx::~CToolBarEx()
 {
 	RemoveAll();
 }
+
 void CToolBarEx::RemoveAll()
 {
 	for ( int n = 0 ; n < m_DropItem.GetSize() ; n++ ) {
@@ -197,8 +199,22 @@ void CToolBarEx::CreateItemImage(int width, int height)
 	}
 }
 
+void CToolBarEx::DrawBorders(CDC* pDC, CRect& rect)
+{
+	CControlBarEx::DrawBorders(this, pDC, rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+}
+BOOL CToolBarEx::DrawThemedGripper(CDC* pDC, const CRect& rect, BOOL fCentered)
+{
+	CControlBarEx::DrawGripper(this, pDC, rect);
+	return TRUE;
+}
+
 BEGIN_MESSAGE_MAP(CToolBarEx, CToolBar)
 	ON_NOTIFY_REFLECT(TBN_DROPDOWN, &CToolBarEx::OnDropDown)
+	ON_WM_CREATE()
+	ON_WM_SETCURSOR()
+	ON_WM_SETTINGCHANGE()
+	ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
 void CToolBarEx::OnDropDown(NMHDR *pNMHDR, LRESULT *pResult)
@@ -281,3 +297,95 @@ void CToolBarEx::OnDropDown(NMHDR *pNMHDR, LRESULT *pResult)
 	key.Format(_T("%d-%d"), GetDlgCtrlID(), m_DropItem[ix].index);
 	::AfxGetApp()->WriteProfileInt(_T("ToolBarEx"), key, id);
 }
+
+int CToolBarEx::OnCreate(LPCREATESTRUCT lpCreateStruct)
+{
+	if ( CToolBar::OnCreate(lpCreateStruct) == (-1) )
+		return (-1);
+
+	m_bDarkMode = CControlBarEx::DarkModeCheck(this);
+
+	return 0;
+}
+BOOL CToolBarEx::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
+{
+	if ( pWnd == this  &&  nHitTest == HTCLIENT && CControlBarEx::SetCursor(this, nHitTest, message) )
+		return TRUE;
+
+	return CToolBar::OnSetCursor(pWnd, nHitTest, message);
+}
+void CToolBarEx::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
+{
+	// CToolBarÇÕÅAÉoÉOÇ¡Ç€Ç¢ÇÃÇ≈íçà”
+	if ( !CControlBarEx::SettingChange(this, m_bDarkMode, uFlags, lpszSection) )
+		CToolBar::OnSettingChange(uFlags, lpszSection);
+}
+BOOL CToolBarEx::OnEraseBkgnd(CDC* pDC)
+{
+	if ( CControlBarEx::EraseBkgnd(this, pDC, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW)) )
+		return TRUE;
+
+	return CToolBar::OnEraseBkgnd(pDC);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CStatusBarEx
+
+IMPLEMENT_DYNAMIC(CStatusBarEx, CStatusBar)
+
+CStatusBarEx::CStatusBarEx() : CStatusBar()
+{
+	m_bDarkMode = FALSE;
+}
+
+BOOL CStatusBarEx::SetIndicators(const UINT* lpIDArray, int nIDCount)
+{
+	BOOL bRet = CStatusBar::SetIndicators(lpIDArray, nIDCount);
+
+	for ( int n = 0 ; bRet && n < nIDCount ; n++ )
+		SetPaneStyle(n, GetPaneStyle(n) | SBT_OWNERDRAW);
+
+	return bRet;
+}
+void CStatusBarEx::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
+{
+	CDC *pDC = CDC::FromHandle(lpDrawItemStruct->hDC);
+	CRect rect(lpDrawItemStruct->rcItem);
+	LPCTSTR str = (LPCTSTR)(lpDrawItemStruct->itemData);
+
+    if ( str == NULL || *str == _T('\0') )
+		return;
+
+	pDC->SetTextColor(m_bDarkMode ? GetSysColor(COLOR_MENU) : GetSysColor(COLOR_MENUTEXT));
+	pDC->SetBkMode(TRANSPARENT);
+	pDC->DrawText(str, (int)_tcslen(str), rect, DT_SINGLELINE | DT_VCENTER | DT_LEFT);
+}
+
+BEGIN_MESSAGE_MAP(CStatusBarEx, CStatusBar)
+	ON_WM_CREATE()
+	ON_WM_SETTINGCHANGE()
+	ON_WM_ERASEBKGND()
+END_MESSAGE_MAP()
+
+int CStatusBarEx::OnCreate(LPCREATESTRUCT lpCreateStruct)
+{
+	if ( CStatusBar::OnCreate(lpCreateStruct) == (-1) )
+		return (-1);
+
+	m_bDarkMode = CControlBarEx::DarkModeCheck(this);
+
+	return 0;
+}
+void CStatusBarEx::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
+{
+	CControlBarEx::SettingChange(this, m_bDarkMode, uFlags, lpszSection);
+	CStatusBar::OnSettingChange(uFlags, lpszSection);
+}
+BOOL CStatusBarEx::OnEraseBkgnd(CDC* pDC)
+{
+	if ( m_bDarkMode && CControlBarEx::EraseBkgnd(this, pDC) )
+		return TRUE;
+
+	return CStatusBar::OnEraseBkgnd(pDC);
+}
+

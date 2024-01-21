@@ -39,6 +39,8 @@ public:
 	DWORD IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch);
 
 	static void SetListArray(CStringArray &stra);
+	static BOOL IsIconvList(LPCSTR name);
+	static LPCTSTR GetCodePageName(int codepage);
 
 	CIConv();
 	virtual ~CIConv();

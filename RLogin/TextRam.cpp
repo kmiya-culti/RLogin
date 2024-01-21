@@ -1846,6 +1846,7 @@ CTextRam::CTextRam()
 	m_Atime = 0;
 	m_TabTextColor = ::GetSysColor(COLOR_BTNTEXT);
 	m_TabBackColor = ::GetSysColor(COLOR_BTNHIGHLIGHT);
+	m_UpdateCurX = m_UpdateCurY = (-1);
 
 	m_ColStackUsed = 0;
 	m_ColStackLast = 0;
@@ -2723,8 +2724,8 @@ void CTextRam::Init()
 	m_InlineExt.GetString(_T("doc|txt|pdf|mp3|avi|mpg"), _T('|'));
 	m_ScrnOffset.SetRect(0, 0, 0, 0);
 	m_TimeFormat = _T("%H:%M:%S ");
-	m_DefFontName[0] = _T("ＭＳ ゴシック");
-	m_DefFontName[1] = _T("ＭＳ 明朝");
+	m_DefFontName[0].LoadString(IDS_DEFFONTNAME0);	// _T("ＭＳ ゴシック");
+	m_DefFontName[1].LoadString(IDS_DEFFONTNAME1);	// _T("ＭＳ 明朝");
 
 	m_TraceLogFile.Empty();
 	m_TraceMaxCount = 1000;
@@ -7833,6 +7834,7 @@ void CTextRam::RESET(int mode)
 		m_CurX = 0;
 		m_CurY = 0;
 		m_DoWarp = FALSE;
+		m_UpdateCurX = m_UpdateCurY = (-1);
 
 		m_bRtoL = FALSE;
 		m_bJoint = FALSE;
@@ -8085,13 +8087,16 @@ void CTextRam::FLUSH()
 		m_pDocument->UpdateAllViews(NULL, UPDATE_INVALIDATE, NULL);
 	else if ( m_UpdateRect.left < m_UpdateRect.right && m_UpdateRect.top < m_UpdateRect.bottom )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_TEXTRECT, (CObject *)&m_UpdateRect);
-	else
+	else if ( m_CurX != m_UpdateCurX || m_CurY != m_UpdateCurY )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 
 	m_UpdateRect.left   = m_Cols;
 	m_UpdateRect.top    = m_Lines;
 	m_UpdateRect.right  = 0;
 	m_UpdateRect.bottom = 0;
+
+	m_UpdateCurX = m_CurX;
+	m_UpdateCurY = m_CurY;
 
 	m_HisUse = 0;
 
@@ -8135,6 +8140,10 @@ void CTextRam::DISPUPDATE()
 	m_UpdateRect.top    = 0;
 	m_UpdateRect.right  = m_Cols;
 	m_UpdateRect.bottom = m_Lines;
+
+	m_UpdateCurX = m_CurX;
+	m_UpdateCurY = m_CurY;
+
 	m_FrameCheck = FALSE;
 }
 void CTextRam::DISPVRAM(int sx, int sy, int w, int h)

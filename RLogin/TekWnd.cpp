@@ -57,8 +57,8 @@ BOOL CTekWnd::PreCreateWindow(CREATESTRUCT& cs)
 
 	cs.x = CW_USEDEFAULT;
 	cs.y = CW_USEDEFAULT;
-	cs.cx = AfxGetApp()->GetProfileInt(_T("TekWnd"), _T("cx"), 640);
-	cs.cy = AfxGetApp()->GetProfileInt(_T("TekWnd"), _T("cy"), 480 + 60);
+	cs.cx = AfxGetApp()->GetProfileInt(_T("TekWnd"), _T("cx"), MulDiv(640,      SYSTEM_DPI_X, DEFAULT_DPI_X));
+	cs.cy = AfxGetApp()->GetProfileInt(_T("TekWnd"), _T("cy"), MulDiv(480 + 60, SYSTEM_DPI_Y, DEFAULT_DPI_Y));
 
 	return CFrameWndExt::PreCreateWindow(cs);
 }

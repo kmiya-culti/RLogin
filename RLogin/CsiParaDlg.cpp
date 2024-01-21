@@ -92,6 +92,8 @@ BOOL CCsiParaDlg::OnInitDialog()
 
 	m_NameCombo.SelectString(-1, m_Name);
 
+	SetSaveProfile(_T("CsiParaDlg"));
+
 	return TRUE;
 }
 

@@ -1201,6 +1201,8 @@ public:
 	CTextSave *m_pTextStack;
 	CIConv m_IConv;
 	CRect m_UpdateRect;
+	int m_UpdateCurX;
+	int m_UpdateCurY;
 	BOOL m_UpdateFlag;
 	BOOL m_FrameCheck;
 

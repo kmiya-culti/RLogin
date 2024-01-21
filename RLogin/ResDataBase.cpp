@@ -1298,7 +1298,7 @@ CResDataBase::CResDataBase()
 #ifndef	USE_RCDLL
 	m_LangId    = MAKELANGID(LANG_JAPANESE, SUBLANG_JAPANESE_JAPAN);
 	m_Transrate = _T("ja");
-	m_Language  = _T("“ú–{Œê");
+	m_Language  = UniToTstr(L"\u65E5\u672C\u8A9E");	// _T("“ú–{Œê");
 #else
 	TCHAR name[256];
 

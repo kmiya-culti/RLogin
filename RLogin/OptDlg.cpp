@@ -32,7 +32,7 @@ CTreePage::CTreePage(UINT nIDTemplate)
 	m_pOwn = NULL;
 	m_UrlOpt = NULL;
 
-	SetBackColor(GetSysColor(COLOR_WINDOW));
+	SetBackWindow(TRUE);
 }
 CTreePage::~CTreePage()
 {
@@ -177,6 +177,7 @@ BOOL COptDlg::CreatePage(int nPage)
 	if ( !pPage->Create(pPage->m_nIDTemplate, this) )
 		return FALSE;
 
+	pPage->DefItemOffset();
 	pPage->ModifyStyle(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_DLGFRAME | WS_POPUP | WS_BORDER, WS_CHILD);
 	pPage->ModifyStyleEx(WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE, 0);
 	pPage->SetParent(this);
@@ -228,6 +229,8 @@ BEGIN_MESSAGE_MAP(COptDlg, CDialogExt)
 	ON_BN_CLICKED(IDC_DOINIT, &COptDlg::OnDoInit)
 	ON_BN_CLICKED(ID_APPLY_NOW, &COptDlg::OnApplyNow)
 	ON_BN_CLICKED(IDC_HELPBTN, &COptDlg::OnBnClickedHelpbtn)
+	ON_WM_SIZE()
+	ON_MESSAGE(WM_DPICHANGED, &COptDlg::OnDpiChanged)
 END_MESSAGE_MAP()
 
 void COptDlg::DoDataExchange(CDataExchange* pDX)
@@ -246,7 +249,7 @@ void COptDlg::DoDataExchange(CDataExchange* pDX)
 /////////////////////////////////////////////////////////////////////////////
 // COptDlg メッセージ ハンドラ
 
-static const INITDLGTAB ItemTab[] = {
+static const INITDLGTAB InitItemTab[] = {
 	{ IDC_DOINIT,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
@@ -254,6 +257,16 @@ static const INITDLGTAB ItemTab[] = {
 	{ IDC_HELPBTN,		ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_TABTREE,		ITM_BTM_BTM },
 	{ IDC_FRAME,		ITM_RIGHT_RIGHT | ITM_BTM_BTM },
+	{ 0,				0 },
+};
+static const INITDLGTAB ItemTab[] = {
+	{ IDC_DOINIT,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ ID_APPLY_NOW,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_HELPBTN,		ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_TABTREE,		ITM_RIGHT_PER | ITM_BTM_BTM },
+	{ IDC_FRAME,		ITM_LEFT_PER | ITM_RIGHT_RIGHT | ITM_BTM_BTM },
 	{ 0,				0 },
 };
 
@@ -290,6 +303,7 @@ BOOL COptDlg::OnInitDialog()
 
 		if ( n < 2 ) {
 			pPage->Create(pPage->m_nIDTemplate, this);
+			pPage->DefItemOffset();
 			pPage->ModifyStyle(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_DLGFRAME | WS_POPUP | WS_BORDER, WS_CHILD);
 			pPage->ModifyStyleEx(WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE, 0);
 			pPage->SetParent(this);
@@ -326,7 +340,7 @@ BOOL COptDlg::OnInitDialog()
 	}
 
 	// アイテムオフセット取得
-	InitItemOffset(ItemTab);
+	InitItemOffset(InitItemTab);
 
 	// ウィンドウサイズ設定
 	GetWindowRect(frame);
@@ -339,9 +353,6 @@ BOOL COptDlg::OnInitDialog()
 
 	// リサイズテーブル削除
 	m_InitDlgRect.RemoveAll();
-
-	if ( (m_psh.dwFlags & PSH_NOAPPLYNOW) != 0 && (pWnd = GetDlgItem(ID_APPLY_NOW)) != NULL )
-		pWnd->ShowWindow(SW_HIDE);
 
 	if ( m_Frame.GetWindowPlacement(&place) )
 		ItemOfs[0] = place.rcNormalPosition;
@@ -363,6 +374,12 @@ BOOL COptDlg::OnInitDialog()
 		pPage->SetWindowPlacement(&place);
 	}
 
+	// リサイズ時の設定
+	InitItemOffset(ItemTab);
+
+	if ( (m_psh.dwFlags & PSH_NOAPPLYNOW) != 0 && (pWnd = GetDlgItem(ID_APPLY_NOW)) != NULL )
+		pWnd->ShowWindow(SW_HIDE);
+
 	// ダイアログ初期化
 
 	if ( !m_Title.IsEmpty() )
@@ -380,6 +397,9 @@ BOOL COptDlg::OnInitDialog()
 
 	m_toolTip.Create(this, TTS_ALWAYSTIP | TTS_BALLOON);
     m_toolTip.AddTool(GetDlgItem(IDC_HELPBTN), CStringLoad(IDS_OPTIONHELPMSG));
+
+	SetSaveProfile(_T("OptDlg"));
+	SetLoadPosition(LOADPOS_PARENT);
 
 	return FALSE;
 }
@@ -480,4 +500,42 @@ BOOL COptDlg::PreTranslateMessage(MSG* pMsg)
         return TRUE;
     }
 	return CDialogExt::PreTranslateMessage(pMsg);
+}
+void COptDlg::PageReSize()
+{
+	int n;
+	CRect frame;
+	CTreePage *pPage;
+	CWnd *pWnd;
+
+	if ( m_Frame.GetSafeHwnd() == NULL )
+		return;
+
+	m_Frame.GetClientRect(frame);
+	m_Frame.ClientToScreen(frame);
+	ScreenToClient(frame);
+
+	for ( n = 0 ; n < GetPageCount() ; n++ ) {
+		if ( (pPage = GetPage(n)) == NULL || pPage->m_hWnd == NULL )
+			continue;
+		pPage->MoveWindow(frame, FALSE);
+	}
+		
+	if ( (m_psh.dwFlags & PSH_NOAPPLYNOW) != 0 && (pWnd = GetDlgItem(ID_APPLY_NOW)) != NULL )
+		pWnd->ShowWindow(SW_HIDE);
+}
+void COptDlg::OnSize(UINT nType, int cx, int cy)
+{
+	CDialogExt::OnSize(nType, cx, cy);
+
+	PageReSize();
+}
+LRESULT COptDlg::OnDpiChanged(WPARAM wParam, LPARAM lParam)
+{
+	if ( !CDialogExt::OnDpiChanged(wParam, lParam) )
+		return FALSE;
+
+	PageReSize();
+
+	return TRUE;
 }

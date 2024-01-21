@@ -1706,6 +1706,9 @@ static UINT FifoSocketOpenWorker(LPVOID pParam)
 	pThis->ThreadEnd();
 	pThis->m_Threadtatus = status;
 
+	// m_SSL_pSock SSL_read/SSL_write‚ðŽg—p
+	OPENSSL_thread_stop();
+
 	return 0;
 }
 void CFifoSocket::ThreadEnd()

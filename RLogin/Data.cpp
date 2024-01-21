@@ -17,7 +17,6 @@
 #include <olectl.h>
 #include <ole2.h>
 #include <afxinet.h>
-#include <mbctype.h>
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -85,6 +84,29 @@ BOOL IsDigits(LPCTSTR p)
 			return FALSE;
 		p++;
 	}
+	return TRUE;
+}
+BOOL InStrStr(LPCTSTR str, LPCTSTR ptn)
+{
+	LPCTSTR p = _tcsstr(str, ptn);
+
+	if ( p == NULL )
+		return FALSE;
+
+	while ( p > str && p[-1] <= _T(' ') )
+		str--;
+
+	if ( p > str && p[-1] != _T(',') )
+		return FALSE;
+
+	p += _tcslen(ptn);
+
+	while ( *p != _T('\0') && *p <= _T(' ') )
+		str++;
+
+	if ( *p != _T('\0') && *p != _T(',') )
+		return FALSE;
+
 	return TRUE;
 }
 
@@ -2632,12 +2654,9 @@ void CBuffer::WstrConvert(LPCTSTR toCode, int nCrLf)
 	TCHAR ch;
 	CBuffer work, in, out;
 	CIConv iconv;
-	CString codePage;
 
-	if ( toCode == NULL || _tcsicmp(toCode, _T("DEFAULT")) == 0 ) {
-		codePage.Format(_T("CP%d"), _getmbcp());
-		toCode = codePage;
-	}
+	if ( toCode == NULL || _tcsicmp(toCode, _T("DEFAULT")) == 0 )
+		toCode = SYSTEMICONV;
 
 	if ( (_tcsncmp(toCode, _T("UTF-"), 4) == 0 && toCode[4] != _T('7') && toCode[4] != _T('8')) || _tcsncmp(toCode, _T("UCS-"), 4) == 0 )
 		in.PutWord(0xFEFF);		// BOM
@@ -2683,12 +2702,9 @@ void CBuffer::StrConvert(LPCTSTR fromCode)
 	LPCTSTR p;
 	CBuffer out;
 	CIConv iconv;
-	CString codePage;
 
-	if ( fromCode == NULL || _tcsicmp(fromCode, _T("DEFAULT")) == 0 ) {
-		codePage.Format(_T("CP%d"), _getmbcp());
-		fromCode = codePage;
-	}
+	if ( fromCode == NULL || _tcsicmp(fromCode, _T("DEFAULT")) == 0 )
+		fromCode = SYSTEMICONV;
 
 	iconv.RemoteToStr(fromCode, &(*this), &out);
 
@@ -5845,7 +5861,7 @@ void CServerEntryTab::MenuStr(TCHAR skey, LPCTSTR str, CString &work)
 	}
 
 	if ( *str != _T('\0') )
-		work += _T("…");
+		work += UniToTstr(L"\u2026");	// _T("…");
 }
 void CServerEntryTab::SetSubMenu(CStringIndex *pIndex, CMenu *pMenu, int IdOfs)
 {
@@ -6293,6 +6309,29 @@ LPCTSTR CKeyNode::GetMask()
 	if ( !m_Temp.IsEmpty() )
 		m_Temp.Delete(m_Temp.GetLength() - 1, 1);
 	return m_Temp;
+}
+void CKeyNode::SetMask(LPCTSTR str)
+{
+	CString tmp = str;
+
+	m_Mask = 0;
+	tmp.MakeLower();
+
+	if ( tmp.Find(_T("ctrl")) >= 0 )
+		m_Mask |= MASK_CTRL;
+	if ( tmp.Find(_T("shift")) >= 0 )
+		m_Mask |= MASK_SHIFT;
+	if ( tmp.Find(_T("alt")) >= 0 )
+		m_Mask |= MASK_ALT;
+
+	if ( tmp.Find(_T("app")) >= 0 )
+		m_Mask |= MASK_APPL;
+	if ( tmp.Find(_T("ckm")) >= 0 )
+		m_Mask |= MASK_CKM;
+	if ( tmp.Find(_T("legacy")) >= 0 )
+		m_Mask |= MASK_LEGA;
+	if ( tmp.Find(_T("vt52")) >= 0 )
+		m_Mask |= MASK_VT52;
 }
 const CKeyNode & CKeyNode::operator = (CKeyNode &data)
 {
@@ -7625,7 +7664,7 @@ void CKeyMac::GetMenuStr(CString &str)
 
 	for ( n = 0 ; n < 20 && n < len ; n++, p++ ) {
 		if ( *p == L'\r' )
-			str += _T("↓");
+			str += UniToTstr(L"\u2193");	// _T("↓");
 		else if ( *p == L'\x7F' || *p < L' ' || *p == L'&' || *str == L'\\' )
 			str += _T('.');
 		else
@@ -8021,7 +8060,7 @@ void CParamTab::Init()
 	for ( n = 0 ; def_ttymode[n].opcode != 0 ; n++ )
 		m_TtyMode.Add(def_ttymode[n]);
 
-	m_RsaExt = 1;			// 2022/09 デフォルトをSHA2-256に変更 0=SHA1, 1=SHA2-256, 2=SHA2-512
+	m_RsaExt = 2;			// 2024/01 デフォルトをSHA2-512に変更 0=SHA1, 1=SHA2-256, 2=SHA2-512
 	m_VerIdent.Empty();
 
 	m_x11AuthFlag = FALSE;

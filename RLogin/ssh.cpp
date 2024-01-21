@@ -2499,7 +2499,7 @@ void Cssh::SendMsgNewKeys()
 		tmp.Put8Bit(SSH2_MSG_EXT_INFO);
 		tmp.Put32Bit(1);
 		tmp.PutStr("server-sig-algs");
-		tmp.PutStr("rsa-sha2-256,rsa-sha2-512");
+		tmp.PutStr("ssh-ed25519,ssh-ed448,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,rsa-sha2-512,rsa-sha2-256,ssh-xmss@openssh.com");
 		SendPacket2(&tmp);
 		// 最初だけ送れば良い？
 		m_ExtInfoStat = EXTINFOSTAT_DONE;
@@ -3056,7 +3056,7 @@ void Cssh::SendMsgGlobalRequest(int num, LPCSTR str, LPCTSTR rhost, int rport)
 		tmp.PutStr(RemoteStr(rhost));
 		tmp.Put32Bit(rport);
 	}
-	SendPacket2(&tmp);
+	PostSendPacket(2, &tmp);
 	m_GlbReqMap.Add((WORD)num);
 }
 void Cssh::SendMsgKeepAlive()
@@ -3083,7 +3083,7 @@ void Cssh::SendMsgUnimplemented()
 	CBuffer tmp;
 	tmp.Put8Bit(SSH2_MSG_UNIMPLEMENTED);
 	tmp.Put32Bit(m_RecvPackSeq);
-	SendPacket2(&tmp);
+	PostSendPacket(2, &tmp);
 }
 void Cssh::SendDisconnect2(int st, LPCSTR str)
 {
@@ -3091,7 +3091,14 @@ void Cssh::SendDisconnect2(int st, LPCSTR str)
 	tmp.Put8Bit(SSH2_MSG_DISCONNECT);
 	tmp.Put32Bit(st);
 	tmp.PutStr(str);
-	SendPacket2(&tmp);
+	PostSendPacket(2, &tmp);
+}
+void Cssh::SendMsgPong(LPCSTR msg)
+{
+	CBuffer tmp;
+	tmp.Put8Bit(SSH2_MSG_PONG);
+	tmp.PutStr(msg);
+	PostSendPacket(2, &tmp);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3243,7 +3250,7 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		return (-1);
 
 	if ( m_ExtInfoStat == EXTINFOSTAT_CHECK ) {
-		if ( _tcsstr(m_SProp[PROP_KEX_ALGS], _T("ext-info-s")) != NULL ) {
+		if ( InStrStr(m_SProp[PROP_KEX_ALGS], _T("ext-info-s")) ) {
 			// ext-info-sによりSSH2_MSG_NEWKEYSの後にSSH2_MSG_EXT_INFOを送る必要があるのか？
 			// PROP_HOST_KEY_ALGSで"rsa-sha2-256/512"を指定するのだから不用なような気がする
 			m_ExtInfoStat = EXTINFOSTAT_SEND;
@@ -3253,7 +3260,7 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	}
 
 	if ( m_KexStrictStat == KEXSTRICT_CHECK ) {
-		if ( _tcsstr(m_SProp[PROP_KEX_ALGS], _T("kex-strict-s-v00@openssh.com")) != NULL ) {
+		if ( InStrStr(m_SProp[PROP_KEX_ALGS], _T("kex-strict-s-v00@openssh.com")) ) {
 			// openssh-9.6p1から導入された(CVE-2023-48795)
 			m_KexStrictStat = KEXSTRICT_ENABLE;
 			m_VProp[PROP_KEX_ALGS] += _T(",kex-strict-c-v00@openssh.com");
@@ -5013,17 +5020,32 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		break;
 
 	case SSH2_MSG_DEBUG:
-#ifdef	DEBUG_XXX
-		bp->Get8Bit();
-		bp->GetStr(str);
-		tmp.Format("SSH2 Debug Message\n%s", str);
-		AfxMessageBox(LocalStr(tmp), MB_ICONINFORMATION);
-		// no break
-#endif
-	case SSH2_MSG_IGNORE:
-	case SSH2_MSG_UNIMPLEMENTED:
 		if ( m_KexStrictStat == KEXSTRICT_ENABLE && (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
 			goto DISCONNECT;
+		bp->Get8Bit();
+		bp->GetStr(str);
+		TRACE("Recive SSH2_MSG_DEBUG '%s'\n", str);
+		break;
+
+	case SSH2_MSG_IGNORE:
+	case SSH2_MSG_UNIMPLEMENTED:
+		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
+			goto DISCONNECT;
+		TRACE("Recive SSH2_MSG_IGNORE/UNIMPLEMENTED '%d'\n", type);
+		break;
+
+	case SSH2_MSG_PING:
+		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
+			goto DISCONNECT;
+		bp->GetStr(str);
+		SendMsgPong(str);
+		TRACE("Recive SSH2_MSG_PING '%s' Send MSG_PONG \n", str);
+		break;
+	case SSH2_MSG_PONG:
+		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
+			goto DISCONNECT;
+		bp->GetStr(str);
+		TRACE("Recive SSH2_MSG_PONG '%s'\n", str);
 		break;
 
 	default:

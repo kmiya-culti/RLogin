@@ -39,11 +39,25 @@ BEGIN_MESSAGE_MAP(CScriptDlg, CDialogExt)
 	ON_BN_CLICKED(IDC_CONTINUE, &CScriptDlg::OnBnClickedContinue)
 END_MESSAGE_MAP()
 
+static const INITDLGTAB ItemTab[] = {
+	{ IDC_FILENAME,		ITM_LEFT_LEFT | ITM_RIGHT_RIGHT | ITM_TOP_TOP | ITM_BTM_TOP },
+	{ IDC_TEXT,			ITM_LEFT_LEFT | ITM_RIGHT_RIGHT | ITM_TOP_TOP | ITM_BTM_BTM },
+	{ IDC_CODESTACK,	ITM_LEFT_LEFT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
+
+	{ IDC_CONTINUE,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+    { IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+
+	{ 0,	0 },
+};
+
 // CScriptDlg メッセージ ハンドラ
 
 BOOL CScriptDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
+
+	InitItemOffset(ItemTab);
 
 	CodeStack *cp;
 	CWnd *pWnd;
@@ -67,6 +81,8 @@ BOOL CScriptDlg::OnInitDialog()
 			m_CodeStack.AddString(cp->name);
 		m_CodeStack.SetCurSel(0);
 	}
+
+	SetSaveProfile(_T("ScriptDlg"));
 
 	return TRUE;
 }

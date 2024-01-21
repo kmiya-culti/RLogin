@@ -993,6 +993,7 @@ public:
 	void SendMsgKeepAlive();
 	void SendMsgUnimplemented();
 	void SendDisconnect2(int st, LPCSTR str);
+	void SendMsgPong(LPCSTR msg);
 
 	void SendPacket2(CBuffer *bp);
 

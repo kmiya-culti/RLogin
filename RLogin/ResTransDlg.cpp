@@ -446,6 +446,9 @@ BOOL CResTransDlg::OnInitDialog()
 	SubclassComboBox(IDC_TRANSFROM);
 	SubclassComboBox(IDC_TRANSTO);
 
+	SetSaveProfile(_T("ResTransDlg"));
+	SetLoadPosition(LOADPOS_MAINWND);
+
 	return TRUE;
 }
 void CResTransDlg::OnOK()

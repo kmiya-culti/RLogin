@@ -70,6 +70,8 @@ BOOL CIdKeyFileDlg::OnInitDialog()
 	if ( (pWnd = GetDlgItem(IDC_PASSNAME)) != NULL )
 		m_PassChar = ((CEdit *)pWnd)->GetPasswordChar();
 
+	SetSaveProfile(_T("IdKeyFileDlg"));
+
 	return bRet;
 }
 

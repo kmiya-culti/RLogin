@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DialogExt.h"
+#include "afxwin.h"
 
 // CProxyDlg ダイアログ
 

@@ -43,6 +43,16 @@ static const LV_COLUMN InitListTab[3] = {
 	{ LVCF_TEXT | LVCF_WIDTH, 0, 300, _T("Value"),	0, 0 },
 };
 
+static const INITDLGTAB ItemTab[] = {
+	{ IDC_ENV_LIST,		ITM_RIGHT_RIGHT | ITM_BTM_BTM  },
+
+	{ IDC_INFOCAP,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM  },
+	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM  },
+	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM  },
+
+	{ 0,	0 },
+};
+
 void CEnvDlg::InitList()
 {
 	int n;
@@ -67,12 +77,16 @@ BOOL CEnvDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
 
+	InitItemOffset(ItemTab);
+
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
 	m_List.InitColumn(_T("EnvDlg"), InitListTab, 3);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 1);
 	m_List.m_EditSubItem = 0x06;
 
 	InitList();
+
+	SetSaveProfile(_T("EnvDlg"));
 
 	return TRUE;
 }

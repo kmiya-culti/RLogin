@@ -455,8 +455,10 @@ BOOL CServerSelect::OnInitDialog()
 	m_TreeListPer = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("TreePer"), m_TreeListPer);
 
 	GetWindowRect(rect);
-	cx = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cx"), rect.Width());
-	cy = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cy"), rect.Height());
+	cx = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X, m_NowDpi.cx));
+	cy = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y, m_NowDpi.cy));
+	cx = MulDiv(cx, m_NowDpi.cx, DEFAULT_DPI_X);
+	cy = MulDiv(cy, m_NowDpi.cy, DEFAULT_DPI_Y);
 	if ( cx < rect.Width() )
 		cx = rect.Width();
 	if ( cy < rect.Height() )
@@ -502,8 +504,8 @@ void CServerSelect::SaveWindowStyle()
 	CRect rect;
 
 	GetWindowRect(rect);
-	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cx"), MulDiv(rect.Width(), m_InitDpi.cx, m_NowDpi.cx));
-	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cy"), MulDiv(rect.Height(), m_InitDpi.cy, m_NowDpi.cy));
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cx"), MulDiv(rect.Width(), DEFAULT_DPI_X, m_NowDpi.cx));
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y, m_NowDpi.cy));
 	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("TreePer"), m_TreeListPer);
 
 	((CRLoginApp *)::AfxGetApp())->WriteProfileStringArray(_T("ServerSelect"), _T("TreeExpand"), m_TreeExpand);

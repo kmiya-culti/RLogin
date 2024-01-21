@@ -57,6 +57,8 @@ protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnEditCopyAll();
 	afx_msg void OnEditPasteAll();
+	afx_msg void OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult);
 };
 
 /////////////////////////////////////////////////////////////////////////////

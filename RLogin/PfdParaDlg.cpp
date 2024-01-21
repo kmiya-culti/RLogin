@@ -79,6 +79,8 @@ BOOL CPfdParaDlg::OnInitDialog()
 	SubclassComboBox(IDC_CONNECTHOST);
 	SubclassComboBox(IDC_CONNECTPORT);
 
+	SetSaveProfile(_T("PfdParaDlg"));
+
 	return TRUE;
 }
 

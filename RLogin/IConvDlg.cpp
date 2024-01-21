@@ -47,6 +47,8 @@ BOOL CIConvDlg::OnInitDialog()
 
 		SubclassComboBox(IDC_CHARSET1 + i);
 	}
-	
+
+	SetSaveProfile(_T("IConvDlg"));
+
 	return TRUE;
 }

@@ -110,7 +110,9 @@ BOOL CAlgoDlg::OnInitDialog()
 		m_List[n].GetClientRect(rect);
 		m_List[n].SetColumnWidth(0, rect.Width() * 95 / 100);
 	}
-		
+
+	SetSaveProfile(_T("AlgoDlg"));
+
 	return TRUE;
 }
 

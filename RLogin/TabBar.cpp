@@ -22,6 +22,7 @@ static char THIS_FILE[]=__FILE__;
 
 //////////////////////////////////////////////////////////////////////
 // CTabCtrlExt
+
 CTabCtrlExt::CTabCtrlExt()
 {
 }
@@ -40,9 +41,7 @@ void CTabCtrlExt::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	int nSavedDC;
 	CChildFrame *pWnd;
 	CRLoginDoc *pDoc;
-	COLORREF bc = ::GetSysColor(COLOR_BTNFACE);
-	COLORREF tc = ::GetSysColor(COLOR_BTNTEXT);
-	COLORREF gc = ::GetSysColor(COLOR_BTNFACE);
+	COLORREF bc, tc, gc;
 	int ex = ::GetSystemMetrics(SM_CXEDGE) * 2;
 	int ox = 0;
 	CImageList* pImageList = GetImageList();
@@ -69,13 +68,35 @@ void CTabCtrlExt::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 
 	if ( bSelected ) {
 		if ( (HWND)tci.lParam != NULL && (pWnd = (CChildFrame *)FromHandle((HWND)tci.lParam)) != NULL && (pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument())) != NULL ) {
-			bc = pDoc->m_TextRam.m_TabBackColor;
-			tc = pDoc->m_TextRam.m_TabTextColor;
+			if ( m_bDarkMode ) {
+				bc = pDoc->m_TextRam.m_TabTextColor;
+				tc = pDoc->m_TextRam.m_TabBackColor;
+				gc = ::GetSysColor(COLOR_BTNTEXT);
+			} else {
+				bc = pDoc->m_TextRam.m_TabBackColor;
+				tc = pDoc->m_TextRam.m_TabTextColor;
+				gc = ::GetSysColor(COLOR_BTNHIGHLIGHT);
+			}
 			if ( bc != gc && pDoc->m_TextRam.IsOptEnable(TO_RLTABGRAD) )
 				bGradient = TRUE;
+		} else if ( m_bDarkMode ) {
+			bc = ::GetSysColor(COLOR_BTNTEXT);
+			tc = ::GetSysColor(COLOR_BTNHIGHLIGHT);
+			gc = ::GetSysColor(COLOR_BTNTEXT);
 		} else {
 			bc = ::GetSysColor(COLOR_BTNHIGHLIGHT);
 			tc = ::GetSysColor(COLOR_BTNTEXT);
+			gc = ::GetSysColor(COLOR_BTNHIGHLIGHT);
+		}
+	} else {
+		if ( m_bDarkMode ) {
+			bc = DARKMODE_BACKCOLOR;
+			tc = ::GetSysColor(COLOR_GRAYTEXT);
+			gc = DARKMODE_BACKCOLOR;
+		} else {
+			bc = ::GetSysColor(COLOR_BTNFACE);
+			tc = ::GetSysColor(COLOR_GRAYTEXT);
+			gc = ::GetSysColor(COLOR_BTNFACE);
 		}
 	}
 
@@ -110,7 +131,94 @@ void CTabCtrlExt::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 IMPLEMENT_DYNAMIC(CTabCtrlExt, CTabCtrl)
 
 BEGIN_MESSAGE_MAP(CTabCtrlExt, CTabCtrl)
+	ON_WM_CREATE()
+	ON_WM_ERASEBKGND()
+	ON_WM_SETTINGCHANGE()
+	ON_WM_PAINT()
 END_MESSAGE_MAP()
+
+int CTabCtrlExt::OnCreate(LPCREATESTRUCT lpCreateStruct)
+{
+	if (CTabCtrl::OnCreate(lpCreateStruct) == -1)
+		return -1;
+
+	m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
+
+	return 0;
+}
+BOOL CTabCtrlExt::OnEraseBkgnd(CDC* pDC)
+{
+	CRect rect;
+	GetClientRect(rect);
+	pDC->FillSolidRect(rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	return TRUE;
+}
+void CTabCtrlExt::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
+{
+	if ( lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 ) {
+		m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
+		Invalidate(TRUE);
+	}
+
+	CTabCtrl::OnSettingChange(uFlags, lpszSection);
+}
+void CTabCtrlExt::OnPaint()
+{
+	if ( (GetStyle() & (TCS_MULTILINE | TCS_BUTTONS)) != 0 ) {
+		Default();
+		return;
+	}
+
+#define	TABTOP_SIZE		2
+#define	TABBTM_SIZE		3
+#define	TABLINE_SIZE	1
+
+	int n;
+	CRect rect, frame;
+	CPaintDC dc(this);
+	DRAWITEMSTRUCT dis;
+	CFont *pOldFont = GetFont();
+	int nIndex = GetCurSel();
+	COLORREF bdCol = GetSysColor(COLOR_BTNSHADOW);
+	COLORREF bkCol = m_bDarkMode ? GetSysColor(COLOR_BTNTEXT) : GetSysColor(COLOR_BTNHIGHLIGHT);
+	CPen *pOldPen, bdPen(PS_SOLID, TABLINE_SIZE, bdCol);
+
+
+	pOldFont = dc.SelectObject(pOldFont);
+	pOldPen = dc.SelectObject(&bdPen);
+
+	ZeroMemory(&dis, sizeof(dis));
+	dis.hDC = dc.GetSafeHdc();
+
+	GetClientRect(frame);
+	dc.FillSolidRect(0, frame.bottom - TABBTM_SIZE, frame.Width(), TABBTM_SIZE, bkCol);
+	dc.FillSolidRect(0, frame.bottom - TABBTM_SIZE, frame.Width(), TABLINE_SIZE, bdCol);
+
+	for ( n = 0 ; n < GetItemCount() ; n++ ) {
+		GetItemRect(n, rect);
+
+		if ( rect.top < TABTOP_SIZE )
+			rect.top = TABTOP_SIZE;
+		if ( n == nIndex )
+			rect.top -= TABTOP_SIZE;
+		rect.bottom = frame.bottom - TABBTM_SIZE;
+
+		dis.itemID = n;
+		dis.rcItem = rect;
+		DrawItem(&dis);
+
+		if ( n == nIndex )
+			dc.FillSolidRect(rect.left, frame.bottom - TABBTM_SIZE, rect.Width(), TABBTM_SIZE, bkCol);
+
+		dc.MoveTo(rect.left, frame.bottom - TABBTM_SIZE);
+		dc.LineTo(rect.left, rect.top);
+		dc.LineTo(rect.right, rect.top);
+		dc.LineTo(rect.right, frame.bottom - TABBTM_SIZE);
+	}
+
+	dc.SelectObject(pOldPen);
+	dc.SelectObject(pOldFont);
+}
 
 //////////////////////////////////////////////////////////////////////
 // CTabBar
@@ -134,9 +242,9 @@ CTabBar::~CTabBar()
 {
 }
 
-IMPLEMENT_DYNAMIC(CTabBar, CControlBar)
+IMPLEMENT_DYNAMIC(CTabBar, CControlBarEx)
 
-BEGIN_MESSAGE_MAP(CTabBar, CControlBar)
+BEGIN_MESSAGE_MAP(CTabBar, CControlBarEx)
 	ON_WM_SIZE()
 	ON_WM_CREATE()
 	ON_WM_LBUTTONDBLCLK()
@@ -206,7 +314,7 @@ CSize CTabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 		size.cy = MainRect.Height();
 	}
 
-	if ( IsVisible() && m_TabCtrl.m_hWnd != NULL ) {
+	if ( IsVisible() && m_TabCtrl.m_hWnd != NULL && bHorz ) {
 		InSideRect.SetRect(0, 0, size.cx, size.cy);
 		CalcInsideRect(InSideRect, bHorz);
 		m_TabCtrl.GetWindowRect(TabRect);
@@ -231,7 +339,7 @@ BOOL CTabBar::PreTranslateMessage(MSG* pMsg)
 		pMsg->lParam = MAKELPARAM(point.x, point.y);
 	}
 
-	return CControlBar::PreTranslateMessage(pMsg);
+	return CControlBarEx::PreTranslateMessage(pMsg);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -239,7 +347,7 @@ BOOL CTabBar::PreTranslateMessage(MSG* pMsg)
 
 int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct) 
 {
-	if ( CControlBar::OnCreate(lpCreateStruct) == (-1) )
+	if ( CControlBarEx::OnCreate(lpCreateStruct) == (-1) )
 		return (-1);
 	
 	CRect rect; rect.SetRectEmpty();
@@ -296,7 +404,7 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void CTabBar::OnSize(UINT nType, int cx, int cy) 
 {
-	CControlBar::OnSize(nType, cx, cy);
+	CControlBarEx::OnSize(nType, cx, cy);
 
 	if ( m_TabCtrl.m_hWnd == NULL )
 		return;
@@ -439,12 +547,15 @@ BOOL CTabBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 {
 	int n;
 	CRect rect;
+	CPoint point;
 	TCHITTESTINFO htinfo;
 
-	if ( AfxGetApp()->GetProfileInt(_T("TabBar"), _T("GhostWnd"), 0) )
-		return CControlBar::OnSetCursor(pWnd, nHitTest, message);
+	GetCursorPos(&point);
 
-	GetCursorPos(&htinfo.pt);
+	if ( AfxGetApp()->GetProfileInt(_T("TabBar"), _T("GhostWnd"), 0) )
+		return CControlBarEx::OnSetCursor(pWnd, nHitTest, message);
+
+	htinfo.pt = point;
 	m_TabCtrl.ScreenToClient(&htinfo.pt);
 	n = m_TabCtrl.HitTest(&htinfo);
 
@@ -470,7 +581,7 @@ BOOL CTabBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 	if ( pWnd == NULL )
 		return TRUE;
 
-	return CControlBar::OnSetCursor(pWnd, nHitTest, message);
+	return CControlBarEx::OnSetCursor(pWnd, nHitTest, message);
 }
 
 void CTabBar::OnTimer(UINT_PTR nIDEvent)
@@ -488,7 +599,7 @@ void CTabBar::OnTimer(UINT_PTR nIDEvent)
 			SetGhostWnd(FALSE);
 		break;
 	}
-	CControlBar::OnTimer(nIDEvent);
+	CControlBarEx::OnTimer(nIDEvent);
 }
 
 void CTabBar::OnSelchange(NMHDR* pNMHDR, LRESULT* pResult) 
@@ -517,7 +628,7 @@ void CTabBar::OnLButtonDblClk(UINT nFlags, CPoint point)
 	if ( rect.PtInRect(point) && HitPoint(point) == (-1) )
 		AfxGetMainWnd()->PostMessage(WM_COMMAND, (WPARAM)ID_FILE_NEW);
 	else
-		CControlBar::OnLButtonDblClk(nFlags, point);
+		CControlBarEx::OnLButtonDblClk(nFlags, point);
 }
 
 void CTabBar::OnLButtonDown(UINT nFlags, CPoint point) 

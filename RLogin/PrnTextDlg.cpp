@@ -63,12 +63,13 @@ BOOL CPrnTextDlg::OnInitDialog()
 
 	CClientDC dc(this);
 	LOGFONT logfont;
+	CStringLoad DefFontName(IDS_DEFFONTNAME0);	// _T("‚l‚r ƒSƒVƒbƒN")
 
 	ZeroMemory(&logfont, sizeof(LOGFONT)); 
 	logfont.lfCharSet = DEFAULT_CHARSET;
 	::EnumFontFamiliesEx(dc.m_hDC, &logfont, (FONTENUMPROC)EnumFontFamExComboAddStr, (LPARAM)this, 0);
 
-	m_FontName = ::AfxGetApp()->GetProfileString(_T("PrintText"), _T("FontName"), PRINTFONTNAME);
+	m_FontName = ::AfxGetApp()->GetProfileString(_T("PrintText"), _T("FontName"), DefFontName);
 	m_FontSize = ::AfxGetApp()->GetProfileInt(_T("PrintText"),    _T("FontSize"), PRINTFONTSIZE);
 	m_FontLine = ::AfxGetApp()->GetProfileInt(_T("PrintText"),    _T("FontLine"), PRINTLINESIZE);
 
@@ -80,6 +81,8 @@ BOOL CPrnTextDlg::OnInitDialog()
 	UpdateData(FALSE);
 
 	SubclassComboBox(IDC_COMBO1);
+
+	SetSaveProfile(_T("PrintText"));
 
 	return TRUE;
 }

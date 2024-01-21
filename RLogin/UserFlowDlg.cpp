@@ -18,6 +18,11 @@ CUserFlowDlg::CUserFlowDlg(CWnd* pParent /*=NULL*/)
 	: CDialogExt(CUserFlowDlg::IDD, pParent)
 {
 	m_pDCB = NULL;
+
+	for (int n = 0; n < 6; n++) {
+		m_Value[n] = 0;
+		m_Check[n] = FALSE;
+	}
 }
 
 CUserFlowDlg::~CUserFlowDlg()
@@ -73,6 +78,8 @@ BOOL CUserFlowDlg::OnInitDialog()
 	m_Value[5] = m_pDCB->XonChar;
 
 	UpdateData(FALSE);
+
+	SetSaveProfile(_T("UserFlowDlg"));
 
 	return TRUE;
 }

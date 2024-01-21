@@ -325,7 +325,7 @@ void CExtSocket::SyncReceiveBack(void *lpBuf, int nBufLen)
 int CExtSocket::SyncSend(const void *lpBuf, int nBufLen, int mSec, BOOL *pAbort)
 {
 	if ( m_pFifoSync == NULL )
-		nBufLen = 0;
+		return 0;
 
 	if ( pAbort != NULL && *pAbort )
 		mSec = SYNCABORTTIMEOUT;
@@ -335,7 +335,7 @@ int CExtSocket::SyncSend(const void *lpBuf, int nBufLen, int mSec, BOOL *pAbort)
 int CExtSocket::SyncExtSend(const void *lpBuf, int nBufLen, int mSec, BOOL *pAbort)
 {
 	if ( m_pFifoSync == NULL )
-		nBufLen = 0;
+		return 0;
 
 	if ( pAbort != NULL && *pAbort )
 		mSec = SYNCABORTTIMEOUT;
@@ -689,7 +689,7 @@ int CExtSocket::GetPortNum(LPCTSTR str)
 }
 BOOL CExtSocket::SokcetCheck(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
 {
-	SOCKET Fd;
+	SOCKET Fd = INVALID_SOCKET;
 	ADDRINFOT hints, *ai, *aitop;
     struct sockaddr_in in;
     struct sockaddr_in6 in6;
@@ -708,7 +708,7 @@ BOOL CExtSocket::SokcetCheck(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSock
 		if ( ai->ai_family != AF_INET && ai->ai_family != AF_INET6 )
 			continue;
 
-		if ( (Fd = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == (-1) )
+		if ( (Fd = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == INVALID_SOCKET )
 			continue;
 
 		if ( nSocketPort != 0 ) {
@@ -740,8 +740,11 @@ BOOL CExtSocket::SokcetCheck(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSock
 
 		break;
 	}
+
 	FreeAddrInfo(aitop);
-	::closesocket(Fd);
+	if ( Fd != INVALID_SOCKET )
+		::closesocket(Fd);
+
 	return (ai == NULL ? FALSE : TRUE);
 }
 
@@ -1024,10 +1027,14 @@ int CExtSocket::SSLConnect()
 					m_SSL_Msg += tmp;
 				}
 
-				if ( (pkey = X509_get_pubkey(pX509)) != NULL && key.SetEvpPkey(pkey) ) {
-					key.FingerPrint(finger, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
-					tmp.Format(_T("PublicKey: %s %dbits %s\r\n"), key.GetName(), key.GetSize(), (LPCTSTR)finger);
-					m_SSL_Msg += tmp;
+				if ( (pkey = X509_get_pubkey(pX509)) != NULL ) {
+					if ( key.SetEvpPkey(pkey) ) {
+						key.FingerPrint(finger, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
+						tmp.Format(_T("PublicKey: %s %dbits %s\r\n"), key.GetName(), key.GetSize(), (LPCTSTR)finger);
+						m_SSL_Msg += tmp;
+					} else
+						m_SSL_Msg += _T("PublicKey: unkown key type\r\n");
+					EVP_PKEY_free(pkey);
 				}
 			}
 		}
@@ -1039,11 +1046,14 @@ int CExtSocket::SSLConnect()
 		else
 			subject = _T("unkown");
 
-		if ( cert != NULL && (pkey = X509_get_pubkey(cert)) != NULL && key.SetEvpPkey(pkey) ) {
-			key.WritePublicKey(dig);
-			tmp = AfxGetApp()->GetProfileString(_T("Certificate"), subject, _T(""));
-			if ( !tmp.IsEmpty() && tmp.Compare(dig) == 0 )
-				rf = TRUE;
+		if ( cert != NULL && (pkey = X509_get_pubkey(cert)) != NULL ) {
+			if ( key.SetEvpPkey(pkey) ) {
+				key.WritePublicKey(dig);
+				tmp = AfxGetApp()->GetProfileString(_T("Certificate"), subject, _T(""));
+				if ( !tmp.IsEmpty() && tmp.Compare(dig) == 0 )
+					rf = TRUE;
+			}
+			EVP_PKEY_free(pkey);
 		}
 
 		if ( rf == FALSE ) {
@@ -1407,7 +1417,7 @@ BOOL CExtSocket::ProxyFunc()
 					   _T("%sAuthorization: %s\r\n")\
 					   _T("\r\n"),
 					   (LPCTSTR)m_ProxyHost, m_ProxyPort, (LPCTSTR)m_ProxyHost,
-					   (m_ProxyCode == 407 ? _T("Proxy-") : _T("")), dig);
+					   (m_ProxyCode == 407 ? _T("Proxy-") : _T("")), (LPCTSTR)dig);
 			m_pFifoProxy->DocMsgRemoteStr(tmp, mbs); 
 			m_pFifoProxy->Write(FIFO_STDOUT, (BYTE *)(LPCSTR)mbs, mbs.GetLength());
 			DEBUGLOG("ProxyFunc PRST_HTTP_DIGEST %s", mbs);
@@ -1718,6 +1728,10 @@ BOOL CExtSocket::ProxyFunc()
 					if ( (flag & HTTP2_FLAG_PADDED) != 0 ) {
 						n = buf.Get8Bit();
 						buf.ConsumeEnd(n);
+					}
+					if ( (flag & HTTP2_FLAG_END_STREAM) != 0 ) {
+						m_pHttp2Ctx->SetEndOfStream(sid);
+						break;
 					}
 
 					if ( m_ProxyStatus == PRST_HTTP2_TUNNEL ) {

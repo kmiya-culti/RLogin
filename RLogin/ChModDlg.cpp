@@ -43,6 +43,8 @@ BOOL CChModDlg::OnInitDialog()
 
 	UpdateData(FALSE);
 
+	SetSaveProfile(_T("ChModDlg"));
+
 	return TRUE;
 }
 

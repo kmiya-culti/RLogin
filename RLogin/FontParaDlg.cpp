@@ -264,6 +264,8 @@ BOOL CFontParaDlg::OnInitDialog()
 	SubclassComboBox(IDC_FACENAME);
 	SubclassComboBox(IDC_OVERZERO);
 
+	SetSaveProfile(_T("FontParaDlg"));
+
 	return TRUE;
 }
 void CFontParaDlg::OnOK()

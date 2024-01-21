@@ -163,6 +163,8 @@ BOOL CIso646Dlg::OnInitDialog()
 		SetViewBox(n, m_Iso646Tab[n - 12]);
 	}
 
+	SetSaveProfile(_T("Iso646Dlg"));
+
 	return TRUE;
 }
 

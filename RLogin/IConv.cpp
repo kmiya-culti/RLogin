@@ -26,6 +26,107 @@ static const WORD DecSGCS[] = {
 	0x25C6,	0x2592,	0x2409,	0x240C,	0x240D,	0x240A,	0x00B0,	0x00B1,	0x2424,	0x240B,	0x2518,	0x2510,	0x250C,	0x2514,	0x253C,	0x23BA,	// 06/00-06/15
 	0x23BB,	0x2500,	0x23BC,	0x23BD,	0x251C,	0x2524,	0x2534,	0x252C,	0x2502,	0x2264,	0x2265,	0x03C0,	0x2260,	0x00A3,	0x00B7,	0x007F,	// 07/00-07/15
 };
+static const struct _CodePageList {
+	int			codepage;
+	LPCTSTR		name;
+} CodePageList[] = {
+	{ 37,		_T("CP037") },
+	{ 154,		_T("CP154") },
+	{ 273,		_T("CP273") },
+	{ 278,		_T("CP278") },
+	{ 280,		_T("CP280") },
+	{ 284,		_T("CP284") },
+	{ 285,		_T("CP285") },
+	{ 297,		_T("CP297") },
+	{ 367,		_T("CP367") },
+	{ 423,		_T("CP423") },
+	{ 424,		_T("CP424") },
+	{ 437,		_T("CP437") },
+	{ 500,		_T("CP500") },
+	{ 737,		_T("CP737") },
+	{ 775,		_T("CP775") },
+	{ 819,		_T("CP819") },
+	{ 850,		_T("CP850") },
+	{ 852,		_T("CP852") },
+	{ 853,		_T("CP853") },
+	{ 855,		_T("CP855") },
+	{ 856,		_T("CP856") },
+	{ 857,		_T("CP857") },
+	{ 858,		_T("CP858") },
+	{ 860,		_T("CP860") },
+	{ 861,		_T("CP861") },
+	{ 862,		_T("CP862") },
+	{ 863,		_T("CP863") },
+	{ 864,		_T("CP864") },
+	{ 865,		_T("CP865") },
+	{ 866,		_T("CP866") },
+	{ 869,		_T("CP869") },
+	{ 870,		_T("CP870") },
+	{ 871,		_T("CP871") },
+	{ 874,		_T("CP874") },
+	{ 875,		_T("CP875") },
+	{ 880,		_T("CP880") },
+	{ 905,		_T("CP905") },
+	{ 922,		_T("CP922") },
+	{ 924,		_T("CP00924") },
+	{ 932,		_T("CP932") },
+	{ 936,		_T("CP936") },
+	{ 943,		_T("CP943") },
+	{ 949,		_T("CP949") },
+	{ 950,		_T("CP950") },
+	{ 1025,		_T("CP1025") },
+	{ 1026,		_T("CP1026") },
+	{ 1046,		_T("CP1046") },
+	{ 1047,		_T("CP1047") },
+	{ 1097,		_T("CP1097") },
+	{ 1112,		_T("CP1112") },
+	{ 1122,		_T("CP1122") },
+	{ 1123,		_T("CP1123") },
+	{ 1124,		_T("CP1124") },
+	{ 1125,		_T("CP1125") },
+	{ 1129,		_T("CP1129") },
+	{ 1130,		_T("CP1130") },
+	{ 1131,		_T("CP1131") },
+	{ 1132,		_T("CP1132") },
+	{ 1133,		_T("CP1133") },
+	{ 1137,		_T("CP1137") },
+	{ 1140,		_T("CP01140") },
+	{ 1141,		_T("CP01141") },
+	{ 1142,		_T("CP01142") },
+	{ 1143,		_T("CP01143") },
+	{ 1144,		_T("CP01144") },
+	{ 1145,		_T("CP01145") },
+	{ 1146,		_T("CP01146") },
+	{ 1147,		_T("CP01147") },
+	{ 1148,		_T("CP01148") },
+	{ 1149,		_T("CP01149") },
+	{ 1153,		_T("CP1153") },
+	{ 1154,		_T("CP1154") },
+	{ 1155,		_T("CP1155") },
+	{ 1156,		_T("CP1156") },
+	{ 1157,		_T("CP1157") },
+	{ 1158,		_T("CP1158") },
+	{ 1160,		_T("CP1160") },
+	{ 1161,		_T("CP1161") },
+	{ 1162,		_T("CP1162") },
+	{ 1163,		_T("CP1163") },
+	{ 1164,		_T("CP1164") },
+	{ 1166,		_T("CP1166") },
+	{ 1250,		_T("CP1250") },
+	{ 1251,		_T("CP1251") },
+	{ 1252,		_T("CP1252") },
+	{ 1253,		_T("CP1253") },
+	{ 1254,		_T("CP1254") },
+	{ 1255,		_T("CP1255") },
+	{ 1256,		_T("CP1256") },
+	{ 1257,		_T("CP1257") },
+	{ 1258,		_T("CP1258") },
+	{ 1361,		_T("CP1361") },
+	{ 4971,		_T("CP4971") },
+	{ 12712,	_T("CP12712") },
+	{ 16804,	_T("CP16804") },
+	{ 50221,	_T("CP50221") },
+};
 
 //////////////////////////////////////////////////////////////////////
 // ç\íz/è¡ñ≈
@@ -535,4 +636,58 @@ void CIConv::SetListArray(CStringArray &stra)
 	stra.Add(_T("JIS_X0213-2000.2"));
 	stra.Add(_T("DEC_TCS-GR"));
 	stra.Add(_T("DEC_SGCS-GR"));
+}
+
+typedef struct _IconvCheckList {
+	BOOL bFind;
+	LPCSTR name;
+} IconvCheckList;
+
+static int ChkList(unsigned int namescount, const char * const * names, void* data)
+{
+	unsigned int i;
+	IconvCheckList *res = (IconvCheckList *)data;
+
+	for ( i = 0 ; i < namescount ; i++ ) {
+		if ( strcmp(res->name, names[i]) == 0 ) {
+			res->bFind = TRUE;
+			return 1;
+		}
+	}
+
+	return 0;
+}
+BOOL CIConv::IsIconvList(LPCSTR name)
+{
+	IconvCheckList res = { FALSE, name };
+	iconvlist(ChkList, &res);
+	return res.bFind;
+}
+
+static int CodePageCmp(const void *src, const void *dis)
+{
+	int *pInt = (int *)src;
+	struct _CodePageList *pList = (struct _CodePageList *)dis;
+
+	return (*pInt - pList->codepage);
+}
+LPCTSTR CIConv::GetCodePageName(int codepage)
+{
+	int n;
+
+#if 0
+	CStringArray stra;
+	CIConv::SetListArray(stra);
+	TRACE("} CodePageList[] = {\n");
+	for ( int n = 0 ; n < stra.GetSize() ; n++ ) {
+		if ( stra[n][0] == _T('C') && stra[n][1] == _T('P') )
+			TRACE("\t{ %d,\t\t_T(\"%s\") },\n", _tstoi((LPCTSTR)stra[n] + 2), TstrToMbs(stra[n]));
+	}
+	TRACE("};\n");
+#endif
+
+	if ( BinaryFind(&codepage, (void *)CodePageList, sizeof(struct _CodePageList), sizeof(CodePageList) / sizeof(struct _CodePageList), CodePageCmp, &n) )
+		return CodePageList[n].name;
+
+	return NULL;
 }

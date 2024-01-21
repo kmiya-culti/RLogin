@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "RLogin.h"
+#include "MainFrm.h"
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "TextRam.h"
@@ -10,6 +11,7 @@
 #include "OptDlg.h"
 #include "TermPage.h"
 #include "EscDlg.h"
+#include "InitAllDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -143,10 +145,16 @@ void CTermPage::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CTermPage, CTreePage)
 	ON_BN_CLICKED(IDC_ESCEDIT, &CTermPage::OnBnClickedEscedit)
-	ON_NOTIFY(NM_CLICK, IDC_ESCLIST, &CTermPage::OnNMClickOptlist)
+	ON_NOTIFY(NM_DBLCLK, IDC_ESCLIST, &CTermPage::OnNMDblclkEsclist)
+	ON_NOTIFY(LVN_ITEMCHANGED, IDC_ESCLIST, &CTermPage::OnLvnItemchangedEsclist)
 	ON_NOTIFY(LVN_GETINFOTIP, IDC_ESCLIST, &CTermPage::OnLvnGetInfoTipEsclist)
 	ON_CBN_SELCHANGE(IDC_RECVCRLF, &CTermPage::OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_SENDCRLF, &CTermPage::OnUpdateEdit)
+	ON_COMMAND(ID_EDIT_DELALL, &CTermPage::OnEditDelall)
+	ON_COMMAND(ID_EDIT_COPY, &CTermPage::OnEditCopy)
+	ON_COMMAND(ID_EDIT_PASTE, &CTermPage::OnEditPaste)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, &CTermPage::OnUpdateEditCopy)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_PASTE, &CTermPage::OnUpdateEditPaste)
 END_MESSAGE_MAP()
 
 void CTermPage::DoInit()
@@ -181,6 +189,24 @@ int CTermPage::IsSupport(int opt)
 	return 0;
 }
 
+static const INITDLGTAB ItemTab[] = {
+	{ IDC_ESCLIST,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_BTM },
+
+	{ IDC_ESCEDIT,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+
+	{ IDC_RECVCRLF,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_SENDCRLF,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_BTM | ITM_BTM_BTM },
+
+	{ IDC_TITLE1,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_BTM },
+	{ IDC_TITLE2,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_BTM | ITM_BTM_BTM },
+
+	{ IDC_TITLE3,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_TITLE4,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_TITLE5,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_BTM | ITM_BTM_BTM },
+
+	{ 0,				0 },
+};
+
 /////////////////////////////////////////////////////////////////////////////
 // CTermPage メッセージ ハンドラ
 
@@ -193,8 +219,11 @@ BOOL CTermPage::OnInitDialog()
 
 	CTreePage::OnInitDialog();
 
+	InitItemOffset(ItemTab);
+
 	m_OptList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES | LVS_EX_INFOTIP);
 	m_OptList.InitColumn(_T("TermPageOpt"), InitListTab, 3);
+	m_OptList.SetPopUpMenu(IDR_POPUPMENU, 12);
 
 	m_OptList.DeleteAllItems();
 	for ( n = i = 0 ; OptListTab[n].num != 0 ; n++ ) {
@@ -308,11 +337,38 @@ void CTermPage::OnBnClickedEscedit()
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
-void CTermPage::OnNMClickOptlist(NMHDR *pNMHDR, LRESULT *pResult)
+
+void CTermPage::OnNMDblclkEsclist(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	BOOL sw = m_OptList.GetLVCheck(pNMItemActivate->iItem);
 
-	if ( pNMItemActivate->iSubItem == 0 ) {
+	m_OptList.SetLVCheck(pNMItemActivate->iItem, sw ? FALSE : TRUE);
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_ANSIOPT);
+
+	*pResult = 0;
+}
+void CTermPage::OnLvnItemchangedEsclist(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	int change = 0;
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
+
+	if ( (pNMLV->uNewState & 0x2000) != 0 && (pNMLV->uOldState & 0x1000) != 0 )			// LVCheck OFF -> ON
+		change = 1;
+	else if ( (pNMLV->uNewState & 0x1000) != 0 && (pNMLV->uOldState & 0x2000) != 0 )	// LVCheck ON -> OFF
+		change = 2;
+
+	if ( !m_OptList.m_bSetLVCheck && change != 0 ) {
+		if ( m_OptList.GetItemState(pNMLV->iItem, LVIS_SELECTED) != 0 ) {
+			for ( int n = 0 ; n < m_OptList.GetItemCount() ; n++ ) {
+				if ( n == pNMLV->iItem || m_OptList.GetItemState(n, LVIS_SELECTED) == 0 )
+					continue;
+				m_OptList.SetLVCheck(n, change == 1 ? TRUE : FALSE);
+			}
+		}
+
 		SetModified(TRUE);
 		m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_ANSIOPT);
 	}
@@ -338,8 +394,125 @@ void CTermPage::OnLvnGetInfoTipEsclist(NMHDR *pNMHDR, LRESULT *pResult)
 
 	*pResult = 0;
 }
+
 void CTermPage::OnUpdateEdit() 
 {
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+
+void CTermPage::OnEditDelall()
+{
+	int n, i;
+	CInitAllDlg dlg;
+	CTextRam TextRam;
+
+	dlg.m_Title.LoadString(IDS_INITTERMOPTTITLE);
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	switch(dlg.m_InitType) {
+	case 0:		// Init Default Entry
+		TextRam.Serialize(FALSE);
+		break;
+
+	case 1:		// Init Program Default
+		TextRam.Init();
+		break;
+
+	case 2:		// Copy Entry option
+		ASSERT(dlg.m_pInitEntry != NULL);
+		{
+			CBuffer tmp(dlg.m_pInitEntry->m_ProBuffer.GetPtr(), dlg.m_pInitEntry->m_ProBuffer.GetSize());
+			TextRam.Serialize(FALSE, tmp);
+		}
+		break;
+	}
+
+	for ( i = 0 ; i < m_OptList.GetItemCount() ; i++ ) {
+		n = (int)m_OptList.GetItemData(i);
+		m_OptList.SetLVCheck(i,  TextRam.IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
+	}
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+void CTermPage::OnEditCopy()
+{
+	int n;
+	CString str, text;
+
+	for ( n = 0 ; OptListTab[n].num != 0 ; n++ ) {
+		if ( OptListTab[n].nid == 0 )
+			continue;
+		CStringArrayExt param(OptListTab[n].nid);
+		CTextRam::OptionString(OptListTab[n].num, str);
+
+		text += (m_OptList.GetLVCheck(m_OptList.GetParamItem(n)) ? _T("Set") : _T("")); text += _T("\t");
+		text += str; text += _T("\t");
+		text += param[0]; text += _T("\t");
+		text += param[1]; text += _T("\r\n");
+	}
+
+	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(text);
+}
+void CTermPage::OnEditPaste()
+{
+	LPCTSTR p;
+	CString text, line;
+	CStringArrayExt param;
+
+	if ( !((CMainFrame *)::AfxGetMainWnd())->CopyClipboardData(text) )
+		return;
+
+	for ( p = text ; ; p++ ) {
+		if ( *p == _T('\0') || *p == _T('\n') ) {
+			param.GetString(line, _T('\t'));
+			if ( param.GetSize() >= 4 ) {
+				LPCTSTR s = param[1];
+				int n, num = (-1);
+				while ( *s != _T('\0') && *s <= _T(' ') )
+					s++;
+				if ( *s == _T('?') ) {
+					s++;
+					if ( (num = _tstoi(s)) >= 8400 && num <= 8511 )		// RLogin Option		400-511 -> 8400-8511
+						num -= 8000;
+					else if ( num >= 2000 && num <= 2019 )				// XTerm Option 2		380-399 -> 2000-2019
+						num -= 1620;
+					else if ( num >= 1000 && num <= 1079 )				// XTerm Option			300-379 -> 1000-1079
+						num -= 700;
+					else if ( num < 0 && num > 199 )					// DEC Terminal Option	0-199 -> 0-199
+						num = (-1);
+				} else {
+					if ( (num = _tstoi(s)) >= 0 || num <= 99 )			// ANSI Screen Option	200-299 -> 0-99
+						num += 200;
+					else
+						num = (-1);
+				}
+				for ( n = 0 ; OptListTab[n].num != 0 ; n++ ) {
+					if ( OptListTab[n].num == num ) {
+						m_OptList.SetLVCheck(m_OptList.GetParamItem(n), param[0].CompareNoCase(_T("set")) == 0 ? TRUE : FALSE);
+						break;
+					}
+				}
+			}
+			line.Empty();
+			if ( *p == _T('\0') )
+				break;
+		} else if ( *p != '\r' )
+			line += *p;
+	}
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+
+void CTermPage::OnUpdateEditCopy(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(TRUE);
+}
+void CTermPage::OnUpdateEditPaste(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(IsClipboardFormatAvailable(CF_UNICODETEXT) ? TRUE : FALSE);
 }

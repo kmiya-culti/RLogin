@@ -80,7 +80,11 @@ BOOL CEditDlg::OnInitDialog()
 		pWnd = (CEdit *)GetDlgItem(IDC_EDIT1);
 		if ( pWnd != NULL ) {
 			pWnd->ModifyStyle(0, ES_PASSWORD);
-			pWnd->SetPasswordChar(_T('œ'));
+#ifdef	_UNICODE
+			pWnd->SetPasswordChar(L'\u25CF');	// _T('œ'));
+#else
+			pWnd->SetPasswordChar('*');
+#endif
 			pWnd->Invalidate(TRUE);
 		}
 	}

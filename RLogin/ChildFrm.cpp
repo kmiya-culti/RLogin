@@ -197,16 +197,16 @@ void CChildFrame::OnMDIActivate(BOOL bActivate, CWnd* pActivateWnd, CWnd* pDeact
 	}
 }
 
-void CChildFrame::OnUpdateFrameMenu(BOOL bActive, CWnd* pActiveWnd, HMENU hMenuAlt)
+void CChildFrame::OnUpdateFrameMenu(BOOL bActivate, CWnd* pActivateWnd, HMENU hMenuAlt)
 {
 	CMainFrame *pFrame = (CMainFrame *)GetMDIFrame();
 
-	if ( bActive && AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE) == FALSE ) {
+	if ( bActivate && AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE) == FALSE ) {
 		pFrame->SetMenu(NULL);
-	} else if ( !bActive && pActiveWnd == NULL && pFrame != NULL && pFrame->m_StartMenuHand != NULL ) {
-		CMDIChildWnd::OnUpdateFrameMenu(bActive, pActiveWnd, pFrame->m_StartMenuHand);
+	} else if ( !bActivate && pActivateWnd == NULL && pFrame != NULL && pFrame->m_StartMenuHand != NULL ) {
+		CMDIChildWnd::OnUpdateFrameMenu(bActivate, pActivateWnd, pFrame->m_StartMenuHand);
 	} else {
-		CMDIChildWnd::OnUpdateFrameMenu(bActive, pActiveWnd, hMenuAlt);
+		CMDIChildWnd::OnUpdateFrameMenu(bActivate, pActivateWnd, hMenuAlt);
 	}
 }
 

@@ -1,0 +1,96 @@
+# Microsoftが配布している仮想マシン上の開発環境を使用する場合
+# 先にバーチャルマシンOracle VM VirtualBoxなどの実行環境が必要
+# さらに仮想マシンのWindows設定でキーボードの切り替えや日本語の追加などが必要
+# また、Windowsのシステムロケールを日本語(cp932)にしないとVisual Studioで
+# ソースコードが文字化けしますのでご注意ください
+# https://developer.microsoft.com/ja-jp/windows/downloads/virtual-machines/
+
+# Visual Studio 2022をインストールしてコンパイルする場合
+# https://visualstudio.microsoft.com/ja/downloads/
+
+# Visual Studio Installerで必要なコンポーネントを確認および追加する
+# Desktop development with C++/C++によるデスクトップ開発
+# C++ MFC for latest v143 buid tools (x86 & x64)/最新の v143 ビルドツール用 C++ MFC (x86 および x64)
+
+# Windowsターミナル(Windows PowerShell)を起動して以下のコマンドを実行する
+# 必要ならフォルダを作成。下記のInvoke-WebRequestなどでファイルが保存されるフォルダになります
+# Invoke-WebRequestやExpand-Archiveは、PowerShellの機能でcmdではないので注意
+cd \
+mkdir RLogin
+cd RLogin
+
+# コンパイルに必要なプログラムをインストールする
+# Githubからのダウンロードとpatchコマンドで必要になります
+winget install Git.Git
+
+# OpenSSLのコンパイルに必要なプログラムをインストールする
+# Perlのインストール https://strawberryperl.com/ や https://www.activestate.com/products/perl/
+Invoke-WebRequest -Uri https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_5380_5361/strawberry-perl-5.38.0.1-64bit.msi -OutFile strawberry-perl-5.38.0.1-64bit.msi
+strawberry-perl-5.38.0.1-64bit.msi
+# nasmのインストール
+winget install nasm
+
+# ライブラリなどをダウンロード
+Invoke-WebRequest -Uri http://www.openssl.org/source/openssl-3.2.0.tar.gz -OutFile openssl-3.2.0.tar.gz
+Invoke-WebRequest -Uri https://zlib.net/zlib-1.3.tar.xz -OutFile zlib-1.3.tar.xz
+Invoke-WebRequest -Uri https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz -OutFile libiconv-1.17.tar.gz
+Invoke-WebRequest -Uri http://nanno.bf1.jp/softlib/man/rlogin/libiconv-1.17.patch -OutFile libiconv-1.17.patch
+Invoke-WebRequest -Uri http://nanno.bf1.jp/softlib/man/rlogin/nettle-2.0.zip -OutFile nettle-2.0.zip
+
+# 各種プログラムのインストール直後ならターミナルを再起動しないと
+# gitやperlおよびnasmが実行できない場合があるので注意
+exit
+
+# Windowsターミナル(Windows PowerShell)を再度起動してから・・
+# GitHubからRLoginのソースコードをダウンロード
+cd \RLogin
+git clone https://github.com/kmiya-culti/RLogin.git -b master
+
+# それぞれのライブラリをRLoginのソースコードの中に展開する
+cd RLogin\RLogin
+tar xzvf ..\..\openssl-3.2.0.tar.gz
+tar xzvf ..\..\zlib-1.3.tar.xz
+tar xzvf ..\..\libiconv-1.17.tar.gz
+Expand-Archive -Path ..\..\nettle-2.0.zip -DestinationPath .
+
+# Visual Studio 2022のx64 Native Tools Command Prompt for VS 2022環境を起動する
+# 以下の処理はcmdで行う(PowerShellではない)
+cmd /k "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+
+# OpenSSLをコンパイルする
+cd openssl-3.2.0
+perl Configure VC-WIN64A no-shared no-module enable-legacy
+nmake
+cd ..
+
+# libiconvをコンパイルする
+cd libiconv-1.17
+# Git Bashでpatchを実行
+"C:\Program Files\Git\git-bash.exe" -c "patch -p1 -i ../../../libiconv-1.17.patch"
+cd lib
+nmake -f Makefile.ms x64
+cd ..\..
+
+# zlibをコンパイルする
+cd zlib-1.3
+nmake -f win32/Makefile.msc AS="ml64" CFLAGS="/MT /Ox /Ob2 /Oi /Ot /GS- /Gy -W1 /nologo -Fdzlib -I.
+mkdir x64
+move *.obj x64
+move *.lib x64
+move *.dll x64
+move *.exp x64
+move *.res x64
+move *.pdb x64
+move *.exe x64
+cd ..
+
+# Visual Studio 2022を起動して"\RLogin\RLogin\RLogin\RLogin.vcxproj"を読み込みバージョン変換する
+"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Visual Studio 2022.lnk"
+
+# Release/x64のプロパティでコンパイル後のプログラム署名しないように変更
+# Project/RLogin PropertiesのBuild Evnents/Post-Build EventのCommand Lineを削除
+# Build/Build Solutionでビルド出来ますがコマンドラインで実行するならVS2022を終了して
+MSBuild /t:build /p:Configuration=Release;Platform="x64"
+
+# 以下のフォルダにRLogin.exeが出来ていれば成功
+Release\x64\RLogin.exe

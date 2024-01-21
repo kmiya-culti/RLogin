@@ -370,6 +370,8 @@ BOOL CColParaDlg::OnInitDialog()
 
 	DoInit();
 
+	SubclassComboBox(IDC_EMOJIFONTNAME);
+
 	return TRUE;
 }
 BOOL CColParaDlg::OnApply() 
@@ -386,8 +388,15 @@ BOOL CColParaDlg::OnApply()
 	for ( n = 0 ; n < 16 ; n++ )
 		m_pSheet->m_pTextRam->m_ColTab[n] = EditColor(n);
 
-	m_FontCol[0] = _tstoi(m_FontColName[0]);
-	m_FontCol[1] = _tstoi(m_FontColName[1]);
+	if ( (m_FontCol[0] = _tstoi(m_FontColName[0])) < 0 )
+		m_FontCol[0] = 0;
+	else if ( m_FontCol[0] > 255 )
+		m_FontCol[0] = 255;
+
+	if ( (m_FontCol[1] = _tstoi(m_FontColName[1])) < 0 )
+		m_FontCol[1] = 0;
+	else if ( m_FontCol[1] > 255 )
+		m_FontCol[1] = 255;
 
 	m_pSheet->m_pTextRam->m_AttNow.std.fcol = m_FontCol[0];
 	m_pSheet->m_pTextRam->m_AttNow.std.bcol = m_FontCol[1];
@@ -547,6 +556,9 @@ void CColParaDlg::OnEnChangeColor()
 		m_FontCol[1] = 0;
 	else if ( m_FontCol[1] > 255 )
 		m_FontCol[1] = 255;
+
+	m_FontColName[0].Format(_T("%d"), m_FontCol[0]);
+	m_FontColName[1].Format(_T("%d"), m_FontCol[1]);
 
 	Invalidate(FALSE);
 	UpdateData(FALSE);

@@ -19,11 +19,11 @@ IMPLEMENT_DYNAMIC(CScriptPage, CTreePage)
 static const int CheckOptTab[] = { TO_RLSCRDEBUG };
 
 CScriptPage::CScriptPage() : CTreePage(CScriptPage::IDD)
-	, m_ScriptStr(_T(""))
 {
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		m_Check[n] = FALSE;
 	m_ScriptFile.Empty();
+	m_ScriptStr.Empty();
 	m_UrlOpt = _T("#SCRIPT");
 }
 
@@ -49,6 +49,19 @@ BEGIN_MESSAGE_MAP(CScriptPage, CTreePage)
 	ON_BN_CLICKED(IDC_SCRIPT_SEL, &CScriptPage::OnBnClickedScriptSel)
 END_MESSAGE_MAP()
 
+static const INITDLGTAB ItemTab[] = {
+	{ IDC_SCRIPT_PATH,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_TOP | ITM_BTM_TOP },
+	{ IDC_SCRIPT_SEL,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_TOP | ITM_BTM_TOP },
+	{ IDC_TERMCHECK1,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_TOP | ITM_BTM_TOP },
+
+	{ IDC_SCRIPT_STR,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_TOP | ITM_BTM_BTM },
+
+	{ IDC_TITLE1,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_TOP | ITM_BTM_TOP },
+	{ IDC_TITLE2,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_TOP | ITM_BTM_TOP },
+	{ IDC_TITLE3,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_TOP | ITM_BTM_TOP },
+
+	{ 0,				0 },
+};
 
 // CScriptPage メッセージ ハンドラー
 
@@ -69,6 +82,9 @@ BOOL CScriptPage::OnInitDialog()
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	CTreePage::OnInitDialog();
+
+	InitItemOffset(ItemTab);
+
 	DoInit();
 
 	return TRUE;

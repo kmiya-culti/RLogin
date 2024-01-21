@@ -57,6 +57,8 @@ BOOL CCertKeyDlg::OnInitDialog()
 	m_SaveKeyFlag = ::AfxGetApp()->GetProfileInt(_T("CCertKeyDlg"), _T("SaveKeyFlag"), TRUE);
 	UpdateData(FALSE);
 
+	SetSaveProfile(_T("CCertKeyDlg"));
+
 	return TRUE;
 }
 

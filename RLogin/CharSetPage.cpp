@@ -12,6 +12,7 @@
 #include "CharSetPage.h"
 #include "FontParaDlg.h"
 #include "IConvDlg.h"
+#include "InitAllDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -99,7 +100,10 @@ void CCharSetPage::InitList()
 		m_List.SetItemText(i, 2, m_FontTab[n].m_IndexName);
 		m_List.SetItemText(i, 3, CFontParaDlg::CharSetName(m_FontTab[n].m_CharSet));
 		m_List.SetItemText(i, 4, m_FontTab[n].m_FontName[m_AltFont]);
-		m_List.SetItemText(i, 5, m_FontTab[n].m_CharSet == DEFAULT_CHARSET ? _T("") : ((int)m_FontSet[m_FontTab[n].m_FontName[m_AltFont].IsEmpty() ? m_DefFontName : m_FontTab[n].m_FontName[m_AltFont]][m_FontTab[n].m_CharSet] == 1 ? _T("›") : _T("~")));
+		m_List.SetItemText(i, 5, m_FontTab[n].m_CharSet == DEFAULT_CHARSET ? _T("") : 
+			((int)m_FontSet[m_FontTab[n].m_FontName[m_AltFont].IsEmpty() ? m_DefFontName : m_FontTab[n].m_FontName[m_AltFont]]
+					[m_FontTab[n].m_CharSet] == 1 ? 
+					UniToTstr(L"\u25CB") : UniToTstr(L"\u00D7"))); // _T("›") : _T("~")));
 		m_List.SetItemData(i, n);
 		i++;
 	}
@@ -131,6 +135,54 @@ static const LV_COLUMN InitListTab[6] = {
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  90, _T("Face"),  0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  30, _T("In"),    0, 0 }, 
 	};
+static const INITDLGTAB ItemTab[] = {
+	{ IDC_CHARSET1,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_CHARSET2,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_CHARSET3,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_CHARSET4,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_ICONVSET,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+
+	{ IDC_BANKGL1,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_BANKGL2,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_BANKGL3,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_BANKGL4,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+
+	{ IDC_BANKGR1,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_BANKGR2,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_BANKGR3,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_BANKGR4,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+
+	{ IDC_CHARBANK1,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_CHARBANK2,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_CHARBANK3,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_CHARBANK4,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+
+	{ IDC_FONTNAME,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_FONTSAMPLE,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+
+	{ IDC_FONTLIST,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_BTM },
+
+	{ IDC_FONTNUM,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_FONTLISTNEW,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_FONTLISTEDIT,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_FONTLISTDEL,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_BTM | ITM_BTM_BTM },
+
+	{ IDC_TITLE1,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_TITLE2,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_TITLE3,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_TITLE4,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+
+	{ IDC_TITLE5,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_TITLE6,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_TITLE7,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_TITLE8,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_TITLE9,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_BTM },
+
+	{ IDC_TITLE10,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_TITLE11,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+
+	{ 0,				0 },
+};
 
 void CCharSetPage::DoInit()
 {
@@ -161,6 +213,8 @@ BOOL CCharSetPage::OnInitDialog()
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	CTreePage::OnInitDialog();
+
+	InitItemOffset(ItemTab);
 
 	int n, i;
 	CComboBox *pCombo[4];
@@ -267,17 +321,26 @@ void CCharSetPage::OnFontListNew()
 	m_FontTab[dlg.m_CodeSet] = tmp;
 	m_FontTab.InitUniBlock();
 	InitList();
+	m_List.SetSelectMarkItem(m_List.GetParamItem(dlg.m_CodeSet));
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
 void CCharSetPage::OnFontListEdit() 
 {
-	int n;
+	int n, pos;
 	CFontParaDlg dlg;
 	CFontNode tmp;
+	CDWordArray save;
 
-	if ( (n = m_List.GetSelectMarkData()) < 0 )
+	for ( pos = 0 ; pos < m_List.GetItemCount() ; pos++ ) {
+		if ( m_List.GetItemState(pos, LVIS_SELECTED) != 0 )
+			break;
+	}
+	if ( pos >= m_List.GetItemCount() )
+		return;
+
+	if ( (n = (int)m_List.GetItemData(pos)) < 0 )
 		return;
 
 	tmp = m_FontTab[n];
@@ -291,28 +354,53 @@ void CCharSetPage::OnFontListEdit()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( n != pos && m_List.GetItemState(n, LVIS_SELECTED) != 0 )
+			save.Add((DWORD)m_List.GetItemData(n));
+	}
+
 	m_FontTab[dlg.m_CodeSet] = tmp;
 	m_FontTab.InitUniBlock();
+
 	InitList();
 
-	if ( (n = m_List.GetParamItem(dlg.m_CodeSet)) >= 0 ) {
-		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
-		m_List.EnsureVisible(n, FALSE);
-	}
-	m_ListIndex = dlg.m_CodeSet;
+	if ( save.GetSize() > 0 ) {
+		pos = m_List.GetParamItem((int)save[0]);
+		for ( n = 1 ; n < save.GetSize() ; n++ )
+			m_List.SetItemState(m_List.GetParamItem((int)save[n]), LVIS_SELECTED, LVIS_SELECTED);
+	} else
+		pos = m_List.GetParamItem(dlg.m_CodeSet);
+
+	m_List.SetSelectMarkItem(pos);
+
+	if ( (pos = m_List.GetSelectionMark()) < 0 )
+		m_ListIndex = (-1);
+	else
+		m_ListIndex = (int)m_List.GetItemData(pos);
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
 void CCharSetPage::OnFontListDel() 
 {
-	int n;
+	int n, i, a, pos;
 
-	if ( (n = m_List.GetSelectMarkData()) < 0 )
+	if ( (pos = m_List.GetSelectionMark()) < 0 )
 		return;
 
-	m_FontTab.IndexRemove(n);
+	for ( n = a = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
+			continue;
+		if ( (i = (int)m_List.GetItemData(n)) < 0 )
+			continue;
+		m_FontTab.IndexRemove(i);
+		if ( n < pos )
+			a++;
+	}
+	pos -= a;
+
 	InitList();
+	m_List.SetSelectMarkItem(pos);
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
@@ -340,11 +428,7 @@ void CCharSetPage::OnEditDups()
 	m_FontTab[dlg.m_CodeSet] = tmp;
 	m_FontTab.InitUniBlock();
 	InitList();
-
-	if ( (n = m_List.GetParamItem(dlg.m_CodeSet)) >= 0 ) {
-		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
-		m_List.EnsureVisible(n, FALSE);
-	}
+	m_List.SetSelectMarkItem(m_List.GetParamItem(dlg.m_CodeSet));
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
@@ -397,10 +481,32 @@ void CCharSetPage::OnCbnSelchangeFontnum()
 
 void CCharSetPage::OnEditDelall()
 {
-	if ( MessageBox(CStringLoad(IDS_ALLINITREQ), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
+	CInitAllDlg dlg;
+
+	dlg.m_Title.LoadString(IDS_INITFONTSETTITLE);
+
+	if ( dlg.DoModal() != IDOK )
 		return;
 
-	m_FontTab.Init();
+	switch(dlg.m_InitType) {
+	case 0:		// Init Default Entry
+		m_FontTab.Serialize(FALSE);
+		break;
+
+	case 1:		// Init Program Default
+		m_FontTab.Init();
+		break;
+
+	case 2:		// Copy Entry option
+		ASSERT(dlg.m_pInitEntry != NULL);
+		{
+			CBuffer tmp(dlg.m_pInitEntry->m_ProBuffer.GetPtr(), dlg.m_pInitEntry->m_ProBuffer.GetSize());
+			CStringArrayExt stra;
+			stra.GetBuffer(tmp);	// CTextRam::Serialize(mode, buf);
+			m_FontTab.Serialize(FALSE, tmp);
+		}
+		break;
+	}
 
 	UpdateData(TRUE);
 	InitList();

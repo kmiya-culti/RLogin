@@ -42,7 +42,13 @@ public:
 protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnBnClickedEscedit();
-	afx_msg void OnNMClickOptlist(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMDblclkEsclist(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnLvnItemchangedEsclist(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnLvnGetInfoTipEsclist(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnUpdateEdit();
+	afx_msg void OnEditDelall();
+	afx_msg void OnEditCopy();
+	afx_msg void OnEditPaste();
+	afx_msg void OnUpdateEditCopy(CCmdUI *pCmdUI);
+	afx_msg void OnUpdateEditPaste(CCmdUI *pCmdUI);
 };

@@ -4,7 +4,6 @@
 
 // CPrnTextDlg ダイアログ
 
-#define	PRINTFONTNAME		_T("ＭＳ ゴシック")
 #define	PRINTFONTSIZE		10		// Point
 #define	PRINTLINESIZE		15		// Point
 

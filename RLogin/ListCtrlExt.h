@@ -28,7 +28,9 @@ public:
 	BOOL m_bSort;
 	BOOL m_bMove;
 	CSize m_Dpi;
+	BOOL m_bSetLVCheck;
 
+	void SetSelectMarkItem(int item);
 	int GetParamItem(int para);
 	int GetSelectMarkData();
 	int GetSelectMarkCount();

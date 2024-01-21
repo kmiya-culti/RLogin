@@ -5,13 +5,15 @@
 
 #include "Data.h"
 #include "ExtSocket.h"
-#include "TabBar.h"
 #include "IConv.h"
 #include "Ssh.h"
 #include "MidiData.h"
 #include "ComboBoxHis.h"
-#include "ToolBarEx.h"
 #include "Shobjidl.h"
+#include "UahMenuBar.h"
+#include "ControlBar.h"
+#include "TabBar.h"
+#include "ToolBarEx.h"
 
 #define	PANEFRAME_NOCHNG		0
 #define	PANEFRAME_MAXIM			1
@@ -118,165 +120,11 @@ public:
 	CBitmap m_Bitmap;
 };
 
-class CDockContextEx : public CDockContext
-{
-public:
-	explicit CDockContextEx(CControlBar *pBar);
-
-	BOOL IsHitGrip(CPoint point);
-
-	virtual void StartDrag(CPoint pt);
-	virtual void StartResize(int nHitTest, CPoint pt);
-	virtual void ToggleDocking();
-
-	static void EnableDocking(CControlBar *pBar, DWORD dwDockStyle);
-
-	void TrackLoop();
-};
-
-class CDialogBarEx : public CDialogBar
-{
-	DECLARE_DYNAMIC(CDialogBarEx)
-
-public:
-	CDialogBarEx();
-	virtual ~CDialogBarEx();
-
-public:
-	CSize m_InitDpi;
-	CSize m_NowDpi;
-	CFont m_DpiFont;
-	CSize m_ZoomMul;
-	CSize m_ZoomDiv;
-	CFont m_NewFont;
-
-public:
-	void DpiChanged();
-	void FontSizeCheck();
-
-public:
-	BOOL Create(CWnd* pParentWnd, LPCTSTR lpszTemplateName, UINT nStyle, UINT nID);
-	inline BOOL Create(CWnd* pParentWnd, UINT nIDTemplate, UINT nStyle, UINT nID) { return Create(pParentWnd, MAKEINTRESOURCE(nIDTemplate), nStyle, nID); }
-
-public:
-	DECLARE_MESSAGE_MAP()
-};
-
-class CVoiceBar : public CDialogBarEx
-{
-	DECLARE_DYNAMIC(CVoiceBar)
-
-public:
-	CVoiceBar();
-	virtual ~CVoiceBar();
-
-	enum { IDD = IDD_VOICEBAR };
-
-public:
-	CComboBox m_VoiceDesc;
-	CSliderCtrl m_VoiceRate;
-
-protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
-
-public:
-	DECLARE_MESSAGE_MAP()
-	afx_msg LRESULT HandleInitDialog(WPARAM, LPARAM);
-	afx_msg void OnCbnSelchangeVoicedesc();
-	afx_msg void OnNMReleasedcaptureVoicerate(NMHDR *pNMHDR, LRESULT *pResult);
-};
-
-class CQuickBar : public CDialogBarEx
-{
-	DECLARE_DYNAMIC(CQuickBar)
-
-public:
-	CQuickBar();
-	virtual ~CQuickBar();
-
-	enum { IDD = IDD_QUICKBAR };
-
-public:
-	CComboBoxHis m_EntryWnd;
-	CComboBoxHis m_HostWnd;
-	CComboBoxHis m_PortWnd;
-	CComboBoxHis m_UserWnd;
-	CEdit m_PassWnd;
-
-public:
-	void InitDialog();
-	void SaveDialog();
-	void SetComdLine(CString &cmds);
-
-protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
-
-public:
-	DECLARE_MESSAGE_MAP()
-	afx_msg void OnCbnEditchangeEntryname();
-};
-
-class CTabDlgBar : public CControlBar
-{
-	DECLARE_DYNAMIC(CTabDlgBar)
-
-public:
-	CTabDlgBar();
-	virtual ~CTabDlgBar();
-
-public:
-	CTabCtrl m_TabCtrl;
-	CString m_FontName;
-	int m_FontSize;
-	CFont m_TabFont;
-	CSize m_InitSize;
-	CWnd *m_pShowWnd;
-	CImageList m_ImageList;
-
-	struct _DlgWndData {
-		CWnd *pWnd;
-		int nImage;
-		CWnd *pParent;
-		HMENU hMenu;
-		CRect WinRect;
-	};
-	CPtrArray m_Data;
-
-public:
-	BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
-	void Add(CWnd *pWnd, int nImage);
-	void Del(CWnd *pWnd);
-	void Sel(CWnd *pWnd);
-	BOOL IsInside(CWnd *pWnd);
-	void *RemoveAt(int idx, CPoint point);
-	void RemoveAll();
-	void FontSizeCheck();
-	void DpiChanged();
-	void TabReSize();
-	int HitPoint(CPoint point);
-	void GetTitle(int nIndex, CString &title);
-	void TrackLoop(CPoint ptScrn, int idx, CWnd *pMoveWnd, int nImage);
-
-protected:
-	virtual void OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler);
-	virtual CSize CalcFixedLayout(BOOL bStretch, BOOL bHorz);
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
-
-public:
-	DECLARE_MESSAGE_MAP()
-	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnSelchange(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
-	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
-};
-
 #define	CLIPOPENTHREADMAX	3		// クリップボードアクセススレッド多重起動数
 #define	CLIPOPENLASTMSEC	500		// 指定msec以内のクリップボードアップデートを無視する
 
 #define	SOCKPARAHASH		4
 #define	SOCKPARAMASK(fd)	(int)(((INT_PTR)fd / sizeof(INT_PTR)) & (SOCKPARAHASH - 1))
-
 
 #define	DEFAULT_DPI_X		96
 #define	DEFAULT_DPI_Y		96
@@ -364,6 +212,7 @@ public:
 	BOOL m_PastNoCheck;
 	CPtrArray m_FifoActive;
 	CPtrArray m_ThreadMsg;
+	BOOL m_bDarkMode;
 
 	BOOL WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf, LPCTSTR pipename);
 	BOOL PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
@@ -506,15 +355,17 @@ public:
 	inline BOOL TabDlgInDrag(CPoint point, CWnd *pWnd, int nImage) { if ( !m_bTabDlgBarShow ) return FALSE; m_wndTabDlgBar.TrackLoop(point, (-7), pWnd, nImage); return TRUE; }
 	inline void TabBarUpdate() { m_wndTabBar.Invalidate(FALSE); }
 
+	void DrawSystemBar(BOOL bActive);
+
 // コントロール バー用メンバ
 protected: 
-	CStatusBar  m_wndStatusBar;
-	CToolBarEx  m_wndToolBar;
-	CToolBarEx  m_wndSubToolBar;
-	CTabBar		m_wndTabBar;
-	CQuickBar	m_wndQuickBar;
-	CTabDlgBar	m_wndTabDlgBar;
-	CVoiceBar   m_wndVoiceBar;
+	CStatusBarEx m_wndStatusBar;
+	CToolBarEx   m_wndToolBar;
+	CToolBarEx   m_wndSubToolBar;
+	CTabBar		 m_wndTabBar;
+	CQuickBar	 m_wndQuickBar;
+	CTabDlgBar	 m_wndTabDlgBar;
+	CVoiceBar    m_wndVoiceBar;
 
 // オーバーライド
 public:
@@ -541,6 +392,7 @@ protected:
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnMoving(UINT fwSide, LPRECT pRect);
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
+	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
 
 	afx_msg void OnDrawClipboard();
 	afx_msg void OnChangeCbChain(HWND hWndRemove, HWND hWndAfter);
@@ -612,7 +464,6 @@ protected:
 	afx_msg void OnChartooltip();
 	afx_msg void OnUpdateChartooltip(CCmdUI *pCmdUI);
 
-	//afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnIConMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnThreadMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnAfterOpen(WPARAM wParam, LPARAM lParam);
@@ -622,6 +473,9 @@ protected:
 	afx_msg LRESULT OnSpeakMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnFifoMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnDocumentMsg(WPARAM wParam, LPARAM lParam);
+
+	afx_msg LRESULT OnUahDrawMenu(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam);
 };
 
 

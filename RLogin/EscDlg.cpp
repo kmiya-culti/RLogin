@@ -154,9 +154,29 @@ static const LV_COLUMN ParaListTab[] = {
 		{ LVCF_TEXT | LVCF_WIDTH, 0, 200, _T("Memo"),  0, 0 }, 
 	};
 
+static const INITDLGTAB ItemTab[] = {
+	{ IDC_ESCLIST,		ITM_RIGHT_MID | ITM_BTM_PER  },
+	{ IDC_CSILIST,		ITM_LEFT_MID | ITM_RIGHT_RIGHT | ITM_BTM_MID  },
+	{ IDC_DCSLIST,		ITM_RIGHT_MID | ITM_TOP_PER | ITM_BTM_MID  },
+	{ IDC_PARALIST,		ITM_RIGHT_RIGHT | ITM_TOP_MID | ITM_BTM_BTM  },
+
+	{ IDC_RESET,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM  },
+	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM  },
+	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM  },
+
+	{ IDC_TITLE1,		ITM_RIGHT_MID | ITM_BTM_PER },
+	{ IDC_TITLE2,		ITM_LEFT_MID | ITM_RIGHT_RIGHT | ITM_BTM_MID  },
+	{ IDC_TITLE3,		ITM_RIGHT_MID | ITM_TOP_PER | ITM_BTM_MID  },
+	{ IDC_TITLE4,		ITM_RIGHT_RIGHT | ITM_TOP_MID | ITM_BTM_BTM  },
+
+	{ 0,	0 },
+};
+
 BOOL CEscDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
+	
+	InitItemOffset(ItemTab);
 
 	int n, i, c;
 
@@ -219,6 +239,8 @@ BOOL CEscDlg::OnInitDialog()
 	InitCsiList();
 	InitDcsList();
 	InitParaList();
+
+	SetSaveProfile(_T("EscDlg"));
 
 	return TRUE;
 }

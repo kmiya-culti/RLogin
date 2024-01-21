@@ -260,6 +260,8 @@ BOOL CComMoniDlg::OnInitDialog()
 
 	SubclassComboBox(IDC_BAUDRATE);
 
+	SetSaveProfile(_T("ComMoniDlg"));
+
 	return TRUE;
 }
 void CComMoniDlg::OnOK()

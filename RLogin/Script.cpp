@@ -381,15 +381,13 @@ int CScriptValue::Add(CScriptValue &data)
 
 	sp = new CScriptValue;
 	*sp = data;
-
-	if ( (sp->m_bNoCase = m_bNoCase) )
-		sp->m_Index.MakeLower();
+	sp->m_bNoCase = m_bNoCase;
 
 	if ( (tp = m_Child) == NULL )
 		m_Child = sp;
 	else {
 		while ( tp != NULL ) {
-			if ( tp->m_Index.Compare(sp->m_Index) >= 0 ) {
+			if ( (m_bNoCase ? tp->m_Index.CompareNoCase(sp->m_Index) : tp->m_Index.Compare(sp->m_Index)) >= 0 ) {
 				if ( tp->m_Left == NULL ) {
 					tp->m_Left = sp;
 					break;
@@ -414,15 +412,9 @@ int CScriptValue::Find(LPCTSTR str)
 {
 	int c;
 	CScriptValue *tp;
-	CString tmp;
 
-	if ( m_bNoCase ) {
-		tmp = str;
-		tmp.MakeLower();
-		str = tmp;
-	}
 	for ( tp = m_Child ; tp != NULL ; ) {
-		if ( (c = tp->m_Index.Compare(str)) == 0 )
+		if ( (c = (m_bNoCase ? tp->m_Index.CompareNoCase(str) : tp->m_Index.Compare(str))) == 0 )
 			return tp->m_ArrayPos;
 		else if ( c >= 0 )
 			tp = tp->m_Left;
@@ -433,15 +425,8 @@ int CScriptValue::Find(LPCTSTR str)
 }
 int CScriptValue::FindAt(LPCTSTR str, int pos)
 {
-	CString tmp;
-
-	if ( m_bNoCase ) {
-		tmp = str;
-		tmp.MakeLower();
-		str = tmp;
-	}
 	for ( ; pos < m_Array.GetSize() ; pos++ ) {
-		if ( m_Array[pos] != NULL && ((CScriptValue *)m_Array[pos])->m_Index.Compare(str) == 0 )
+		if ( m_Array[pos] != NULL && (m_bNoCase ? ((CScriptValue *)m_Array[pos])->m_Index.CompareNoCase(str) : ((CScriptValue *)m_Array[pos])->m_Index.Compare(str)) == 0 )
 			return pos;
 	}
 	return (-1);
@@ -462,8 +447,6 @@ int CScriptValue::Add(LPCTSTR str)
 		return n;
 
 	tmp.m_Index = str;
-	if ( m_bNoCase )
-		tmp.m_Index.MakeLower();
 	return Add(tmp);
 }
 CScriptValue & CScriptValue::operator [] (LPCTSTR str)

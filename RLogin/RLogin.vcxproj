@@ -281,6 +281,7 @@
     <ClCompile Include="ComInitDlg.cpp" />
     <ClCompile Include="ComMoniDlg.cpp" />
     <ClCompile Include="ComSock.cpp" />
+    <ClCompile Include="ControlBar.cpp" />
     <ClCompile Include="CsiParaDlg.cpp" />
     <ClCompile Include="Data.cpp" />
     <ClCompile Include="DefParamDlg.cpp" />
@@ -391,6 +392,7 @@
     <ClInclude Include="ComInitDlg.h" />
     <ClInclude Include="ComMoniDlg.h" />
     <ClInclude Include="ComSock.h" />
+    <ClInclude Include="ControlBar.h" />
     <ClInclude Include="CsiParaDlg.h" />
     <ClInclude Include="Data.h" />
     <ClInclude Include="DefParamDlg.h" />
@@ -473,6 +475,7 @@
     <ClInclude Include="ToolDlg.h" />
     <ClInclude Include="TraceDlg.h" />
     <ClInclude Include="TtyModeDlg.h" />
+    <ClInclude Include="UahMenuBar.h" />
     <ClInclude Include="UniBlockTab.h" />
     <ClInclude Include="UniCharTab.h" />
     <ClInclude Include="UniNomalTab.h" />

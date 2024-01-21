@@ -6,11 +6,21 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
+TD {		
+				
+				
+				
+				
+				
 		background-color : #ffffff;
 		font-size : 90%;
 }
-.BOX{
+.BOX{		
+				
+				
+				
+				
+				
 		background-color : silver;
 }
 -->
@@ -26,8 +36,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.28.9)</TD>
-            <TD width="20%" align="right">2023/12/20</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.29.0)</TD>
+            <TD width="20%" align="right">2023/01/22</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -134,6 +144,7 @@ TD {
                     <LI><A href="faq.html#LANG">RLoginの多言語化</A>
                     <LI><A href="faq.html#KEYCODE">各種キーのコード</A>
                     <LI><A href="faq.html#MMLMIDI">音楽を奏でる</A>
+                    <LI><A href="faq.html#SSHAGEANT">SSHエージェントを利用</A>
                   </OL>
                   </TD>
                 </TR>
@@ -434,6 +445,20 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2023/01/22</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.0/">2.29.0</A></TD>
+            <TD>ソースコード内のMBC文字列をエスケープコードに変更<BR>
+            OS設定のページコードを起動時に取得するように変更<BR>
+            オプションのキーボード・ポートフォワードなど複数選択に変更<BR>
+            SSL/QUIC接続時のメモリーリークを修正<BR>
+            リストを含むダイアログをサイズ変更可能に変更<BR>
+            サイズ変更可能なダイアログの右下にグリップを追加<BR>
+            ダイアログのシステムメニューアイコンを追加<BR>
+            オプション・カラーの16色カラーテーブル編集に色サンプルを追加<BR>
+            ドッキングバーのドラッグ時の動作を変更<BR>
+            Windows10以降のダークモードに対応</TD>
+          </TR>
+          <TR>
             <TD align="center">2023/12/20</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.9/">2.28.9</A></TD>
             <TD>サーバー・プロキシ設定にHTTP/2とHTTP/3を追加<BR>
@@ -472,18 +497,6 @@ TD {
             openssl-3.1.3に更新</TD>
           </TR>
           <TR>
-            <TD align="center">2023/09/08</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.5/">2.28.5</A></TD>
-            <TD>オプション・拡張機能にタブバーの色設定を追加<BR>
-            ツールバーアイコンの解像度の変更とその他アイコンを追加</TD>
-          </TR>
-          <TR>
-            <TD align="center">2023/08/04</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.4/">2.28.4</A></TD>
-            <TD>WindowsXPで起動出来ない問題を修正<BR>
-            openssl-3.1.2に更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -503,7 +516,7 @@ TD {
         <TBODY>
           <TR>
             <TD>ソースをコンパイルするには、以下のライブラリが必要です<BR>
-            <BR>
+            全体的な<A href="Compile.txt">コンパイル方法(Compile.txt)</A>をまとめたものを用意しました<BR>
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
@@ -3459,15 +3472,20 @@ fi</PRE>
               <TBODY>
                 <TR>
                   <TD colspan="2">認証キー<BR>
-                  参照：<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A></TD>
+                  参照：<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A> <A href="faq.html#SSHAGEANT">SSHエージェントを利用</A>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD align="center">認証キーリスト</TD>
+                  <TD>チェックマークを入れた認証キーをこのサーバーエントリーで使用します。複数選択すれば上から順番に接続を試みます。また、SSHエージェント(ssh-agentやPuTTYのPAGEANT)で利用できる認証鍵もここで管理し優先順位や使用の有無を設定します。右クリックで選択するとメニューが表示され下記の処理以外に削除や署名付きの公開鍵の読み込みなどができます</TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">上へ・下へ</TD>
-                  <TD>チェックマークを入れた認証キーをこのサーバーエントリーで使用します。上下ボタンでアクセストライの順位を設定できます</TD>
+                  <TD>認証キーリストで選択した認証キーを上下ボタンで移動してアクセストライの順位を設定できます</TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">公開鍵</TD>
-                  <TD>認証キーの公開鍵をクリップボードにコピーします</TD>
+                  <TD>認証キーリストで選択した認証キーの公開鍵をクリップボードにコピーします</TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">インポート</TD>
@@ -3509,7 +3527,7 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">エクスポート</TD>
-                  <TD>認証キーをファイルに保存します。作成時に設定したパスフレーズを入力しないと保存できません<BR>
+                  <TD>認証キーリストで選択した認証キーをファイルに保存します。作成時に設定したパスフレーズを入力しないと保存できません<BR>
                   <TABLE border="0" width="400">
                     <TBODY>
                       <TR>
@@ -3698,8 +3716,7 @@ fi</PRE>
                 </TR>
               </TBODY>
             </TABLE>
-            <BR>
-            ※認証キーのリストで右クリックするとメニューが表示され上記の処理以外に削除や署名付きの公開鍵の読み込みなどができます</TD>
+            </TD>
             <TD valign="top"><IMG src="image016.jpg" width="448" height="473" border="0"></TD>
           </TR>
         </TBODY>
@@ -3727,7 +3744,9 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center">ポートフォワードリスト</TD>
-                  <TD>チェックマークを入れたポートフォワードの設定を起動時に実行します。チェックマークを外すと設定は、削除されませんが実行されません</TD>
+                  <TD>チェックマークを入れたポートフォワードの設定を起動時に実行します。チェックマークを外すと設定は、削除されませんが実行されません<BR>
+                  <BR>
+                  ※2.29.0からリストを複数選択(ShiftやCtrlを押しながらクリック)して削除などが出来るように変更しました。また右クリックのポップアップメニューですべてをクリップボード経由(TAB区切りのテキスト)で更新などを追加しました</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">新規</TD>
@@ -3784,7 +3803,7 @@ fi</PRE>
                         <TD>ローカル側で待機します</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">Local Proxyr</TD>
+                        <TD valign="top">Local Proxy</TD>
                         <TD>ローカル側のHTTP/SOCKSサーバーで待機します</TD>
                       </TR>
                       <TR>
@@ -5456,7 +5475,7 @@ function TekClock2() {
           <TR>
             <TD width="600" valign="top">GL用の94/96バンク文字の場合ISO646で設定された各種文字セットの変更可能な文字を指定することができます。これは日本語フォントに残る「円記号問題」などに対処する設定です<BR>
             <BR>
-            まず、フォントのISO646での種類をサンプル表示を参考に指定します。これはややこしいですが日本語フォントの場合に5/12の文字が「￥」か「＼」で判定できます。欧文フォントなどはUSがほとんどです（現在では、ISO8859が設定された以降のフォントはUSだろうと思います）<BR>
+            まず、フォントの<A href="iso646sample.html">ISO646での種類をサンプル表示</A>を参考に指定します。これはややこしいですが日本語フォントの場合に5/12の文字が「￥」か「＼」で判定できます。欧文フォントなどはUSがほとんどです（現在では、ISO8859が設定された以降のフォントはUSだろうと思います）<BR>
             <BR>
             次に表示で用いる変換後のISO646の種類を設定します。大まかに変換すべき文字を自動で判断して文字コードが設定されます。基準としては、変更すべき文字が別のUNICODEに設定されますが、USの文字が無い場合は、U+FF00のフルワイドの文字に変更します<BR>
             <BR>
@@ -5719,7 +5738,9 @@ function TekClock2() {
                   <TD colspan="2">キーコード</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2">ファンクションキーなどのキーコードを設定・編集・削除します</TD>
+                  <TD colspan="2">ファンクションキーなどのキーコードを設定・編集・削除します<BR>
+                  <BR>
+                  ※2.29.0からリストを複数選択(ShiftやCtrlを押しながらクリック)して削除などが出来るように変更しました。また右クリックのポップアップメニューですべてをクリップボード経由(TAB区切りのテキスト)で更新などを追加しました</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">新規</TD>

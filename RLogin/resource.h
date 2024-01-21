@@ -73,6 +73,7 @@
 #define IDD_VOICEBAR                    169
 #define IDR_TOOLBAR2                    170
 #define IDD_CONVFILEDLG                 171
+#define IDD_MENUBAR                     172
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -277,6 +278,13 @@
 #define IDS_SSHRSASIGNMSG               659
 #define IDS_DROPBEGINSTRING             660
 #define IDS_DROPENDSTRING               661
+#define IDS_DEFFONTNAME0                662
+#define IDS_DEFFONTNAME1                663
+#define IDS_INITKEYCODETITLE            664
+#define IDS_INITPFDTITLE                665
+#define IDS_INITFONTSETTITLE            666
+#define IDS_INITTERMOPTTITLE            667
+#define IDS_INITEXTOPTTITLE             668
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -1054,9 +1062,12 @@
 #define IDC_TITLE8                      2531
 #define IDC_TITLE9                      2532
 #define IDC_TITLE10                     2533
-#define IDC_TABTEXTCOL                  2534
-#define IDC_TABBACKCOL                  2535
-#define IDC_TABBACKGRAD                 2536
+#define IDC_TITLE11                     2534
+#define IDC_TITLE12                     2535
+#define IDC_TITLE13                     2536
+#define IDC_TABTEXTCOL                  2537
+#define IDC_TABBACKCOL                  2538
+#define IDC_TABBACKGRAD                 2539
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1206,9 +1217,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        171
+#define _APS_NEXT_RESOURCE_VALUE        173
 #define _APS_NEXT_COMMAND_VALUE         5155
-#define _APS_NEXT_CONTROL_VALUE         2537
-#define _APS_NEXT_SYMED_VALUE           662
+#define _APS_NEXT_CONTROL_VALUE         2540
+#define _APS_NEXT_SYMED_VALUE           669
 #endif
 #endif

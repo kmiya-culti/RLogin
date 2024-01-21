@@ -151,6 +151,8 @@ BOOL CTtyModeDlg::OnInitDialog()
 
 	InitList();
 
+	SetSaveProfile(_T("TtyModeDlg"));
+
 	return TRUE;
 }
 
@@ -200,17 +202,21 @@ CColEditDlg::~CColEditDlg()
 BEGIN_MESSAGE_MAP(CColEditDlg, CTtyModeDlg)
 	ON_COMMAND(ID_EDIT_COPY_ALL, &CColEditDlg::OnEditCopyAll)
 	ON_COMMAND(ID_EDIT_PASTE_ALL, &CColEditDlg::OnEditPasteAll)
+	ON_NOTIFY(NM_CUSTOMDRAW, IDC_MODE_LIST, &CColEditDlg::OnNMCustomdrawList)
+	ON_NOTIFY(LVN_ITEMCHANGED, IDC_MODE_LIST, &CColEditDlg::OnLvnItemchangedList)
 END_MESSAGE_MAP()
 
-static const LV_COLUMN InitColListTab[8] = {
-	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  40, _T("No."),	0, 0 },
-	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  60, _T("Red"),	0, 0 },
-	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  60, _T("Green"),	0, 0 },
-	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  60, _T("Blue"),	0, 0 },
-	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  40, _T("No."),	0, 0 },
-	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  60, _T("Red"),	0, 0 },
-	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  60, _T("Green"),	0, 0 },
-	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  60, _T("Blue"),	0, 0 },
+static const LV_COLUMN InitColListTab[10] = {
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  30, _T("No."),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  30, _T("Dc"),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  50, _T("Red"),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  50, _T("Green"),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  50, _T("Blue"),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  30, _T("No."),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  30, _T("Hc"),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  50, _T("Red"),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  50, _T("Green"),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  50, _T("Blue"),	0, 0 },
 };
 
 void CColEditDlg::InitList()
@@ -224,20 +230,23 @@ void CColEditDlg::InitList()
 		str.Format(_T("%d"), n);
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
 		str.Format(_T("%d"), GetRValue(m_ColTab[n]));
-		m_List.SetItemText(n, 1, str);
-		str.Format(_T("%d"), GetGValue(m_ColTab[n]));
 		m_List.SetItemText(n, 2, str);
-		str.Format(_T("%d"), GetBValue(m_ColTab[n]));
+		str.Format(_T("%d"), GetGValue(m_ColTab[n]));
 		m_List.SetItemText(n, 3, str);
+		str.Format(_T("%d"), GetBValue(m_ColTab[n]));
+		m_List.SetItemText(n, 4, str);
 
 		str.Format(_T("%d"), n + 8);
-		m_List.SetItemText(n, 4, str);
-		str.Format(_T("%d"), GetRValue(m_ColTab[n + 8]));
 		m_List.SetItemText(n, 5, str);
-		str.Format(_T("%d"), GetGValue(m_ColTab[n + 8]));
-		m_List.SetItemText(n, 6, str);
-		str.Format(_T("%d"), GetBValue(m_ColTab[n + 8]));
+		str.Format(_T("%d"), GetRValue(m_ColTab[n + 8]));
 		m_List.SetItemText(n, 7, str);
+		str.Format(_T("%d"), GetGValue(m_ColTab[n + 8]));
+		m_List.SetItemText(n, 8, str);
+		str.Format(_T("%d"), GetBValue(m_ColTab[n + 8]));
+		m_List.SetItemText(n, 9, str);
+
+		m_List.SetItemText(n, 1, _T(""));
+		m_List.SetItemText(n, 6, _T(""));
 
 		m_List.SetItemData(n, n);
 	}
@@ -250,8 +259,10 @@ BOOL CColEditDlg::OnInitDialog()
 	InitItemOffset(ItemTab);
 
 //	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT);
-	m_List.InitColumn(_T("ColEditDlg"), InitColListTab, 8);
-	m_List.m_EditSubItem = 0xEE;
+	m_List.InitColumn(_T("ColEditDlg"), InitColListTab, 10);
+	// 98 7654 3210
+	// 11 1001 1100
+	m_List.m_EditSubItem = 0x39C;
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 4);
 
 	InitList();
@@ -267,8 +278,8 @@ void CColEditDlg::OnOK()
 
 	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
 		i = (int)m_List.GetItemData(n);
-		m_ColTab[i]     = RGB(_tstoi(m_List.GetItemText(n, 1)), _tstoi(m_List.GetItemText(n, 2)), _tstoi(m_List.GetItemText(n, 3)));
-		m_ColTab[i + 8] = RGB(_tstoi(m_List.GetItemText(n, 5)), _tstoi(m_List.GetItemText(n, 6)), _tstoi(m_List.GetItemText(n, 7)));
+		m_ColTab[i]     = RGB(_tstoi(m_List.GetItemText(n, 2)), _tstoi(m_List.GetItemText(n, 3)), _tstoi(m_List.GetItemText(n, 4)));
+		m_ColTab[i + 8] = RGB(_tstoi(m_List.GetItemText(n, 7)), _tstoi(m_List.GetItemText(n, 8)), _tstoi(m_List.GetItemText(n, 9)));
 	}
 
 	CDialogExt::OnOK();
@@ -282,8 +293,8 @@ void CColEditDlg::OnEditCopyAll()
 
 	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
 		i = (int)m_List.GetItemData(n);
-		m_ColTab[i]     = RGB(_tstoi(m_List.GetItemText(n, 1)), _tstoi(m_List.GetItemText(n, 2)), _tstoi(m_List.GetItemText(n, 3)));
-		m_ColTab[i + 8] = RGB(_tstoi(m_List.GetItemText(n, 5)), _tstoi(m_List.GetItemText(n, 6)), _tstoi(m_List.GetItemText(n, 7)));
+		m_ColTab[i]     = RGB(_tstoi(m_List.GetItemText(n, 2)), _tstoi(m_List.GetItemText(n, 3)), _tstoi(m_List.GetItemText(n, 4)));
+		m_ColTab[i + 8] = RGB(_tstoi(m_List.GetItemText(n, 7)), _tstoi(m_List.GetItemText(n, 8)), _tstoi(m_List.GetItemText(n, 9)));
 	}
 
 	for ( n = 0 ; n < 16 ; n++ ) {
@@ -377,6 +388,42 @@ void CColEditDlg::OnEditPasteAll()
 	}
 
 	InitList();
+}
+void CColEditDlg::OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLVCUSTOMDRAW pLVCD = reinterpret_cast<LPNMLVCUSTOMDRAW>(pNMHDR);
+
+	switch(pLVCD->nmcd.dwDrawStage) {
+	case CDDS_PREPAINT:
+        *pResult = CDRF_NOTIFYITEMDRAW;
+		break;
+	case CDDS_ITEMPREPAINT:
+        *pResult = CDRF_NOTIFYSUBITEMDRAW;
+		break;
+	case CDDS_ITEMPREPAINT | CDDS_SUBITEM:
+		if ( pLVCD->iSubItem == 1 ) {
+			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 2)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 3)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 4)));
+		} else if ( pLVCD->iSubItem == 6 ) {
+			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 7)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 8)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 9)));
+		} else
+			pLVCD->clrTextBk = GetSysColor(COLOR_WINDOW);
+        *pResult = CDRF_NEWFONT;
+		break;
+	default:
+        *pResult = 0;
+		break;
+	}
+}
+void CColEditDlg::OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
+
+	if ( pNMLV->iSubItem >= 2 && pNMLV->iSubItem <= 4 )
+		m_List.SetItemText(pNMLV->iItem, 1, _T(""));
+	else if ( pNMLV->iSubItem >= 7 && pNMLV->iSubItem <= 9 )
+		m_List.SetItemText(pNMLV->iItem, 6, _T(""));
+
+	*pResult = 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////

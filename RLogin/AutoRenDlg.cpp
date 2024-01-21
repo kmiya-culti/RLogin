@@ -63,7 +63,7 @@ void CAutoRenDlg::OnEnUpdateEdit3()
 
 	UpdateData(TRUE);
 	node.AutoRename(m_Name[2], tmp, 1);
-	m_NameOK = (tmp.Compare(m_Name[2]) == 0 ? _T("Åõ") : _T("Å~"));
+	m_NameOK = (tmp.Compare(m_Name[2]) == 0 ? UniToTstr(L"\u25CB") : UniToTstr(L"\u00D7"));	// _T("Åõ") : _T("Å~")));
 	UpdateData(FALSE);
 }
 
@@ -71,7 +71,7 @@ BOOL CAutoRenDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
 	
-	// not use
+	SetSaveProfile(_T("AutoRenDlg"));
 
 	return TRUE;
 }

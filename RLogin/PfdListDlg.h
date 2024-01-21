@@ -60,8 +60,13 @@ protected:
 	afx_msg void OnPfdNew();
 	afx_msg void OnPfdEdit();
 	afx_msg void OnPfdDel();
-	afx_msg void OnDblclkPfdlist(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnEditDups();
+	afx_msg void OnEditDelall();
+	afx_msg void OnEditCopy();
+	afx_msg void OnEditPaste();
+	afx_msg void OnDblclkPfdlist(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateEditCopy(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateEditPaste(CCmdUI *pCmdUI);
 	DECLARE_MESSAGE_MAP()
 };

@@ -1,9 +1,9 @@
+//////////////////////////////////////////////////////////////////////
+// TabBar.h: CTabBar クラスのインターフェイス
+
 #pragma once
 
 #define	ICONIMG_SIZE	MulDiv(16, SCREEN_DPI_X, DEFAULT_DPI_X)
-
-//////////////////////////////////////////////////////////////////////
-// TabBar.h: CTabBar クラスのインターフェイス
 
 #define	TBTMID_SETCURSOR		1024
 #define	TBTMID_GHOSTWMD			1025
@@ -17,13 +17,20 @@ public:
 	virtual ~CTabCtrlExt();
 
 public:
+	BOOL m_bDarkMode;
+
+public:
 	virtual void DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);
 
-protected:
+public:
 	DECLARE_MESSAGE_MAP()
+	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
+	afx_msg void OnPaint();
 };
 
-class CTabBar : public CControlBar  
+class CTabBar : public CControlBarEx
 {
 	DECLARE_DYNAMIC(CTabBar)
 

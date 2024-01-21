@@ -216,24 +216,8 @@ BOOL CAnyPastDlg::OnInitDialog()
 	m_EditWnd.SetWindowText(m_EditText);
 	CtrlCount();
 
-	CRect rect;
-	int sx = 0, sy = 0;
-	int cx, cy;
-
-	GetWindowRect(rect);
-	cx = AfxGetApp()->GetProfileInt(_T("AnyPastDlg"), _T("cx"), rect.Width());
-	cy = AfxGetApp()->GetProfileInt(_T("AnyPastDlg"), _T("cy"), rect.Height());
-
-	if ( cx < rect.Width() )
-		cx = rect.Width();
-	if ( cy < rect.Height() )
-		cy = rect.Height();
-
-	AfxGetMainWnd()->GetWindowRect(rect);
-	sx = rect.left + (rect.Width()  - cx) / 2;
-	sy = rect.top  + (rect.Height() - cy) / 2;
-
-	MoveWindow(sx, sy, cx, cy, FALSE);
+	SetSaveProfile(_T("AnyPastDlg"));
+	SetLoadPosition(LOADPOS_MAINWND);
 
 	AddShortCutKey(0, VK_RETURN, MASK_CTRL, 0, IDOK);
 
@@ -270,13 +254,6 @@ BOOL CAnyPastDlg::SendBracketedPaste(LPCTSTR str)
 BOOL CAnyPastDlg::UpdateTextData(BOOL bOk)
 {
 	ASSERT(m_pMain != NULL);
-
-	if ( !IsIconic() ) {
-		CRect rect;
-		GetWindowRect(rect);
-		AfxGetApp()->WriteProfileInt(_T("AnyPastDlg"), _T("cx"), MulDiv(rect.Width(), m_InitDpi.cx, m_NowDpi.cx));
-		AfxGetApp()->WriteProfileInt(_T("AnyPastDlg"), _T("cy"), MulDiv(rect.Height(), m_InitDpi.cy, m_NowDpi.cy));
-	}
 
 	AfxGetApp()->WriteProfileInt(_T("AnyPastDlg"), _T("DelayPast"), m_bDelayPast);
 	AfxGetApp()->WriteProfileInt(_T("AnyPastDlg"), _T("CtrlView"),  m_bCtrlView);

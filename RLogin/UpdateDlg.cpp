@@ -72,6 +72,8 @@ BOOL CUpdateDlg::OnInitDialog()
 
 	if ( pWnd != NULL && m_DoResume == FALSE )
 		pWnd->SetWindowText(CStringLoad(IDE_UPDATERESUMEERROR));
+
+	SetSaveProfile(_T("UpdateDlg"));
 	
 	return TRUE;
 }

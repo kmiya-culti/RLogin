@@ -2758,11 +2758,11 @@ int CIdKey::Sign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg)
 			case NID_sha512: flag = SSH_AGENT_RSA_SHA2_512; break;
 			}
 			if ( alg != NULL && *alg != _T('\0') ) {
-				if ( _tcsstr(alg, _T("rsa-sha2-512")) != NULL )
+				if ( InStrStr(alg, _T("rsa-sha2-512")) )
 					flag = SSH_AGENT_RSA_SHA2_512;
-				else if ( _tcsstr(alg, _T("rsa-sha2-256")) != NULL )
+				else if ( InStrStr(alg, _T("rsa-sha2-256")) )
 					flag = SSH_AGENT_RSA_SHA2_256;
-				else if ( _tcsstr(alg, _T("ssh-rsa")) != NULL )
+				else if ( InStrStr(alg, _T("ssh-rsa")) )
 					flag = 0;
 			}
 			m_RsaNid = NID_sha1;
@@ -2794,11 +2794,11 @@ int CIdKey::Sign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg)
 	switch(m_Type & IDKEY_TYPE_MASK) {
 	case IDKEY_RSA2:
 		if ( alg != NULL && *alg != _T('\0') ) {
-			if ( _tcsstr(alg, _T("rsa-sha2-512")) != NULL )
+			if ( InStrStr(alg, _T("rsa-sha2-512")) )
 				type = NID_sha512;
-			else if ( _tcsstr(alg, _T("rsa-sha2-256")) != NULL )
+			else if ( InStrStr(alg, _T("rsa-sha2-256")) )
 				type = NID_sha256;
-			else if ( _tcsstr(alg, _T("ssh-rsa")) != NULL )
+			else if ( InStrStr(alg, _T("ssh-rsa")) )
 				type = NID_sha1;
 			else
 				goto ERRENDOF;

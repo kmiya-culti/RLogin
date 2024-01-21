@@ -34,7 +34,6 @@ void CChatDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_MAKECHAT, m_MakeChat);
 }
 
-
 BEGIN_MESSAGE_MAP(CChatDlg, CDialogExt)
 	ON_BN_CLICKED(IDC_NEWNODE, &CChatDlg::OnBnClickedNewnode)
 	ON_BN_CLICKED(IDC_NEXTNODE, &CChatDlg::OnBnClickedNextnode)
@@ -47,12 +46,36 @@ BEGIN_MESSAGE_MAP(CChatDlg, CDialogExt)
 	ON_COMMAND(ID_EDIT_PASTE_ALL, &CChatDlg::OnEditPasteAll)
 END_MESSAGE_MAP()
 
+static const INITDLGTAB ItemTab[] = {
+	{ IDC_NODETREE,		ITM_RIGHT_RIGHT | ITM_BTM_BTM  },
+
+	{ IDC_RECVSTR,		ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_SENDSTR,		ITM_LEFT_MID | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
+
+	{ IDC_NEWNODE,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_NEXTNODE,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_UPDATENODE,	ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_DELNODE,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+
+	{ IDC_MAKECHAT,		ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
+
+	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM  },
+	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM  },
+
+	{ IDC_TITLE1,		ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_TITLE2,		ITM_LEFT_MID | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_TITLE3,		ITM_RIGHT_RIGHT | ITM_BTM_BTM },
+
+	{ 0,	0 },
+};
 
 // CChatDlg メッセージ ハンドラ
 
 BOOL CChatDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
+
+	InitItemOffset(ItemTab);
 
 	m_Script.SetTreeCtrl(m_NodeTree);
 
@@ -61,6 +84,8 @@ BOOL CChatDlg::OnInitDialog()
 	m_MakeChat = m_Script.m_MakeChat;
 
 	UpdateData(FALSE);
+
+	SetSaveProfile(_T("ChatDlg"));
 
 	return TRUE;
 }

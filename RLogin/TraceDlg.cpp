@@ -20,6 +20,7 @@ CTraceDlg::CTraceDlg(CWnd* pParent /*=NULL*/)
 	m_pDocument = NULL;
 	m_pSave = NULL;
 	m_TraceMaxCount = 1000;
+	SizeGripDisable(TRUE);
 }
 
 CTraceDlg::~CTraceDlg()
@@ -75,7 +76,7 @@ void CTraceDlg::AddTraceNode(CTraceNode *pNode)
 			p = e - 1;
 			if ( p[-1] == '\033' && p[0] == '\\' )
 				p--;
-			str += _T("...");
+			str += UniToTstr(L"\u2026");	// _T("Åc");
 		}
 
 		if ( p[0] == '\033' && (p + 1) < e ) {
@@ -223,6 +224,9 @@ BOOL CTraceDlg::OnInitDialog()
 	HMENU hMenu;
 	((CRLoginApp *)::AfxGetApp())->LoadResMenu(MAKEINTRESOURCE(IDR_TRACEWND), hMenu);
 	SetMenu(CMenu::FromHandle(hMenu));
+
+	SetSaveProfile(_T("TraceDlg"));
+	SetLoadPosition(LOADPOS_MAINWND);
 
 	return FALSE;
 }
@@ -429,6 +433,7 @@ CCmdHisDlg::CCmdHisDlg(CWnd* pParent /*=NULL*/)	: CDialogExt(CTraceDlg::IDD, pPa
 {
 	m_pDocument = NULL;
 	m_bScrollMode = FALSE;
+	SizeGripDisable(TRUE);
 }
 
 CCmdHisDlg::~CCmdHisDlg()
@@ -496,7 +501,7 @@ void CCmdHisDlg::InfoExitStatus(CMDHIS *pCmdHis)
 
 	for ( n = 0, p = pCmdHis->cmds ; n < 40 && *p != _T('\0') ; n++, p++ ) {
 		if ( *p == _T('\r') )
-			str += _T('Å´');
+			str += UniToTstr(L"\u2193");	// _T('Å´');
 		else if ( *p != _T('\n') && *p < _T(' ') )
 			str += _T('.');
 		else if ( *p != _T('\n') )
@@ -679,6 +684,9 @@ BOOL CCmdHisDlg::OnInitDialog()
 	AddShortCutKey(0, VK_TAB,	 0, 0, IDM_CMDHIS_CURD);
 	AddShortCutKey(0, VK_ESCAPE, 0, 0, IDM_CMDHIS_MSG);
 	AddShortCutKey(0, 'C', MASK_CTRL, 0, ID_EDIT_COPY);
+
+	SetSaveProfile(_T("CmdHisDlg"));
+	SetLoadPosition(LOADPOS_MAINWND);
 
 	return FALSE;
 }
@@ -1031,6 +1039,8 @@ CHistoryDlg::CHistoryDlg(CWnd* pParent /*=NULL*/)	: CDialogExt(CTraceDlg::IDD, p
 	m_PaneSize[1] = 333;
 	m_PaneSize[2] = 666;
 	m_PaneSize[3] = 1000;
+	SizeGripDisable(TRUE);
+	SetReSizeDisable(TRUE);
 }
 
 CHistoryDlg::~CHistoryDlg()

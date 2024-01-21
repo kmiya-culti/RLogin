@@ -8,12 +8,14 @@
 #include "RLoginView.h"
 #include "GrapWnd.h"
 
+//////////////////////////////////////////////////////////////////////
 // CFrameWndExt
 
 IMPLEMENT_DYNAMIC(CFrameWndExt, CFrameWnd)
 
 CFrameWndExt::CFrameWndExt()
 {
+	m_bDarkMode = FALSE;
 }
 CFrameWndExt::~CFrameWndExt()
 {
@@ -21,7 +23,10 @@ CFrameWndExt::~CFrameWndExt()
 
 BEGIN_MESSAGE_MAP(CFrameWndExt, CFrameWnd)
 	ON_WM_CREATE()
+	ON_WM_SETTINGCHANGE()
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
+	ON_MESSAGE(WM_UAHDRAWMENU, OnUahDrawMenu)
+	ON_MESSAGE(WM_UAHDRAWMENUITEM, OnUahDrawMenuItem)
 END_MESSAGE_MAP()
 
 int CFrameWndExt::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -31,6 +36,10 @@ int CFrameWndExt::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	if ( ExEnableNonClientDpiScaling != NULL )
 		ExEnableNonClientDpiScaling(GetSafeHwnd());
+
+	SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), FALSE);
+
+	m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
 
 	return 0;
 }
@@ -42,6 +51,72 @@ LRESULT CFrameWndExt::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
+void CFrameWndExt::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
+{
+	if ( lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 )
+		m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
+
+	CFrameWnd::OnSettingChange(uFlags, lpszSection);
+}
+
+LRESULT CFrameWndExt::OnUahDrawMenu(WPARAM wParam, LPARAM lParam)
+{
+	UAHMENU *pUahMenu = (UAHMENU *)lParam;
+	CDC *pDC = CDC::FromHandle(pUahMenu->hdc);
+	MENUBARINFO mbi;
+	CRect rect, rcWindow;
+
+	ASSERT(pUahMenu != NULL && pDC != NULL);
+
+	ZeroMemory(&mbi, sizeof(mbi));
+	mbi.cbSize = sizeof(mbi);
+	GetMenuBarInfo(OBJID_MENU, 0, &mbi);
+
+	GetWindowRect(rcWindow);
+	rect = mbi.rcBar;
+    rect.OffsetRect(-rcWindow.left, -rcWindow.top);
+
+	pDC->FillSolidRect(rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	return TRUE;
+}
+LRESULT CFrameWndExt::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
+{
+	UAHDRAWMENUITEM *pUahDrawMenuItem = (UAHDRAWMENUITEM *)lParam;
+	CMenu *pMenu = CMenu::FromHandle(pUahDrawMenuItem->um.hmenu);
+	int npos = pUahDrawMenuItem->umi.iPosition;
+	UINT state = pUahDrawMenuItem->dis.itemState;
+	CDC *pDC = CDC::FromHandle(pUahDrawMenuItem->dis.hDC);
+	CRect rect = pUahDrawMenuItem->dis.rcItem;
+	DWORD dwFlags = DT_SINGLELINE | DT_VCENTER | DT_CENTER;
+	CString title;
+	COLORREF TextColor = (m_bDarkMode ? GetSysColor(COLOR_WINDOW) : GetSysColor(COLOR_WINDOWTEXT));
+	COLORREF BackColor = (m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	int OldBkMode = pDC->SetBkMode(TRANSPARENT);
+
+	ASSERT(pUahDrawMenuItem != NULL && pDC != NULL && pMenu != NULL);
+	
+	pMenu->GetMenuString(npos, title, MF_BYPOSITION);
+
+	if ( (state & ODS_NOACCEL) != 0 )
+        dwFlags |= DT_HIDEPREFIX;
+
+	if ( (state & (ODS_INACTIVE | ODS_GRAYED | ODS_DISABLED)) != 0 )
+		TextColor = (m_bDarkMode ? GetSysColor(COLOR_GRAYTEXT) : GetSysColor(COLOR_GRAYTEXT));
+
+	if ( (state & (ODS_HOTLIGHT | ODS_SELECTED)) != 0 )
+		BackColor = (m_bDarkMode ? GetSysColor(COLOR_MENUTEXT) : GetSysColor(COLOR_MENU));
+
+	TextColor = pDC->SetTextColor(TextColor);
+	pDC->FillSolidRect(rect, BackColor);
+	pDC->DrawText(title, rect, dwFlags);
+
+	pDC->SetTextColor(TextColor);
+	pDC->SetBkMode(OldBkMode);
+
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
 // CGrapWnd
 
 IMPLEMENT_DYNAMIC(CGrapWnd, CFrameWndExt)
@@ -101,8 +176,8 @@ BOOL CGrapWnd::PreCreateWindow(CREATESTRUCT& cs)
 //	cs.hMenu = ::LoadMenu(cs.hInstance, MAKEINTRESOURCE(IDR_GRAPWND));
 	((CRLoginApp *)::AfxGetApp())->LoadResMenu(MAKEINTRESOURCE(IDR_GRAPWND), cs.hMenu);
 
-	cs.cx = AfxGetApp()->GetProfileInt(_T("GrapWnd"), _T("cx"), 640);
-	cs.cy = AfxGetApp()->GetProfileInt(_T("GrapWnd"), _T("cy"), 480 + 60);
+	cs.cx = AfxGetApp()->GetProfileInt(_T("GrapWnd"), _T("cx"), MulDiv(640,      SYSTEM_DPI_X, DEFAULT_DPI_X));
+	cs.cy = AfxGetApp()->GetProfileInt(_T("GrapWnd"), _T("cy"), MulDiv(480 + 60, SYSTEM_DPI_Y, DEFAULT_DPI_Y));
 
 //	cs.hwndParent = ::AfxGetMainWnd()->m_hWnd;
 	cs.hwndParent = CWnd::GetDesktopWindow()->m_hWnd;
@@ -3716,6 +3791,7 @@ BOOL CGrapWnd::LoadPicture(LPBYTE lpBuf, int len)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CHistogram
 
 CHistogram::CHistogram()
 {

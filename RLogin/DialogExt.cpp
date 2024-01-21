@@ -33,6 +33,62 @@ const CShortCutKey & CShortCutKey::operator = (CShortCutKey &data)
 }
 
 //////////////////////////////////////////////////////////////////////
+
+IMPLEMENT_DYNAMIC(CSizeGrip, CScrollBar)
+
+CSizeGrip::CSizeGrip()
+{
+}
+CSizeGrip::~CSizeGrip()
+{
+}
+
+BEGIN_MESSAGE_MAP(CSizeGrip, CScrollBar)
+    ON_WM_SETCURSOR()
+END_MESSAGE_MAP()
+
+BOOL CSizeGrip::Create(CWnd *pParentWnd, int cx, int cy)
+{
+    CRect frame, rect;
+
+	ASSERT(pParentWnd != NULL);
+
+    pParentWnd->GetClientRect(&frame);
+    
+    rect.left   = frame.right  - cx;
+    rect.right  = frame.right;
+    rect.top    = frame.bottom - cy;
+    rect.bottom = frame.bottom;
+
+    return CScrollBar::Create(WS_CHILD|WS_VISIBLE|SBS_SIZEGRIP, rect, pParentWnd, 0);
+}
+
+void CSizeGrip::ParentReSize(int cx, int cy)
+{
+	CRect frame, rect;
+	CWnd *pParentWnd = GetParent();
+
+	ASSERT(pParentWnd != NULL);
+
+    pParentWnd->GetClientRect(&frame);
+
+    rect.left   = frame.right  - cx;
+    rect.right  = frame.right;
+    rect.top    = frame.bottom - cy;
+    rect.bottom = frame.bottom;
+
+	SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER|SWP_SHOWWINDOW);
+}
+BOOL CSizeGrip::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
+{
+    if ( pWnd == this  &&  nHitTest == HTCLIENT ) {
+        ::SetCursor(::LoadCursor(NULL, IDC_SIZENWSE));
+        return TRUE;
+    }
+    return CScrollBar::OnSetCursor(pWnd, nHitTest, message);
+}
+
+//////////////////////////////////////////////////////////////////////
 // CDialogExt ダイアログ
 
 IMPLEMENT_DYNAMIC(CDialogExt, CDialog)
@@ -41,7 +97,8 @@ CDialogExt::CDialogExt(UINT nIDTemplate, CWnd *pParent)
 	: CDialog(nIDTemplate, pParent)
 {
 	m_nIDTemplate = nIDTemplate;
-	
+	m_bBackWindow = FALSE;
+
 	m_FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
 	m_FontSize = ::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9);
 
@@ -50,8 +107,16 @@ CDialogExt::CDialogExt(UINT nIDTemplate, CWnd *pParent)
 	m_NowDpi = m_InitDpi;
 
 	m_InitDlgRect.RemoveAll();
+	m_MaxSize.SetSize(0, 0);
 	m_MinSize.SetSize(0, 0);
 	m_OfsSize.SetSize(0, 0);
+
+	m_SaveProfile.Empty();
+	m_LoadPosMode = LOADPOS_NONE;
+	m_bGripDisable = FALSE;
+	m_bReSizeDisable = FALSE;
+
+	m_bDarkMode = FALSE;
 }
 CDialogExt::~CDialogExt()
 {
@@ -65,7 +130,134 @@ CDialogExt::~CDialogExt()
 	}
 }
 
-void CDialogExt::InitItemOffset(const INITDLGTAB *pTab, int ox, int oy, int mx, int my)
+static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
+{
+	CWnd *pWnd = CWnd::FromHandle(hWnd);
+	CDialogExt *pParent = (CDialogExt *)lParam;
+	TCHAR name[256];
+
+	if ( ExSetWindowTheme == NULL )
+		return FALSE;
+
+	if ( pWnd->GetParent()->GetSafeHwnd() != pParent->GetSafeHwnd() )
+		return TRUE;
+
+	GetClassName(hWnd, name, 256);
+
+	if ( _tcscmp(name, _T("Button")) == 0 ) {
+		if ( (pWnd->GetStyle() & BS_TYPEMASK) <= BS_DEFPUSHBUTTON )
+			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+		else if ( pParent->m_bDarkMode )
+			ExSetWindowTheme(hWnd, L"", L"");
+		else
+			ExSetWindowTheme(hWnd, NULL, NULL);
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+
+	} else if ( _tcscmp(name, _T("ScrollBar")) == 0 ) {
+		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+	}
+
+	return TRUE;
+}
+static BOOL CALLBACK EnumItemOfsProc(HWND hWnd , LPARAM lParam)
+{
+	int cx, cy;
+	int id, mode;
+	int style = 0;
+	CWnd *pWnd = CWnd::FromHandle(hWnd);
+	CDialogExt *pParent = (CDialogExt *)lParam;
+	CRect rect;
+	WINDOWPLACEMENT place;
+	INITDLGRECT dlgtmp;
+	TCHAR name[256];
+
+	if ( pWnd->GetParent()->GetSafeHwnd() != pParent->GetSafeHwnd() )
+		return TRUE;
+
+	pParent->GetClientRect(rect);
+	cx = rect.Width();
+	cy = rect.Height();
+
+	GetClassName(hWnd, name, 256);
+	pWnd->GetWindowPlacement(&place);
+	id = pWnd->GetDlgCtrlID();
+
+//	TRACE(_T("%s\n"), name);
+
+	if ( id == IDC_STATIC || _tcscmp(name, _T("Static")) == 0 ) {
+		switch(pWnd->GetStyle() & SS_TYPEMASK) {
+		case SS_ICON:
+		case SS_BITMAP:
+			style = 2;
+			break;
+		case SS_BLACKRECT:
+		case SS_GRAYRECT:
+		case SS_WHITERECT:
+		case SS_BLACKFRAME:
+		case SS_GRAYFRAME:
+		case SS_WHITEFRAME:
+		case SS_OWNERDRAW:
+			style = 1;
+			break;
+		}
+
+	} else if ( _tcscmp(name, _T("SysListView32")) == 0 || _tcscmp(name, _T("SysTreeView32")) == 0 || _tcscmp(name, _T("msctls_trackbar32")) == 0 ) {
+		style = 1;
+
+	} else if ( _tcscmp(name, _T("Edit")) == 0 ) {
+		if ( (pWnd->GetStyle() & WS_VSCROLL) != 0 )
+			style = 1;
+
+	} else if ( _tcscmp(name, _T("ScrollBar")) == 0 )
+		return TRUE;
+
+	switch(style) {
+	case 0:		// bottom固定
+		rect.left   = place.rcNormalPosition.left   * ITM_PER_MAX / cx;
+		rect.right  = place.rcNormalPosition.right  * ITM_PER_MAX / cx;
+		rect.top    = place.rcNormalPosition.top    * ITM_PER_MAX / cy;
+		rect.bottom = place.rcNormalPosition.bottom - place.rcNormalPosition.top;
+		mode = ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_OFS;
+		break;
+	case 1:		// すべて
+		rect.left   = place.rcNormalPosition.left   * ITM_PER_MAX / cx;
+		rect.right  = place.rcNormalPosition.right  * ITM_PER_MAX / cx;
+		rect.top    = place.rcNormalPosition.top    * ITM_PER_MAX / cy;
+		rect.bottom = place.rcNormalPosition.bottom * ITM_PER_MAX / cy;
+		mode = ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_PER | ITM_BTM_PER;
+		break;
+	case 2:		// right,bottom固定
+		rect.left   = place.rcNormalPosition.left   * ITM_PER_MAX / cx;
+		rect.right  = place.rcNormalPosition.right  - place.rcNormalPosition.left;
+		rect.top    = place.rcNormalPosition.top    * ITM_PER_MAX / cy;
+		rect.bottom = place.rcNormalPosition.bottom - place.rcNormalPosition.top;
+		mode = ITM_LEFT_PER | ITM_RIGHT_OFS | ITM_TOP_PER | ITM_BTM_OFS;
+		break;
+	}
+
+	dlgtmp.id   = id;
+	dlgtmp.hWnd = hWnd;
+	dlgtmp.mode = mode;
+	dlgtmp.rect = rect;
+
+	pParent->m_InitDlgRect.Add(dlgtmp);
+
+	return TRUE;
+}
+void CDialogExt::DefItemOffset()
+{
+	CRect rect;
+
+	if ( m_InitDlgRect.GetSize() > 0 )
+		return;
+
+	GetWindowRect(rect);
+	m_MinSize.SetSize(rect.Width(), rect.Height());
+
+	EnumChildWindows(GetSafeHwnd(), EnumItemOfsProc, (LPARAM)this);
+}
+void CDialogExt::InitItemOffset(const INITDLGTAB *pTab, int ox, int oy, int nx, int ny, int mx, int my)
 {
 	int n;
 	int cx, cy;
@@ -75,13 +267,15 @@ void CDialogExt::InitItemOffset(const INITDLGTAB *pTab, int ox, int oy, int mx, 
 	INITDLGRECT dlgtmp;
 
 	GetWindowRect(rect);
-	if ( mx <= 0 )
-		mx = rect.Width();
-	if ( my <= 0 )
-		my = rect.Height();
 
-	m_MinSize.SetSize(mx, my);
+	if ( nx <= 0 )
+		nx = rect.Width();
+	if ( ny <= 0 )
+		ny = rect.Height();
+
 	m_OfsSize.SetSize(ox, oy);
+	m_MinSize.SetSize(nx, ny);
+	m_MaxSize.SetSize(mx, my);
 
 	GetClientRect(frame);			// frame.left == 0, frame.top == 0 
 	cx = frame.Width();
@@ -95,44 +289,81 @@ void CDialogExt::InitItemOffset(const INITDLGTAB *pTab, int ox, int oy, int mx, 
 		if ( (pWnd = GetDlgItem(pTab[n].id)) != NULL ) {
 			pWnd->GetWindowPlacement(&place);
 
-			if ( pTab[n].mode & ITM_LEFT_MID )
-				rect.left = place.rcNormalPosition.left - cx / 2;
-			else if ( pTab[n].mode & ITM_LEFT_RIGHT )
-				rect.left = place.rcNormalPosition.left - cx;
-			else if ( pTab[n].mode & ITM_LEFT_PER )
-				rect.left = place.rcNormalPosition.left * ITM_PER_MAX / cx;
-			else
+			switch(pTab[n].mode & 00007) {
+			case ITM_LEFT_LEFT:
 				rect.left = place.rcNormalPosition.left;
+				break;
+			case ITM_LEFT_MID:
+				rect.left = place.rcNormalPosition.left - cx / 2;
+				break;
+			case ITM_LEFT_RIGHT:
+				rect.left = place.rcNormalPosition.left - cx;
+				break;
+			case ITM_LEFT_PER:
+				rect.left = place.rcNormalPosition.left * ITM_PER_MAX / cx;
+				break;
+			case ITM_LEFT_OFS:
+				rect.left = place.rcNormalPosition.right - place.rcNormalPosition.left;
+				break;
+			}
 
-			if ( pTab[n].mode & ITM_RIGHT_MID )
-				rect.right = place.rcNormalPosition.right - cx/ 2;
-			else if ( pTab[n].mode & ITM_RIGHT_RIGHT )
-				rect.right = place.rcNormalPosition.right - cx;
-			else if ( pTab[n].mode & ITM_RIGHT_PER )
-				rect.right = place.rcNormalPosition.right * ITM_PER_MAX /  cx;
-			else
+			switch(pTab[n].mode & 00070) {
+			case ITM_RIGHT_LEFT:
 				rect.right = place.rcNormalPosition.right;
+				break;
+			case ITM_RIGHT_MID:
+				rect.right = place.rcNormalPosition.right - cx/ 2;
+				break;
+			case ITM_RIGHT_RIGHT:
+				rect.right = place.rcNormalPosition.right - cx;
+				break;
+			case ITM_RIGHT_PER:
+				rect.right = place.rcNormalPosition.right * ITM_PER_MAX /  cx;
+				break;
+			case ITM_RIGHT_OFS:
+				rect.right = place.rcNormalPosition.right - place.rcNormalPosition.left;
+				break;
+			}
 
-			if ( pTab[n].mode & ITM_TOP_MID )
-				rect.top = place.rcNormalPosition.top - cy / 2;
-			else if ( pTab[n].mode & ITM_TOP_BTM )
-				rect.top = place.rcNormalPosition.top - cy;
-			else if ( pTab[n].mode & ITM_TOP_PER )
-				rect.top = place.rcNormalPosition.top * ITM_PER_MAX / cy;
-			else
+			switch(pTab[n].mode & 00700) {
+			case ITM_TOP_TOP:
 				rect.top = place.rcNormalPosition.top;
+				break;
+			case ITM_TOP_MID:
+				rect.top = place.rcNormalPosition.top - cy / 2;
+				break;
+			case ITM_TOP_BTM:
+				rect.top = place.rcNormalPosition.top - cy;
+				break;
+			case ITM_TOP_PER:
+				rect.top = place.rcNormalPosition.top * ITM_PER_MAX / cy;
+				break;
+			case ITM_TOP_OFS:
+				rect.top = place.rcNormalPosition.bottom - place.rcNormalPosition.top;
+				break;
+			}
 
-			if ( pTab[n].mode & ITM_BTM_MID )
-				rect.bottom = place.rcNormalPosition.bottom - cy / 2;
-			else if ( pTab[n].mode & ITM_BTM_BTM )
-				rect.bottom = place.rcNormalPosition.bottom - cy;
-			else if ( pTab[n].mode & ITM_BTM_PER )
-				rect.bottom = place.rcNormalPosition.bottom * ITM_PER_MAX / cy;
-			else
+			switch(pTab[n].mode & 07000) {
+			case ITM_BTM_TOP:
 				rect.bottom = place.rcNormalPosition.bottom;
+				break;
+			case ITM_BTM_MID:
+				rect.bottom = place.rcNormalPosition.bottom - cy / 2;
+				break;
+			case ITM_BTM_BTM:
+				rect.bottom = place.rcNormalPosition.bottom - cy;
+				break;
+			case ITM_BTM_PER:
+				rect.bottom = place.rcNormalPosition.bottom * ITM_PER_MAX / cy;
+				break;
+			case ITM_BTM_OFS:
+				rect.bottom = place.rcNormalPosition.bottom - place.rcNormalPosition.top;
+				break;
+			}
 		}
 
 		dlgtmp.id   = pTab[n].id;
+		dlgtmp.hWnd = NULL;
 		dlgtmp.mode = pTab[n].mode;
 		dlgtmp.rect = rect;
 		m_InitDlgRect.Add(dlgtmp);
@@ -146,62 +377,100 @@ void CDialogExt::SetItemOffset(int cx, int cy)
 
 	for ( n = 0 ; n < (int)m_InitDlgRect.GetSize() ; n++ ) {
 
-		if ( (pWnd = GetDlgItem(m_InitDlgRect[n].id)) == NULL )
+		if ( m_InitDlgRect[n].hWnd != NULL )
+			pWnd = CWnd::FromHandle(m_InitDlgRect[n].hWnd);
+		else
+			pWnd = GetDlgItem(m_InitDlgRect[n].id);
+
+		if ( pWnd == NULL )
 			continue;
 
 		pWnd->GetWindowPlacement(&place);
 
 		i = m_InitDlgRect[n].rect.left * m_NowDpi.cx / m_InitDpi.cx;
 
-		if ( m_InitDlgRect[n].mode & ITM_LEFT_MID )
-			place.rcNormalPosition.left = i + cx / 2;
-		else if ( m_InitDlgRect[n].mode & ITM_LEFT_RIGHT )
-			place.rcNormalPosition.left = i + cx;
-		else if ( m_InitDlgRect[n].mode & ITM_LEFT_PER )
-			place.rcNormalPosition.left = cx * m_InitDlgRect[n].rect.left / ITM_PER_MAX;
-		else
+		switch(m_InitDlgRect[n].mode & 00007) {
+		case 0:
 			place.rcNormalPosition.left = i + m_OfsSize.cx;
+			break;
+		case ITM_LEFT_MID:
+			place.rcNormalPosition.left = i + cx / 2;
+			break;
+		case ITM_LEFT_RIGHT:
+			place.rcNormalPosition.left = i + cx;
+			break;
+		case ITM_LEFT_PER:
+			place.rcNormalPosition.left = cx * m_InitDlgRect[n].rect.left / ITM_PER_MAX;
+			break;
+		}
 
 		i = m_InitDlgRect[n].rect.right * m_NowDpi.cx / m_InitDpi.cx;
 
-		if ( m_InitDlgRect[n].mode & ITM_RIGHT_MID )
-			place.rcNormalPosition.right = i + cx / 2;
-		else if ( m_InitDlgRect[n].mode & ITM_RIGHT_RIGHT )
-			place.rcNormalPosition.right = i + cx;
-		else if ( m_InitDlgRect[n].mode & ITM_RIGHT_PER )
-			place.rcNormalPosition.right = cx * m_InitDlgRect[n].rect.right / ITM_PER_MAX;
-		else
+		switch(m_InitDlgRect[n].mode & 00070) {
+		case 0:
 			place.rcNormalPosition.right = i + m_OfsSize.cx;
+			break;
+		case ITM_RIGHT_MID:
+			place.rcNormalPosition.right = i + cx / 2;
+			break;
+		case ITM_RIGHT_RIGHT:
+			place.rcNormalPosition.right = i + cx;
+			break;
+		case ITM_RIGHT_PER:
+			place.rcNormalPosition.right = cx * m_InitDlgRect[n].rect.right / ITM_PER_MAX;
+			break;
+		case ITM_RIGHT_OFS:
+			place.rcNormalPosition.right = place.rcNormalPosition.left + i;
+			break;
+		}
+
+		if ( (m_InitDlgRect[n].mode & 00007) == ITM_LEFT_OFS )
+			place.rcNormalPosition.left = place.rcNormalPosition.right - m_InitDlgRect[n].rect.left * m_NowDpi.cx / m_InitDpi.cx;
 
 		i = m_InitDlgRect[n].rect.top * m_NowDpi.cy / m_InitDpi.cy;
 
-		if ( m_InitDlgRect[n].mode & ITM_TOP_MID )
-			place.rcNormalPosition.top = i + cy / 2;
-		else if ( m_InitDlgRect[n].mode & ITM_TOP_BTM )
-			place.rcNormalPosition.top = i + cy;
-		else if ( m_InitDlgRect[n].mode & ITM_TOP_PER )
-			place.rcNormalPosition.top = cy * m_InitDlgRect[n].rect.top / ITM_PER_MAX;
-		else
+		switch(m_InitDlgRect[n].mode & 00700) {
+		case 0:
 			place.rcNormalPosition.top = i + m_OfsSize.cy;
+			break;
+		case ITM_TOP_MID:
+			place.rcNormalPosition.top = i + cy / 2;
+			break;
+		case ITM_TOP_BTM:
+			place.rcNormalPosition.top = i + cy;
+			break;
+		case ITM_TOP_PER:
+			place.rcNormalPosition.top = cy * m_InitDlgRect[n].rect.top / ITM_PER_MAX;
+			break;
+		}
 
 		i = m_InitDlgRect[n].rect.bottom * m_NowDpi.cy / m_InitDpi.cy;
 
-		if ( m_InitDlgRect[n].mode & ITM_BTM_MID )
-			place.rcNormalPosition.bottom = i + cy / 2;
-		else if ( m_InitDlgRect[n].mode & ITM_BTM_BTM )
-			place.rcNormalPosition.bottom = i + cy;
-		else if ( m_InitDlgRect[n].mode & ITM_BTM_PER )
-			place.rcNormalPosition.bottom = cy * m_InitDlgRect[n].rect.bottom / ITM_PER_MAX;
-		else
+		switch(m_InitDlgRect[n].mode & 07000) {
+		case 0:
 			place.rcNormalPosition.bottom = i + m_OfsSize.cy;
+			break;
+		case ITM_BTM_MID:
+			place.rcNormalPosition.bottom = i + cy / 2;
+			break;
+		case ITM_BTM_BTM:
+			place.rcNormalPosition.bottom = i + cy;
+			break;
+		case ITM_BTM_PER:
+			place.rcNormalPosition.bottom = cy * m_InitDlgRect[n].rect.bottom / ITM_PER_MAX;
+			break;
+		case ITM_BTM_OFS:
+			place.rcNormalPosition.bottom = place.rcNormalPosition.top + i;
+			break;
+		}
+
+		if ( (m_InitDlgRect[n].mode & 00700) == ITM_TOP_OFS )
+			place.rcNormalPosition.top = place.rcNormalPosition.bottom - m_InitDlgRect[n].rect.top * m_NowDpi.cy / m_InitDpi.cy;
+
+		place.showCmd = (!IsWindowVisible() || pWnd->IsWindowVisible() ? SW_SHOW : SW_HIDE);
 
 		pWnd->SetWindowPlacement(&place);
 	}
-}
-
-void CDialogExt::SetBackColor(COLORREF color)
-{
-	m_BkBrush.CreateSolidBrush(color);
 }
 
 void CDialogExt::GetActiveDpi(CSize &dpi, CWnd *pWnd, CWnd *pParent)
@@ -342,6 +611,65 @@ void CDialogExt::CheckMoveWindow(CRect &rect, BOOL bRepaint)
 #endif
 
 	MoveWindow(rect, bRepaint);
+}
+void CDialogExt::LoadSaveDialogSize(BOOL bSave)
+{
+	CRect rect;
+	int sx, sy;
+	int cx, cy;
+	CWnd *pWnd;
+
+	GetWindowRect(rect);
+
+	if ( bSave ) {
+		AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X, m_NowDpi.cx));
+		AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y, m_NowDpi.cy));
+
+		if ( m_LoadPosMode == LOADPOS_PROFILE ) {
+			AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("sx"), MulDiv(rect.left, DEFAULT_DPI_X, m_NowDpi.cx));
+			AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("sy"), MulDiv(rect.top,  DEFAULT_DPI_Y, m_NowDpi.cy));
+		}
+
+	} else {
+		cx = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X, m_NowDpi.cx));
+		cy = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y, m_NowDpi.cy));
+
+		cx = MulDiv(cx, m_NowDpi.cx, DEFAULT_DPI_X);
+		cy = MulDiv(cy, m_NowDpi.cy, DEFAULT_DPI_Y);
+
+		if ( cx < rect.Width() )
+			cx = rect.Width();
+		if ( cy < rect.Height() )
+			cy = rect.Height();
+
+		sx = rect.left;
+		sy = rect.top;
+
+		switch(m_LoadPosMode) {
+		case LOADPOS_PROFILE:
+			sx = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("sx"), MulDiv(rect.left, DEFAULT_DPI_X, m_NowDpi.cx));
+			sy = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("sy"), MulDiv(rect.top,  DEFAULT_DPI_Y, m_NowDpi.cy));
+			sx = MulDiv(sx, m_NowDpi.cx, DEFAULT_DPI_X);
+			sy = MulDiv(sy, m_NowDpi.cy, DEFAULT_DPI_Y);
+			break;
+		case LOADPOS_PARENT:
+			if ( (pWnd = GetParent()) != NULL ) {
+				pWnd->GetWindowRect(rect);
+				sx = rect.left + (rect.Width()  - cx) / 2;
+				sy = rect.top  + (rect.Height() - cy) / 2;
+			}
+			break;
+		case LOADPOS_MAINWND:
+			if ( (pWnd = ::AfxGetMainWnd()) != NULL ) {
+				pWnd->GetWindowRect(rect);
+				sx = rect.left + (rect.Width()  - cx) / 2;
+				sy = rect.top  + (rect.Height() - cy) / 2;
+			}
+			break;
+		}
+
+		CheckMoveWindow(sx, sy, cx, cy, FALSE);
+	}
 }
 
 #pragma pack(push, 1)
@@ -535,14 +863,18 @@ void CDialogExt::AddShortCutKey(UINT MsgID, UINT KeyCode, UINT KeyWith, UINT Ctr
 }
 
 BEGIN_MESSAGE_MAP(CDialogExt, CDialog)
+	ON_WM_CREATE()
+	ON_WM_DESTROY()
+	ON_WM_SIZE()
+	ON_WM_SIZING()
 	ON_WM_CTLCOLOR()
+	ON_WM_INITMENUPOPUP()
+	ON_WM_SETTINGCHANGE()
 	ON_MESSAGE(WM_KICKIDLE, OnKickIdle)
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 	ON_MESSAGE(WM_INITDIALOG, HandleInitDialog)
-	ON_WM_CREATE()
-	ON_WM_INITMENUPOPUP()
-	ON_WM_SIZE()
-	ON_WM_SIZING()
+	ON_MESSAGE(WM_UAHDRAWMENU, OnUahDrawMenu)
+	ON_MESSAGE(WM_UAHDRAWMENUITEM, OnUahDrawMenuItem)
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
@@ -552,25 +884,27 @@ afx_msg HBRUSH CDialogExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
 	HBRUSH hbr = CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
 
-	if ( m_BkBrush.m_hObject == NULL )
-		return hbr;
-
 	switch(nCtlColor) {
-	case CTLCOLOR_BTN:			// Button control
-	case CTLCOLOR_SCROLLBAR:	// Scroll-bar control
-	case CTLCOLOR_LISTBOX:		// List-box control
 	case CTLCOLOR_MSGBOX:		// Message box
 	case CTLCOLOR_EDIT:			// Edit control
+	case CTLCOLOR_LISTBOX:		// List-box control
+	case CTLCOLOR_BTN:			// Button control
 		break;
 
 	case CTLCOLOR_DLG:			// Dialog box
-		hbr = m_BkBrush;
-		break;
-
+	case CTLCOLOR_SCROLLBAR:
 	case CTLCOLOR_STATIC:		// Static control
-		hbr = m_BkBrush;
+		if ( m_bDarkMode && m_DarkBrush.m_hObject != NULL ) {
+			hbr = m_DarkBrush;
+			pDC->SetTextColor(GetSysColor(COLOR_WINDOW));
+		} else if ( m_bBackWindow ) {
+			hbr = GetSysColorBrush(COLOR_WINDOW);
+			pDC->SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
+		} else {
+			hbr = GetSysColorBrush(COLOR_MENU);
+			pDC->SetTextColor(GetSysColor(COLOR_MENUTEXT));
+		}
 		pDC->SetBkMode(TRANSPARENT);
-//		pDC->SetBkColor(GetSysColor(COLOR_WINDOW));
 		break;
 	}
 
@@ -692,18 +1026,34 @@ BOOL CDialogExt::PreTranslateMessage(MSG* pMsg)
 LRESULT CDialogExt::HandleInitDialog(WPARAM wParam, LPARAM lParam)
 {
 	CSize dpi;
+	CRect rect, client;
 	LRESULT result = CDialog::HandleInitDialog(wParam, lParam);
 
 	GetActiveDpi(dpi, this, GetParent());
 
 	if ( m_NowDpi.cx != dpi.cx || m_NowDpi.cy != dpi.cy ) {
-		CRect rect, client;
 		GetWindowRect(rect);
 		GetClientRect(client);
 		rect.right  += (MulDiv(client.Width(),  dpi.cx, m_InitDpi.cx) - client.Width());
 		rect.bottom += (MulDiv(client.Height(), dpi.cy, m_InitDpi.cy) - client.Height());
 		SendMessage(WM_DPICHANGED, MAKEWPARAM(dpi.cx, dpi.cy), (LPARAM)((RECT *)rect));
 	}
+
+	if ( !m_bReSizeDisable && (GetStyle() & WS_SIZEBOX) != 0 ) {
+		if ( m_InitDlgRect.GetSize() == 0 ) {
+			DefItemOffset();
+			//if ( m_SaveProfile.IsEmpty() ) {
+			//	CRuntimeClass *pClass = GetRuntimeClass();
+			//	if ( pClass != NULL && pClass->m_lpszClassName[0] == _T('C') )
+			//		m_SaveProfile = pClass->m_lpszClassName + 1;
+			//}
+		}
+
+		if ( !m_SaveProfile.IsEmpty() )
+			LoadSaveDialogSize(FALSE);
+	}
+
+	EnumChildWindows(GetSafeHwnd(), EnumSetThemeProc, (LPARAM)this);
 
 	return result;
 }
@@ -742,6 +1092,14 @@ int CDialogExt::OnCreate(LPCREATESTRUCT lpCreateStruct)
 			MoveWindow(frame, FALSE);
 		}
 	}
+
+	SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), FALSE);
+
+	if ( !m_bGripDisable && (lpCreateStruct->style & WS_SIZEBOX) != 0 )
+		m_SizeGrip.Create(this, GRIP_SIZE_CX, GRIP_SIZE_CY);
+
+	m_DarkBrush.CreateSolidBrush(DARKMODE_BACKCOLOR);
+	m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
 
 	return 0;
 }
@@ -831,8 +1189,11 @@ void CDialogExt::OnSize(UINT nType, int cx, int cy)
 {
 	if ( m_InitDlgRect.GetSize() > 0 && nType != SIZE_MINIMIZED ) {
 		SetItemOffset(cx, cy);
-		Invalidate(FALSE);
+		Invalidate(TRUE);
 	}
+
+	if ( m_SizeGrip.GetSafeHwnd() != NULL )
+		m_SizeGrip.ParentReSize(GRIP_SIZE_CX, GRIP_SIZE_CY);
 
 	CDialog::OnSize(nType, cx, cy);
 }
@@ -858,5 +1219,100 @@ void CDialogExt::OnSizing(UINT fwSide, LPRECT pRect)
 		}
 	}
 
+	if ( m_MaxSize.cx > 0 || m_MaxSize.cy > 0 ) {
+		int width  = MulDiv(m_MaxSize.cx, m_NowDpi.cx, m_InitDpi.cx);
+		int height = MulDiv(m_MaxSize.cy, m_NowDpi.cy, m_InitDpi.cy);
+
+		if ( m_MaxSize.cx > 0 && (pRect->right - pRect->left) > width ) {
+			if ( fwSide == WMSZ_LEFT || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT )
+				pRect->left = pRect->right - width;
+			else
+				pRect->right = pRect->left + width;
+		}
+
+		if ( m_MaxSize.cy > 0 && (pRect->bottom - pRect->top) > height ) {
+			if ( fwSide == WMSZ_TOP || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT )
+				pRect->top = pRect->bottom - height;
+			else
+				pRect->bottom = pRect->top + height;
+		}
+	}
+
 	CDialog::OnSizing(fwSide, pRect);
+}
+
+void CDialogExt::OnDestroy()
+{
+	if ( !m_SaveProfile.IsEmpty() && !IsIconic() && !IsZoomed() )
+		LoadSaveDialogSize(TRUE);
+
+	CDialog::OnDestroy();
+}
+
+void CDialogExt::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
+{
+	if ( lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 ) {
+		m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
+		EnumChildWindows(GetSafeHwnd(), EnumSetThemeProc, (LPARAM)this);
+		RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_FRAME | RDW_ERASE);
+	}
+
+	CDialog::OnSettingChange(uFlags, lpszSection);
+}
+
+LRESULT CDialogExt::OnUahDrawMenu(WPARAM wParam, LPARAM lParam)
+{
+	UAHMENU *pUahMenu = (UAHMENU *)lParam;
+	CDC *pDC = CDC::FromHandle(pUahMenu->hdc);
+	MENUBARINFO mbi;
+	CRect rect, rcWindow;
+
+	ASSERT(pUahMenu != NULL && pDC != NULL);
+
+	ZeroMemory(&mbi, sizeof(mbi));
+	mbi.cbSize = sizeof(mbi);
+	GetMenuBarInfo(GetSafeHwnd(), OBJID_MENU, 0, &mbi);
+
+	GetWindowRect(rcWindow);
+	rect = mbi.rcBar;
+    rect.OffsetRect(-rcWindow.left, -rcWindow.top);
+
+	pDC->FillSolidRect(rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	return TRUE;
+}
+LRESULT CDialogExt::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
+{
+	UAHDRAWMENUITEM *pUahDrawMenuItem = (UAHDRAWMENUITEM *)lParam;
+	CMenu *pMenu = CMenu::FromHandle(pUahDrawMenuItem->um.hmenu);
+	int npos = pUahDrawMenuItem->umi.iPosition;
+	UINT state = pUahDrawMenuItem->dis.itemState;
+	CDC *pDC = CDC::FromHandle(pUahDrawMenuItem->dis.hDC);
+	CRect rect = pUahDrawMenuItem->dis.rcItem;
+	DWORD dwFlags = DT_SINGLELINE | DT_VCENTER | DT_CENTER;
+	CString title;
+	COLORREF TextColor = (m_bDarkMode ? GetSysColor(COLOR_WINDOW) : GetSysColor(COLOR_WINDOWTEXT));
+	COLORREF BackColor = (m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	int OldBkMode = pDC->SetBkMode(TRANSPARENT);
+
+	ASSERT(pUahDrawMenuItem != NULL && pDC != NULL && pMenu != NULL);
+	
+	pMenu->GetMenuString(npos, title, MF_BYPOSITION);
+
+	if ( (state & ODS_NOACCEL) != 0 )
+        dwFlags |= DT_HIDEPREFIX;
+
+	if ( (state & (ODS_INACTIVE | ODS_GRAYED | ODS_DISABLED)) != 0 )
+		TextColor = (m_bDarkMode ? GetSysColor(COLOR_GRAYTEXT) : GetSysColor(COLOR_GRAYTEXT));
+
+	if ( (state & (ODS_HOTLIGHT | ODS_SELECTED)) != 0 )
+		BackColor = (m_bDarkMode ? GetSysColor(COLOR_MENUTEXT) : GetSysColor(COLOR_MENU));
+
+	TextColor = pDC->SetTextColor(TextColor);
+	pDC->FillSolidRect(rect, BackColor);
+	pDC->DrawText(title, rect, dwFlags);
+
+	pDC->SetTextColor(TextColor);
+	pDC->SetBkMode(OldBkMode);
+
+	return TRUE;
 }

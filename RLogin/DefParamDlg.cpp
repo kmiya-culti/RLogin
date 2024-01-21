@@ -134,6 +134,8 @@ BOOL CDefParamDlg::OnInitDialog()
 
 	UpdateData(FALSE);
 
+	SetSaveProfile(_T("DefParamDlg"));
+
 	return TRUE;
 }
 

@@ -61,6 +61,10 @@
 
 #define	MAX_COMPUTERNAME	64		// MAX_COMPUTERNAME_LENGTH = 15 == MIN_COMPUTERNAME_LENGTH ?
 
+#define	SYSTEMICONV			(LPCTSTR)SystemIconv
+
+#define	DARKMODE_BACKCOLOR	RGB(56, 56, 56)
+
 //////////////////////////////////////////////////////////////////////
 // CCommandLineInfoEx
 
@@ -203,6 +207,7 @@ public:
 	void RegisterShellProtocol(LPCTSTR pProtocol, LPCTSTR pOption);
 	BOOL RegisterGetStr(HKEY hKey, LPCTSTR pSection, LPCTSTR pEntryName, CString &str);
 	BOOL RegisterSetStr(HKEY hKey, LPCTSTR pSection, LPCTSTR pEntryName, LPCTSTR str, BOOL bCreate = TRUE);
+	BOOL RegisterGetDword(HKEY hKey, LPCTSTR pSection, LPCTSTR pEntryName, DWORD *pDword);
 	BOOL RegisterSetDword(HKEY hKey, LPCTSTR pSection, LPCTSTR pEntryName, DWORD dword, BOOL bCreate = TRUE);
 	void RegisterDelete(HKEY hKey, LPCTSTR pSection, LPCTSTR pKey);
 	void RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
@@ -316,9 +321,11 @@ public:
 
 extern CRLoginApp theApp;
 extern BOOL CompNameLenBugFix;
+extern CString SystemIconv;
 
 extern BOOL ExDwmEnable;
 extern void ExDwmEnableWindow(HWND hWnd, BOOL bEnable);
+extern BOOL ExDwmDarkMode(HWND hWnd);
 
 extern BOOL (__stdcall *ExAddClipboardFormatListener)(HWND hwnd);
 extern BOOL (__stdcall *ExRemoveClipboardFormatListener)(HWND hwnd);
@@ -352,6 +359,11 @@ extern INT_PTR DpiAwareDoModal(CCommonDialog &dlg, int req = REQDPICONTEXT_AWARE
 extern void DpiAwareSwitch(BOOL sw, int req = REQDPICONTEXT_AWAREV2);
 
 extern BOOL (WINAPI *ExCancelIoEx)(HANDLE hFile, LPOVERLAPPED lpOverlapped);
+
+extern BOOL (__stdcall *AllowDarkModeForApp)(int mode);
+extern HRESULT (__stdcall *ExSetWindowTheme)(HWND hwnd, LPCWSTR pszSubAppName, LPCWSTR pszSubIdList);
+extern HTHEME (__stdcall *ExOpenThemeData)(HWND hwnd, LPCWSTR pszClassList);
+extern HRESULT (__stdcall *ExCloseThemeData)(HTHEME hTheme);
 
 #ifdef	USE_OLE
 extern CLIPFORMAT CF_FILEDESCRIPTOR;

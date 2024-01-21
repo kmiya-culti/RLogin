@@ -16,6 +16,7 @@
 #include "AnyPastDlg.h"
 #include "TtyModeDlg.h"
 #include "Fifo.h"
+#include "afxglobals.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -805,6 +806,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_MOVING()
 	ON_WM_GETMINMAXINFO()
 	ON_WM_INITMENU()
+	ON_WM_SETTINGCHANGE()
 
 	ON_MESSAGE(WM_ICONMSG, OnIConMsg)
 	ON_MESSAGE(WM_THREADCMD, OnThreadMsg)
@@ -900,6 +902,10 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 
 	ON_COMMAND(IDM_CHARTOOLTIP, &CMainFrame::OnChartooltip)
 	ON_UPDATE_COMMAND_UI(IDM_CHARTOOLTIP, &CMainFrame::OnUpdateChartooltip)
+
+	ON_MESSAGE(WM_UAHDRAWMENU, OnUahDrawMenu)
+	ON_MESSAGE(WM_UAHDRAWMENUITEM, OnUahDrawMenuItem)
+
 	END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -1003,6 +1009,8 @@ CMainFrame::~CMainFrame()
 		Sleep(300);
 }
 
+/////////////////////////////////////////////////////////////////////////////
+
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
 	int n;
@@ -1094,7 +1102,21 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CDockContextEx::EnableDocking(&m_wndTabDlgBar, CBRS_ALIGN_ANY);
 	CDockContextEx::EnableDocking(&m_wndVoiceBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 
+	// CDockBarExを先に登録
+	for ( int i = 0 ; i < 4 ; i++ ) {
+		CDockBarEx *pDock = new CDockBarEx;
+		pDock->Create(this, WS_CLIPSIBLINGS|WS_CLIPCHILDREN|WS_CHILD|WS_VISIBLE | dwDockBarMap[i][1], dwDockBarMap[i][0]);
+	}
+
 	EnableDocking(CBRS_ALIGN_ANY);
+	m_pFloatingFrameClass = RUNTIME_CLASS(CMiniDockFrameWndEx);
+
+#if 0
+	// Themeのテスト
+	m_wndToolBar.m_hReBarTheme = ExOpenThemeData(m_wndToolBar.GetSafeHwnd(), L"TOOLBAR");
+	m_wndSubToolBar.m_hReBarTheme = ExOpenThemeData(m_wndSubToolBar.GetSafeHwnd(), L"TOOLBAR");
+	m_wndStatusBar.m_hReBarTheme = ExOpenThemeData(m_wndStatusBar.GetSafeHwnd(), L"STATUS");
+#endif
 
 	DockControlBar(&m_wndToolBar);
 	DockControlBar(&m_wndSubToolBar);
@@ -1187,8 +1209,10 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_DefKeyTab.CmdsInit();
 
 	// ヒストリーウィンドウを復帰
-	if ( AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("HistoryDlg"), FALSE) )
+	if ( m_bTabDlgBarShow && AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("HistoryDlg"), FALSE) )
 		PostMessage(WM_COMMAND, IDM_HISTORYDLG);
+
+	m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
 
 	return 0;
 }
@@ -1292,6 +1316,9 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 		DestroyMenu(cs.hMenu);
 		((CRLoginApp *)::AfxGetApp())->LoadResMenu(MAKEINTRESOURCE(IDR_MAINFRAME), cs.hMenu);
 	}
+	
+	//cs.style &= ~(WS_BORDER | WS_DLGFRAME | WS_THICKFRAME);
+	//cs.dwExStyle &= ~WS_EX_CLIENTEDGE;
 
 	//TRACE("Main Style ");
 	//if ( (cs.style & WS_BORDER) != NULL ) TRACE("WS_BORDER ");
@@ -2267,7 +2294,7 @@ void CMainFrame::ClipBoradStr(LPCWSTR str, CString &tmp)
 		if ( *str == L'\n' )
 			n--;
 		else if ( *str == L'\r' )
-			tmp += _T("↓");
+			tmp += UniToTstr(L"\u2193");	// _T("↓");
 		else if ( *str == L'\x7F' || *str < L' ' || *str == L'&' || *str == L'\\' )
 			tmp += _T('.');
 		else if ( *str >= 256 ) {
@@ -3743,8 +3770,10 @@ void CMainFrame::OnViewMenubar()
 	if ( pChild != NULL )
 		pChild->OnUpdateFrameMenu(m_bMenuBarShow, pChild, NULL);
 
-	if ( m_bMenuBarShow )
-		pMenu = GetMenu();
+	if ( m_bMenuBarShow ) {
+		if ( (pMenu = GetMenu()) == NULL && m_StartMenuHand != NULL )
+			pMenu = CMenu::FromHandle(m_StartMenuHand);
+	}
 
 	SetMenu(pMenu);
 }
@@ -4075,6 +4104,13 @@ void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
 			}
 		}
 	}
+}
+void CMainFrame::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
+{
+	if ( lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 )
+		m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
+
+	CMDIFrameWnd::OnSettingChange(uFlags, lpszSection);
 }
 
 void CMainFrame::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
@@ -4582,1505 +4618,63 @@ LRESULT CMainFrame::OnDocumentMsg(WPARAM wParam, LPARAM lParam)
 
 	return TRUE;
 }
-
 /////////////////////////////////////////////////////////////////////////////
-// CDockContextEx
 
-CDockContextEx::CDockContextEx(CControlBar *pBar) : CDockContext(pBar)
+LRESULT CMainFrame::OnUahDrawMenu(WPARAM wParam, LPARAM lParam)
 {
+	UAHMENU *pUahMenu = (UAHMENU *)lParam;
+	CDC *pDC = CDC::FromHandle(pUahMenu->hdc);
+	MENUBARINFO mbi;
+	CRect rect, rcWindow;
+
+	ASSERT(pUahMenu != NULL && pDC != NULL);
+
+	ZeroMemory(&mbi, sizeof(mbi));
+	mbi.cbSize = sizeof(mbi);
+	GetMenuBarInfo(OBJID_MENU, 0, &mbi);
+
+	GetWindowRect(rcWindow);
+	rect = mbi.rcBar;
+    rect.OffsetRect(-rcWindow.left, -rcWindow.top);
+
+	pDC->FillSolidRect(rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+
+	return TRUE;
 }
-BOOL CDockContextEx::IsHitGrip(CPoint point)
+LRESULT CMainFrame::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
 {
-	CRect rect, inside;
-	BOOL bHorz = (m_pBar->m_dwStyle & CBRS_ORIENT_HORZ) != 0 ? TRUE : FALSE;
-
-	if ( (m_pBar->m_dwStyle & CBRS_GRIPPER) == 0 )
-		return FALSE;
-
-	m_pBar->GetWindowRect(rect);
-
-	inside = rect;
-	m_pBar->CalcInsideRect(inside, bHorz);
-
-	if ( bHorz ) {
-		inside.right = inside.left;
-		inside.left = rect.left;
-	} else {
-		inside.bottom = inside.top;
-		inside.top = rect.top;
-	}
-
-	return (inside.PtInRect(point) ? TRUE : FALSE);
-}
-void CDockContextEx::StartDrag(CPoint pt)
-{
-//	CDockContext::StartDrag(pt);
-
-	m_dwOverDockStyle = m_pBar->IsFloating() ? 0 : m_dwStyle;
-
-	if ( m_dwOverDockStyle != 0 && !IsHitGrip(pt) )
-		return;
-
-	m_ptLast = pt;
-	m_dwDockStyle = m_pBar->m_dwDockStyle;
-	m_dwStyle = m_pBar->m_dwStyle & CBRS_ALIGN_ANY;
-	m_bForceFrame = m_bFlip = m_bDitherLast = FALSE;
-
-	TrackLoop();
-}
-void CDockContextEx::StartResize(int nHitTest, CPoint pt)
-{
-	CDockContext::StartResize(nHitTest, pt);
-}
-void CDockContextEx::ToggleDocking()
-{
-	CPoint point;
-
-	if ( !m_pBar->IsFloating() ) {
-		GetCursorPos(&point);
-
-		if ( !IsHitGrip(point) )
-			return;
-	}
-
-	CDockContext::ToggleDocking();
-}
-void CDockContextEx::EnableDocking(CControlBar *pBar, DWORD dwDockStyle)
-{
-	pBar->m_dwDockStyle = dwDockStyle;
-
-	if ( pBar->m_pDockContext == NULL )
-		pBar->m_pDockContext = new CDockContextEx(pBar);
-
-	if ( pBar->m_hWndOwner == NULL )
-		pBar->m_hWndOwner = pBar->GetParent()->GetSafeHwnd();
-}
-void CDockContextEx::TrackLoop()
-{
-	MSG msg;
-	UINT uID;
-	LONG count;
-	CRect rect, frame;
-	CSize floatSize;
-	CPoint point, ptOffset;
-	CRect BaseHorz, BaseVert;
-	CMiniDockFrameWnd *pFloatBar;
-	BOOL bFloatSytle = TRUE;
-	BOOL bVert = FALSE;
-	BOOL bFloatVert = FALSE;
-	BOOL bIdle = FALSE;
-	CDockBar *pDockBar;
-
-	m_pBar->SetCapture();
-	m_bDragging = FALSE;
-
-	while ( CWnd::GetCapture() == m_pBar ) {
-		for ( count = 0 ; bIdle || !::PeekMessage(&msg, NULL, NULL, NULL, PM_NOREMOVE) ; count++ ) {
-			bIdle = FALSE;
-			if ( !((CRLoginApp *)AfxGetApp())->OnIdle(count) )
-				break;
-		}
-
-		if (  !::GetMessage(&msg, NULL, 0, 0) )
-			goto ENDOF;
-
-		switch (msg.message) {
-		case WM_MOUSEMOVE:
-			if ( ::PeekMessage(&msg, NULL, NULL, NULL, PM_QS_PAINT | PM_NOREMOVE) )
-				break;
-		case WM_LBUTTONUP:
-			point = msg.pt;
-			ptOffset = point - m_ptLast;
-
-			if ( !m_bDragging && (abs(ptOffset.x) >= ::GetSystemMetrics(SM_CXDRAG) || abs(ptOffset.y) >= ::GetSystemMetrics(SM_CYDRAG)) ) {
-
-				m_bDragging = TRUE;
-
-				bVert = (m_dwStyle & CBRS_ORIENT_VERT) ? TRUE : FALSE;
-				CSize size = m_pBar->CalcDynamicLayout(-1, bVert ? (LM_HORZ | LM_HORZDOCK) : LM_VERTDOCK);
-				m_pBar->GetWindowRect(rect);
-
-				if ( m_pBar->IsFloating() ) {
-					pFloatBar = (CMiniDockFrameWnd *)m_pBar->m_pDockBar->GetParent();
-					ASSERT_KINDOF(CMiniDockFrameWnd, pFloatBar);
-
-					pFloatBar->GetWindowRect(frame);
-					rect.OffsetRect(frame.left - rect.left + 8, frame.top - rect.top);
-				}
-
-				if ( bVert ) {
-					m_rectDragHorz = CRect(CPoint(m_ptLast.x - (m_ptLast.y - rect.top), m_ptLast.y - size.cy / 2), size);
-					m_rectDragVert = rect;
-				} else {
-					m_rectDragHorz = rect;
-					m_rectDragVert = CRect(CPoint(m_ptLast.x - size.cx / 2, m_ptLast.y - (m_ptLast.x - rect.left)), size);
-				}
-
-				BaseHorz = m_rectDragHorz;
-				BaseVert = m_rectDragVert;
-
-				if ( !m_pBar->IsFloating() ) {
-					rect = bVert ? m_rectDragVert : m_rectDragHorz;
-					m_pDockSite->FloatControlBar(m_pBar, rect.TopLeft(), bVert ? CBRS_ALIGN_LEFT : CBRS_ALIGN_TOP);
-				}
-
-				pFloatBar = (CMiniDockFrameWnd *)m_pBar->m_pDockBar->GetParent();
-				ASSERT_KINDOF(CMiniDockFrameWnd, pFloatBar);
-
-				pFloatBar->GetWindowRect(rect);
-				floatSize.cx = rect.Width();
-				floatSize.cy = rect.Height();
-				bFloatVert = bVert;
-
-				if ( m_dwOverDockStyle != 0 ) {
-					rect = bVert ? m_rectDragVert : m_rectDragHorz;
-					pFloatBar->ModifyStyle(WS_CAPTION | WS_THICKFRAME, 0);
-					pFloatBar->SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_SHOWWINDOW);
-					bFloatSytle = FALSE;
-				}
-			}
-
-			if ( m_bDragging ) {
-				m_rectDragHorz = BaseHorz + ptOffset;
-				m_rectDragVert = BaseVert + ptOffset;
-
-				m_dwOverDockStyle = CanDock();
-
-				if ( m_dwOverDockStyle == 0 ) {
-					if ( !bFloatSytle ) {
-						rect = bFloatVert ? m_rectDragVert : m_rectDragHorz;
-						pFloatBar->ModifyStyle(0, WS_CAPTION | WS_THICKFRAME);
-						pFloatBar->SetWindowPos(NULL, rect.left - 8, rect.top, floatSize.cx, floatSize.cy, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
-						bFloatSytle = TRUE;
-					} else {
-						rect = bFloatVert ? m_rectDragVert : m_rectDragHorz;
-						pFloatBar->SetWindowPos(NULL, rect.left - 8, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
-					}
-
-				} else {
-					bVert = (m_dwOverDockStyle & CBRS_ORIENT_VERT) ? TRUE : FALSE;
-
-					if ( bFloatVert != bVert ) {
-						rect = bVert ? m_rectDragVert : m_rectDragHorz;
-						m_pBar->m_dwStyle &= ~CBRS_ALIGN_ANY;
-						m_pBar->m_dwStyle |= m_dwOverDockStyle;
-						pFloatBar->RecalcLayout(TRUE);
-						pFloatBar->GetWindowRect(rect);
-						floatSize.cx = rect.Width();
-						floatSize.cy = rect.Height();
-
-						bFloatVert = bVert;
-						pFloatBar->ModifyStyle(WS_CAPTION | WS_THICKFRAME, 0);
-						pFloatBar->SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
-						bFloatSytle = FALSE;
-
-					} else if ( bFloatSytle ) {
-						rect = bFloatVert ? m_rectDragVert : m_rectDragHorz;
-						pFloatBar->ModifyStyle(WS_CAPTION | WS_THICKFRAME, 0);
-						pFloatBar->SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
-						bFloatSytle = FALSE;
-
-					} else {
-						rect = bFloatVert ? m_rectDragVert : m_rectDragHorz;
-						pFloatBar->SetWindowPos(NULL, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
-					}
-				}
-			}
-
-			if ( msg.message == WM_LBUTTONUP ) {
-				if ( m_bDragging && !bFloatSytle && (pDockBar = GetDockBar(m_dwOverDockStyle)) != NULL ) {
-					rect = (m_dwOverDockStyle & CBRS_ORIENT_VERT) ? m_rectDragVert : m_rectDragHorz;
-
-					uID = _AfxGetDlgCtrlID(pDockBar->m_hWnd);
-					if ( uID >= AFX_IDW_DOCKBAR_TOP && uID <= AFX_IDW_DOCKBAR_BOTTOM) {
-						m_uMRUDockID = uID;
-						m_rectMRUDockPos = rect;
-						pDockBar->ScreenToClient(&m_rectMRUDockPos);
-					}
-
-					m_pDockSite->DockControlBar(m_pBar, pDockBar, &rect);
-					//m_pDockSite->RecalcLayout();
-				}
-
-				goto ENDOF;
-			}
-			break;
-
-		default:
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-			if ( ((CRLoginApp *)::AfxGetApp())->IsIdleMessage(&msg) )
-				bIdle = TRUE;
-			break;
-		}
-	}
-
-ENDOF:
-	ReleaseCapture();
-	m_bDragging = FALSE;
-}
-/////////////////////////////////////////////////////////////////////////////
-// CBaseBar
-
-IMPLEMENT_DYNAMIC(CDialogBarEx, CDialogBar)
-
-CDialogBarEx::CDialogBarEx()
-{
-}
-CDialogBarEx::~CDialogBarEx()
-{
-}
-
-BOOL CDialogBarEx::Create(CWnd* pParentWnd, LPCTSTR lpszTemplateName, UINT nStyle, UINT nID)
-{
-	ASSERT(pParentWnd != NULL);
-	ASSERT(lpszTemplateName != NULL);
-
-	// allow chance to modify styles
-	m_dwStyle = (nStyle & CBRS_ALL);
-	CREATESTRUCT cs;
-	memset(&cs, 0, sizeof(cs));
-	cs.style = (DWORD)nStyle | WS_CHILD;
-	cs.hMenu = (HMENU)(UINT_PTR)nID;
-	cs.hInstance = AfxGetInstanceHandle();
-	cs.hwndParent = pParentWnd->GetSafeHwnd();
-	if (!PreCreateWindow(cs))
-		return FALSE;
-
-	// create a modeless dialog
-	HGLOBAL hDialog;
-	HGLOBAL hInitData = NULL;
-	void* lpInitData = NULL;
-	LPCDLGTEMPLATE lpDialogTemplate;
-
-	m_lpszTemplateName = lpszTemplateName;
-
-	if ( !((CRLoginApp *)AfxGetApp())->LoadResDialog(m_lpszTemplateName, hDialog, hInitData) )
-		return (-1);
-
-	if ( hInitData != NULL )
-		lpInitData = (void *)LockResource(hInitData);
-
-	lpDialogTemplate = (LPCDLGTEMPLATE)LockResource(hDialog);
-
-	CDialogTemplate dlgTemp(lpDialogTemplate);
-
-	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
-	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
-
-	m_InitDpi.cx = SCREEN_DPI_X;
-	m_InitDpi.cy = SCREEN_DPI_Y;
-	m_NowDpi = m_InitDpi;
-
-	if ( !FontName.IsEmpty() )
-		dlgTemp.SetFont(FontName, FontSize);
-	else {
-		CString name;
-		WORD size;
-		dlgTemp.GetFont(name, size);
-		if ( FontSize != size )
-			dlgTemp.SetFont(name, FontSize);
-	}
-
-	lpDialogTemplate = (LPCDLGTEMPLATE)LockResource(dlgTemp.m_hTemplate);
-
-	BOOL bSuccess = CreateDlgIndirect(lpDialogTemplate, pParentWnd, NULL);
-
-	UnlockResource(dlgTemp.m_hTemplate);
-
-	UnlockResource(hDialog);
-	FreeResource(hDialog);
-
-	if ( hInitData != NULL ) {
-		UnlockResource(hInitData);
-		FreeResource(hInitData);
-	}
-
-	if (!bSuccess)
-		return FALSE;
-
-	// dialog template MUST specify that the dialog
-	//  is an invisible child window
-	SetDlgCtrlID(nID);
-	CRect rect;
-	GetWindowRect(&rect);
-	m_sizeDefault = rect.Size();    // set fixed size
-
-	// force WS_CLIPSIBLINGS
-	ModifyStyle(0, WS_CLIPSIBLINGS);
-
-	if (!ExecuteDlgInit(lpszTemplateName))
-		return FALSE;
-
-	// force the size to zero - resizing bar will occur later
-	SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOZORDER|SWP_NOACTIVATE|SWP_SHOWWINDOW);
+	UAHDRAWMENUITEM *pUahDrawMenuItem = (UAHDRAWMENUITEM *)lParam;
+	CMenu *pMenu = CMenu::FromHandle(pUahDrawMenuItem->um.hmenu);
+	int npos = pUahDrawMenuItem->umi.iPosition;
+	UINT state = pUahDrawMenuItem->dis.itemState;
+	CDC *pDC = CDC::FromHandle(pUahDrawMenuItem->dis.hDC);
+	CRect rect = pUahDrawMenuItem->dis.rcItem;
+	DWORD dwFlags = DT_SINGLELINE | DT_VCENTER | DT_CENTER;
+	CString title;
+	COLORREF TextColor = (m_bDarkMode ? GetSysColor(COLOR_WINDOW) : GetSysColor(COLOR_WINDOWTEXT));
+	COLORREF BackColor = (m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	int OldBkMode = pDC->SetBkMode(TRANSPARENT);
+
+	ASSERT(pUahDrawMenuItem != NULL && pDC != NULL && pMenu != NULL);
+	
+	pMenu->GetMenuString(npos, title, MF_BYPOSITION);
+
+	if ( (state & ODS_NOACCEL) != 0 )
+        dwFlags |= DT_HIDEPREFIX;
+
+	if ( (state & (ODS_INACTIVE | ODS_GRAYED | ODS_DISABLED)) != 0 )
+		TextColor = (m_bDarkMode ? GetSysColor(COLOR_GRAYTEXT) : GetSysColor(COLOR_GRAYTEXT));
+
+	if ( (state & (ODS_HOTLIGHT | ODS_SELECTED)) != 0 )
+		BackColor = (m_bDarkMode ? GetSysColor(COLOR_MENUTEXT) : GetSysColor(COLOR_MENU));
+
+	TextColor = pDC->SetTextColor(TextColor);
+	pDC->FillSolidRect(rect, BackColor);
+	pDC->DrawText(title, rect, dwFlags);
+
+	pDC->SetTextColor(TextColor);
+	pDC->SetBkMode(OldBkMode);
 
 	return TRUE;
 }
 
-static BOOL CALLBACK DpiChangedProc(HWND hWnd , LPARAM lParam)
-{
-	CWnd *pWnd = CWnd::FromHandle(hWnd);
-	CQuickBar *pParent = (CQuickBar *)lParam;
-	CRect rect;
-
-	if ( pWnd->GetParent()->GetSafeHwnd() != pParent->GetSafeHwnd() )
-		return TRUE;
-
-	pWnd->GetWindowRect(rect);
-	pParent->ScreenToClient(rect);
-
-	rect.left   = MulDiv(rect.left,   pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
-	rect.right  = MulDiv(rect.right,  pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
-	rect.top    = MulDiv(rect.top,    pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
-	rect.bottom = MulDiv(rect.bottom, pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
-
-	int height = rect.Height();
-	rect.top = (pParent->m_sizeDefault.cy - height) / 2;
-	rect.bottom = rect.top + height;
-
-	if ( pWnd->SendMessage(WM_DPICHANGED, MAKEWPARAM(SCREEN_DPI_X, SCREEN_DPI_Y), (LPARAM)((RECT *)rect)) == FALSE ) {
-		if ( pParent->m_DpiFont.GetSafeHandle() != NULL )
-			pWnd->SetFont(&(pParent->m_DpiFont), FALSE);
-
-		if ( (pParent->GetStyle() & WS_SIZEBOX) == 0 )
-			pWnd->MoveWindow(rect, FALSE);
-	}
-
-	return TRUE;
-}
-void CDialogBarEx::DpiChanged()
-{
-	CFont *pFont;
-	LOGFONT LogFont;
-	CRect rect, client;
-
-	GetWindowRect(rect);
-	GetClientRect(client);
-
-	if ( client.Width() <= 0 || client.Height() <= 0 ) {
-		m_ZoomMul.cx = SCREEN_DPI_X;
-		m_ZoomDiv.cx = m_NowDpi.cx;
-		m_ZoomMul.cy = SCREEN_DPI_Y;
-		m_ZoomDiv.cy = m_NowDpi.cy;
-
-		m_sizeDefault.cx = MulDiv(m_sizeDefault.cx, SCREEN_DPI_X, m_NowDpi.cx);
-		m_sizeDefault.cy = MulDiv(m_sizeDefault.cy, SCREEN_DPI_Y, m_NowDpi.cy);
-
-	} else {
-		rect.right  += (MulDiv(client.Width(),  SCREEN_DPI_X, m_NowDpi.cx) - client.Width());
-		rect.bottom += (MulDiv(client.Height(), SCREEN_DPI_Y, m_NowDpi.cy) - client.Height());
-
-		//MoveWindow(rect, FALSE);
-		SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), (GetStyle() & WS_VISIBLE) != 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW);
-		m_sizeDefault = rect.Size();    // set fixed size
-
-		GetClientRect(rect);
-
-		m_ZoomMul.cx = rect.Width();
-		m_ZoomDiv.cx = client.Width();
-		m_ZoomMul.cy = rect.Height();
-		m_ZoomDiv.cy = client.Height();
-	}
-
-	m_NowDpi.cx = SCREEN_DPI_X;
-	m_NowDpi.cy = SCREEN_DPI_Y;
-	
-	if ( (pFont = m_NewFont.GetSafeHandle() != NULL ? &m_NewFont : GetFont()) != NULL ) {
-		pFont->GetLogFont(&LogFont);
-
-		if ( m_DpiFont.GetSafeHandle() != NULL )
-			m_DpiFont.DeleteObject();
-
-		LogFont.lfHeight = MulDiv(LogFont.lfHeight, SCREEN_DPI_Y, m_InitDpi.cy);
-
-		m_DpiFont.CreateFontIndirect(&LogFont);
-	}
-
-	EnumChildWindows(GetSafeHwnd(), DpiChangedProc, (LPARAM)this);
-}
-
-static BOOL CALLBACK FontSizeCheckProc(HWND hWnd , LPARAM lParam)
-{
-	CRect rect;
-	CWnd *pWnd = CWnd::FromHandle(hWnd);
-	CQuickBar *pParent = (CQuickBar *)lParam;
-
-	if ( pWnd->GetParent()->GetSafeHwnd() != pParent->GetSafeHwnd() )
-		return TRUE;
-
-	pWnd->GetWindowRect(rect);
-	pParent->ScreenToClient(rect);
-
-	rect.left   = MulDiv(rect.left,   pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
-	rect.right  = MulDiv(rect.right,  pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
-	rect.top    = MulDiv(rect.top,    pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
-	rect.bottom = MulDiv(rect.bottom, pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
-
-	int height = rect.Height();
-	rect.top = (pParent->m_sizeDefault.cy - height) / 2;
-	rect.bottom = rect.top + height;
-
-	pWnd->SetFont(&(pParent->m_NewFont), FALSE);
-	pWnd->MoveWindow(rect, FALSE);
-
-	return TRUE;
-}
-void CDialogBarEx::FontSizeCheck()
-{
-	CFont *pFont;
-	CDC *pDc = GetDC();
-	CRect rect;
-	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
-	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
-
-	if ( m_NewFont.GetSafeHandle() != NULL ) {
-		CDialogExt::GetDlgFontBase(pDc, &m_NewFont, m_ZoomDiv);
-		m_NewFont.DeleteObject();
-	} else if ( (pFont = GetFont()) != NULL ) {
-		CDialogExt::GetDlgFontBase(pDc, pFont, m_ZoomDiv);
-	} else
-		return;
-
-	if ( !m_NewFont.CreatePointFont(FontSize * 10, FontName) )
-		return;
-
-	m_InitDpi.cx = SCREEN_DPI_X;
-	m_InitDpi.cy = SCREEN_DPI_Y;
-
-	SetFont(&m_NewFont);
-
-	CDialogExt::GetDlgFontBase(pDc, &m_NewFont, m_ZoomMul);
-	ReleaseDC(pDc);
-
-	GetWindowRect(rect);
-
-	rect.left   = MulDiv(rect.left,   m_ZoomMul.cx, m_ZoomDiv.cx);
-	rect.right  = MulDiv(rect.right,  m_ZoomMul.cx, m_ZoomDiv.cx);
-	rect.top    = MulDiv(rect.top,    m_ZoomMul.cy, m_ZoomDiv.cy);
-	rect.bottom = MulDiv(rect.bottom, m_ZoomMul.cy, m_ZoomDiv.cy);
-
-//	SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
-	m_sizeDefault = rect.Size();    // set fixed size
-
-	EnumChildWindows(GetSafeHwnd(), FontSizeCheckProc, (LPARAM)this);
-
-	Invalidate();
-}
-
-BEGIN_MESSAGE_MAP(CDialogBarEx, CDialogBar)
-END_MESSAGE_MAP()
-
-/////////////////////////////////////////////////////////////////////////////
-// CVoiceBar
-
-IMPLEMENT_DYNAMIC(CVoiceBar, CDialogBarEx)
-
-CVoiceBar::CVoiceBar()
-{
-}
-CVoiceBar::~CVoiceBar()
-{
-}
-
-void CVoiceBar::DoDataExchange(CDataExchange* pDX)
-{
-	DDX_Control(pDX, IDC_VOICEDESC, m_VoiceDesc);
-	DDX_Control(pDX, IDC_VOICERATE, m_VoiceRate);
-}
-
-BEGIN_MESSAGE_MAP(CVoiceBar, CDialogBarEx)
-	ON_MESSAGE(WM_INITDIALOG, &CVoiceBar::HandleInitDialog)
-	ON_CBN_SELCHANGE(IDC_VOICEDESC, &CVoiceBar::OnCbnSelchangeVoicedesc)
-	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_VOICERATE, &CVoiceBar::OnNMReleasedcaptureVoicerate)
-END_MESSAGE_MAP()
-
-LRESULT CVoiceBar::HandleInitDialog(WPARAM wParam, LPARAM lParam)
-{
-	long rate = 0;
-	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
-	ISpVoice *pVoice = pApp->VoiceInit();
-
-	UpdateData(FALSE);
-
-	if ( pVoice != NULL ) {
-		pApp->SetVoiceListCombo(&m_VoiceDesc);
-		pVoice->GetRate(&rate);
-	}
-
-	m_VoiceRate.SetRange(0, 20);
-	m_VoiceRate.SetTic(10);
-	m_VoiceRate.SetPos(rate + 10);
-
-	DpiChanged();
-
-	return 0;
-}
-void CVoiceBar::OnCbnSelchangeVoicedesc()
-{
-	int n;
-	CString desc;
-	long rate;
-	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
-	
-	if ( (n = m_VoiceDesc.GetCurSel()) >= 0 )
-		m_VoiceDesc.GetLBText(n, desc);
-
-	rate = m_VoiceRate.GetPos() - 10;
-
-	pApp->SetVoice(desc, rate);
-}
-void CVoiceBar::OnNMReleasedcaptureVoicerate(NMHDR *pNMHDR, LRESULT *pResult)
-{
-	OnCbnSelchangeVoicedesc();
-	*pResult = 0;
-}
-
-
-/////////////////////////////////////////////////////////////////////////////
-// CQuickBar
-
-IMPLEMENT_DYNAMIC(CQuickBar, CDialogBarEx)
-
-CQuickBar::CQuickBar()
-{
-}
-CQuickBar::~CQuickBar()
-{
-}
-
-void CQuickBar::DoDataExchange(CDataExchange* pDX)
-{
-	DDX_Control(pDX, IDC_ENTRYNAME, m_EntryWnd);
-	DDX_Control(pDX, IDC_HOSTNAME, m_HostWnd);
-	DDX_Control(pDX, IDC_PORTNAME, m_PortWnd);
-	DDX_Control(pDX, IDC_USERNAME, m_UserWnd);
-	DDX_Control(pDX, IDC_PASSNAME, m_PassWnd);
-}
-
-void CQuickBar::InitDialog()
-{
-	CString str;
-	CServerEntryTab *pTab = &(((CMainFrame *)AfxGetMainWnd())->m_ServerEntryTab);
-
-	UpdateData(FALSE);
-	
-	m_EntryWnd.RemoveAll();
-	for ( int n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
-		str = pTab->m_Data[n].m_EntryName;
-		if ( !str.IsEmpty() && m_EntryWnd.FindStringExact((-1), str) == CB_ERR )
-			m_EntryWnd.AddString(str);
-	}
-
-	m_HostWnd.LoadHis(_T("QuickBarHostAddr"));
-	m_PortWnd.LoadHis(_T("QuickBarSocketPort"));
-	m_UserWnd.LoadHis(_T("QuickBarUserName"));
-
-	m_EntryWnd.SetWindowText(AfxGetApp()->GetProfileString(_T("QuickBar"), _T("EntryName"), _T("")));
-	m_HostWnd.SetWindowText(AfxGetApp()->GetProfileString(_T("QuickBar"), _T("HostName"), _T("")));
-	m_PortWnd.SetWindowText(AfxGetApp()->GetProfileString(_T("QuickBar"), _T("PortName"), _T("")));
-	m_UserWnd.SetWindowText(AfxGetApp()->GetProfileString(_T("QuickBar"), _T("UserName"), _T("")));
-
-	// EntryName Update Connect Button Flag
-	OnCbnEditchangeEntryname();
-
-	DpiChanged();
-}
-void CQuickBar::SaveDialog()
-{
-	CString str;
-
-	m_EntryWnd.GetWindowText(str);
-	AfxGetApp()->WriteProfileString(_T("QuickBar"), _T("EntryName"), str);
-
-	m_HostWnd.GetWindowText(str);
-	AfxGetApp()->WriteProfileString(_T("QuickBar"), _T("HostName"), str);
-
-	m_PortWnd.GetWindowText(str);
-	AfxGetApp()->WriteProfileString(_T("QuickBar"), _T("PortName"), str);
-
-	m_UserWnd.GetWindowText(str);
-	AfxGetApp()->WriteProfileString(_T("QuickBar"), _T("UserName"), str);
-}
-void CQuickBar::SetComdLine(CString &cmds)
-{
-	CString str, fmt;
-
-	m_EntryWnd.GetWindowText(str);
-	if ( !str.IsEmpty() ) {
-		if ( !cmds.IsEmpty() ) cmds += _T(" ");
-		fmt.Format(_T("/entry \"%s\""), (LPCTSTR)str);
-		cmds += fmt;
-	}
-
-	m_HostWnd.GetWindowText(str);
-	if ( !str.IsEmpty() ) {
-		m_HostWnd.AddHis(str);
-		if ( !cmds.IsEmpty() ) cmds += _T(" ");
-		fmt.Format(_T("/ip \"%s\""), (LPCTSTR)str);
-		cmds += fmt;
-	}
-
-	m_PortWnd.GetWindowText(str);
-	if ( !str.IsEmpty() ) {
-		m_PortWnd.AddHis(str);
-		if ( !cmds.IsEmpty() ) cmds += _T(" ");
-		fmt.Format(_T("/port \"%s\""), (LPCTSTR)str);
-		cmds += fmt;
-	}
-
-	m_UserWnd.GetWindowText(str);
-	if ( !str.IsEmpty() ) {
-		m_UserWnd.AddHis(str);
-		if ( !cmds.IsEmpty() ) cmds += _T(" ");
-		fmt.Format(_T("/user \"%s\""), (LPCTSTR)str);
-		cmds += fmt;
-	}
-
-	m_PassWnd.GetWindowText(str);
-	if ( !str.IsEmpty() ) {
-		if ( !cmds.IsEmpty() ) cmds += _T(" ");
-		fmt.Format(_T("/pass \"%s\""), (LPCTSTR)str);
-		cmds += fmt;
-	}
-
-	// Save Last Data
-	SaveDialog();
-}
-
-BEGIN_MESSAGE_MAP(CQuickBar, CDialogBarEx)
-	ON_CBN_EDITCHANGE(IDC_ENTRYNAME, &CQuickBar::OnCbnEditchangeEntryname)
-	ON_CBN_SELCHANGE(IDC_ENTRYNAME, &CQuickBar::OnCbnEditchangeEntryname)
-END_MESSAGE_MAP()
-
-void CQuickBar::OnCbnEditchangeEntryname()
-{
-	CString str;
-	BOOL rc = FALSE;
-
-	if ( m_EntryWnd.GetCurSel() >= 0 )
-		rc = TRUE;
-	else {
-		m_EntryWnd.GetWindowText(str);
-		if ( !str.IsEmpty() && m_EntryWnd.FindStringExact((-1), str) != CB_ERR )
-			rc = TRUE;
-	}
-
-	((CMainFrame *)::AfxGetMainWnd())->m_bQuickConnect = rc;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// CTabDlgBar
-
-IMPLEMENT_DYNAMIC(CTabDlgBar, CControlBar)
-
-CTabDlgBar::CTabDlgBar()
-{
-	m_InitSize.cx = m_InitSize.cy = 0;
-	m_pShowWnd = NULL;
-}
-
-CTabDlgBar::~CTabDlgBar()
-{
-	for ( int n = 0 ; n < m_Data.GetSize() ; n++ )
-		delete (struct _DlgWndData *)m_Data[n];
-	m_Data.RemoveAll();
-}
-
-BOOL CTabDlgBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID)
-{
-	m_dwStyle = (dwStyle & CBRS_ALL);
-
-	dwStyle &= ~CBRS_ALL;
-	dwStyle |= CCS_NOPARENTALIGN | CCS_NOMOVEY | CCS_NODIVIDER | CCS_NORESIZE;
-
-	CRect rect; rect.SetRectEmpty();
-	return CWnd::Create(STATUSCLASSNAME, NULL, dwStyle, rect, pParentWnd, nID);
-}
-
-void CTabDlgBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
-{
-	int n;
-	TC_ITEM tci;
-	CString title;
-	TCHAR tmp[MAX_PATH + 2];
-	CWnd *pWnd;
-	BOOL bUpdate = FALSE;
-
-	for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
-		tci.mask = TCIF_PARAM | TCIF_TEXT;
-		tci.pszText = tmp;
-		tci.cchTextMax = MAX_PATH;
-
-		if ( !m_TabCtrl.GetItem(n, &tci) )
-			continue;
-
-		tci.mask = 0;
-
-		pWnd = (CWnd *)tci.lParam;
-		pWnd->GetWindowText(title);
-
-		if ( title.GetLength() >= MAX_PATH )
-			title = title.Left(MAX_PATH -1);
-
-		if ( title.Compare(tmp) != 0 ) {
-			tci.mask |= TCIF_TEXT;
-			tci.pszText = (LPWSTR)(LPCWSTR)TstrToUni(title);
-		}
-
-		if ( tci.mask != 0 ) {
-			m_TabCtrl.SetItem(n, &tci);
-			bUpdate = TRUE;
-		}
-	}
-
-	if ( bUpdate && m_pShowWnd != NULL )
-		m_pShowWnd->RedrawWindow();
-}
-void CTabDlgBar::TabReSize()
-{
-	CRect rect;
-	m_TabCtrl.GetClientRect(rect);
-	m_TabCtrl.AdjustRect(FALSE, &rect);
-
-	for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
-		TC_ITEM tci;
-		tci.mask = TCIF_PARAM;
-		if ( !m_TabCtrl.GetItem(n, &tci) )
-			continue;
-		CWnd *pWnd = (CWnd *)tci.lParam;
-		pWnd->SetWindowPos(&wndTop , rect.left, rect.top, rect.Width(), rect.Height(), 
-			SWP_NOACTIVATE | (pWnd == m_pShowWnd ? SWP_SHOWWINDOW : 0));
-	}
-}
-CSize CTabDlgBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
-{
-	CSize size;
-
-	CMainFrame *pMain;
-	CRect MainRect(0, 0, 32767, 32767);
-
-	if ( (pMain = (CMainFrame *)::AfxGetMainWnd()) != NULL ) {
-		pMain->GetClientRect(MainRect);
-
-		if ( m_InitSize.cx <= 0 )
-			m_InitSize.cx = MainRect.Height() * ::AfxGetApp()->GetProfileInt(_T("TabDlgBar"), _T("IntWidth"),  20) / 100;
-
-		if ( m_InitSize.cy <= 0 )
-			m_InitSize.cy = MainRect.Height() * ::AfxGetApp()->GetProfileInt(_T("TabDlgBar"), _T("IntHeight"), 20) / 100;
-
-		pMain->GetCtrlBarRect(MainRect, this);
-		MainRect.right += (::GetSystemMetrics(SM_CXBORDER) * 2);
-	}
-
-	size.cx = (bHorz ? MainRect.Width() : m_InitSize.cx);
-	size.cy = (bHorz ? m_InitSize.cy    : MainRect.Height());
-
-	if ( IsVisible() && m_TabCtrl.m_hWnd != NULL ) {
-		CRect oldr, rect(CPoint(0, 0), size);
-		CalcInsideRect(rect, bHorz);
-		m_TabCtrl.GetWindowRect(oldr);
-
-		if ( oldr != rect ) {
-			m_TabCtrl.SetWindowPos(&wndTop , rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOACTIVATE | SWP_SHOWWINDOW);
-			TabReSize();
-		}
-	}
-
-	return size;
-}
-void CTabDlgBar::Add(CWnd *pWnd, int nImage)
-{
-	int n;
-	TC_ITEM tci;
-	CString title;
-	CRect rect;
-
-	pWnd->GetWindowText(title);
-
-	if ( title.GetLength() >= MAX_PATH )
-		title = title.Left(MAX_PATH -1);
-
-	tci.mask    = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
-	tci.pszText = (LPWSTR)(LPCWSTR)TstrToUni(title);
-	tci.lParam  = (LPARAM)pWnd;
-	tci.iImage  = nImage;
-
-	n = m_TabCtrl.GetItemCount();
-	m_TabCtrl.InsertItem(n, &tci);
-	
-	m_TabCtrl.GetClientRect(rect);
-	m_TabCtrl.AdjustRect(FALSE, rect);
-
-	struct _DlgWndData *pData = new struct _DlgWndData;
-	pData->pWnd    = pWnd;
-	pData->nImage  = nImage;
-	pData->pParent = pWnd->GetParent();
-	pData->hMenu   = pWnd->GetMenu()->GetSafeHmenu();
-	pWnd->GetWindowRect(pData->WinRect);
-	m_Data.Add(pData);
-
-	pWnd->SetParent(&m_TabCtrl);
-	pWnd->ModifyStyle(WS_CAPTION | WS_THICKFRAME | WS_POPUP, WS_CHILD);
-	pWnd->SetMenu(NULL);
-
-	if ( m_pShowWnd != NULL )
-		m_pShowWnd->ShowWindow(SW_HIDE);
-
-	pWnd->SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(),
-			SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_DEFERERASE);
-
-	m_TabCtrl.SetCurSel(n);
-	m_pShowWnd = pWnd;
-}
-void CTabDlgBar::Del(CWnd *pWnd)
-{
-	int n;
-	TC_ITEM tci;
-
-	if ( m_pShowWnd == pWnd ) {
-		m_pShowWnd->ShowWindow(SW_HIDE);
-		m_pShowWnd = NULL;
-	}
-
-	tci.mask = TCIF_PARAM;
-
-	for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
-		if ( !m_TabCtrl.GetItem(n, &tci) )
-			continue;
-		if ( tci.lParam != (LPARAM)pWnd )
-			continue;
-
-		m_TabCtrl.DeleteItem(n);
-
-		if ( m_pShowWnd == NULL ) {
-			if ( n >= m_TabCtrl.GetItemCount() )
-				n--;
-			if ( n >= 0 ) {
-				m_TabCtrl.SetCurSel(n);
-				if ( m_TabCtrl.GetItem(n, &tci) ) {
-					m_pShowWnd = (CWnd *)tci.lParam;
-					m_pShowWnd->ShowWindow(SW_SHOWNOACTIVATE);
-				}
-			}
-		} else
-			m_pShowWnd->RedrawWindow();
-
-		break;
-	}
-
-	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
-		struct _DlgWndData *pData = (struct _DlgWndData *)m_Data[n];
-		if ( pData->pWnd == pWnd ) {
-			m_Data.RemoveAt(n);
-			delete pData;
-			break;
-		}
-	}
-}
-void CTabDlgBar::Sel(CWnd *pWnd)
-{
-	int n;
-	TC_ITEM tci;
-
-	tci.mask = TCIF_PARAM;
-
-	for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
-		if ( !m_TabCtrl.GetItem(n, &tci) )
-			continue;
-		if ( tci.lParam != (LPARAM)pWnd )
-			continue;
-		if ( m_TabCtrl.GetCurSel() == n )
-			return;
-
-		m_TabCtrl.SetCurSel(n);
-
-		if ( m_pShowWnd != NULL )
-			m_pShowWnd->ShowWindow(SW_HIDE);
-
-		m_pShowWnd = (CWnd *)tci.lParam;
-		m_pShowWnd->ShowWindow(SW_SHOWNOACTIVATE);
-	}
-}
-BOOL CTabDlgBar::IsInside(CWnd *pWnd)
-{
-	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
-		struct _DlgWndData *pData = (struct _DlgWndData *)m_Data[n];
-		if ( pData->pWnd->GetSafeHwnd() == pWnd->GetSafeHwnd() )
-			return TRUE;
-	}
-
-	return FALSE;
-}
-void *CTabDlgBar::RemoveAt(int idx, CPoint point)
-{
-	TC_ITEM tci;
-	
-	ZeroMemory(&tci, sizeof(tci));
-	tci.mask = TCIF_PARAM;
-
-	if ( !m_TabCtrl.GetItem(idx, &tci) )
-		return NULL;
-
-	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
-		struct _DlgWndData *pData = (struct _DlgWndData *)m_Data[n];
-
-		if ( pData->pWnd != (CWnd *)tci.lParam )
-			continue;
-
-		point.x -= pData->WinRect.Width() / 2;
-		point.y -= GetSystemMetrics(SM_CYCAPTION) / 2;
-
-		pData->pWnd->SetParent(pData->pParent);
-		pData->pWnd->ModifyStyle(WS_CHILD, WS_CAPTION | WS_THICKFRAME | WS_POPUP, SWP_HIDEWINDOW);
-		pData->pWnd->SetMenu(CMenu::FromHandle(pData->hMenu));
-		pData->pWnd->SetWindowPos(NULL, point.x, point.y, pData->WinRect.Width(), pData->WinRect.Height(),
-			SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_DEFERERASE);
-
-		if ( pData->pWnd == m_pShowWnd )
-			m_pShowWnd = NULL;
-
-		m_Data.RemoveAt(n);
-		m_TabCtrl.DeleteItem(idx);
-
-		if ( idx >= m_TabCtrl.GetItemCount() )
-			idx--;
-
-		if ( idx >= 0 ) {
-			m_TabCtrl.SetCurSel(idx);
-			tci.mask = TCIF_PARAM;
-			if ( m_TabCtrl.GetItem(idx, &tci) ) {
-				if ( m_pShowWnd != NULL )
-					m_pShowWnd->ShowWindow(SW_HIDE);
-				m_pShowWnd = (CWnd *)tci.lParam;
-				m_pShowWnd->ShowWindow(SW_SHOWNOACTIVATE);
-			}
-		}
-
-		return pData;
-	}
-
-	return NULL;
-}
-void CTabDlgBar::RemoveAll()
-{
-	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
-		struct _DlgWndData *pData = (struct _DlgWndData *)m_Data[n];
-
-		pData->pWnd->SetParent(pData->pParent);
-		pData->pWnd->ModifyStyle(WS_CHILD, WS_CAPTION | WS_THICKFRAME | WS_POPUP, SWP_HIDEWINDOW);
-		pData->pWnd->SetMenu(CMenu::FromHandle(pData->hMenu));
-		pData->pWnd->SetWindowPos(NULL, pData->WinRect.left, pData->WinRect.top, pData->WinRect.Width(), pData->WinRect.Height(),
-			SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_DEFERERASE);
-		delete pData;
-	}
-
-	m_Data.RemoveAll();
-	m_TabCtrl.DeleteAllItems();
-	m_pShowWnd = NULL;
-}
-void CTabDlgBar::FontSizeCheck()
-{
-	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
-	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
-
-	if ( m_FontName.Compare(FontName) != 0 || m_FontSize != FontSize ) {
-		m_FontName = FontName;
-		m_FontSize = FontSize;
-
-		if ( m_TabFont.GetSafeHandle() != NULL )
-			m_TabFont.DeleteObject();
-
-		if ( !m_TabFont.CreatePointFont(m_FontSize * 10, m_FontName) ) {
-			CFont *font = CFont::FromHandle((HFONT)::GetStockObject(DEFAULT_GUI_FONT));
-			m_TabCtrl.SetFont(font);
-			SetFont(font);
-		} else {
-			m_TabCtrl.SetFont(&m_TabFont);
-			SetFont(&m_TabFont);
-		}
-	}
-}
-void CTabDlgBar::DpiChanged()
-{
-	CRect rect;
-
-	FontSizeCheck();
-
-	m_TabCtrl.GetClientRect(rect);
-	m_TabCtrl.AdjustRect(FALSE, rect);
-
-	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
-		struct _DlgWndData *pData = (struct _DlgWndData *)m_Data[n];
-		pData->pWnd->SendMessage(WM_DPICHANGED, MAKEWPARAM(SCREEN_DPI_X, SCREEN_DPI_Y), (LPARAM)((RECT *)rect));
-	}
-}
-
-BEGIN_MESSAGE_MAP(CTabDlgBar, CControlBar)
-	ON_WM_CREATE()
-	ON_WM_SIZE()
-	ON_WM_LBUTTONDOWN()
-	ON_NOTIFY(TCN_SELCHANGE, IDC_TABDLGBAR_TAB, &CTabDlgBar::OnSelchange)
-	ON_WM_SETCURSOR()
-END_MESSAGE_MAP()
-
-int CTabDlgBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
-{
-	if (CControlBar::OnCreate(lpCreateStruct) == -1)
-		return -1;
-
-	CRect rect; rect.SetRectEmpty();
-
-	if ( !m_TabCtrl.Create(WS_VISIBLE | WS_CHILD | TCS_FOCUSNEVER | TCS_BOTTOM | TCS_FORCELABELLEFT, rect, this, IDC_TABDLGBAR_TAB) )
-		return (-1);
-
-	m_FontName  = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
-	m_FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
-
-	if ( m_FontName.IsEmpty() || !m_TabFont.CreatePointFont(m_FontSize * 10, m_FontName) ) {
-		CFont *font = CFont::FromHandle((HFONT)::GetStockObject(DEFAULT_GUI_FONT));
-		m_TabCtrl.SetFont(font);
-		SetFont(font);
-	} else {
-		m_TabCtrl.SetFont(&m_TabFont);
-		SetFont(&m_TabFont);
-	}
-
-	SetBorders(2, 5, 2, 4);
-
-	CBitmapEx BitMap;
-	BitMap.LoadResBitmap(IDB_BITMAP4, SCREEN_DPI_X, SCREEN_DPI_Y, RGB(192, 192, 192));
-	m_ImageList.Create(MulDiv(16, SCREEN_DPI_X, DEFAULT_DPI_X), MulDiv(16, SCREEN_DPI_Y, DEFAULT_DPI_Y), ILC_COLOR24 | ILC_MASK, 0, 4);
-	m_ImageList.Add(&BitMap, RGB(192, 192, 192));
-	BitMap.DeleteObject();
-	m_TabCtrl.SetImageList(&m_ImageList);
-
-	return 0;
-}
-
-void CTabDlgBar::OnSize(UINT nType, int cx, int cy)
-{
-	CControlBar::OnSize(nType, cx, cy);
-
-	if ( m_TabCtrl.m_hWnd == NULL )
-		return;
-
-	CRect oldr, rect(0, 0, cx, cy);
-	CalcInsideRect(rect, (GetBarStyle() & (CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM)) != 0 ? TRUE : FALSE);
-	m_TabCtrl.GetWindowRect(oldr);
-
-	if ( oldr != rect ) {
-		m_TabCtrl.SetWindowPos(&wndTop , rect.left, rect.top, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
-		TabReSize();
-	}
-}
-void CTabDlgBar::OnSelchange(NMHDR *pNMHDR, LRESULT *pResult) 
-{
-	int n;
-	TC_ITEM tci;
-	CWnd *pWnd;
-
-	*pResult = 0;
-	tci.mask = TCIF_PARAM;
-
-	if ( (n = m_TabCtrl.GetCurSel()) < 0 || !m_TabCtrl.GetItem(n, &tci) )
-		return;
-
-	if ( m_pShowWnd != NULL )
-		m_pShowWnd->ShowWindow(SW_HIDE);
-
-	pWnd = (CWnd *)tci.lParam;
-	pWnd->ShowWindow(SW_SHOWNOACTIVATE);
-	m_pShowWnd = pWnd;
-}
-BOOL CTabDlgBar::PreTranslateMessage(MSG* pMsg)
-{
-	if ( pMsg->hwnd == m_TabCtrl.m_hWnd && (pMsg->message >= WM_MOUSEFIRST && pMsg->message <= WM_MOUSELAST) ) {
-		// WM_MOUSE*をTabCtrlからTabBarに変更
-		CPoint point(LOWORD(pMsg->lParam), HIWORD(pMsg->lParam));
-		::ClientToScreen(pMsg->hwnd, &point);
-		ScreenToClient(&point);
-		pMsg->hwnd = m_hWnd;
-		pMsg->lParam = MAKELPARAM(point.x, point.y);
-	}
-
-	return CControlBar::PreTranslateMessage(pMsg);
-}
-int CTabDlgBar::HitPoint(CPoint point)
-{
-	CRect rect, inside;
-
-	if ( (GetStyle() & WS_VISIBLE) == 0 ) {
-		((CMainFrame *)AfxGetMainWnd())->GetWindowRect(rect);
-		return rect.PtInRect(point) ? (-6) : (-7);
-	}
-
-	GetWindowRect(rect);
-	if ( !rect.PtInRect(point) ) {
-		((CMainFrame *)AfxGetMainWnd())->GetWindowRect(rect);
-		return rect.PtInRect(point) ? (-6) : (-7);		// (-6) CTabDlgBar外 (-7) CMainFrame外
-	}
-
-	inside = rect;
-
-	switch(GetBarStyle() & CBRS_ALIGN_ANY) {
-	case CBRS_ALIGN_LEFT:
-		CalcInsideRect(inside, FALSE);
-		rect.left = inside.right;
-		if ( rect.PtInRect(point) )
-			return (-1);
-		break;
-	case CBRS_ALIGN_TOP:
-		CalcInsideRect(inside, TRUE);
-		rect.top = inside.bottom;
-		if ( rect.PtInRect(point) )
-			return (-2);
-		break;
-	case CBRS_ALIGN_RIGHT:
-		CalcInsideRect(inside, FALSE);
-		rect.right = inside.left;
-		if ( rect.PtInRect(point) )
-			return (-3);
-		break;
-	case CBRS_ALIGN_BOTTOM:
-		CalcInsideRect(inside, TRUE);
-		rect.bottom = inside.top;
-		if ( rect.PtInRect(point) )
-			return (-4);
-		break;
-	}
-
-	// CTabBarクライアント座標
-	m_TabCtrl.ScreenToClient(&point);
-
-	for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
-		if ( m_TabCtrl.GetItemRect(n, rect) && rect.PtInRect(point) )
-			return n;				// タブ内
-	}
-
-	return (-5);					// CTabDlgBar内
-}
-void CTabDlgBar::GetTitle(int nIndex, CString &title)
-{
-	TC_ITEM tci;
-	TCHAR tmp[MAX_PATH + 2];
-
-	ZeroMemory(&tci, sizeof(tci));
-	tci.mask = TCIF_TEXT | TCIF_PARAM;
-	tci.pszText = tmp;
-	tci.cchTextMax = MAX_PATH;
-
-	if ( !m_TabCtrl.GetItem(nIndex, &tci) )
-		return;
-
-	title = tci.pszText;
-}
-
-void CTabDlgBar::TrackLoop(CPoint ptScrn, int idx, CWnd *pMoveWnd, int nImage)
-{
-	int n;
-	int hit;
-	int count;
-	int TypeCol = 0;
-	MSG msg;
-	CPoint ptOffset, ptLast;
-	CRect TrackRect, TrackBase;
-	CRect MainClient, MainFrame;
-	CSize InitSize, MoveOfs;
-	CTrackWnd track;
-	CString title;
-	TC_ITEM tci;
-	TCHAR Text[MAX_PATH + 2];
-	BOOL bDrag = FALSE;
-	BOOL bReSize = FALSE;
-	BOOL bGetRect = FALSE;
-	BOOL bIdle = FALSE;
-
-	if ( !IsFloating() && idx <= (-1) && idx >= (-4) )
-		bReSize = TRUE;
-	else if ( idx < 0 && pMoveWnd == NULL )
-		return;
-
-	if ( pMoveWnd != NULL ) {
-		CRect rect;
-		pMoveWnd->GetWindowRect(rect);
-		MoveOfs.cx = ptScrn.x - rect.left;
-		MoveOfs.cy = ptScrn.y - rect.top;
-		pMoveWnd->SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
-	}
-
-	SetCapture();
-	ptLast = ptScrn;
-
-	while ( CWnd::GetCapture() == this ) {
-		for ( count = 0 ; bIdle || !::PeekMessage(&msg, NULL, NULL, NULL, PM_NOREMOVE) ; count++ ) {
-			bIdle = FALSE;
-			if ( !((CRLoginApp *)AfxGetApp())->OnIdle(count) )
-				break;
-		}
-
-		if (  !::GetMessage(&msg, NULL, 0, 0) )
-			goto ENDOF;
-
-		switch (msg.message) {
-		case WM_MOUSEMOVE:
-			if ( ::PeekMessage(&msg, NULL, NULL, NULL, PM_QS_PAINT | PM_NOREMOVE) )
-				break;
-		case WM_LBUTTONUP:
-			ptScrn = msg.pt;
-			ptOffset = ptScrn - ptLast;
-
-			if ( !bDrag && (abs(ptOffset.x) >= ::GetSystemMetrics(SM_CXDRAG) || abs(ptOffset.y) >= ::GetSystemMetrics(SM_CYDRAG)) ) {
-				if ( bReSize ) {
-					GetWindowRect(TrackRect);
-					TrackBase = TrackRect;
-					InitSize = m_InitSize;
-					((CMainFrame *)AfxGetMainWnd())->GetClientRect(MainClient);
-					MainFrame = ((CMainFrame *)AfxGetMainWnd())->m_Frame;
-					((CMainFrame *)AfxGetMainWnd())->ClientToScreen(MainClient);
-					((CMainFrame *)AfxGetMainWnd())->ClientToScreen(MainFrame);
-
-				} else if ( idx >= 0 ) {
-					m_TabCtrl.GetItemRect(idx, TrackRect);
-					m_TabCtrl.ClientToScreen(TrackRect);
-					GetTitle(idx, title);
-
-					track.Create(NULL, title, WS_TILED | WS_CHILD, TrackRect, CWnd::GetDesktopWindow(), (-1));
-					bGetRect = TRUE;
-				}
-
-				bDrag = TRUE;
-			}
-
-			if ( bDrag ) {
-				if ( bReSize ) {
-					switch(idx) {
-					case (-1):	// CBRS_ALIGN_LEFT
-						TrackRect.right = TrackBase.right + (ptScrn.x - ptLast.x);
-						if ( TrackRect.right < (n = MainClient.left + MainClient.Width() / 10) )
-							TrackRect.right = n;
-						else if ( TrackRect.right > (n = MainFrame.right - PANEMIN_WIDTH) )
-							TrackRect.right = n;
-						InitSize.cx = TrackRect.Width();
-						break;
-					case (-2):	// CBRS_ALIGN_TOP
-						TrackRect.bottom = TrackBase.bottom + (ptScrn.y - ptLast.y);
-						if ( TrackRect.bottom < (n = MainClient.top + MainClient.Height() / 10) )
-							TrackRect.bottom = n;
-						else if ( TrackRect.bottom > (n = MainFrame.bottom - PANEMIN_HEIGHT) )
-							TrackRect.bottom = n;
-						InitSize.cy = TrackRect.Height();
-						break;
-					case (-3):	// CBRS_ALIGN_RIGHT
-						TrackRect.left = TrackBase.left + (ptScrn.x - ptLast.x);
-						if ( TrackRect.left < (n = MainFrame.left + PANEMIN_WIDTH) )
-							TrackRect.left = n;
-						else if ( TrackRect.left > (n = MainClient.right - MainClient.Width() / 10) )
-							TrackRect.left = n;
-						InitSize.cx = TrackRect.Width();
-						break;
-					case (-4):	// CBRS_ALIGN_BOTTOM
-						TrackRect.top = TrackBase.top + (ptScrn.y - ptLast.y);
-						if ( TrackRect.top < (n = MainFrame.top + PANEMIN_HEIGHT) )
-							TrackRect.top = n;
-						else if ( TrackRect.top > (n = MainClient.bottom - MainClient.Height() / 10) )
-							TrackRect.top = n;
-						InitSize.cy = TrackRect.Height();
-						break;
-					}
-
-					if ( m_InitSize != InitSize ) {
-						m_InitSize = InitSize;
-						Invalidate(FALSE);
-						((CMainFrame *)AfxGetMainWnd())->RecalcLayout(TRUE);
-					}
-
-					if ( msg.message == WM_LBUTTONUP ) {
-						::AfxGetApp()->WriteProfileInt(_T("TabDlgBar"), _T("IntWidth"),  m_InitSize.cx * 100 / MainClient.Width());
-						::AfxGetApp()->WriteProfileInt(_T("TabDlgBar"), _T("IntHeight"), m_InitSize.cy * 100 / MainClient.Height());
-						goto ENDOF;
-					}
-
-				} else {
-					TrackRect.OffsetRect(ptOffset);
-					ptLast = ptScrn;
-
-					hit = HitPoint(ptScrn);
-
-					if ( hit < (-5) ) {
-						if ( track.GetSafeHwnd() != NULL ) {
-							track.DestroyWindow();
-
-							struct _DlgWndData *pData = (struct _DlgWndData *)RemoveAt(idx, ptScrn);
-							if ( pData != NULL ) {
-								pMoveWnd = pData->pWnd;
-								nImage = pData->nImage;
-								MoveOfs.cx = pData->WinRect.Width() / 2;
-								MoveOfs.cy = GetSystemMetrics(SM_CYCAPTION) / 2;
-								delete pData;
-							}
-
-							idx = m_TabCtrl.GetItemCount() > 0 ? m_TabCtrl.GetCurSel() : (-1);
-							bGetRect = FALSE;
-
-						} else if ( pMoveWnd != NULL ) {
-							if ( hit == (-6) && (GetStyle() & WS_VISIBLE) == 0 )
-								((CMainFrame *)::AfxGetMainWnd())->TabDlgShow(TRUE);
-
-							pMoveWnd->SetWindowPos(NULL, ptScrn.x - MoveOfs.cx, ptScrn.y - MoveOfs.cy, 0, 0,
-								SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
-						}
-
-					} else {
-						if ( track.GetSafeHwnd() == NULL ) {
-							if ( pMoveWnd != NULL ) {
-								Add(pMoveWnd, nImage);
-								idx = m_TabCtrl.GetItemCount() - 1;
-								pMoveWnd = NULL;
-								bGetRect = FALSE;
-							}
-
-							if ( idx >= 0 && !bGetRect ) {
-								m_TabCtrl.GetItemRect(idx, TrackRect);
-								m_TabCtrl.ClientToScreen(TrackRect);
-								GetTitle(idx, title);
-
-								ptOffset.x = ptScrn.x - TrackRect.left - TrackRect.Width() / 2;
-								ptOffset.y = ptScrn.y - TrackRect.top  - TrackRect.Height() / 2;
-								TrackRect.OffsetRect(ptOffset);
-
-								track.Create(NULL, title, WS_TILED | WS_CHILD, TrackRect, CWnd::GetDesktopWindow(), (-1));
-								bGetRect = TRUE;
-							}
-						}
-
-						if ( track.GetSafeHwnd() != NULL ) {
-							TypeCol = hit >= 0 || hit == (-7) ? 0 : 5;
-							track.SetWindowPos(&wndTopMost, TrackRect.left, TrackRect.top, 0, 0, SWP_NOSIZE | SWP_NOCOPYBITS | SWP_SHOWWINDOW);
-
-							if ( track.m_TypeCol != TypeCol ) {
-								track.m_TypeCol = TypeCol;
-								track.Invalidate();
-							}
-						}
-					}
-
-					if ( msg.message == WM_LBUTTONUP ) {
-						if ( idx >= 0 && hit >= 0 && hit != idx ) {		// Move Tab
-							tci.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
-							tci.pszText = Text;
-							tci.cchTextMax = MAX_PATH;
-							m_TabCtrl.GetItem(idx, &tci);
-
-							m_TabCtrl.DeleteItem(idx);
-							tci.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
-							m_TabCtrl.InsertItem(hit, &tci);
-
-							idx = hit;
-
-							if ( m_pShowWnd != NULL )
-								m_pShowWnd->Invalidate();
-
-						} else if ( hit < (-5) ) {
-							if ( m_TabCtrl.GetItemCount() == 0 )
-								((CMainFrame *)::AfxGetMainWnd())->TabDlgShow(FALSE);
-						}
-						goto ENDOF;
-					}
-				}
-
-			} else if ( msg.message == WM_LBUTTONUP )
-				goto ENDOF;
-
-			break;
-
-		default:
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-			if ( ((CRLoginApp *)::AfxGetApp())->IsIdleMessage(&msg) )
-				bIdle = TRUE;
-			break;
-		}
-	}
-
-ENDOF:
-	if ( track.GetSafeHwnd() != NULL )
-		track.DestroyWindow();
-
-	ReleaseCapture();
-}
-void CTabDlgBar::OnLButtonDown(UINT nFlags, CPoint point)
-{
-	int idx;
-	CPoint ptScrn;
-	TC_ITEM tci;
-
-	ptScrn = point;
-	ClientToScreen(&ptScrn);
-
-	if ( (idx = HitPoint(ptScrn)) < 0 ) {
-		if ( idx == (-5) ) {
-			CControlBar::OnLButtonDown(nFlags, point);
-			return;
-		} else if ( idx <= (-6) ) {
-			CWnd::OnLButtonDown(nFlags, point);
-			return;
-		}
-
-	} else if ( idx != m_TabCtrl.GetCurSel() ) {
-		m_TabCtrl.SetCurSel(idx);
-		tci.mask = TCIF_PARAM;
-		if ( m_TabCtrl.GetItem(idx, &tci) ) {
-			if ( m_pShowWnd != NULL )
-				m_pShowWnd->ShowWindow(SW_HIDE);
-			m_pShowWnd = (CWnd *)tci.lParam;
-			m_pShowWnd->ShowWindow(SW_SHOWNOACTIVATE);
-		}
-	}
-
-	TrackLoop(ptScrn, idx, NULL, (-1));
-}
-
-BOOL CTabDlgBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
-{
-	CPoint point;
-	CRect rect, inside;
-	HCURSOR hCursor;
-	LPCTSTR pCurName = NULL;
-
-	if ( (GetStyle() & WS_VISIBLE) != 0 && !IsFloating() ) {
-		GetCursorPos(&point);
-		GetWindowRect(rect);
-		inside = rect;
-
-		switch(GetBarStyle() & CBRS_ALIGN_ANY) {
-		case CBRS_ALIGN_LEFT:
-			CalcInsideRect(inside, FALSE);
-			rect.left = inside.right;
-			pCurName = IDC_SIZEWE;
-			break;
-		case CBRS_ALIGN_TOP:
-			CalcInsideRect(inside, TRUE);
-			rect.top = inside.bottom;
-			pCurName = IDC_SIZENS;
-			break;
-		case CBRS_ALIGN_RIGHT:
-			CalcInsideRect(inside, FALSE);
-			rect.right = inside.left;
-			pCurName = IDC_SIZEWE;
-			break;
-		case CBRS_ALIGN_BOTTOM:
-			CalcInsideRect(inside, TRUE);
-			rect.bottom = inside.top;
-			pCurName = IDC_SIZENS;
-			break;
-		}
-
-		if ( pCurName != NULL && rect.PtInRect(point) && (hCursor = AfxGetApp()->LoadStandardCursor(pCurName)) != NULL ) {
-			::SetCursor(hCursor);
-			return TRUE;
-		}
-	}
-
-	return CControlBar::OnSetCursor(pWnd, nHitTest, message);
-}

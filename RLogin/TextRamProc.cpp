@@ -7723,6 +7723,8 @@ void CTextRam::fc_DECRQDE(DWORD ch)
 void CTextRam::fc_DECRQUPSS(DWORD ch)
 {
 	// CSI ('&' << 8) | 'u'		DECRQUPSS Request User-Preferred Supplemental Set
+	// DECAUPSS
+	// DCS 0 ! u % 5 ST			The user-preferred supplemental set is DEC Supplemental Graphic
 	// DCS 1 ! u A ST			The user-preferred supplemental set is ISO Latin-1 supplemental.
 
 	UNGETSTR(_T("%s1!uA%s"), m_RetChar[RC_DCS], m_RetChar[RC_ST]);

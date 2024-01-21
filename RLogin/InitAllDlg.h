@@ -20,7 +20,9 @@ public:
 	CStatic m_MsgIcon;
 	int m_InitType;
 	CComboBox m_EntryCombo;
+	CStatic m_TitleWnd;
 	CServerEntry *m_pInitEntry;
+	CString m_Title;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート

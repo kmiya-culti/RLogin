@@ -20,6 +20,7 @@
 int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void *, const void *), int *base);
 BOOL IsZeroMemory(void *ptr, int len);
 BOOL IsDigits(LPCTSTR p);
+BOOL InStrStr(LPCTSTR str, LPCTSTR ptn);
 
 #define	CBUFINITSIZE	32
 #define	CBUFNIMALLOC	256
@@ -829,6 +830,7 @@ public:
 	LPCTSTR GetCode();
 	void SetCode(LPCTSTR name);
 	LPCTSTR GetMask();
+	void SetMask(LPCTSTR str);
 	void CommandLine(LPCWSTR str, CStringW &cmd);
 	void SetComboList(CComboBox *pCombo);
 
@@ -914,6 +916,7 @@ public:
 	inline int GetSize() { return (int)m_Node.GetSize(); }
 	inline void SetSize(int sz) { 	m_Node.SetSize(sz, 16); }
 	inline void RemoveAt(int pos) { m_Node.RemoveAt(pos); m_CmdsInit = m_bMapInit = FALSE; }
+	inline void RemoveAll() { m_Node.RemoveAll(); m_CmdsInit = m_bMapInit = FALSE; }
 	inline CKeyNode & operator[](int nIndex) { return m_Node[nIndex]; }
 
 	const CKeyNodeTab & operator = (CKeyNodeTab &data);

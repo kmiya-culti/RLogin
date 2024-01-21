@@ -112,6 +112,11 @@
 #define	SSH2_MSG_KEXRSA_SECRET				31
 #define	SSH2_MSG_KEXRSA_DONE				32
 
+/* transport layer: OpenSSH extensions */
+
+#define SSH2_MSG_PING						192
+#define SSH2_MSG_PONG						193
+
 /* user authentication: generic */
 
 #define SSH2_MSG_USERAUTH_REQUEST			50

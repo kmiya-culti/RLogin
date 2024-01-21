@@ -21,7 +21,7 @@ CFileUpDown::CFileUpDown(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, p
 {
 	m_DownMode     = DOWNMODE_NONE;
 	m_DownFrom     = pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode];
-	m_DownTo       = _T("CP932");
+	m_DownTo       = SYSTEMICONV;
 	m_DecMode      = EDCODEMODE_UUENC;
 	m_bDownWait    = FALSE;
 	m_DownSec      = 30;
@@ -31,7 +31,7 @@ CFileUpDown::CFileUpDown(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, p
 	m_bFileAppend  = FALSE;
 
 	m_UpMode       = UPMODE_NONE;
-	m_UpFrom       = _T("CP932");
+	m_UpFrom       = SYSTEMICONV;
 	m_UpTo         = pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode];
 	m_EncMode      = EDCODEMODE_UUENC;
 	m_bUpCrLf      = FALSE;

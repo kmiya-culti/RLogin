@@ -2,6 +2,7 @@
 
 #include "TextRam.h"
 #include <afxtempl.h>
+#include "UahMenuBar.h"
 
 // CGrapWnd ÉtÉåÅ[ÉÄ
 
@@ -51,10 +52,16 @@ public:
 	CFrameWndExt();
 	virtual~CFrameWndExt();
 
+public:
+	BOOL m_bDarkMode;
+
 protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnUahDrawMenu(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam);
 };
 
 class CHistogram : public CFrameWndExt

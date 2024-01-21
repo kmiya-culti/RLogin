@@ -26,6 +26,7 @@ CListCtrlExt::CListCtrlExt()
 	m_bMove = FALSE;
 	m_Dpi.cx = SYSTEM_DPI_X;
 	m_Dpi.cy = SYSTEM_DPI_Y;
+	m_bSetLVCheck = FALSE;
 }
 CListCtrlExt::~CListCtrlExt()
 {
@@ -75,6 +76,21 @@ static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSor
 	}
 
 	return 0;
+}
+void CListCtrlExt::SetSelectMarkItem(int item)
+{
+	int count;
+
+	if ( item < 0 || (count = GetItemCount()) <= 0 )
+		return;
+
+	if ( item >= count )
+		item = count - 1;
+
+	SetSelectionMark(item);
+	SetItemState(item, LVIS_SELECTED, LVIS_SELECTED);
+	EnsureVisible(item, FALSE);
+	SetFocus();
 }
 int CListCtrlExt::GetParamItem(int para)
 {
@@ -186,7 +202,9 @@ void CListCtrlExt::SaveColumn(LPCTSTR lpszSection)
 }
 void CListCtrlExt::SetLVCheck(WPARAM ItemIndex, BOOL bCheck)
 {
+	m_bSetLVCheck = TRUE;
 	ListView_SetItemState(m_hWnd, ItemIndex, UINT((int(bCheck) + 1) << 12), LVIS_STATEIMAGEMASK);
+	m_bSetLVCheck = FALSE;
 }
 BOOL CListCtrlExt::GetLVCheck(WPARAM ItemIndex)
 {

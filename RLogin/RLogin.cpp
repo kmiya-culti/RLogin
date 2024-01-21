@@ -33,8 +33,9 @@
 #include "openssl/conf.h"
 #include "internal/cryptlib.h"
 
-#include "afxcmn.h"
-#include "sphelper.h"
+#include <afxcmn.h>
+#include <sphelper.h>
+#include <mbctype.h>
 
 #include "Fifo.h"
 
@@ -536,6 +537,8 @@ BOOL CAboutDlg::OnInitDialog()
 		pWnd->SetWindowText(text);
 	}
 
+	SetSaveProfile(_T("AboutDlg"));
+
 	return TRUE;
 }
 
@@ -602,6 +605,8 @@ BOOL CSecPolicyDlg::OnInitDialog()
 	m_MakeKeyMode = AfxGetApp()->GetProfileInt(_T("RLoginApp"), _T("MakeKeyMode"), MAKEKEY_USERHOST);
 
 	UpdateData(FALSE);
+
+	SetSaveProfile(_T("SecPolicyDlg"));
 
 	return TRUE;
 }
@@ -685,6 +690,7 @@ CRLoginApp::CRLoginApp()
 
 	CRLoginApp theApp;
 	BOOL CompNameLenBugFix = TRUE;
+	CString SystemIconv;
 
 	BOOL ExDwmEnable = FALSE;
 #ifdef	USE_DWMAPI
@@ -692,6 +698,7 @@ CRLoginApp::CRLoginApp()
 	HRESULT (__stdcall *ExDwmIsCompositionEnabled)(BOOL * pfEnabled) = NULL;
 	HRESULT (__stdcall *ExDwmEnableBlurBehindWindow)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind) = NULL;
 	HRESULT (__stdcall *ExDwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS* pMarInset) = NULL;
+	HRESULT (__stdcall *ExDwmSetWindowAttribute)(HWND hwnd, DWORD dwAttribute, __in_bcount(cbAttribute) LPCVOID pvAttribute, DWORD cbAttribute) = NULL;
 #endif
 	
 	HMODULE ExUserApi = NULL;
@@ -722,6 +729,15 @@ CRLoginApp::CRLoginApp()
 	HMODULE ExKernel32Api = NULL;
 	BOOL (WINAPI *ExCancelIoEx)(HANDLE hFile, LPOVERLAPPED lpOverlapped) = NULL;
 
+	HMODULE ExUxThemeDll = NULL;
+	BOOL (__stdcall *AllowDarkModeForApp)(int mode) = NULL;						// #135
+	HRESULT (__stdcall *ExSetWindowTheme)(HWND hwnd, LPCWSTR pszSubAppName, LPCWSTR pszSubIdList) = NULL;
+	HTHEME (__stdcall *ExOpenThemeData)(HWND hwnd, LPCWSTR pszClassList);
+	HRESULT (__stdcall *ExCloseThemeData)(HTHEME hTheme);
+
+	HMODULE ExNtDll = NULL;
+	VOID (__stdcall *ExRtlGetNtVersionNumbers)(LPDWORD major, LPDWORD minor, LPDWORD build) = NULL;
+
 void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 {
 #ifdef	USE_DWMAPI
@@ -744,6 +760,30 @@ void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 		//ExDwmExtendFrameIntoClientArea(hWnd, &margin);
 	}
 #endif
+}
+BOOL ExDwmDarkMode(HWND hWnd)
+{
+#ifdef	USE_DWMAPI
+	if ( ExDwmApi != NULL && ExDwmSetWindowAttribute != NULL && hWnd != NULL ) {
+		#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+			#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+		#endif
+		#ifndef DWMWA_BORDER_COLOR
+			#define	DWMWA_BORDER_COLOR	34
+		#endif
+
+		DWORD dwUseLight = 1;
+
+		if ( theApp.RegisterGetDword(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"), _T("AppsUseLightTheme"), &dwUseLight) ) {
+			DWORD dwAttribute = (dwUseLight ? 0 : 1);
+//			COLORREF brc = (dwAttribute ? 0xFFFFFFFE : 0xFFFFFFFF);
+			ExDwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dwAttribute, sizeof(dwAttribute));
+//			ExDwmSetWindowAttribute(hWnd, DWMWA_BORDER_COLOR, &brc, sizeof(brc));
+			return (dwAttribute != 0 ? TRUE : FALSE);
+		}
+	}
+#endif
+	return FALSE;
 }
 
 #ifdef	USE_OLE
@@ -989,7 +1029,37 @@ BOOL CRLoginApp::InitLocalPass()
 	return FALSE;
 }
 
-#if	_MSC_VER < _MSC_VER_VS13
+#if	_MSC_VER < _MSC_VER_VS05
+BOOL CRLoginApp::IsWinVerCheck(int ver, int op)
+{
+	if ( ExRtlGetNtVersionNumbers == NULL )
+		return FALSE;
+
+	DWORD major, minor, build;
+    ExRtlGetNtVersionNumbers(&major, &minor, &build); build &= 0x0FFFFFFF;
+	int osver = (major << 8) | (minor & 0xFF);
+
+	switch(op) {
+	case VER_EQUAL:				// ==
+		return (osver == ver ? TRUE : FALSE);
+		break;
+	case VER_GREATER:			// >
+		return (osver > ver ? TRUE : FALSE);
+		break;
+	case VER_GREATER_EQUAL:		// >=
+		return (osver >= ver ? TRUE : FALSE);
+		break;
+	case VER_LESS:				// <
+		return (osver < ver ? TRUE : FALSE);
+		break;
+	case VER_LESS_EQUAL:		// <=
+		return (osver <= ver ? TRUE : FALSE);
+		break;
+	}
+
+	return FALSE;
+}
+#elif _MSC_VER < _MSC_VER_VS13
 BOOL CRLoginApp::IsWinVerCheck(int ver, int op)
 {
     OSVERSIONINFOEX osvi;
@@ -1024,6 +1094,8 @@ BOOL CRLoginApp::IsWinVerCheck(int ver, int op)
 			return (IsWindows8OrGreater() && !IsWindows10OrGreater() ? TRUE : FALSE);
 		case _WIN32_WINNT_WINBLUE:
 			return (IsWindows8Point1OrGreater() && !IsWindows10OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WIN10:
+			return (IsWindows10OrGreater() ? TRUE : FALSE);
 		}
 		break;
 	case VER_GREATER:			// >
@@ -1052,6 +1124,8 @@ BOOL CRLoginApp::IsWinVerCheck(int ver, int op)
 			return (IsWindows8OrGreater() ? TRUE : FALSE);
 		case _WIN32_WINNT_WINBLUE:
 			return (IsWindows8Point1OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WIN10:
+			return (IsWindows10OrGreater() ? TRUE : FALSE);
 		}
 		break;
 	case VER_LESS:				// <
@@ -1066,6 +1140,8 @@ BOOL CRLoginApp::IsWinVerCheck(int ver, int op)
 			return (!IsWindows8OrGreater() ? TRUE : FALSE);
 		case _WIN32_WINNT_WINBLUE:
 			return (!IsWindows8Point1OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WIN10:
+			return (!IsWindows10OrGreater() ? TRUE : FALSE);
 		}
 		break;
 	case VER_LESS_EQUAL:		// <=
@@ -1179,6 +1255,10 @@ BOOL CRLoginApp::InitInstance()
 
 	// デフォルトのロケールを設定 strftimeなどで必要
 	setlocale(LC_ALL, "");
+
+	// OS設定のSystem CodePageをiconvでの名前で保存
+	LPCTSTR p = CIConv::GetCodePageName(_getmbcp());
+	SystemIconv = (p != NULL ? p : _T("UTF-8"));
 
 	//TODO: call AfxInitRichEdit2() to initialize richedit2 library.
 	// アプリケーション マニフェストが visual スタイルを有効にするために、
@@ -1304,6 +1384,7 @@ BOOL CRLoginApp::InitInstance()
 		ExDwmIsCompositionEnabled      = (HRESULT (__stdcall *)(BOOL* pfEnabled))GetProcAddress(ExDwmApi, "DwmIsCompositionEnabled");
 		ExDwmEnableBlurBehindWindow    = (HRESULT (__stdcall *)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind))GetProcAddress(ExDwmApi, "DwmEnableBlurBehindWindow");
 		ExDwmExtendFrameIntoClientArea = (HRESULT (__stdcall *)(HWND hWnd, const MARGINS* pMarInset))GetProcAddress(ExDwmApi, "DwmExtendFrameIntoClientArea");
+		ExDwmSetWindowAttribute        = (HRESULT (__stdcall *)(HWND hwnd, DWORD dwAttribute, __in_bcount(cbAttribute) LPCVOID pvAttribute, DWORD cbAttribute))GetProcAddress(ExDwmApi, "DwmSetWindowAttribute");
 
 		if ( (IsWinVerCheck(_WIN32_WINNT_VISTA) || IsWinVerCheck(_WIN32_WINNT_WIN7)) && ExDwmIsCompositionEnabled != NULL )
 			ExDwmIsCompositionEnabled(&ExDwmEnable);
@@ -1336,6 +1417,19 @@ BOOL CRLoginApp::InitInstance()
 	// CancelIoExライブラリを取得
 	if ( (ExKernel32Api = LoadLibrary(_T("Kernel32.dll"))) != NULL )
 		ExCancelIoEx = (BOOL (WINAPI *)(HANDLE hFile, LPOVERLAPPED lpOverlapped))GetProcAddress(ExKernel32Api, "CancelIoEx");
+
+	// ダークモード関連の関数
+	if ( (ExUxThemeDll = LoadLibrary(_T("uxtheme.dll"))) != NULL ) {
+		AllowDarkModeForApp	= (BOOL (__stdcall *)(int mode))GetProcAddress(ExUxThemeDll, MAKEINTRESOURCEA(135));
+		ExSetWindowTheme = (HRESULT (__stdcall *)(HWND hwnd, LPCWSTR pszSubAppName, LPCWSTR pszSubIdList))GetProcAddress(ExUxThemeDll, "SetWindowTheme");
+		ExOpenThemeData = (HTHEME (__stdcall *)(HWND hwnd, LPCWSTR pszClassList))GetProcAddress(ExUxThemeDll, "OpenThemeData");
+		ExCloseThemeData = (HRESULT (__stdcall *)(HTHEME hTheme))GetProcAddress(ExUxThemeDll, "CloseThemeData");
+	}
+
+	// NTのバージョン取得関数
+	if ( (ExNtDll = LoadLibrary(_T("ntdll.dll"))) != NULL ) {
+		ExRtlGetNtVersionNumbers = (VOID (__stdcall *)(LPDWORD major, LPDWORD minor, LPDWORD build))GetProcAddress(ExNtDll, "RtlGetNtVersionNumbers");
+	}
 
 #ifdef	USE_DIRECTWRITE
 	// DirectWriteを試す
@@ -1398,6 +1492,14 @@ BOOL CRLoginApp::InitInstance()
 			m_BaseDir = cmdInfo.m_Cwd;
 	}
 	
+	// メニューがダークモードになるが非公開関数
+	if ( AllowDarkModeForApp != NULL && ExRtlGetNtVersionNumbers != NULL ) {
+		DWORD major = 0, minor = 0, build = 0;
+		ExRtlGetNtVersionNumbers(&major, &minor, &build); build &= 0x0FFFFFFF;
+		if ( major == 10 && minor == 0 && build >= 17763 )	// // Windows 10 1809 (10.0.17763)
+			AllowDarkModeForApp(1);
+	}
+
 	// メイン MDI フレーム ウィンドウを作成します。
 	CMainFrame* pMainFrame = new CMainFrame;
 
@@ -1411,9 +1513,9 @@ BOOL CRLoginApp::InitInstance()
 	m_pMainWnd = pMainFrame;
 
 	if ( !pMainFrame || !pMainFrame->LoadFrame(IDR_MAINFRAME) ) {
-		AfxMessageBox(_T("MainFrame Create Error"));
+		//AfxMessageBox(_T("MainFrame Create Error"));
+		//delete pMainFrame;
 		m_pMainWnd = NULL;
-		delete pMainFrame;
 		return FALSE;
 	}
 
@@ -1583,6 +1685,12 @@ int CRLoginApp::ExitInstance()
 
 	if ( ExKernel32Api != NULL )
 		FreeLibrary(ExKernel32Api);
+
+	if ( ExUxThemeDll != NULL )
+		FreeLibrary(ExUxThemeDll);
+
+	if ( ExNtDll != NULL )
+		FreeLibrary(ExNtDll);
 
 #ifdef	USE_RCDLL
 	if ( ExRcDll != NULL )
@@ -2649,6 +2757,22 @@ BOOL CRLoginApp::RegisterSetStr(HKEY hKey, LPCTSTR pSection, LPCTSTR pEntryName,
 
 	return ret;
 }
+BOOL CRLoginApp::RegisterGetDword(HKEY hKey, LPCTSTR pSection, LPCTSTR pEntryName, DWORD *pDword)
+{
+	HKEY hSubKey;
+	DWORD type, size;
+	BOOL ret = FALSE;
+
+	if ( RegOpenKeyEx(hKey, pSection, 0, KEY_READ, &hSubKey) == ERROR_SUCCESS ) {
+		if ( RegQueryValueEx(hSubKey, pEntryName, NULL, &type, NULL, &size) == ERROR_SUCCESS && type == REG_DWORD && size == sizeof(DWORD) ) {
+			if ( RegQueryValueEx(hSubKey, pEntryName, NULL, NULL, (LPBYTE)pDword, &size) == ERROR_SUCCESS )
+				ret = TRUE;
+		}
+		RegCloseKey(hSubKey);
+	}
+
+	return ret;
+}
 BOOL CRLoginApp::RegisterSetDword(HKEY hKey, LPCTSTR pSection, LPCTSTR pEntryName, DWORD dword, BOOL bCreate)
 {
 	HKEY hSubKey;
@@ -2783,7 +2907,7 @@ BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file, BOOL bRLoginApp)
 		if ( RegEnumValue(hKey, n, name, &len, NULL, &type, NULL, &size) != ERROR_SUCCESS )
 			break;
 
-		if ( max < (size + 2) ) {
+		if ( pData == NULL || max < (size + 2) ) {
 			if ( pData != NULL )
 				delete [] pData;
 			max = size + 2;

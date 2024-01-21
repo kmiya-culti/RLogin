@@ -94,6 +94,8 @@ BOOL CPassDlg::OnInitDialog()
 
 	UpdateData(FALSE);
 
+	SetSaveProfile(_T("PassDlg"));
+
 	return FALSE;
 }
 

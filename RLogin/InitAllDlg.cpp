@@ -31,6 +31,7 @@ void CInitAllDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_MSGICON, m_MsgIcon);
 	DDX_Radio(pDX, IDC_RADIO1, m_InitType);
 	DDX_Control(pDX, IDC_COMBO1, m_EntryCombo);
+	DDX_Control(pDX, IDC_TITLE, m_TitleWnd);
 }
 
 
@@ -66,6 +67,11 @@ BOOL CInitAllDlg::OnInitDialog()
 
 	if ( m_InitType != 2 )
 		m_EntryCombo.EnableWindow(FALSE);
+
+	if ( !m_Title.IsEmpty() )
+		m_TitleWnd.SetWindowText(m_Title);
+
+	SetSaveProfile(_T("InitAllDlg"));
 
 	return TRUE;
 }

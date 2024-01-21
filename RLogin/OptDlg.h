@@ -129,6 +129,7 @@ public:
 	BOOL CreatePage(int nPage);
 	void SetActivePage(int nPage);
 	void SetModified(BOOL bModified);
+	void PageReSize();
 
 // オーバーライド
 protected:
@@ -140,8 +141,10 @@ protected:
 // インプリメンテーション
 protected:
 	DECLARE_MESSAGE_MAP()
-	afx_msg void OnSelchangedTree(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnDoInit();
 	afx_msg void OnApplyNow();
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnSelchangedTree(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnBnClickedHelpbtn();
 };

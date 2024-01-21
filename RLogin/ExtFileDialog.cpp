@@ -650,8 +650,10 @@ CConvFileDialog::CConvFileDialog(BOOL bOpenFileDialog, LPCTSTR lpszDefExt, LPCTS
 		DWORD dwFlags, LPCTSTR lpszFilter, CWnd* pParentWnd, DWORD dwSize, BOOL bVistaStyle) :
 		CFileDialog(bOpenFileDialog, lpszDefExt, lpszFileName, dwFlags, lpszFilter, pParentWnd, dwSize, bVistaStyle)
 {
-	m_Code = _T("CP932");
+	m_Code = SYSTEMICONV;
 	m_CrLf = 0;
+	m_WindowSize.SetSize(0, 0);
+	m_ComboRightOfs = 0;
 
 	if ( !bVistaStyle )
 		SetTemplate(0, IDD);

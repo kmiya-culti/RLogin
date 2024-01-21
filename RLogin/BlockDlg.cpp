@@ -228,7 +228,10 @@ BOOL CBlockDlg::OnInitDialog()
 	m_BlockList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
 	m_BlockList.InitColumn(_T("BlockDlg"), InitListTab, 2);
 	m_BlockList.SetPopUpMenu(IDR_POPUPMENU, 4);
+
 	InitList();
+
+	SetSaveProfile(_T("BlockDlg"));
 
 	return TRUE;
 }

@@ -11,6 +11,7 @@
 #include "Data.h"
 #include "KeyPage.h"
 #include "KeyParaDlg.h"
+#include "InitAllDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -53,21 +54,26 @@ void CKeyPage::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CKeyPage, CTreePage)
-	ON_BN_CLICKED(IDC_KEYASNNEW, OnKeyAsnNew)
-	ON_BN_CLICKED(IDC_KEYASNEDIT, OnKeyAsnEdit)
-	ON_BN_CLICKED(IDC_KEYASNDEL, OnKeyAsnDel)
-	ON_NOTIFY(NM_DBLCLK, IDC_KEYLIST, OnDblclkKeyList)
 	ON_COMMAND(ID_EDIT_NEW, OnKeyAsnNew)
 	ON_COMMAND(ID_EDIT_UPDATE, OnKeyAsnEdit)
 	ON_COMMAND(ID_EDIT_DELETE, OnKeyAsnDel)
 	ON_COMMAND(ID_EDIT_DUPS, OnEditDups)
+	ON_COMMAND(ID_EDIT_DELALL, &CKeyPage::OnEditDelall)
+	ON_COMMAND(ID_EDIT_COPY, &CKeyPage::OnEditCopy)
+	ON_COMMAND(ID_EDIT_PASTE, &CKeyPage::OnEditPaste)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, OnUpdateEditEntry)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, &CKeyPage::OnUpdateEditCopy)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_PASTE, &CKeyPage::OnUpdateEditPaste)
+	ON_BN_CLICKED(IDC_KEYASNNEW, OnKeyAsnNew)
+	ON_BN_CLICKED(IDC_KEYASNEDIT, OnKeyAsnEdit)
+	ON_BN_CLICKED(IDC_KEYASNDEL, OnKeyAsnDel)
 	ON_BN_CLICKED(IDC_ALL_SET, &CKeyPage::OnBnClickedAllSet)
 	ON_BN_CLICKED(IDC_ALL_CLR, &CKeyPage::OnBnClickedAllClr)
+	ON_NOTIFY(NM_DBLCLK, IDC_KEYLIST, OnDblclkKeyList)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_METAKEY1, IDC_METAKEY1 + KEYTABMAX - 1, &CKeyPage::OnBnClickedMetakey)
-	ON_COMMAND(ID_EDIT_DELALL, &CKeyPage::OnEditDelall)
+	ON_WM_ACTIVATE()
 END_MESSAGE_MAP()
 
 void CKeyPage::InitList()
@@ -132,33 +138,33 @@ static const BYTE VKeyTab[2][KEYTABMAX] = {
 		VK_NON,			VK_SPACE,
 		VK_OEM_3,		VK_OEM_5,		VK_BACK,		VK_RETURN,		},
 };
-static const LPCTSTR VKeyName[2][KEYTABMAX] = {
+static const LPCWSTR VKeyName[2][KEYTABMAX] = {
 	// VK_106JP
-	{	_T("1"),		_T("2"),		_T("3"),		_T("4"),		_T("5"),
-		_T("6"),		_T("7"),		_T("8"),		_T("9"),		_T("0"),
-		_T("-"),		_T("^"),		_T("Åè"),		_T("BS"),		_T("TAB"),
-		_T("Q"),		_T("W"),		_T("E"),		_T("R"),		_T("T"),
-		_T("Y"),		_T("U"),		_T("I"),		_T("O"),		_T("P"),
-		_T("@"),		_T("["),		_T("A"),		_T("S"),		_T("D"),
-		_T("F"),		_T("G"),		_T("H"),		_T("J"),		_T("K"),
-		_T("L"),		_T(";"),		_T(":"),		_T("]"),		_T("Å©"),
-		_T("Z"),		_T("X"),		_T("C"),		_T("V"),		_T("B"),
-		_T("N"),		_T("M"),		_T(","),		_T("."),		_T("/"),
-		_T("Å_"),		_T("SP"),		_T(""),			_T(""),			_T(""),
-		_T(""),			},
+	{	L"1",		L"2",		L"3",		L"4",		L"5",
+		L"6",		L"7",		L"8",		L"9",		L"0",
+		L"-",		L"^",		L"\uFFE5",	L"BS",		L"TAB",		// _T("Åè"),
+		L"Q",		L"W",		L"E",		L"R",		L"T",
+		L"Y",		L"U",		L"I",		L"O",		L"P",
+		L"@",		L"[",		L"A",		L"S",		L"D",
+		L"F",		L"G",		L"H",		L"J",		L"K",
+		L"L",		L";",		L":",		L"]",		L"\u2190",	// _T("Å©"),
+		L"Z",		L"X",		L"C",		L"V",		L"B",
+		L"N",		L"M",		L",",		L".",		L"/",
+		L"\uFF3C",	L"SP",		L"",		L"",		L"",		// _T("Å_"),
+		L"",		},
 	// VK_101US
-	{	_T("1"),		_T("2"),		_T("3"),		_T("4"),		_T("5"),
-		_T("6"),		_T("7"),		_T("8"),		_T("9"),		_T("0"),
-		_T("-"),		_T("="),		_T(""),			_T(""),			_T("TAB"),
-		_T("Q"),		_T("W"),		_T("E"),		_T("R"),		_T("T"),
-		_T("Y"),		_T("U"),		_T("I"),		_T("O"),		_T("P"),
-		_T("["),		_T("]"),		_T("A"),		_T("S"),		_T("D"),
-		_T("F"),		_T("G"),		_T("H"),		_T("J"),		_T("K"),
-		_T("L"),		_T(";"),		_T("'"),		_T(""),			_T(""),
-		_T("Z"),		_T("X"),		_T("C"),		_T("V"),		_T("B"),
-		_T("N"),		_T("M"),		_T(","),		_T("."),		_T("/"),
-		_T(""),			_T("SP"),		_T("`"),		_T("Å_"),		_T("BS"),
-		_T("Å©"),		},
+	{	L"1",		L"2",		L"3",		L"4",		L"5",
+		L"6",		L"7",		L"8",		L"9",		L"0",
+		L"-",		L"=",		L"",		L"",		L"TAB",
+		L"Q",		L"W",		L"E",		L"R",		L"T",
+		L"Y",		L"U",		L"I",		L"O",		L"P",
+		L"[",		L"]",		L"A",		L"S",		L"D",
+		L"F",		L"G",		L"H",		L"J",		L"K",
+		L"L",		L";",		L"'",		L"",		L"",
+		L"Z",		L"X",		L"C",		L"V",		L"B",
+		L"N",		L"M",		L",",		L".",		L"/",
+		L"",		L"SP",		L"`",		L"\uFF3C",	L"BS",		// _T("Å_"),
+		L"\u2190",	},												// _T("Å©"),
 };
 void CKeyPage::DoInit()
 {
@@ -182,10 +188,11 @@ void CKeyPage::DoInit()
 	for ( int n = 0 ; n < KEYTABMAX ; n++ ) {
 		if ( (pWnd = (CButton *)GetDlgItem(IDC_METAKEY1 + n)) == NULL )
 			continue;
-		if ( VKeyTab[m_KeyLayout][n] == VK_NON )
+		if ( VKeyTab[m_KeyLayout][n] == VK_NON ) {
 			pWnd->ShowWindow(SW_HIDE);
-		else {
-			pWnd->SetWindowText(VKeyName[m_KeyLayout][n]);
+			m_HideKeys.Add(IDC_METAKEY1 + n);
+		} else {
+			pWnd->SetWindowText(UniToTstr(VKeyName[m_KeyLayout][n]));
 			pWnd->ShowWindow(SW_SHOW);
 			m_KeyMap[n] = (m_MetaKeys[VKeyTab[m_KeyLayout][n] / 32] & (1 << (VKeyTab[m_KeyLayout][n] % 32)) ? TRUE : FALSE);
 		}
@@ -202,9 +209,37 @@ BOOL CKeyPage::OnInitDialog()
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 	m_List.InitColumn(_T("CKeyPage"), InitListTab, 3);
-	m_List.SetPopUpMenu(IDR_POPUPMENU, 6);
+	m_List.SetPopUpMenu(IDR_POPUPMENU, 11);
 
 	DoInit();
+
+	DefItemOffset();
+
+	int cx, cy;
+	CRect rect;
+	CWnd *pWnd;
+	WINDOWPLACEMENT place;
+
+	GetClientRect(rect);
+	cx = rect.Width();
+	cy = rect.Height();
+
+	for ( int n = 0 ; n < m_InitDlgRect.GetSize() ; n++ ) {
+		if ( (pWnd = CWnd::FromHandle(m_InitDlgRect[n].hWnd)) == NULL || !pWnd->GetWindowPlacement(&place) )
+			continue;
+
+		if ( m_InitDlgRect[n].id == IDC_KEYLIST || m_InitDlgRect[n].id == IDC_TITLE1 ) {
+			m_InitDlgRect[n].mode &= 00077;
+			m_InitDlgRect[n].mode |= (ITM_TOP_TOP | ITM_BTM_BTM);
+			m_InitDlgRect[n].rect.top    = place.rcNormalPosition.top;
+			m_InitDlgRect[n].rect.bottom = place.rcNormalPosition.bottom - cy;
+		} else {
+			m_InitDlgRect[n].mode &= 00077;
+			m_InitDlgRect[n].mode |= (ITM_TOP_BTM | ITM_BTM_BTM);
+			m_InitDlgRect[n].rect.top    = place.rcNormalPosition.top    - cy;
+			m_InitDlgRect[n].rect.bottom = place.rcNormalPosition.bottom - cy;
+		}
+	}
 
 	return TRUE;
 }
@@ -238,6 +273,7 @@ void CKeyPage::OnReset()
 
 void CKeyPage::OnKeyAsnNew() 
 {
+	int n;
 	CKeyNode tmp;
 	CKeyParaDlg dlg;
 
@@ -246,19 +282,28 @@ void CKeyPage::OnKeyAsnNew()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	m_KeyTab.Add(tmp);
+	n = m_KeyTab.Add(tmp);
 
 	InitList();
+	m_List.SetSelectMarkItem(m_List.GetParamItem(n));
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
 }
 void CKeyPage::OnKeyAsnEdit() 
 {
-	int n;
+	int n, pos;
 	CKeyParaDlg dlg;
+	CDWordArray save;
 
-	if ( (n = m_List.GetSelectMarkData()) < 0 )
+	for ( pos = 0 ; pos < m_List.GetItemCount() ; pos++ ) {
+		if ( m_List.GetItemState(pos, LVIS_SELECTED) != 0 )
+			break;
+	}
+	if ( pos >= m_List.GetItemCount() )
+		return;
+
+	if ( (n = (int)m_List.GetItemData(pos)) < 0 )
 		return;
 
 	dlg.m_pData = &(m_KeyTab[n]);
@@ -266,37 +311,62 @@ void CKeyPage::OnKeyAsnEdit()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( n != pos && m_List.GetItemState(n, LVIS_SELECTED) != 0 )
+			save.Add((DWORD)m_List.GetItemData(n));
+	}
+
 	InitList();
 
-	if ( (n = m_List.GetParamItem(n)) >= 0 ) {
-		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
-		m_List.EnsureVisible(n, FALSE);
+	if ( save.GetSize() > 0 ) {
+		pos = m_List.GetParamItem((int)save[0]);
+		for ( n = 1 ; n < save.GetSize() ; n++ )
+			m_List.SetItemState(m_List.GetParamItem((int)save[n]), LVIS_SELECTED, LVIS_SELECTED);
 	}
+	m_List.SetSelectMarkItem(pos);
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
 }
 void CKeyPage::OnKeyAsnDel() 
 {
-	int n;
+	int n, i, a, pos;
 
-	if ( (n = m_List.GetSelectMarkData()) < 0 )
+	if ( (pos = m_List.GetSelectionMark()) < 0 )
 		return;
 
-	m_KeyTab.RemoveAt(n);
+	for ( n = a = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
+			continue;
+		if ( (i = (int)m_List.GetItemData(n)) < 0 )
+			continue;
+		m_KeyTab[i].m_Code = (-1);
+		if ( n < pos )
+			a++;
+	}
+	pos -= a;
+
+	for ( i = 0 ; i < m_KeyTab.GetSize() ; i++ ) {
+		if ( m_KeyTab[i].m_Code == (-1) )
+			m_KeyTab.RemoveAt(i--);
+	}
 
 	InitList();
+	m_List.SetSelectMarkItem(pos);
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
 }
 void CKeyPage::OnEditDups() 
 {
-	int n;
+	int n, pos;
 	CKeyParaDlg dlg;
 	CKeyNode tmp;
 
-	if ( (n = m_List.GetSelectMarkData()) < 0 )
+	if ( (pos = m_List.GetSelectionMark()) < 0 )
+		return;
+
+	if ( (n = (int)m_List.GetItemData(pos)) < 0 )
 		return;
 
 	tmp = m_KeyTab[n];
@@ -305,14 +375,10 @@ void CKeyPage::OnEditDups()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	m_KeyTab.Add(tmp);
+	pos = m_List.GetParamItem(m_KeyTab.Add(tmp));
 
 	InitList();
-
-	if ( (n = m_List.GetParamItem(n)) >= 0 ) {
-		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
-		m_List.EnsureVisible(n, FALSE);
-	}
+	m_List.SetSelectMarkItem(pos);
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
@@ -362,12 +428,106 @@ void CKeyPage::OnBnClickedMetakey(UINT nID)
 
 void CKeyPage::OnEditDelall()
 {
-	if ( MessageBox(CStringLoad(IDS_ALLINITREQ), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
+	CInitAllDlg dlg;
+
+	dlg.m_Title.LoadString(IDS_INITKEYCODETITLE);
+
+	if ( dlg.DoModal() != IDOK )
 		return;
 
-	m_KeyTab.Init();
+	switch(dlg.m_InitType) {
+	case 0:		// Init Default Entry
+		m_KeyTab.Serialize(FALSE);
+		break;
+
+	case 1:		// Init Program Default
+		m_KeyTab.Init();
+		break;
+
+	case 2:		// Copy Entry option
+		ASSERT(dlg.m_pInitEntry != NULL);
+		{
+			CBuffer tmp(dlg.m_pInitEntry->m_ProBuffer.GetPtr(), dlg.m_pInitEntry->m_ProBuffer.GetSize());
+			CStringArrayExt stra;
+			stra.GetBuffer(tmp);	// CTextRam::Serialize(mode, buf);
+			stra.GetBuffer(tmp);	// m_FontTab.Serialize(mode, buf);
+			m_KeyTab.Serialize(FALSE, tmp);
+		}
+		break;
+	}
+
 	InitList();
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
+}
+
+void CKeyPage::OnEditCopy()
+{
+	int n;
+	CString text;
+
+	for ( n = 0 ; n < m_KeyTab.GetSize() ; n++ ) {
+		text += m_KeyTab[n].GetCode(); text += _T("\t");
+		text += m_KeyTab[n].GetMask(); text += _T("\t");
+		text += m_KeyTab[n].GetMaps(); text += _T("\r\n");
+	}
+
+	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(text);
+}
+
+void CKeyPage::OnEditPaste()
+{
+	LPCTSTR p;
+	CString text, line;
+	CStringArrayExt param;
+	CKeyNode tmp;
+
+	if ( !((CMainFrame *)::AfxGetMainWnd())->CopyClipboardData(text) )
+		return;
+
+	m_KeyTab.RemoveAll();
+
+	for ( p = text ; ; p++ ) {
+		if ( *p == _T('\0') || *p == _T('\n') ) {
+			param.GetString(line, _T('\t'));
+			if ( param.GetSize() >= 3 ) {
+				tmp.SetCode(param[0]);
+				tmp.SetMask(param[1]);
+				tmp.SetMaps(param[2]);
+				if ( tmp.m_Code > 0 && tmp.m_Code < 255 )
+					m_KeyTab.Add(tmp);
+			}
+			line.Empty();
+			if ( *p == _T('\0') )
+				break;
+		} else if ( *p != '\r' )
+			line += *p;
+	}
+
+	InitList();
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
+}
+
+void CKeyPage::OnUpdateEditCopy(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_KeyTab.GetSize() > 0 ? TRUE : FALSE);
+}
+
+void CKeyPage::OnUpdateEditPaste(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(IsClipboardFormatAvailable(CF_UNICODETEXT) ? TRUE : FALSE);
+}
+
+void CKeyPage::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized)
+{
+	CTreePage::OnActivate(nState, pWndOther, bMinimized);
+
+	for ( int n = 0 ; n < m_HideKeys.GetSize() ; n++ ) {
+		CButton *pWnd = (CButton *)GetDlgItem(m_HideKeys[n]);
+		if ( pWnd != NULL && pWnd->IsWindowVisible() )
+			pWnd->ShowWindow(SW_HIDE);
+	}
 }

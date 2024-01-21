@@ -88,6 +88,8 @@ BOOL CSearchDlg::OnInitDialog()
 
 	UpdateData(FALSE);
 
+	SetSaveProfile(_T("SearchDlgStr"));
+
 	return TRUE;
 }
 void CSearchDlg::OnOK()

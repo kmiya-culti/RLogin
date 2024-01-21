@@ -1356,9 +1356,25 @@ void CInfoCapDlg::InfoNameToCapName(CStringBinary &tab)
 
 // CInfoCapDlg メッセージ ハンドラ
 
+static const INITDLGTAB ItemTab[] = {
+	{ IDC_ENTRY,		ITM_RIGHT_RIGHT },
+	{ IDC_LOADCAP,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_LOADINFO,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_INFOLIST,		ITM_RIGHT_RIGHT | ITM_BTM_BTM  },
+
+	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM  },
+	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM  },
+
+	{ IDC_TITLE1,		ITM_RIGHT_RIGHT },
+
+	{ 0,	0 },
+};
+
 BOOL CInfoCapDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
+
+	InitItemOffset(ItemTab);
 
 	int n;
 	CStringIndex cap;
@@ -1385,6 +1401,8 @@ BOOL CInfoCapDlg::OnInitDialog()
 
 	SetEntry(cap, m_TermCap);
 	SetList(cap, m_CapIndex);
+
+	SetSaveProfile(_T("InfoCapDlg"));
 
 	return TRUE;
 }

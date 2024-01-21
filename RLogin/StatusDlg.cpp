@@ -23,6 +23,7 @@ CStatusDlg::CStatusDlg(CWnd* pParent /*=NULL*/)
 	m_OwnerType = 0;
 	m_pValue = NULL;
 	m_bEdit = FALSE;
+	SizeGripDisable(TRUE);
 }
 
 CStatusDlg::~CStatusDlg()
@@ -74,6 +75,9 @@ BOOL CStatusDlg::OnInitDialog()
 
 	if ( m_bEdit )
 		m_StatusWnd.SetReadOnly(FALSE);
+
+	SetSaveProfile(_T("StatusDlg"));
+	SetLoadPosition(LOADPOS_MAINWND);
 
 	return TRUE;
 }
@@ -230,6 +234,7 @@ void CStatusDlg::OnFilePrint()
 	LPCTSTR p;
 	BOOL bPrint = FALSE;
 	BOOL bFF = FALSE;
+	CStringLoad DefFontName(IDS_DEFFONTNAME0);
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -240,7 +245,7 @@ void CStatusDlg::OnFilePrint()
     docinfo.cbSize = sizeof(DOCINFO);
 	docinfo.lpszDocName = m_Title.IsEmpty() ? _T("Mdedia Copy Print") : m_Title;
 
-	fontName = ::AfxGetApp()->GetProfileString(_T("PrintText"), _T("FontName"), PRINTFONTNAME);
+	fontName = ::AfxGetApp()->GetProfileString(_T("PrintText"), _T("FontName"), DefFontName);
 	fontSize = ::AfxGetApp()->GetProfileInt(_T("PrintText"),    _T("FontSize"), PRINTFONTSIZE);
 	fontLine = ::AfxGetApp()->GetProfileInt(_T("PrintText"),    _T("FontLine"), PRINTLINESIZE);
 

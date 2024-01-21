@@ -1,21 +1,21 @@
-diff -uprN libiconv-1.17-old/iconv.h libiconv-1.17/iconv.h
---- libiconv-1.17-old/iconv.h	1970-01-01 09:00:00.000000000 +0900
-+++ libiconv-1.17/iconv.h	2023-04-25 08:39:24.653149000 +0900
+diff -uprN libiconv-1.17-orig/include/iconv.h libiconv-1.17/include/iconv.h
+--- libiconv-1.17-orig/include/iconv.h	1970-01-01 09:00:00.000000000 +0900
++++ libiconv-1.17/include/iconv.h	2023-12-20 13:07:29.959579000 +0900
 @@ -0,0 +1,249 @@
-+/* Copyright (C) 1999-2019 Free Software Foundation, Inc.
++/* Copyright (C) 1999-2022 Free Software Foundation, Inc.
 +   This file is part of the GNU LIBICONV Library.
 +
 +   The GNU LIBICONV Library is free software; you can redistribute it
-+   and/or modify it under the terms of the GNU Library General Public
-+   License as published by the Free Software Foundation; either version 2
++   and/or modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either version 2.1
 +   of the License, or (at your option) any later version.
 +
 +   The GNU LIBICONV Library is distributed in the hope that it will be
 +   useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 +   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+   Library General Public License for more details.
++   Lesser General Public License for more details.
 +
-+   You should have received a copy of the GNU Library General Public
++   You should have received a copy of the GNU Lesser General Public
 +   License along with the GNU LIBICONV Library; see the file COPYING.LIB.
 +   If not, see <https://www.gnu.org/licenses/>.  */
 +
@@ -24,7 +24,7 @@ diff -uprN libiconv-1.17-old/iconv.h libiconv-1.17/iconv.h
 +#ifndef _LIBICONV_H
 +#define _LIBICONV_H
 +
-+#define _LIBICONV_VERSION 0x0110    /* version number: (major<<8) + minor */
++#define _LIBICONV_VERSION 0x0111    /* version number: (major<<8) + minor */
 +
 +#if 1 && BUILDING_LIBICONV
 +#define LIBICONV_DLL_EXPORTED __attribute__((__visibility__("default")))
@@ -76,24 +76,24 @@ diff -uprN libiconv-1.17-old/iconv.h libiconv-1.17/iconv.h
 +#endif
 +
 +
-+/* Allocates descriptor for code conversion from encoding ‘fromcode’ to
-+   encoding ‘tocode’. */
++/* Allocates descriptor for code conversion from encoding 'fromcode' to
++   encoding 'tocode'. */
 +#ifndef LIBICONV_PLUG
 +#define iconv_open libiconv_open
 +#endif
 +extern LIBICONV_DLL_EXPORTED iconv_t iconv_open (const char* tocode, const char* fromcode);
 +
-+/* Converts, using conversion descriptor ‘cd’, at most ‘*inbytesleft’ bytes
-+   starting at ‘*inbuf’, writing at most ‘*outbytesleft’ bytes starting at
-+   ‘*outbuf’.
-+   Decrements ‘*inbytesleft’ and increments ‘*inbuf’ by the same amount.
-+   Decrements ‘*outbytesleft’ and increments ‘*outbuf’ by the same amount. */
++/* Converts, using conversion descriptor 'cd', at most '*inbytesleft' bytes
++   starting at '*inbuf', writing at most '*outbytesleft' bytes starting at
++   '*outbuf'.
++   Decrements '*inbytesleft' and increments '*inbuf' by the same amount.
++   Decrements '*outbytesleft' and increments '*outbuf' by the same amount. */
 +#ifndef LIBICONV_PLUG
 +#define iconv libiconv
 +#endif
 +extern LIBICONV_DLL_EXPORTED size_t iconv (iconv_t cd,  char* * inbuf, size_t *inbytesleft, char* * outbuf, size_t *outbytesleft);
 +
-+/* Frees resources allocated for conversion descriptor ‘cd’. */
++/* Frees resources allocated for conversion descriptor 'cd'. */
 +#ifndef LIBICONV_PLUG
 +#define iconv_close libiconv_close
 +#endif
@@ -135,8 +135,8 @@ diff -uprN libiconv-1.17-old/iconv.h libiconv-1.17/iconv.h
 +#endif
 +} iconv_allocation_t;
 +
-+/* Allocates descriptor for code conversion from encoding ‘fromcode’ to
-+   encoding ‘tocode’ into preallocated memory. Returns an error indicator
++/* Allocates descriptor for code conversion from encoding 'fromcode' to
++   encoding 'tocode' into preallocated memory. Returns an error indicator
 +   (0 or -1 with errno set). */
 +#define iconv_open_into libiconv_open_into
 +extern LIBICONV_DLL_EXPORTED int iconv_open_into (const char* tocode, const char* fromcode,
@@ -251,9 +251,9 @@ diff -uprN libiconv-1.17-old/iconv.h libiconv-1.17/iconv.h
 +
 +
 +#endif /* _LIBICONV_H */
-diff -uprN libiconv-1.17-old/lib/aliases_sysaix.gperf libiconv-1.17/lib/aliases_sysaix.gperf
---- libiconv-1.17-old/lib/aliases_sysaix.gperf	2022-05-15 21:59:00.000000000 +0900
-+++ libiconv-1.17/lib/aliases_sysaix.gperf	2023-04-25 08:51:18.305051000 +0900
+diff -uprN libiconv-1.17-orig/lib/aliases_sysaix.gperf libiconv-1.17/lib/aliases_sysaix.gperf
+--- libiconv-1.17-orig/lib/aliases_sysaix.gperf	2022-05-15 21:59:00.000000000 +0900
++++ libiconv-1.17/lib/aliases_sysaix.gperf	2023-12-20 13:05:05.672814000 +0900
 @@ -308,6 +308,11 @@ EUCJP, ei_euc_jp
  EXTENDED_UNIX_CODE_PACKED_FORMAT_FOR_JAPANESE, ei_euc_jp
  CSEUCPKDFMTJAPANESE, ei_euc_jp
@@ -266,9 +266,9 @@ diff -uprN libiconv-1.17-old/lib/aliases_sysaix.gperf libiconv-1.17/lib/aliases_
  SHIFT_JIS, ei_sjis
  SHIFT-JIS, ei_sjis
  SJIS, ei_sjis
-diff -uprN libiconv-1.17-old/lib/aliases_sysaix.h libiconv-1.17/lib/aliases_sysaix.h
---- libiconv-1.17-old/lib/aliases_sysaix.h	2022-05-15 21:59:01.000000000 +0900
-+++ libiconv-1.17/lib/aliases_sysaix.h	2023-04-25 08:51:18.589035000 +0900
+diff -uprN libiconv-1.17-orig/lib/aliases_sysaix.h libiconv-1.17/lib/aliases_sysaix.h
+--- libiconv-1.17-orig/lib/aliases_sysaix.h	2022-05-15 21:59:01.000000000 +0900
++++ libiconv-1.17/lib/aliases_sysaix.h	2023-12-20 13:05:05.677232000 +0900
 @@ -1,4 +1,4 @@
 -/* ANSI-C code produced by gperf version 3.2 */
 +/* ANSI-C code produced by gperf version 3.0.3 */
@@ -3525,9 +3525,9 @@ diff -uprN libiconv-1.17-old/lib/aliases_sysaix.h libiconv-1.17/lib/aliases_sysa
          {
            register int o = aliases[key].name;
            if (o >= 0)
-diff -uprN libiconv-1.17-old/lib/aliases_syshpux.gperf libiconv-1.17/lib/aliases_syshpux.gperf
---- libiconv-1.17-old/lib/aliases_syshpux.gperf	2022-05-15 21:59:01.000000000 +0900
-+++ libiconv-1.17/lib/aliases_syshpux.gperf	2023-04-25 08:51:18.943267000 +0900
+diff -uprN libiconv-1.17-orig/lib/aliases_syshpux.gperf libiconv-1.17/lib/aliases_syshpux.gperf
+--- libiconv-1.17-orig/lib/aliases_syshpux.gperf	2022-05-15 21:59:01.000000000 +0900
++++ libiconv-1.17/lib/aliases_syshpux.gperf	2023-12-20 13:05:05.678067000 +0900
 @@ -312,6 +312,11 @@ EUC-JP, ei_euc_jp
  EUCJP, ei_euc_jp
  EXTENDED_UNIX_CODE_PACKED_FORMAT_FOR_JAPANESE, ei_euc_jp
@@ -3540,9 +3540,9 @@ diff -uprN libiconv-1.17-old/lib/aliases_syshpux.gperf libiconv-1.17/lib/aliases
  SHIFT_JIS, ei_sjis
  SHIFT-JIS, ei_sjis
  SJIS, ei_sjis
-diff -uprN libiconv-1.17-old/lib/aliases_syshpux.h libiconv-1.17/lib/aliases_syshpux.h
---- libiconv-1.17-old/lib/aliases_syshpux.h	2022-05-15 21:59:01.000000000 +0900
-+++ libiconv-1.17/lib/aliases_syshpux.h	2023-04-25 08:51:19.228274000 +0900
+diff -uprN libiconv-1.17-orig/lib/aliases_syshpux.h libiconv-1.17/lib/aliases_syshpux.h
+--- libiconv-1.17-orig/lib/aliases_syshpux.h	2022-05-15 21:59:01.000000000 +0900
++++ libiconv-1.17/lib/aliases_syshpux.h	2023-12-20 13:05:05.681875000 +0900
 @@ -1,4 +1,4 @@
 -/* ANSI-C code produced by gperf version 3.2 */
 +/* ANSI-C code produced by gperf version 3.0.3 */
@@ -6760,9 +6760,9 @@ diff -uprN libiconv-1.17-old/lib/aliases_syshpux.h libiconv-1.17/lib/aliases_sys
          {
            register int o = aliases[key].name;
            if (o >= 0)
-diff -uprN libiconv-1.17-old/lib/aliases_sysosf1.gperf libiconv-1.17/lib/aliases_sysosf1.gperf
---- libiconv-1.17-old/lib/aliases_sysosf1.gperf	2022-05-15 21:59:02.000000000 +0900
-+++ libiconv-1.17/lib/aliases_sysosf1.gperf	2023-04-25 08:51:19.577550000 +0900
+diff -uprN libiconv-1.17-orig/lib/aliases_sysosf1.gperf libiconv-1.17/lib/aliases_sysosf1.gperf
+--- libiconv-1.17-orig/lib/aliases_sysosf1.gperf	2022-05-15 21:59:02.000000000 +0900
++++ libiconv-1.17/lib/aliases_sysosf1.gperf	2023-12-20 13:05:05.682700000 +0900
 @@ -305,6 +305,11 @@ EUCJP, ei_euc_jp
  EXTENDED_UNIX_CODE_PACKED_FORMAT_FOR_JAPANESE, ei_euc_jp
  CSEUCPKDFMTJAPANESE, ei_euc_jp
@@ -6775,9 +6775,9 @@ diff -uprN libiconv-1.17-old/lib/aliases_sysosf1.gperf libiconv-1.17/lib/aliases
  SHIFT_JIS, ei_sjis
  SHIFT-JIS, ei_sjis
  SJIS, ei_sjis
-diff -uprN libiconv-1.17-old/lib/aliases_sysosf1.h libiconv-1.17/lib/aliases_sysosf1.h
---- libiconv-1.17-old/lib/aliases_sysosf1.h	2022-05-15 21:59:02.000000000 +0900
-+++ libiconv-1.17/lib/aliases_sysosf1.h	2023-04-25 08:51:19.860499000 +0900
+diff -uprN libiconv-1.17-orig/lib/aliases_sysosf1.h libiconv-1.17/lib/aliases_sysosf1.h
+--- libiconv-1.17-orig/lib/aliases_sysosf1.h	2022-05-15 21:59:02.000000000 +0900
++++ libiconv-1.17/lib/aliases_sysosf1.h	2023-12-20 13:05:05.686514000 +0900
 @@ -1,4 +1,4 @@
 -/* ANSI-C code produced by gperf version 3.2 */
 +/* ANSI-C code produced by gperf version 3.0.3 */
@@ -9984,9 +9984,9 @@ diff -uprN libiconv-1.17-old/lib/aliases_sysosf1.h libiconv-1.17/lib/aliases_sys
          {
            register int o = aliases[key].name;
            if (o >= 0)
-diff -uprN libiconv-1.17-old/lib/aliases_syssolaris.gperf libiconv-1.17/lib/aliases_syssolaris.gperf
---- libiconv-1.17-old/lib/aliases_syssolaris.gperf	2022-05-15 21:59:02.000000000 +0900
-+++ libiconv-1.17/lib/aliases_syssolaris.gperf	2023-04-25 08:51:20.210698000 +0900
+diff -uprN libiconv-1.17-orig/lib/aliases_syssolaris.gperf libiconv-1.17/lib/aliases_syssolaris.gperf
+--- libiconv-1.17-orig/lib/aliases_syssolaris.gperf	2022-05-15 21:59:02.000000000 +0900
++++ libiconv-1.17/lib/aliases_syssolaris.gperf	2023-12-20 13:05:05.687327000 +0900
 @@ -306,6 +306,11 @@ EUC-JP, ei_euc_jp
  EUCJP, ei_euc_jp
  EXTENDED_UNIX_CODE_PACKED_FORMAT_FOR_JAPANESE, ei_euc_jp
@@ -9999,9 +9999,9 @@ diff -uprN libiconv-1.17-old/lib/aliases_syssolaris.gperf libiconv-1.17/lib/alia
  SHIFT_JIS, ei_sjis
  SHIFT-JIS, ei_sjis
  SJIS, ei_sjis
-diff -uprN libiconv-1.17-old/lib/aliases_syssolaris.h libiconv-1.17/lib/aliases_syssolaris.h
---- libiconv-1.17-old/lib/aliases_syssolaris.h	2022-05-15 21:59:02.000000000 +0900
-+++ libiconv-1.17/lib/aliases_syssolaris.h	2023-04-25 08:51:20.487517000 +0900
+diff -uprN libiconv-1.17-orig/lib/aliases_syssolaris.h libiconv-1.17/lib/aliases_syssolaris.h
+--- libiconv-1.17-orig/lib/aliases_syssolaris.h	2022-05-15 21:59:02.000000000 +0900
++++ libiconv-1.17/lib/aliases_syssolaris.h	2023-12-20 13:05:05.691231000 +0900
 @@ -1,4 +1,4 @@
 -/* ANSI-C code produced by gperf version 3.2 */
 +/* ANSI-C code produced by gperf version 3.0.3 */
@@ -13166,9 +13166,9 @@ diff -uprN libiconv-1.17-old/lib/aliases_syssolaris.h libiconv-1.17/lib/aliases_
          {
            register int o = aliases[key].name;
            if (o >= 0)
-diff -uprN libiconv-1.17-old/lib/aliases.gperf libiconv-1.17/lib/aliases.gperf
---- libiconv-1.17-old/lib/aliases.gperf	2022-05-15 21:59:00.000000000 +0900
-+++ libiconv-1.17/lib/aliases.gperf	2023-04-25 08:51:17.668736000 +0900
+diff -uprN libiconv-1.17-orig/lib/aliases.gperf libiconv-1.17/lib/aliases.gperf
+--- libiconv-1.17-orig/lib/aliases.gperf	2022-05-15 21:59:00.000000000 +0900
++++ libiconv-1.17/lib/aliases.gperf	2023-12-20 13:05:05.692045000 +0900
 @@ -303,6 +303,11 @@ EUC-JP, ei_euc_jp
  EUCJP, ei_euc_jp
  EXTENDED_UNIX_CODE_PACKED_FORMAT_FOR_JAPANESE, ei_euc_jp
@@ -13181,9 +13181,9 @@ diff -uprN libiconv-1.17-old/lib/aliases.gperf libiconv-1.17/lib/aliases.gperf
  SHIFT_JIS, ei_sjis
  SHIFT-JIS, ei_sjis
  SJIS, ei_sjis
-diff -uprN libiconv-1.17-old/lib/aliases.h libiconv-1.17/lib/aliases.h
---- libiconv-1.17-old/lib/aliases.h	2022-05-15 21:59:00.000000000 +0900
-+++ libiconv-1.17/lib/aliases.h	2023-04-25 08:51:17.953166000 +0900
+diff -uprN libiconv-1.17-orig/lib/aliases.h libiconv-1.17/lib/aliases.h
+--- libiconv-1.17-orig/lib/aliases.h	2022-05-15 21:59:00.000000000 +0900
++++ libiconv-1.17/lib/aliases.h	2023-12-20 13:05:05.695766000 +0900
 @@ -1,4 +1,4 @@
 -/* ANSI-C code produced by gperf version 3.2 */
 +/* ANSI-C code produced by gperf version 3.0.3 */
@@ -15904,48 +15904,48 @@ diff -uprN libiconv-1.17-old/lib/aliases.h libiconv-1.17/lib/aliases.h
          {
            register int o = aliases[key].name;
            if (o >= 0)
-diff -uprN libiconv-1.17-old/lib/canonical_local_sysaix.h libiconv-1.17/lib/canonical_local_sysaix.h
---- libiconv-1.17-old/lib/canonical_local_sysaix.h	2022-05-15 21:59:01.000000000 +0900
-+++ libiconv-1.17/lib/canonical_local_sysaix.h	2023-04-25 08:51:18.830439000 +0900
+diff -uprN libiconv-1.17-orig/lib/canonical_local_sysaix.h libiconv-1.17/lib/canonical_local_sysaix.h
+--- libiconv-1.17-orig/lib/canonical_local_sysaix.h	2022-05-15 21:59:01.000000000 +0900
++++ libiconv-1.17/lib/canonical_local_sysaix.h	2023-12-20 13:05:05.696439000 +0900
 @@ -1,2 +1,2 @@
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str15,
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str484,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str190,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str505,
-diff -uprN libiconv-1.17-old/lib/canonical_local_syshpux.h libiconv-1.17/lib/canonical_local_syshpux.h
---- libiconv-1.17-old/lib/canonical_local_syshpux.h	2022-05-15 21:59:02.000000000 +0900
-+++ libiconv-1.17/lib/canonical_local_syshpux.h	2023-04-25 08:51:19.465709000 +0900
+diff -uprN libiconv-1.17-orig/lib/canonical_local_syshpux.h libiconv-1.17/lib/canonical_local_syshpux.h
+--- libiconv-1.17-orig/lib/canonical_local_syshpux.h	2022-05-15 21:59:02.000000000 +0900
++++ libiconv-1.17/lib/canonical_local_syshpux.h	2023-12-20 13:05:05.697099000 +0900
 @@ -1,2 +1,2 @@
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str171,
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str723,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str6,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str531,
-diff -uprN libiconv-1.17-old/lib/canonical_local_sysosf1.h libiconv-1.17/lib/canonical_local_sysosf1.h
---- libiconv-1.17-old/lib/canonical_local_sysosf1.h	2022-05-15 21:59:02.000000000 +0900
-+++ libiconv-1.17/lib/canonical_local_sysosf1.h	2023-04-25 08:51:20.098261000 +0900
+diff -uprN libiconv-1.17-orig/lib/canonical_local_sysosf1.h libiconv-1.17/lib/canonical_local_sysosf1.h
+--- libiconv-1.17-orig/lib/canonical_local_sysosf1.h	2022-05-15 21:59:02.000000000 +0900
++++ libiconv-1.17/lib/canonical_local_sysosf1.h	2023-12-20 13:05:05.697730000 +0900
 @@ -1,2 +1,2 @@
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str193,
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str457,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str19,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str500,
-diff -uprN libiconv-1.17-old/lib/canonical_local_syssolaris.h libiconv-1.17/lib/canonical_local_syssolaris.h
---- libiconv-1.17-old/lib/canonical_local_syssolaris.h	2022-05-15 21:59:03.000000000 +0900
-+++ libiconv-1.17/lib/canonical_local_syssolaris.h	2023-04-25 08:51:20.726863000 +0900
+diff -uprN libiconv-1.17-orig/lib/canonical_local_syssolaris.h libiconv-1.17/lib/canonical_local_syssolaris.h
+--- libiconv-1.17-orig/lib/canonical_local_syssolaris.h	2022-05-15 21:59:03.000000000 +0900
++++ libiconv-1.17/lib/canonical_local_syssolaris.h	2023-12-20 13:05:05.698367000 +0900
 @@ -1,2 +1,2 @@
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str112,
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str491,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str229,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str523,
-diff -uprN libiconv-1.17-old/lib/canonical_local.h libiconv-1.17/lib/canonical_local.h
---- libiconv-1.17-old/lib/canonical_local.h	2022-05-15 21:59:00.000000000 +0900
-+++ libiconv-1.17/lib/canonical_local.h	2023-04-25 08:51:18.192464000 +0900
+diff -uprN libiconv-1.17-orig/lib/canonical_local.h libiconv-1.17/lib/canonical_local.h
+--- libiconv-1.17-orig/lib/canonical_local.h	2022-05-15 21:59:00.000000000 +0900
++++ libiconv-1.17/lib/canonical_local.h	2023-12-20 13:05:05.698989000 +0900
 @@ -1,2 +1,2 @@
    (int)(long)&((struct stringpool_t *)0)->stringpool_str193,
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str496,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str477,
-diff -uprN libiconv-1.17-old/lib/canonical_sysaix.h libiconv-1.17/lib/canonical_sysaix.h
---- libiconv-1.17-old/lib/canonical_sysaix.h	2022-05-15 21:59:01.000000000 +0900
-+++ libiconv-1.17/lib/canonical_sysaix.h	2023-04-25 08:51:18.824137000 +0900
+diff -uprN libiconv-1.17-orig/lib/canonical_sysaix.h libiconv-1.17/lib/canonical_sysaix.h
+--- libiconv-1.17-orig/lib/canonical_sysaix.h	2022-05-15 21:59:01.000000000 +0900
++++ libiconv-1.17/lib/canonical_sysaix.h	2023-12-20 13:05:05.699791000 +0900
 @@ -1,111 +1,112 @@
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str391,
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str282,
@@ -16164,9 +16164,9 @@ diff -uprN libiconv-1.17-old/lib/canonical_sysaix.h libiconv-1.17/lib/canonical_
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str106,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str609,
    (int)(long)&((struct stringpool_t *)0)->stringpool_str390,
-diff -uprN libiconv-1.17-old/lib/canonical_syshpux.h libiconv-1.17/lib/canonical_syshpux.h
---- libiconv-1.17-old/lib/canonical_syshpux.h	2022-05-15 21:59:02.000000000 +0900
-+++ libiconv-1.17/lib/canonical_syshpux.h	2023-04-25 08:51:19.459390000 +0900
+diff -uprN libiconv-1.17-orig/lib/canonical_syshpux.h libiconv-1.17/lib/canonical_syshpux.h
+--- libiconv-1.17-orig/lib/canonical_syshpux.h	2022-05-15 21:59:02.000000000 +0900
++++ libiconv-1.17/lib/canonical_syshpux.h	2023-12-20 13:05:05.700922000 +0900
 @@ -1,111 +1,112 @@
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str396,
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str355,
@@ -16386,9 +16386,9 @@ diff -uprN libiconv-1.17-old/lib/canonical_syshpux.h libiconv-1.17/lib/canonical
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str23,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str733,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str479,
-diff -uprN libiconv-1.17-old/lib/canonical_sysosf1.h libiconv-1.17/lib/canonical_sysosf1.h
---- libiconv-1.17-old/lib/canonical_sysosf1.h	2022-05-15 21:59:02.000000000 +0900
-+++ libiconv-1.17/lib/canonical_sysosf1.h	2023-04-25 08:51:20.092010000 +0900
+diff -uprN libiconv-1.17-orig/lib/canonical_sysosf1.h libiconv-1.17/lib/canonical_sysosf1.h
+--- libiconv-1.17-orig/lib/canonical_sysosf1.h	2022-05-15 21:59:02.000000000 +0900
++++ libiconv-1.17/lib/canonical_sysosf1.h	2023-12-20 13:05:05.702103000 +0900
 @@ -1,111 +1,112 @@
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str453,
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str308,
@@ -16608,9 +16608,9 @@ diff -uprN libiconv-1.17-old/lib/canonical_sysosf1.h libiconv-1.17/lib/canonical
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str16,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str575,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str450,
-diff -uprN libiconv-1.17-old/lib/canonical_syssolaris.h libiconv-1.17/lib/canonical_syssolaris.h
---- libiconv-1.17-old/lib/canonical_syssolaris.h	2022-05-15 21:59:03.000000000 +0900
-+++ libiconv-1.17/lib/canonical_syssolaris.h	2023-04-25 08:51:20.720311000 +0900
+diff -uprN libiconv-1.17-orig/lib/canonical_syssolaris.h libiconv-1.17/lib/canonical_syssolaris.h
+--- libiconv-1.17-orig/lib/canonical_syssolaris.h	2022-05-15 21:59:03.000000000 +0900
++++ libiconv-1.17/lib/canonical_syssolaris.h	2023-12-20 13:05:05.703062000 +0900
 @@ -1,111 +1,112 @@
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str239,
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str275,
@@ -16827,9 +16827,9 @@ diff -uprN libiconv-1.17-old/lib/canonical_syssolaris.h libiconv-1.17/lib/canoni
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str84,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str571,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str331,
-diff -uprN libiconv-1.17-old/lib/canonical.h libiconv-1.17/lib/canonical.h
---- libiconv-1.17-old/lib/canonical.h	2022-05-15 21:59:00.000000000 +0900
-+++ libiconv-1.17/lib/canonical.h	2023-04-25 08:51:18.186140000 +0900
+diff -uprN libiconv-1.17-orig/lib/canonical.h libiconv-1.17/lib/canonical.h
+--- libiconv-1.17-orig/lib/canonical.h	2022-05-15 21:59:00.000000000 +0900
++++ libiconv-1.17/lib/canonical.h	2023-12-20 13:05:05.703916000 +0900
 @@ -1,31 +1,31 @@
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str392,
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str389,
@@ -17007,9 +17007,96 @@ diff -uprN libiconv-1.17-old/lib/canonical.h libiconv-1.17/lib/canonical.h
 -  (int)(long)&((struct stringpool_t *)0)->stringpool_str869,
 +  (int)(long)&((struct stringpool_t *)0)->stringpool_str385,
    (int)(long)&((struct stringpool_t *)0)->stringpool_str425,
-diff -uprN libiconv-1.17-old/lib/converters.h libiconv-1.17/lib/converters.h
---- libiconv-1.17-old/lib/converters.h	2022-01-24 08:47:43.000000000 +0900
-+++ libiconv-1.17/lib/converters.h	2023-04-25 08:40:11.603936000 +0900
+diff -uprN libiconv-1.17-orig/lib/config.h libiconv-1.17/lib/config.h
+--- libiconv-1.17-orig/lib/config.h	1970-01-01 09:00:00.000000000 +0900
++++ libiconv-1.17/lib/config.h	2023-12-20 13:07:56.934614000 +0900
+@@ -0,0 +1,83 @@
++/* lib/config.h.  Generated from config.h.in by configure.  */
++/* Copyright (C) 1999-2003, 2005, 2007, 2010, 2012 Free Software Foundation, Inc.
++   This file is part of the GNU LIBICONV Library.
++
++   The GNU LIBICONV Library is free software; you can redistribute it
++   and/or modify it under the terms of the GNU Library General Public
++   License as published by the Free Software Foundation; either version 2
++   of the License, or (at your option) any later version.
++
++   The GNU LIBICONV Library is distributed in the hope that it will be
++   useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Library General Public License for more details.
++
++   You should have received a copy of the GNU Library General Public
++   License along with the GNU LIBICONV Library; see the file COPYING.LIB.
++   If not, see <https://www.gnu.org/licenses/>.  */
++
++
++/* Define to 1 to enable a few rarely used encodings. */
++#define ENABLE_EXTRA 1
++
++/* Define to 1 if the package shall run at any location in the filesystem. */
++/* #undef ENABLE_RELOCATABLE */
++
++/* Define to a type if <wchar.h> does not define. */
++/* #undef mbstate_t */
++
++/* Define if you have <iconv.h>, the iconv_t type, and the
++   iconv_open, iconv, iconv_close functions. */
++#define HAVE_ICONV 1
++/* Define as const if the declaration of iconv() needs const. */
++#define ICONV_CONST 
++
++/* Define to 1 if you have the getc_unlocked() function. */
++#define HAVE_GETC_UNLOCKED 1
++
++/* Define if you have <langinfo.h> and nl_langinfo(CODESET). */
++/*#define HAVE_LANGINFO_CODESET 1 */
++
++/* Define if you have the mbrtowc() function. */
++#define HAVE_MBRTOWC 1
++
++/* Define to 1 if you have the setlocale() function. */
++#define HAVE_SETLOCALE 1
++
++/* Define to 1 if you have the <stddef.h> header file. */
++/* #undef HAVE_STDDEF_H */
++
++/* Define to 1 if you have the <stdlib.h> header file. */
++#define HAVE_STDLIB_H 1
++
++/* Define to 1 if you have the <string.h> header file. */
++#define HAVE_STRING_H 1
++
++/* Define to 1 or 0, depending whether the compiler supports simple visibility
++   declarations. */
++#define HAVE_VISIBILITY 1
++
++/* Define if you have the wcrtomb() function. */
++#define HAVE_WCRTOMB 1
++
++/* Define to 1 if O_NOFOLLOW works. */
++#define HAVE_WORKING_O_NOFOLLOW 1
++
++/* Define if the machine's byte ordering is little endian. */
++#define WORDS_LITTLEENDIAN 1
++
++/* Define to the value of ${prefix}, as a string. */
++#define INSTALLPREFIX "/usr/local"
++
++/* Define to '__inline__' or '__inline' if that's what the C compiler
++   calls it, or to nothing if 'inline' is not supported under any name.  */
++#ifndef __cplusplus
++/* #undef inline */
++#endif
++
++/* Define to 'int' if <sys/types.h> does not define. */
++/* #undef mode_t */
++
++/* Define as a signed type of the same size as size_t. */
++/* #undef ssize_t */
++
+diff -uprN libiconv-1.17-orig/lib/converters.h libiconv-1.17/lib/converters.h
+--- libiconv-1.17-orig/lib/converters.h	2022-01-24 08:47:43.000000000 +0900
++++ libiconv-1.17/lib/converters.h	2023-12-20 13:05:05.704730000 +0900
 @@ -227,10 +227,11 @@ typedef struct {
  
  #include "euc_jp.h"
@@ -17023,9 +17110,9 @@ diff -uprN libiconv-1.17-old/lib/converters.h libiconv-1.17/lib/converters.h
  #include "iso2022_jpms.h"
  
  #include "euc_cn.h"
-diff -uprN libiconv-1.17-old/lib/cp932.h libiconv-1.17/lib/cp932.h
---- libiconv-1.17-old/lib/cp932.h	2021-06-06 18:50:48.000000000 +0900
-+++ libiconv-1.17/lib/cp932.h	2023-04-25 08:40:11.604843000 +0900
+diff -uprN libiconv-1.17-orig/lib/cp932.h libiconv-1.17/lib/cp932.h
+--- libiconv-1.17-orig/lib/cp932.h	2021-06-06 18:50:48.000000000 +0900
++++ libiconv-1.17/lib/cp932.h	2023-12-20 13:05:05.705718000 +0900
 @@ -40,11 +40,8 @@
   *    0x8192  0x00A3 # POUND SIGN            0xFFE1 # FULLWIDTH POUND SIGN
   *    0x81CA  0x00AC # NOT SIGN              0xFFE2 # FULLWIDTH NOT SIGN
@@ -17112,9 +17199,9 @@ diff -uprN libiconv-1.17-old/lib/cp932.h libiconv-1.17/lib/cp932.h
 -
    return RET_ILUNI;
  }
-diff -uprN libiconv-1.17-old/lib/cp932ext.h libiconv-1.17/lib/cp932ext.h
---- libiconv-1.17-old/lib/cp932ext.h	2021-06-06 18:50:48.000000000 +0900
-+++ libiconv-1.17/lib/cp932ext.h	2023-04-25 08:40:11.606956000 +0900
+diff -uprN libiconv-1.17-orig/lib/cp932ext.h libiconv-1.17/lib/cp932ext.h
+--- libiconv-1.17-orig/lib/cp932ext.h	2021-06-06 18:50:48.000000000 +0900
++++ libiconv-1.17/lib/cp932ext.h	2023-12-20 13:05:05.707782000 +0900
 @@ -1,5 +1,5 @@
  /*
 - * Copyright (C) 1999-2001, 2012, 2016 Free Software Foundation, Inc.
@@ -18100,9 +18187,9 @@ diff -uprN libiconv-1.17-old/lib/cp932ext.h libiconv-1.17/lib/cp932ext.h
          used = (used & 0x5555) + ((used & 0xaaaa) >> 1);
          used = (used & 0x3333) + ((used & 0xcccc) >> 2);
          used = (used & 0x0f0f) + ((used & 0xf0f0) >> 4);
-diff -uprN libiconv-1.17-old/lib/encodings.def libiconv-1.17/lib/encodings.def
---- libiconv-1.17-old/lib/encodings.def	2021-06-06 18:50:48.000000000 +0900
-+++ libiconv-1.17/lib/encodings.def	2023-04-25 08:40:11.608376000 +0900
+diff -uprN libiconv-1.17-orig/lib/encodings.def libiconv-1.17/lib/encodings.def
+--- libiconv-1.17-orig/lib/encodings.def	2021-06-06 18:50:48.000000000 +0900
++++ libiconv-1.17/lib/encodings.def	2023-12-20 13:05:05.709186000 +0900
 @@ -828,6 +828,15 @@ DEFALIAS(     "SDECKANJI",
              euc_jp)
  #endif
@@ -18119,9 +18206,9 @@ diff -uprN libiconv-1.17-old/lib/encodings.def libiconv-1.17/lib/encodings.def
  DEFENCODING(( "SHIFT_JIS",              /* IANA */
                "SHIFT-JIS",              /* glibc */
                "SJIS",                   /* JDK 1.1, HP-UX, OSF/1 */
-diff -uprN libiconv-1.17-old/lib/eucjp_ms.h libiconv-1.17/lib/eucjp_ms.h
---- libiconv-1.17-old/lib/eucjp_ms.h	1970-01-01 09:00:00.000000000 +0900
-+++ libiconv-1.17/lib/eucjp_ms.h	2023-04-25 08:40:11.612342000 +0900
+diff -uprN libiconv-1.17-orig/lib/eucjp_ms.h libiconv-1.17/lib/eucjp_ms.h
+--- libiconv-1.17-orig/lib/eucjp_ms.h	1970-01-01 09:00:00.000000000 +0900
++++ libiconv-1.17/lib/eucjp_ms.h	2023-12-20 13:05:05.713058000 +0900
 @@ -0,0 +1,273 @@
 +/*
 + * Copyright (C) 1999-2003 Free Software Foundation, Inc.
@@ -18396,9 +18483,9 @@ diff -uprN libiconv-1.17-old/lib/eucjp_ms.h libiconv-1.17/lib/eucjp_ms.h
 +
 +  return RET_ILUNI;
 +}
-diff -uprN libiconv-1.17-old/lib/eucjp_msext.h libiconv-1.17/lib/eucjp_msext.h
---- libiconv-1.17-old/lib/eucjp_msext.h	1970-01-01 09:00:00.000000000 +0900
-+++ libiconv-1.17/lib/eucjp_msext.h	2023-04-25 08:40:11.617846000 +0900
+diff -uprN libiconv-1.17-orig/lib/eucjp_msext.h libiconv-1.17/lib/eucjp_msext.h
+--- libiconv-1.17-orig/lib/eucjp_msext.h	1970-01-01 09:00:00.000000000 +0900
++++ libiconv-1.17/lib/eucjp_msext.h	2023-12-20 13:05:05.718421000 +0900
 @@ -0,0 +1,405 @@
 +/*
 + * Copyright (C) 1999-2003 Free Software Foundation, Inc.
@@ -18805,9 +18892,9 @@ diff -uprN libiconv-1.17-old/lib/eucjp_msext.h libiconv-1.17/lib/eucjp_msext.h
 +  }
 +  return RET_TOOSMALL;
 +}
-diff -uprN libiconv-1.17-old/lib/flags.h libiconv-1.17/lib/flags.h
---- libiconv-1.17-old/lib/flags.h	2022-05-15 21:59:06.000000000 +0900
-+++ libiconv-1.17/lib/flags.h	2023-04-25 08:40:11.618661000 +0900
+diff -uprN libiconv-1.17-orig/lib/flags.h libiconv-1.17/lib/flags.h
+--- libiconv-1.17-orig/lib/flags.h	2022-05-15 21:59:06.000000000 +0900
++++ libiconv-1.17/lib/flags.h	2023-12-20 13:05:05.719212000 +0900
 @@ -99,6 +99,7 @@
  #define ei_isoir165_oflags (HAVE_QUOTATION_MARKS)
  #define ei_ksc5601_oflags (HAVE_QUOTATION_MARKS | HAVE_HANGUL_JAMO)
@@ -18816,9 +18903,9 @@ diff -uprN libiconv-1.17-old/lib/flags.h libiconv-1.17/lib/flags.h
  #define ei_sjis_oflags (HAVE_ACCENTS | HAVE_QUOTATION_MARKS)
  #define ei_cp932_oflags (HAVE_ACCENTS | HAVE_QUOTATION_MARKS)
  #define ei_iso2022_jp_oflags (HAVE_ACCENTS | HAVE_QUOTATION_MARKS)
-diff -uprN libiconv-1.17-old/lib/Makefile.ms libiconv-1.17/lib/Makefile.ms
---- libiconv-1.17-old/lib/Makefile.ms	1970-01-01 09:00:00.000000000 +0900
-+++ libiconv-1.17/lib/Makefile.ms	2023-04-25 08:40:11.620201000 +0900
+diff -uprN libiconv-1.17-orig/lib/Makefile.ms libiconv-1.17/lib/Makefile.ms
+--- libiconv-1.17-orig/lib/Makefile.ms	1970-01-01 09:00:00.000000000 +0900
++++ libiconv-1.17/lib/Makefile.ms	2023-12-20 13:05:05.721658000 +0900
 @@ -0,0 +1,142 @@
 +# Makefile for libiconv/lib
 +
@@ -18962,9 +19049,215 @@ diff -uprN libiconv-1.17-old/lib/Makefile.ms libiconv-1.17/lib/Makefile.ms
 +
 +$(x64dir)/iconv.lib : $(X64OBJECTS)
 +	$(AR) $(AR_FLAGS)$(x64dir)\iconv.lib $(X64OBJECTS)
-diff -uprN libiconv-1.17-old/tests/CP932.IRREVERSIBLE.TXT libiconv-1.17/tests/CP932.IRREVERSIBLE.TXT
---- libiconv-1.17-old/tests/CP932.IRREVERSIBLE.TXT	2009-06-21 20:17:33.000000000 +0900
-+++ libiconv-1.17/tests/CP932.IRREVERSIBLE.TXT	2023-04-25 08:40:11.623505000 +0900
+diff -uprN libiconv-1.17-orig/libcharset/include/libcharset.h libiconv-1.17/libcharset/include/libcharset.h
+--- libiconv-1.17-orig/libcharset/include/libcharset.h	1970-01-01 09:00:00.000000000 +0900
++++ libiconv-1.17/libcharset/include/libcharset.h	2023-04-25 09:12:42.638793000 +0900
+@@ -0,0 +1,53 @@
++/* Copyright (C) 2003 Free Software Foundation, Inc.
++   This file is part of the GNU CHARSET Library.
++
++   The GNU CHARSET Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public License as
++   published by the Free Software Foundation; either version 2 of the
++   License, or (at your option) any later version.
++
++   The GNU CHARSET Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public License
++   along with the GNU CHARSET Library; see the file COPYING.LIB.  If not,
++   see <https://www.gnu.org/licenses/>.  */
++
++#ifndef _LIBCHARSET_H
++#define _LIBCHARSET_H
++
++#if 1 && BUILDING_LIBCHARSET
++#define LIBCHARSET_DLL_EXPORTED __attribute__((__visibility__("default")))
++#elif defined _MSC_VER && BUILDING_LIBCHARSET
++#define LIBCHARSET_DLL_EXPORTED __declspec(dllexport)
++#else
++#define LIBCHARSET_DLL_EXPORTED
++#endif
++
++#include <localcharset.h>
++
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++
++/* Support for relocatable packages.  */
++
++/* Sets the original and the current installation prefix of the package.
++   Relocation simply replaces a pathname starting with the original prefix
++   by the corresponding pathname with the current prefix instead.  Both
++   prefixes should be directory names without trailing slash (i.e. use ""
++   instead of "/").  */
++extern LIBCHARSET_DLL_EXPORTED void libcharset_set_relocation_prefix (const char *orig_prefix,
++                                              const char *curr_prefix);
++
++
++#ifdef __cplusplus
++}
++#endif
++
++
++#endif /* _LIBCHARSET_H */
+diff -uprN libiconv-1.17-orig/libcharset/include/localcharset.h libiconv-1.17/libcharset/include/localcharset.h
+--- libiconv-1.17-orig/libcharset/include/localcharset.h	1970-01-01 09:00:00.000000000 +0900
++++ libiconv-1.17/libcharset/include/localcharset.h	2023-04-25 09:15:11.270002000 +0900
+@@ -0,0 +1,145 @@
++/* Determine a canonical name for the current locale's character encoding.
++   Copyright (C) 2000-2003, 2009-2019 Free Software Foundation, Inc.
++   This file is part of the GNU CHARSET Library.
++
++   This program is free software; you can redistribute it and/or modify it
++   under the terms of the GNU Lesser General Public License as published
++   by the Free Software Foundation; either version 2, or (at your option)
++   any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public License
++   along with this program; if not, see <https://www.gnu.org/licenses/>.  */
++
++#ifndef _LOCALCHARSET_H
++#define _LOCALCHARSET_H
++
++#if 1 && BUILDING_LIBCHARSET
++#define LIBCHARSET_DLL_EXPORTED __attribute__((__visibility__("default")))
++#elif defined _MSC_VER && BUILDING_LIBCHARSET
++#define LIBCHARSET_DLL_EXPORTED __declspec(dllexport)
++#else
++#define LIBCHARSET_DLL_EXPORTED
++#endif
++
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++
++/* Determine the current locale's character encoding, and canonicalize it
++   into one of the canonical names listed below.
++   The result must not be freed; it is statically allocated.  The result
++   becomes invalid when setlocale() is used to change the global locale, or
++   when the value of one of the environment variables LC_ALL, LC_CTYPE, LANG
++   is changed; threads in multithreaded programs should not do this.
++   If the canonical name cannot be determined, the result is a non-canonical
++   name.  */
++extern LIBCHARSET_DLL_EXPORTED const char * locale_charset (void);
++
++/* About GNU canonical names for character encodings:
++
++   Every canonical name must be supported by GNU libiconv.  Support by GNU libc
++   is also desirable.
++
++   The name is case insensitive.  Usually an upper case MIME charset name is
++   preferred.
++
++   The current list of these GNU canonical names is:
++
++       name              MIME?             used by which systems
++                                    (darwin = Mac OS X, windows = native Windows)
++
++   ASCII, ANSI_X3.4-1968       glibc solaris freebsd netbsd darwin minix cygwin
++   ISO-8859-1              Y   glibc aix hpux irix osf solaris freebsd netbsd openbsd darwin cygwin zos
++   ISO-8859-2              Y   glibc aix hpux irix osf solaris freebsd netbsd openbsd darwin cygwin zos
++   ISO-8859-3              Y   glibc solaris cygwin
++   ISO-8859-4              Y   hpux osf solaris freebsd netbsd openbsd darwin
++   ISO-8859-5              Y   glibc aix hpux irix osf solaris freebsd netbsd openbsd darwin cygwin zos
++   ISO-8859-6              Y   glibc aix hpux solaris cygwin
++   ISO-8859-7              Y   glibc aix hpux irix osf solaris freebsd netbsd openbsd darwin cygwin zos
++   ISO-8859-8              Y   glibc aix hpux osf solaris cygwin zos
++   ISO-8859-9              Y   glibc aix hpux irix osf solaris freebsd darwin cygwin zos
++   ISO-8859-13                 glibc hpux solaris freebsd netbsd openbsd darwin cygwin
++   ISO-8859-14                 glibc cygwin
++   ISO-8859-15                 glibc aix irix osf solaris freebsd netbsd openbsd darwin cygwin
++   KOI8-R                  Y   glibc hpux solaris freebsd netbsd openbsd darwin
++   KOI8-U                  Y   glibc freebsd netbsd openbsd darwin cygwin
++   KOI8-T                      glibc
++   CP437                       dos
++   CP775                       dos
++   CP850                       aix osf dos
++   CP852                       dos
++   CP855                       dos
++   CP856                       aix
++   CP857                       dos
++   CP861                       dos
++   CP862                       dos
++   CP864                       dos
++   CP865                       dos
++   CP866                       freebsd netbsd openbsd darwin dos
++   CP869                       dos
++   CP874                       windows dos
++   CP922                       aix
++   CP932                       aix cygwin windows dos
++   CP943                       aix zos
++   CP949                       osf darwin windows dos
++   CP950                       windows dos
++   CP1046                      aix
++   CP1124                      aix
++   CP1125                      dos
++   CP1129                      aix
++   CP1131                      freebsd darwin
++   CP1250                      windows
++   CP1251                      glibc hpux solaris freebsd netbsd openbsd darwin cygwin windows
++   CP1252                      aix windows
++   CP1253                      windows
++   CP1254                      windows
++   CP1255                      glibc windows
++   CP1256                      windows
++   CP1257                      windows
++   GB2312                  Y   glibc aix hpux irix solaris freebsd netbsd darwin cygwin zos
++   EUC-JP                  Y   glibc aix hpux irix osf solaris freebsd netbsd darwin cygwin
++   EUC-KR                  Y   glibc aix hpux irix osf solaris freebsd netbsd darwin cygwin zos
++   EUC-TW                      glibc aix hpux irix osf solaris netbsd
++   BIG5                    Y   glibc aix hpux osf solaris freebsd netbsd darwin cygwin zos
++   BIG5-HKSCS                  glibc hpux solaris netbsd darwin
++   GBK                         glibc aix osf solaris freebsd darwin cygwin windows dos
++   GB18030                     glibc hpux solaris freebsd netbsd darwin
++   SHIFT_JIS               Y   hpux osf solaris freebsd netbsd darwin
++   JOHAB                       glibc solaris windows
++   TIS-620                     glibc aix hpux osf solaris cygwin zos
++   VISCII                  Y   glibc
++   TCVN5712-1                  glibc
++   ARMSCII-8                   glibc freebsd netbsd darwin
++   GEORGIAN-PS                 glibc cygwin
++   PT154                       glibc netbsd cygwin
++   HP-ROMAN8                   hpux
++   HP-ARABIC8                  hpux
++   HP-GREEK8                   hpux
++   HP-HEBREW8                  hpux
++   HP-TURKISH8                 hpux
++   HP-KANA8                    hpux
++   DEC-KANJI                   osf
++   DEC-HANYU                   osf
++   UTF-8                   Y   glibc aix hpux osf solaris netbsd darwin cygwin zos
++
++   Note: Names which are not marked as being a MIME name should not be used in
++   Internet protocols for information interchange (mail, news, etc.).
++
++   Note: ASCII and ANSI_X3.4-1968 are synonymous canonical names.  Applications
++   must understand both names and treat them as equivalent.
++ */
++
++
++#ifdef __cplusplus
++}
++#endif
++
++
++#endif /* _LOCALCHARSET_H */
+diff -uprN libiconv-1.17-orig/tests/CP932.IRREVERSIBLE.TXT libiconv-1.17/tests/CP932.IRREVERSIBLE.TXT
+--- libiconv-1.17-orig/tests/CP932.IRREVERSIBLE.TXT	2009-06-21 20:17:33.000000000 +0900
++++ libiconv-1.17/tests/CP932.IRREVERSIBLE.TXT	2023-12-20 13:05:05.722399000 +0900
 @@ -1,21 +1,10 @@
 -0x8160	0xFF5E
 -0x8161	0x2225
@@ -19013,9 +19306,9 @@ diff -uprN libiconv-1.17-old/tests/CP932.IRREVERSIBLE.TXT libiconv-1.17/tests/CP
 +0xFA59	0x2116
 +0xFA5A	0x2121
  0xFA5B	0x2235
-diff -uprN libiconv-1.17-old/tests/CP932.TXT libiconv-1.17/tests/CP932.TXT
---- libiconv-1.17-old/tests/CP932.TXT	2009-06-21 20:17:33.000000000 +0900
-+++ libiconv-1.17/tests/CP932.TXT	2023-04-25 08:40:11.626895000 +0900
+diff -uprN libiconv-1.17-orig/tests/CP932.TXT libiconv-1.17/tests/CP932.TXT
+--- libiconv-1.17-orig/tests/CP932.TXT	2009-06-21 20:17:33.000000000 +0900
++++ libiconv-1.17/tests/CP932.TXT	2023-12-20 13:05:05.726108000 +0900
 @@ -158,8 +158,8 @@
  0x815D	0x2010
  0x815E	0xFF0F
@@ -19056,9 +19349,9 @@ diff -uprN libiconv-1.17-old/tests/CP932.TXT libiconv-1.17/tests/CP932.TXT
  0x81CB	0x21D2
  0x81CC	0x21D4
  0x81CD	0x2200
-diff -uprN libiconv-1.17-old/tests/EUCJP-MS.IRREVERSIBLE.TXT libiconv-1.17/tests/EUCJP-MS.IRREVERSIBLE.TXT
---- libiconv-1.17-old/tests/EUCJP-MS.IRREVERSIBLE.TXT	1970-01-01 09:00:00.000000000 +0900
-+++ libiconv-1.17/tests/EUCJP-MS.IRREVERSIBLE.TXT	2023-04-25 08:40:11.628041000 +0900
+diff -uprN libiconv-1.17-orig/tests/EUCJP-MS.IRREVERSIBLE.TXT libiconv-1.17/tests/EUCJP-MS.IRREVERSIBLE.TXT
+--- libiconv-1.17-orig/tests/EUCJP-MS.IRREVERSIBLE.TXT	1970-01-01 09:00:00.000000000 +0900
++++ libiconv-1.17/tests/EUCJP-MS.IRREVERSIBLE.TXT	2023-12-20 13:05:05.727213000 +0900
 @@ -0,0 +1,34 @@
 +0x5C	0x00A5
 +0x7E	0x203E
@@ -19094,9 +19387,9 @@ diff -uprN libiconv-1.17-old/tests/EUCJP-MS.IRREVERSIBLE.TXT libiconv-1.17/tests
 +0xADFA	0x2235
 +0xADFB	0x2229
 +0xADFC	0x222A
-diff -uprN libiconv-1.17-old/tests/EUCJP-MS.TXT libiconv-1.17/tests/EUCJP-MS.TXT
---- libiconv-1.17-old/tests/EUCJP-MS.TXT	1970-01-01 09:00:00.000000000 +0900
-+++ libiconv-1.17/tests/EUCJP-MS.TXT	2023-04-25 08:40:11.805941000 +0900
+diff -uprN libiconv-1.17-orig/tests/EUCJP-MS.TXT libiconv-1.17/tests/EUCJP-MS.TXT
+--- libiconv-1.17-orig/tests/EUCJP-MS.TXT	1970-01-01 09:00:00.000000000 +0900
++++ libiconv-1.17/tests/EUCJP-MS.TXT	2023-12-20 13:05:05.859631000 +0900
 @@ -0,0 +1,15206 @@
 +0x00	0x0000
 +0x01	0x0001
@@ -34304,9 +34597,9 @@ diff -uprN libiconv-1.17-old/tests/EUCJP-MS.TXT libiconv-1.17/tests/EUCJP-MS.TXT
 +0xFEFC	0xE3A9
 +0xFEFD	0xE3AA
 +0xFEFE	0xE3AB
-diff -uprN libiconv-1.17-old/tests/Makefile.in libiconv-1.17/tests/Makefile.in
---- libiconv-1.17-old/tests/Makefile.in	2022-02-12 22:13:33.000000000 +0900
-+++ libiconv-1.17/tests/Makefile.in	2023-04-25 08:40:11.807003000 +0900
+diff -uprN libiconv-1.17-orig/tests/Makefile.in libiconv-1.17/tests/Makefile.in
+--- libiconv-1.17-orig/tests/Makefile.in	2022-02-12 22:13:33.000000000 +0900
++++ libiconv-1.17/tests/Makefile.in	2023-12-20 13:05:05.860299000 +0900
 @@ -118,6 +118,7 @@ check : all table-from table-to ../src/i
  #	$(SHELL) $(srcdir)/check-stateless $(srcdir) KSC_5601 # redundant, see EUC-KR
  #	/* CJK encodings */

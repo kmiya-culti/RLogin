@@ -238,7 +238,8 @@ void CFileNode::AutoRename(LPCTSTR p, CString &tmp, int mode)
 	LPCTSTR ext = (mode == 0 ? _T("%00%") : _T("!"));
 
 	static LPCTSTR renStr = _T("\\<>:\"/?*%");
-	static LPCTSTR renTab[] = { _T("Åè"), _T("ÅÉ"), _T("ÅÑ"), _T("ÅF"), _T("Åh"), _T("Å^"), _T("ÅH"), _T("Åñ"), _T("%") };
+//	static LPCTSTR renTab[] = { _T("Åè"),  _T("ÅÉ"),  _T("ÅÑ"),  _T("ÅF"),  _T("Åh"),  _T("Å^"),  _T("ÅH"),  _T("Åñ"),  _T("Åì") };
+	static LPCWSTR renTab[] = { L"\uFFE5", L"\uFF1C", L"\uFF1E", L"\uFF1A", L"\u201D", L"\uFF0F", L"\uFF1F", L"\uFF0A", L"\uFF05" };
 	static LPCTSTR badTab[] = {
 		_T("AUX"),		_T("CLOCK$"),	_T("COM1"),		_T("COM2"),		_T("COM3"),		// 5
 		_T("COM4"),		_T("COM5"),		_T("COM6"),		_T("COM7"),		_T("COM8"),		// 10
@@ -256,7 +257,7 @@ void CFileNode::AutoRename(LPCTSTR p, CString &tmp, int mode)
 #endif
 		if ( (s = _tcschr(renStr, *p)) != NULL || *p < _T(' ') ) {
 			if ( s != NULL && mode != 0 ) {
-				tmp += renTab[(int)(s - renStr) / sizeof(TCHAR)];
+				tmp += UniToTstr(renTab[(int)(s - renStr) / sizeof(TCHAR)]);
 			} else {
 				work.Format(_T("%%%02x%%"), *p);
 				tmp += work;
@@ -298,7 +299,7 @@ LPCTSTR CFileNode::GetLocalPath(LPCTSTR dir, class CSFtp *pWnd)
 			dlg.m_Name[0] = tmp[0];
 			dlg.m_Name[1] = tmp[1];
 			dlg.m_Name[2] = m_file;
-			dlg.m_NameOK  = _T("Å~");
+			dlg.m_NameOK  = UniToTstr(L"\u00D7");	// _T("Å~");
 
 			if ( (pWnd->m_AutoRenMode & 0x80) == 0 || pWnd->m_AutoRenMode == 0x82 ) {
 				if ( dlg.DoModal() != IDOK )
@@ -3313,7 +3314,7 @@ BOOL CSFtp::OnInitDialog()
 	RemoteSetCwd(work, FALSE);
 	SendWaitQue();
 
-	InitItemOffset(ItemTab, 0, m_ToolBarOfs, 200, 200);
+	InitItemOffset(ItemTab, 0, m_ToolBarOfs, MulDiv(300, m_NowDpi.cx, DEFAULT_DPI_X), MulDiv(200, m_NowDpi.cy, DEFAULT_DPI_Y));
 
 #ifdef	USE_OLE
 	m_DropTarget.Register(this);

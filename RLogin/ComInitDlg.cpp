@@ -103,8 +103,6 @@ BOOL CComInitDlg::GetComDeviceList()
 
 	SetupDiDestroyDeviceInfoList(DeviceInfoSet);
 
-	SubclassComboBox(IDC_BAUDRATE);
-
 	return TRUE;
 }
 void CComInitDlg::CommPropCombo(int Type, CComboBox *pCombo, COMMPROP *pCommProp)
@@ -278,6 +276,10 @@ BOOL CComInitDlg::OnInitDialog()
 
 	CommPropCheck();
 	UpdateData(FALSE);
+	
+	SubclassComboBox(IDC_BAUDRATE);
+
+	SetSaveProfile(_T("ComInitDlg"));
 
 	return TRUE;
 }

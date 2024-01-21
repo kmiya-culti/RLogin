@@ -102,7 +102,7 @@ void CMsgWnd::Message(LPCTSTR str, CWnd *pWnd, COLORREF bc)
 				while ( !line.IsEmpty() ) {
 					tmp = line;
 					if ( trim )
-						tmp += _T("…");
+						tmp += UniToTstr(L"\u2026");	// _T("…");
 
 					if ( pDC != NULL )
 						sz = pDC->GetTextExtent(tmp);
@@ -127,7 +127,7 @@ void CMsgWnd::Message(LPCTSTR str, CWnd *pWnd, COLORREF bc)
 				}
 
 				if ( trim )
-					line += _T("…");
+					line += UniToTstr(L"\u2026");	// _T("…");
 
 				if ( *str == _T('\n') ) {
 					line += _T("\r\n");

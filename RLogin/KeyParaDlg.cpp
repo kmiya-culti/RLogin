@@ -88,6 +88,8 @@ BOOL CKeyParaDlg::OnInitDialog()
 	SubclassComboBox(IDC_KEYCODE);
 	SubclassComboBox(IDC_KEYMAPS);
 
+	SetSaveProfile(_T("KeyParaDlg"));
+
 	return TRUE;
 }
 

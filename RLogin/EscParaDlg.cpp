@@ -35,7 +35,6 @@ void CEscParaDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CEscParaDlg, CDialogExt)
 END_MESSAGE_MAP()
 
-
 // CEscParaDlg メッセージ ハンドラ
 
 BOOL CEscParaDlg::OnInitDialog()
@@ -53,6 +52,8 @@ BOOL CEscParaDlg::OnInitDialog()
 
 	m_pTextRam->SetEscNameCombo(&m_NameCombo);
 	m_NameCombo.SelectString(-1, m_Name);
+
+	SetSaveProfile(_T("EscParaDlg"));
 
 	return TRUE;
 }
