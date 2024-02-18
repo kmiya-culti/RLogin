@@ -3,11 +3,20 @@
 
 #pragma once
 
+#define	DELAYDESTORY_NONE		0
+#define	DELAYDESTORY_RESERV		1
+#define	DELAYDESTORY_REQUEST	2
+#define	DELAYDESTORY_EXEC		3
+
 class CDockContextEx : public CDockContext
 {
 public:
 	explicit CDockContextEx(CControlBar *pBar);
 
+public:
+	class CMiniDockFrameWndEx *m_pDestroyWnd;
+
+public:
 	virtual void StartDrag(CPoint pt);
 	virtual void StartResize(int nHitTest, CPoint pt);
 	virtual void ToggleDocking();
@@ -16,23 +25,6 @@ public:
 	static BOOL IsHitGrip(CControlBar *pBar, CPoint point);
 
 	void TrackLoop();
-};
-
-class CMiniDockFrameWndEx : public CMiniDockFrameWnd
-{
-	DECLARE_DYNCREATE(CMiniDockFrameWndEx)
-
-public:
-	CMiniDockFrameWndEx();
-
-public:
-	BOOL m_bDarkMode;
-
-public:
-	DECLARE_MESSAGE_MAP()
-	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
-	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 };
 
 class CControlBarEx : public CControlBar
@@ -52,7 +44,7 @@ public:
 	static BOOL DarkModeCheck(CControlBar *pBar);
 	static BOOL SetCursor(CControlBar *pBar, UINT nHitTest, UINT message);
 	static BOOL SettingChange(CControlBar *pBar, BOOL &bDarkMode, UINT uFlags, LPCTSTR lpszSection);
-	static BOOL EraseBkgnd(CControlBar *pBar, CDC* pDC, COLORREF bkCol = DARKMODE_BACKCOLOR);
+	static BOOL EraseBkgnd(CControlBar *pBar, CDC* pDC, COLORREF bkCol);
 
 public:
 	virtual void DrawBorders(CDC* pDC, CRect& rect);
@@ -76,7 +68,16 @@ public:
 public:
 	BOOL m_bDarkMode;
 
+	typedef struct _BarPosNode {
+		HWND hWnd;
+		CRect rect;
+	} BarPosNode;
+	CArray<BarPosNode, BarPosNode &> m_SavePos;
+
 public:
+	void SaveBarPos();
+	void LoadBarPos(CControlBar *pThis);
+
 	virtual void DrawBorders(CDC* pDC, CRect& rect);
 
 public:
@@ -84,6 +85,31 @@ public:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
+};
+
+class CMiniDockFrameWndEx : public CMiniDockFrameWnd
+{
+	DECLARE_DYNCREATE(CMiniDockFrameWndEx)
+
+public:
+	CMiniDockFrameWndEx();
+
+public:
+	BOOL m_bDarkMode;
+	int m_DelayedDestroy;
+	CDockBarEx m_wndDockBarEx;
+
+	virtual BOOL DestroyWindow();
+	virtual BOOL Create(CWnd* pParent, DWORD dwBarStyle);
+
+public:
+	DECLARE_MESSAGE_MAP()
+	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	afx_msg void OnDestroy();
+	afx_msg void OnNcLButtonDown(UINT nHitTest, CPoint point);
 };
 
 class CDialogBarEx : public CDialogBar
@@ -99,7 +125,6 @@ public:
 	CSize m_ZoomMul;
 	CSize m_ZoomDiv;
 	CFont m_NewFont;
-	CBrush m_DarkBrush;
 	BOOL m_bDarkMode;
 
 public:
@@ -113,6 +138,7 @@ public:
 
 	virtual void DrawBorders(CDC* pDC, CRect& rect);
 	virtual BOOL DrawThemedGripper(CDC* pDC, const CRect& rect, BOOL fCentered);
+	virtual CSize CalcFixedLayout(BOOL bStretch, BOOL bHorz);
 
 public:
 	DECLARE_MESSAGE_MAP()

@@ -19,6 +19,40 @@
 
 IMPLEMENT_DYNCREATE(CSplitterWndExt, CSplitterWnd)
 
+ void CSplitterWndExt::OnDrawSplitter(CDC* pDC, ESplitType nType, const CRect& rectArg)
+{
+	if (pDC == NULL) {
+		RedrawWindow(rectArg, NULL, RDW_INVALIDATE | RDW_NOCHILDREN);
+		return;
+	}
+
+	CRect rect = rectArg;
+
+	switch (nType) {
+	case splitBorder:
+		pDC->Draw3dRect(rect, GetAppColor(COLOR_BTNSHADOW), GetAppColor(COLOR_BTNHIGHLIGHT));
+		rect.InflateRect(-AFX_CX_BORDER, -AFX_CY_BORDER);
+		pDC->Draw3dRect(rect, GetAppColor(COLOR_WINDOWFRAME), GetAppColor(COLOR_BTNFACE));
+		break;
+
+	case splitIntersection:
+		pDC->FillSolidRect(rect, GetAppColor(COLOR_BTNFACE));
+		break;
+
+	case splitBox:
+		pDC->Draw3dRect(rect, GetAppColor(COLOR_BTNFACE), GetAppColor(COLOR_WINDOWFRAME));
+		rect.InflateRect(-AFX_CX_BORDER, -AFX_CY_BORDER);
+		pDC->Draw3dRect(rect, GetAppColor(COLOR_BTNHIGHLIGHT), GetAppColor(COLOR_BTNSHADOW));
+		rect.InflateRect(-AFX_CX_BORDER, -AFX_CY_BORDER);
+		pDC->FillSolidRect(rect, GetAppColor(COLOR_BTNFACE));
+		break;
+
+	case splitBar:
+		pDC->FillSolidRect(rect, GetAppColor(COLOR_BTNFACE));
+		break;
+	}
+}
+
 BEGIN_MESSAGE_MAP(CSplitterWndExt, CSplitterWnd)
 	ON_WM_SETCURSOR()
 	ON_WM_MOUSEMOVE()

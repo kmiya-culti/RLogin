@@ -27,6 +27,8 @@ CEscDlg::CEscDlg(CWnd* pParent /*=NULL*/)
 	m_NewEsc = new CString [95];
 	m_NewCsi = new CString [5355];
 	m_NewDcs = new CString [5355];
+
+	ZeroMemory(m_TermPara, sizeof(m_TermPara));
 }
 
 CEscDlg::~CEscDlg()

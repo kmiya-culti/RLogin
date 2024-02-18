@@ -53,7 +53,7 @@ LRESULT CFrameWndExt::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 
 void CFrameWndExt::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 {
-	if ( lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 )
+	if ( bDarkModeSupport && lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 )
 		m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
 
 	CFrameWnd::OnSettingChange(uFlags, lpszSection);
@@ -61,6 +61,9 @@ void CFrameWndExt::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 
 LRESULT CFrameWndExt::OnUahDrawMenu(WPARAM wParam, LPARAM lParam)
 {
+	if ( !bDarkModeSupport )
+		return Default();
+
 	UAHMENU *pUahMenu = (UAHMENU *)lParam;
 	CDC *pDC = CDC::FromHandle(pUahMenu->hdc);
 	MENUBARINFO mbi;
@@ -76,11 +79,14 @@ LRESULT CFrameWndExt::OnUahDrawMenu(WPARAM wParam, LPARAM lParam)
 	rect = mbi.rcBar;
     rect.OffsetRect(-rcWindow.left, -rcWindow.top);
 
-	pDC->FillSolidRect(rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	pDC->FillSolidRect(rect, GetAppColor(APPCOL_MENUFACE));
 	return TRUE;
 }
 LRESULT CFrameWndExt::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
 {
+	if ( !bDarkModeSupport )
+		return Default();
+
 	UAHDRAWMENUITEM *pUahDrawMenuItem = (UAHDRAWMENUITEM *)lParam;
 	CMenu *pMenu = CMenu::FromHandle(pUahDrawMenuItem->um.hmenu);
 	int npos = pUahDrawMenuItem->umi.iPosition;
@@ -89,8 +95,8 @@ LRESULT CFrameWndExt::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
 	CRect rect = pUahDrawMenuItem->dis.rcItem;
 	DWORD dwFlags = DT_SINGLELINE | DT_VCENTER | DT_CENTER;
 	CString title;
-	COLORREF TextColor = (m_bDarkMode ? GetSysColor(COLOR_WINDOW) : GetSysColor(COLOR_WINDOWTEXT));
-	COLORREF BackColor = (m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	COLORREF TextColor = GetAppColor(APPCOL_MENUTEXT);
+	COLORREF BackColor = GetAppColor(APPCOL_MENUFACE);
 	int OldBkMode = pDC->SetBkMode(TRANSPARENT);
 
 	ASSERT(pUahDrawMenuItem != NULL && pDC != NULL && pMenu != NULL);
@@ -101,10 +107,10 @@ LRESULT CFrameWndExt::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
         dwFlags |= DT_HIDEPREFIX;
 
 	if ( (state & (ODS_INACTIVE | ODS_GRAYED | ODS_DISABLED)) != 0 )
-		TextColor = (m_bDarkMode ? GetSysColor(COLOR_GRAYTEXT) : GetSysColor(COLOR_GRAYTEXT));
+		TextColor = GetAppColor(COLOR_GRAYTEXT);
 
 	if ( (state & (ODS_HOTLIGHT | ODS_SELECTED)) != 0 )
-		BackColor = (m_bDarkMode ? GetSysColor(COLOR_MENUTEXT) : GetSysColor(COLOR_MENU));
+		BackColor = GetAppColor(APPCOL_MENUHIGH);
 
 	TextColor = pDC->SetTextColor(TextColor);
 	pDC->FillSolidRect(rect, BackColor);

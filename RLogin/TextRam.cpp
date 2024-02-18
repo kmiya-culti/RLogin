@@ -1844,8 +1844,8 @@ CTextRam::CTextRam()
 	m_iTerm2Mark = 0;
 	m_pCmdHisWnd = NULL;
 	m_Atime = 0;
-	m_TabTextColor = ::GetSysColor(COLOR_BTNTEXT);
-	m_TabBackColor = ::GetSysColor(COLOR_BTNHIGHLIGHT);
+	m_TabTextColor = AppColorTable[0][APPCOL_BARTEXT];
+	m_TabBackColor = AppColorTable[0][APPCOL_BARHIGH];
 	m_UpdateCurX = m_UpdateCurY = (-1);
 
 	m_ColStackUsed = 0;
@@ -2310,7 +2310,7 @@ BOOL CTextRam::OpenHisFile()
 
 	if ( m_HisFhd.m_hFile == CFile::hFileNull ) {
 		name.Format(_T("History File Open Error '%s.rlh'"), (LPCTSTR)base);
-		::AfxMessageBox(name);
+		::AfxMessageBox(name, MB_ICONERROR);
 		return FALSE;
 	} else
 		m_HisFhd.SeekToEnd();
@@ -2407,11 +2407,11 @@ void CTextRam::SaveHistory()
 		m_HisFhd.Close();
 
 	} catch(CFileException* pEx) {
-		AfxMessageBox(CStringLoad(IDE_HISTORYBACKUPERROR));
+		::AfxMessageBox(CStringLoad(IDE_HISTORYBACKUPERROR), MB_ICONERROR);
 		pEx->Delete();
 		return;
 	} catch(...) {
-		AfxMessageBox(CStringLoad(IDE_HISTORYBACKUPERROR));
+		::AfxMessageBox(CStringLoad(IDE_HISTORYBACKUPERROR), MB_ICONERROR);
 	}
 }
 void CTextRam::SaveLogFile()
@@ -2505,7 +2505,7 @@ int CTextRam::HisRegMark(LPCTSTR str, BOOL bRegEx)
 
 	if ( bRegEx ) {
 		if ( !m_MarkReg.Compile(str) ) {
-			::AfxMessageBox(m_MarkReg.m_ErrMsg);
+			::AfxMessageBox(m_MarkReg.m_ErrMsg, MB_ICONWARNING);
 			return 0;
 		}
 
@@ -2684,8 +2684,8 @@ void CTextRam::Init()
 	m_MarkColor      = RGB(255, 255, 0);
 	m_ImeTypeCaret   = 0;
 	m_ImeCaretColor  = RGB(31, 255, 127);
-	m_TabTextColor = ::GetSysColor(COLOR_BTNTEXT);
-	m_TabBackColor = ::GetSysColor(COLOR_BTNHIGHLIGHT);
+	m_TabTextColor   = AppColorTable[0][APPCOL_BARTEXT];
+	m_TabBackColor   = AppColorTable[0][APPCOL_BARHIGH];
 
 	for ( int n = 0 ; n < 8 ; n++ )
 		m_DropFileCmd[n] = DropCmdTab[n];

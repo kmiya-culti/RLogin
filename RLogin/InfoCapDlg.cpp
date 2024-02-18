@@ -1286,9 +1286,9 @@ void CInfoCapDlg::SetCapStr(BOOL lf)
 			tmp.LoadString(IDE_INFOCAPOVER1024);
 		tmp += CStringLoad(IDE_INFOCAPINFOCONVERROR);
 		tmp += err;
-		MessageBox(tmp);
+		::AfxMessageBox(tmp, MB_ICONHAND);
 	} else if ( all >= 1024 )
-		MessageBox(CStringLoad(IDE_INFOCAPOVER1024));
+		::AfxMessageBox(CStringLoad(IDE_INFOCAPOVER1024), MB_ICONINFORMATION);
 }
 void CInfoCapDlg::SetInfoStr(BOOL lf)
 {
@@ -1343,7 +1343,7 @@ void CInfoCapDlg::SetInfoStr(BOOL lf)
 	if ( ec ) {
 		tmp.LoadString(IDE_INFOCAPCONVERROR);
 		tmp += err;
-		MessageBox(tmp);
+		::AfxMessageBox(tmp, MB_ICONHAND);
 	}
 }
 void CInfoCapDlg::InfoNameToCapName(CStringBinary &tab)

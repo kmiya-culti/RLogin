@@ -24,6 +24,9 @@ public:
 
 protected:
 	DECLARE_MESSAGE_MAP()
+	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 };
 

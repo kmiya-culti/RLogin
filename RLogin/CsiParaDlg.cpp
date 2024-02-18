@@ -19,6 +19,7 @@ CCsiParaDlg::CCsiParaDlg(CWnd* pParent /*=NULL*/)
 	m_Type = PROCTYPE_CSI;
 	m_Code = 0;
 	m_Name = _T("NOP");
+	m_pTextRam = NULL;
 }
 
 CCsiParaDlg::~CCsiParaDlg()

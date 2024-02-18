@@ -328,6 +328,7 @@ class CFifoSync : public CFifoBase
 public:
 	int m_Threadtatus;
 	CWinThread *m_pWinThread;
+	CEvent m_ThreadEvent;
 	CEvent m_AbortEvent;
 	int m_TunnelFd;
 	CPtrArray m_nFdBuffer;
@@ -384,6 +385,7 @@ public:
 	WSAEVENT m_SockEvent;
 	BOOL m_bAbort;
 	CEvent m_AbortEvent;
+	CEvent m_ThreadEvent;
 	int m_Threadtatus;
 	CWinThread *m_pWinThread;
 	SSL *m_SSL_pSock;
@@ -425,6 +427,7 @@ public:
 
 	BOOL m_bAbort;
 	CEvent m_AbortEvent;
+	CEvent m_ThreadEvent;
 	int m_Threadtatus;
 	CWinThread *m_pWinThread;
 

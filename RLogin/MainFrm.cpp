@@ -16,7 +16,8 @@
 #include "AnyPastDlg.h"
 #include "TtyModeDlg.h"
 #include "Fifo.h"
-#include "afxglobals.h"
+
+#include <afxglobals.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -817,6 +818,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_MESSAGE(WM_SPEAKMSG, OnSpeakMsg)
 	ON_MESSAGE(WM_FIFOMSG, OnFifoMsg)
 	ON_MESSAGE(WM_DOCUMENTMSG, OnDocumentMsg)
+	ON_MESSAGE(WM_DOCKBARDRAG, OnDockBarDrag)
 
 	ON_COMMAND(ID_FILE_ALL_LOAD, OnFileAllLoad)
 	ON_COMMAND(ID_FILE_ALL_SAVE, OnFileAllSave)
@@ -842,6 +844,11 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_VOICEBAR, &CMainFrame::OnUpdateViewVoicebar)
 	ON_COMMAND(IDM_VIEW_SUBTOOL, &CMainFrame::OnViewSubToolbar)
 	ON_UPDATE_COMMAND_UI(IDM_VIEW_SUBTOOL, &CMainFrame::OnUpdateSubToolbar)
+
+	ON_COMMAND(IDM_DOCKBARFIXED, &CMainFrame::OnDockBarFixed)
+	ON_UPDATE_COMMAND_UI(IDM_DOCKBARFIXED, &CMainFrame::OnUpdateDockBarFixed)
+	ON_COMMAND(IDM_DOCKBARINIT, &CMainFrame::OnDockBarInit)
+	ON_UPDATE_COMMAND_UI(IDM_DOCKBARINIT, &CMainFrame::OnUpdateDockBarInit)
 
 	ON_COMMAND(ID_WINDOW_CASCADE, OnWindowCascade)
 	ON_UPDATE_COMMAND_UI(ID_WINDOW_CASCADE, OnUpdateWindowCascade)
@@ -898,6 +905,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(IDM_SPEAKNEXT, &CMainFrame::OnUpdateSpeakText)
 	ON_BN_CLICKED(IDC_NEXTPOS, &CMainFrame::OnSpeakNext)
 
+	ON_COMMAND(IDM_APPCOLEDIT, &CMainFrame::OnAppcoledit)
 	ON_COMMAND(IDM_KNOWNHOSTDEL, &CMainFrame::OnKnownhostdel)
 
 	ON_COMMAND(IDM_CHARTOOLTIP, &CMainFrame::OnChartooltip)
@@ -905,6 +913,9 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 
 	ON_MESSAGE(WM_UAHDRAWMENU, OnUahDrawMenu)
 	ON_MESSAGE(WM_UAHDRAWMENUITEM, OnUahDrawMenuItem)
+
+	ON_WM_NCPAINT()
+	ON_WM_NCACTIVATE()
 
 	END_MESSAGE_MAP()
 
@@ -971,6 +982,8 @@ CMainFrame::CMainFrame()
 	m_pTaskbarList = NULL;
 	m_bCharTooltip = FALSE;
 	m_ImageSize.cx = m_ImageSize.cy = 16;
+	m_bDarkMode = FALSE;
+	m_bDockBarMode = FALSE;
 }
 
 CMainFrame::~CMainFrame()
@@ -1011,6 +1024,31 @@ CMainFrame::~CMainFrame()
 
 /////////////////////////////////////////////////////////////////////////////
 
+LRESULT CALLBACK OwnerClientProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+{
+	if ( uMsg == WM_ERASEBKGND ) {
+		CWnd *pWnd = CWnd::FromHandle(hWnd);
+		CDC *pDC = CDC::FromHandle((HDC)wParam);
+		CRect rect;
+		pWnd->GetClientRect(rect);
+		pDC->FillSolidRect(rect, GetAppColor(COLOR_APPWORKSPACE));
+		return TRUE;
+
+	} else if ( uMsg == WM_NCPAINT || uMsg == WM_NCACTIVATE ) {
+		CWnd *pWnd = CWnd::FromHandle(hWnd);
+		CDC *pDC = pWnd->GetWindowDC();
+		CRect rect;
+		pWnd->GetWindowRect(rect);
+		rect.SetRect(0, 0, rect.Width(), rect.Height());
+		pDC->Draw3dRect(rect, GetAppColor(COLOR_BTNSHADOW), GetAppColor(COLOR_BTNHIGHLIGHT));
+		rect.InflateRect(-AFX_CX_BORDER, -AFX_CY_BORDER);
+		pDC->Draw3dRect(rect, GetAppColor(COLOR_WINDOWFRAME), GetAppColor(COLOR_BTNFACE));
+		pWnd->ReleaseDC(pDC);
+		return TRUE;
+	}
+
+	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+}
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
 	int n;
@@ -1019,12 +1057,15 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CMenu *pMenu;
 	UINT nID, nSt;
 	BITMAP mapinfo;
+	DWORD addStyle = 0;
 
 	if (CMDIFrameWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
 	if ( ExEnableNonClientDpiScaling != NULL )
 		ExEnableNonClientDpiScaling(GetSafeHwnd());
+
+	SetWindowSubclass(m_hWndMDIClient, OwnerClientProc, (UINT_PTR)NULL, (DWORD_PTR)this);
 
 	// キャラクタービットマップの読み込み
 #if		USE_GOZI == 1 || USE_GOZI == 2
@@ -1052,16 +1093,19 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// メニュー画像を作成
 	InitMenuBitmap();
 
+	if ( !(m_bDockBarMode = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("DockBarMode"), FALSE)) )
+		addStyle |= CBRS_GRIPPER;
+
 	// ツール・ステータス・タブ　バーの作成
 	if ( !m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
-			WS_CHILD | WS_VISIBLE | CBRS_ALIGN_TOP | CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
+			WS_CHILD | WS_VISIBLE | CBRS_ALIGN_TOP | addStyle | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
 		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar, this) ) {
 		TRACE0("Failed to create toolbar\n");
 		return -1;      // 作成に失敗
 	}
 
 	if ( !m_wndSubToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
-			WS_CHILD | WS_VISIBLE | CBRS_ALIGN_TOP | CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC, CRect(0, 0, 0, 0), IDR_TOOLBAR2) ||
+			WS_CHILD | WS_VISIBLE | CBRS_ALIGN_TOP | addStyle | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC, CRect(0, 0, 0, 0), IDR_TOOLBAR2) ||
 		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_TOOLBAR2), m_wndSubToolBar, this) ) {
 		TRACE0("Failed to create subtoolbar\n");
 		return -1;      // 作成に失敗
@@ -1072,22 +1116,22 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // 作成に失敗
 	}
 
-	if ( !m_wndTabBar.Create(this, WS_VISIBLE| WS_CHILD | CBRS_ALIGN_TOP | CBRS_GRIPPER, IDC_MDI_TAB_CTRL_BAR) ) {
+	if ( !m_wndTabBar.Create(this, WS_VISIBLE| WS_CHILD | CBRS_ALIGN_TOP | addStyle, IDC_MDI_TAB_CTRL_BAR) ) {
 		TRACE("Failed to create tabbar\n");
 		return -1;      // fail to create
 	}
 
-	if ( !m_wndQuickBar.Create(this, IDD_QUICKBAR, WS_VISIBLE | WS_CHILD | CBRS_ALIGN_TOP | CBRS_GRIPPER, IDD_QUICKBAR) ) {
+	if ( !m_wndQuickBar.Create(this, IDD_QUICKBAR, WS_VISIBLE | WS_CHILD | CBRS_ALIGN_TOP | addStyle, IDD_QUICKBAR) ) {
 		TRACE("Failed to create quickbar\n");
 		return -1;      // fail to create
 	}
 
-	if ( !m_wndTabDlgBar.Create(this, WS_VISIBLE| WS_CHILD | CBRS_ALIGN_BOTTOM | CBRS_GRIPPER, IDC_TABDLGBAR) ) {
+	if ( !m_wndTabDlgBar.Create(this, WS_VISIBLE| WS_CHILD | CBRS_ALIGN_BOTTOM | addStyle, IDC_TABDLGBAR) ) {
 		TRACE("Failed to create tabdlgbar\n");
 		return -1;      // fail to create
 	}
 
-	if ( !m_wndVoiceBar.Create(this, IDD_VOICEBAR, WS_VISIBLE | WS_CHILD | CBRS_ALIGN_TOP | CBRS_GRIPPER, IDD_VOICEBAR) ) {
+	if ( !m_wndVoiceBar.Create(this, IDD_VOICEBAR, WS_VISIBLE | WS_CHILD | CBRS_ALIGN_TOP | addStyle, IDD_VOICEBAR) ) {
 		TRACE("Failed to create voicebar\n");
 		return -1;      // fail to create
 	}
@@ -1097,7 +1141,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	CDockContextEx::EnableDocking(&m_wndToolBar, CBRS_ALIGN_ANY);
 	CDockContextEx::EnableDocking(&m_wndSubToolBar, CBRS_ALIGN_ANY);
-	CDockContextEx::EnableDocking(&m_wndTabBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
+	CDockContextEx::EnableDocking(&m_wndTabBar, CBRS_ALIGN_ANY); // CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 	CDockContextEx::EnableDocking(&m_wndQuickBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 	CDockContextEx::EnableDocking(&m_wndTabDlgBar, CBRS_ALIGN_ANY);
 	CDockContextEx::EnableDocking(&m_wndVoiceBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
@@ -1121,9 +1165,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	DockControlBar(&m_wndToolBar);
 	DockControlBar(&m_wndSubToolBar);
 	DockControlBar(&m_wndQuickBar);
+	DockControlBar(&m_wndVoiceBar);
 	DockControlBar(&m_wndTabBar);
 	DockControlBar(&m_wndTabDlgBar);
-	DockControlBar(&m_wndVoiceBar);
 
 	// バーの表示設定
 	LoadBarState(_T("BarState"));
@@ -2486,7 +2530,7 @@ ENDOF:
 	if ( bLock )
 		m_OpenClipboardLock.Unlock();
 	if ( pMsg != NULL )
-		MessageBox(pMsg);
+		::AfxMessageBox(pMsg, MB_ICONHAND);
 
 	return bRet;
 }
@@ -2785,12 +2829,14 @@ LRESULT CMainFrame::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 	m_ScreenDpiY = HIWORD(wParam);
 
 	m_wndTabBar.FontSizeCheck();
+
 	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar, this);
 	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_TOOLBAR2), m_wndSubToolBar, this);
 
 	m_wndQuickBar.DpiChanged();
 	m_wndTabDlgBar.DpiChanged();
 	m_wndVoiceBar.DpiChanged();
+	m_wndStatusBar.DpiChanged();
 
 	RecalcLayout(FALSE);
 
@@ -2815,7 +2861,7 @@ void CMainFrame::OnClose()
 		}
 	}
 
-	if ( count > 0 && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
+	if ( count > 0 && ::AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return;
 
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("HistoryDlg"),	    m_bTabDlgBarShow && m_pHistoryDlg != NULL && m_wndTabDlgBar.IsInside(m_pHistoryDlg) ? TRUE : FALSE);
@@ -3407,7 +3453,7 @@ void CMainFrame::OnFileAllLoad()
 	CPaneFrame *pPane;
 
 	if ( IsConnectChild(m_pTopPane) ) {
-		if ( MessageBox(CStringLoad(IDE_ALLCLOSEREQ), _T("Warning"), MB_ICONQUESTION | MB_OKCANCEL) != IDOK )
+		if ( ::AfxMessageBox(CStringLoad(IDE_ALLCLOSEREQ), MB_ICONQUESTION | MB_OKCANCEL) != IDOK )
 			return;
 	}
 	
@@ -3415,7 +3461,7 @@ void CMainFrame::OnFileAllLoad()
 		if ( (pPane = CPaneFrame::GetBuffer(this, NULL, NULL, &m_AllFileBuf)) == NULL )
 			return;
 	} catch(...) {
-		::AfxMessageBox(_T("File All Load Error"));
+		::AfxMessageBox(_T("File All Load Error"), MB_ICONERROR);
 		return;
 	}
 
@@ -3857,7 +3903,7 @@ void CMainFrame::OnViewTabbar()
 		return;
 	}
 
-	m_bTabBarShow = (m_bTabBarShow? FALSE : TRUE);
+	m_bTabBarShow = (m_bTabBarShow ? FALSE : TRUE);
 	::AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("TabBarShow"), m_bTabBarShow);
 
 	if ( m_bTabBarShow )
@@ -3872,18 +3918,78 @@ void CMainFrame::OnUpdateViewTabbar(CCmdUI *pCmdUI)
 	else
 		pCmdUI->SetCheck(m_bTabBarShow);
 }
-afx_msg void CMainFrame::OnViewSubToolbar()
+void CMainFrame::OnViewSubToolbar()
 {
 	ShowControlBar(&m_wndSubToolBar, ((m_wndSubToolBar.GetStyle() & WS_VISIBLE) != 0 ? FALSE : TRUE), FALSE);
 }
-afx_msg void CMainFrame::OnUpdateSubToolbar(CCmdUI *pCmdUI)
+void CMainFrame::OnUpdateSubToolbar(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck((m_wndSubToolBar.GetStyle() & WS_VISIBLE) ? 1 : 0);
 }
 
+void CMainFrame::OnDockBarFixed()
+{
+	m_bDockBarMode = (m_bDockBarMode ? FALSE : TRUE);
+	::AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("DockBarMode"), m_bDockBarMode);
+
+	DWORD dwDel = 0, dwAdd = CBRS_GRIPPER;
+
+	if ( m_bDockBarMode ) {
+		m_wndToolBar.m_dwStyle    &= ~CBRS_GRIPPER;
+		m_wndSubToolBar.m_dwStyle &= ~CBRS_GRIPPER;
+		m_wndQuickBar.m_dwStyle   &= ~CBRS_GRIPPER;
+		m_wndVoiceBar.m_dwStyle   &= ~CBRS_GRIPPER;
+		m_wndTabBar.m_dwStyle     &= ~CBRS_GRIPPER;
+		m_wndTabDlgBar.m_dwStyle  &= ~CBRS_GRIPPER;
+	} else {
+		m_wndToolBar.m_dwStyle    |= CBRS_GRIPPER;
+		m_wndSubToolBar.m_dwStyle |= CBRS_GRIPPER;
+		m_wndQuickBar.m_dwStyle   |= CBRS_GRIPPER;
+		m_wndVoiceBar.m_dwStyle   |= CBRS_GRIPPER;
+		m_wndTabBar.m_dwStyle     |= CBRS_GRIPPER;
+		m_wndTabDlgBar.m_dwStyle  |= CBRS_GRIPPER;
+	}
+
+	RecalcLayout(TRUE);
+}
+void CMainFrame::OnUpdateDockBarFixed(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_bDockBarMode ? 1 : 0);
+}
+void CMainFrame::OnDockBarInit()
+{
+	CControlBar *pBar;
+	struct {
+		UINT nID;
+		DWORD Style;
+		CControlBar *pBar;
+	} DocBarTab[] = {
+		{ AFX_IDW_DOCKBAR_BOTTOM,	CBRS_ALIGN_BOTTOM,	&m_wndTabDlgBar		},
+		{ AFX_IDW_DOCKBAR_TOP,		CBRS_ALIGN_TOP,		&m_wndTabBar		},
+		{ AFX_IDW_DOCKBAR_TOP,		CBRS_ALIGN_TOP,		&m_wndVoiceBar		},
+		{ AFX_IDW_DOCKBAR_TOP,		CBRS_ALIGN_TOP,		&m_wndQuickBar		},
+		{ AFX_IDW_DOCKBAR_TOP,		CBRS_ALIGN_TOP,		&m_wndSubToolBar	},
+		{ AFX_IDW_DOCKBAR_TOP,		CBRS_ALIGN_TOP,		&m_wndToolBar		},
+		{ 0,						0,					NULL				},
+	};
+
+	for ( int n = 0 ; (pBar = DocBarTab[n].pBar) != NULL ; n++ ) {
+		if ( DocBarTab[n].Style != (pBar->m_dwStyle & CBRS_ALIGN_ANY) && !pBar->IsFloating() ) {
+			pBar->m_pDockBar->RemoveControlBar(pBar);
+			pBar->m_pDockBar = NULL;
+		}
+
+		DockControlBar(pBar, DocBarTab[n].nID, CRect(0, 0, 0, 0));
+	}
+}
+void CMainFrame::OnUpdateDockBarInit(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(TRUE);
+}
+
 void CMainFrame::OnNewVersionFound()
 {
-	if ( MessageBox(m_VersionMessage, _T("New Version"), MB_ICONQUESTION | MB_YESNO) == IDYES )
+	if ( ::AfxMessageBox(m_VersionMessage, MB_ICONQUESTION | MB_YESNO) == IDYES )
 		ShellExecute(m_hWnd, NULL, m_VersionPageUrl, NULL, NULL, SW_NORMAL);
 }
 void CMainFrame::OnVersioncheck()
@@ -3895,14 +4001,14 @@ void CMainFrame::OnVersioncheck()
 	AfxGetApp()->WriteProfileString(_T("MainFrame"), _T("VersionNumber"), _T(""));
 
 	if ( m_bVersionCheck ) {
-		if ( MessageBox(CStringLoad(IDS_VERCHKENABLE), _T("Version Check"), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+		if ( ::AfxMessageBox(CStringLoad(IDS_VERCHKENABLE), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 			if ( (rt = VersionCheckProc()) == 0 )
-				MessageBox(CStringLoad(IDS_VERCHKLATEST), _T("Version Check"), MB_ICONINFORMATION);
+				::AfxMessageBox(CStringLoad(IDS_VERCHKLATEST), MB_ICONINFORMATION);
 			else if ( rt < 0 )
-				MessageBox(CStringLoad(IDE_VERCHKERROR), _T("Version Check"), MB_ICONERROR);
+				::AfxMessageBox(CStringLoad(IDE_VERCHKERROR), MB_ICONERROR);
 		}
 	} else
-		MessageBox(CStringLoad(IDS_VERCHKDISABLE), _T("Version Check"), MB_ICONINFORMATION);
+		::AfxMessageBox(CStringLoad(IDS_VERCHKDISABLE), MB_ICONINFORMATION);
 }
 void CMainFrame::OnUpdateVersioncheck(CCmdUI *pCmdUI)
 {
@@ -4107,8 +4213,13 @@ void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
 }
 void CMainFrame::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 {
-	if ( lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 )
+	if ( bDarkModeSupport && lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 ) {
 		m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
+		RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_FRAME | RDW_ERASE);
+	} else {
+		InitAppColor();
+		LoadAppColor();
+	}
 
 	CMDIFrameWnd::OnSettingChange(uFlags, lpszSection);
 }
@@ -4486,6 +4597,12 @@ void CMainFrame::OnUpdateChartooltip(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_bCharTooltip);
 }
+void CMainFrame::OnAppcoledit()
+{
+	CAppColDlg dlg;
+
+	dlg.DoModal();
+}
 
 static int FifoBaseComp(const void *src, const void *dis)
 {
@@ -4612,16 +4729,28 @@ LRESULT CMainFrame::OnDocumentMsg(WPARAM wParam, LPARAM lParam)
 		break;
 
 	case DOCMSG_MESSAGE:
-		pDocMsg->type = MessageBox((LPCTSTR)(pDocMsg->pIn), (LPCTSTR)(pDocMsg->pOut), (UINT)(pDocMsg->type));
+		pDocMsg->type = ::DoitMessageBox((LPCTSTR)(pDocMsg->pIn), (UINT)(pDocMsg->type));
 		break;
 	}
 
 	return TRUE;
 }
+LRESULT CMainFrame::OnDockBarDrag(WPARAM wParam, LPARAM lParam)
+{
+	CControlBar *pBar = (CControlBar *)wParam;
+	CDockContextEx *pCont = (CDockContextEx *)lParam;
+	ASSERT(pBar != NULL && pCont != NULL);
+	pCont->TrackLoop();
+	return TRUE;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 
 LRESULT CMainFrame::OnUahDrawMenu(WPARAM wParam, LPARAM lParam)
 {
+	if ( !bDarkModeSupport )
+		return Default();
+
 	UAHMENU *pUahMenu = (UAHMENU *)lParam;
 	CDC *pDC = CDC::FromHandle(pUahMenu->hdc);
 	MENUBARINFO mbi;
@@ -4637,12 +4766,15 @@ LRESULT CMainFrame::OnUahDrawMenu(WPARAM wParam, LPARAM lParam)
 	rect = mbi.rcBar;
     rect.OffsetRect(-rcWindow.left, -rcWindow.top);
 
-	pDC->FillSolidRect(rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	pDC->FillSolidRect(rect, GetAppColor(APPCOL_MENUFACE));
 
 	return TRUE;
 }
 LRESULT CMainFrame::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
 {
+	if ( !bDarkModeSupport )
+		return Default();
+
 	UAHDRAWMENUITEM *pUahDrawMenuItem = (UAHDRAWMENUITEM *)lParam;
 	CMenu *pMenu = CMenu::FromHandle(pUahDrawMenuItem->um.hmenu);
 	int npos = pUahDrawMenuItem->umi.iPosition;
@@ -4651,8 +4783,8 @@ LRESULT CMainFrame::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
 	CRect rect = pUahDrawMenuItem->dis.rcItem;
 	DWORD dwFlags = DT_SINGLELINE | DT_VCENTER | DT_CENTER;
 	CString title;
-	COLORREF TextColor = (m_bDarkMode ? GetSysColor(COLOR_WINDOW) : GetSysColor(COLOR_WINDOWTEXT));
-	COLORREF BackColor = (m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	COLORREF TextColor = GetAppColor(APPCOL_MENUTEXT);
+	COLORREF BackColor = GetAppColor(APPCOL_MENUFACE);
 	int OldBkMode = pDC->SetBkMode(TRANSPARENT);
 
 	ASSERT(pUahDrawMenuItem != NULL && pDC != NULL && pMenu != NULL);
@@ -4663,10 +4795,10 @@ LRESULT CMainFrame::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
         dwFlags |= DT_HIDEPREFIX;
 
 	if ( (state & (ODS_INACTIVE | ODS_GRAYED | ODS_DISABLED)) != 0 )
-		TextColor = (m_bDarkMode ? GetSysColor(COLOR_GRAYTEXT) : GetSysColor(COLOR_GRAYTEXT));
+		TextColor = GetAppColor(COLOR_GRAYTEXT);
 
 	if ( (state & (ODS_HOTLIGHT | ODS_SELECTED)) != 0 )
-		BackColor = (m_bDarkMode ? GetSysColor(COLOR_MENUTEXT) : GetSysColor(COLOR_MENU));
+		BackColor = GetAppColor(APPCOL_MENUHIGH);
 
 	TextColor = pDC->SetTextColor(TextColor);
 	pDC->FillSolidRect(rect, BackColor);
@@ -4678,3 +4810,33 @@ LRESULT CMainFrame::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
+void CMainFrame::DrawSystemBar()
+{
+	CRect window, client;
+	CDC *pDC = GetWindowDC();
+
+	GetWindowRect(window);
+	GetClientRect(client);
+	ClientToScreen(client);
+
+	// メニューバー下の線を背景と同じに塗る
+	pDC->FillSolidRect(0, client.top - window.top - 1, window.Width(), 1, GetAppColor(APPCOL_MENUFACE));
+
+	ReleaseDC(pDC);
+}
+void CMainFrame::OnNcPaint()
+{
+	Default();
+
+	if ( bDarkModeSupport )
+		DrawSystemBar();
+}
+BOOL CMainFrame::OnNcActivate(BOOL bActive)
+{
+	BOOL ret = CMDIFrameWnd::OnNcActivate(bActive);
+
+	if ( bDarkModeSupport )
+		DrawSystemBar();
+
+	return ret;
+}

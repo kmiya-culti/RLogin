@@ -22,9 +22,24 @@ CDialogRes::~CDialogRes()
 }
 
 BEGIN_MESSAGE_MAP(CDialogRes, CDialogExt)
+	ON_WM_CTLCOLOR()
+	ON_WM_ERASEBKGND()
+	ON_WM_SETTINGCHANGE()
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 END_MESSAGE_MAP()
 
+HBRUSH CDialogRes::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+{
+	return CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
+}
+BOOL CDialogRes::OnEraseBkgnd(CDC* pDC)
+{
+	return CDialog::OnEraseBkgnd(pDC);
+}
+void CDialogRes::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
+{
+	CDialog::OnSettingChange(uFlags, lpszSection);
+}
 LRESULT CDialogRes::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 {
 	return FALSE;

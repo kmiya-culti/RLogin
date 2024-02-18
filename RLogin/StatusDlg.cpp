@@ -67,8 +67,7 @@ BOOL CStatusDlg::OnInitDialog()
 	if ( !m_Title.IsEmpty() )
 		SetWindowText(m_Title);
 
-	if ( (pWnd = GetDlgItem(IDC_EDIT1)) != NULL && m_StatusFont.CreatePointFont(
-			MulDiv(9 * 10, m_NowDpi.cy, SYSTEM_DPI_Y), _T("Consolas")) )
+	if ( (pWnd = GetDlgItem(IDC_EDIT1)) != NULL && m_StatusFont.CreatePointFont(MulDiv(m_FontSize * 10, m_NowDpi.cy, SYSTEM_DPI_Y), _T("Consolas")) )
 		pWnd->SetFont(&m_StatusFont);
 
 	m_StatusWnd.SetWindowText(m_StatusText);
@@ -184,7 +183,7 @@ void CStatusDlg::OnStatusSave()
 			File.Close();
 		}
 	} catch(...) {
-		MessageBox(_T("Save File Error"));
+		::AfxMessageBox(_T("Save File Error"), MB_ICONERROR);
 	}
 }
 

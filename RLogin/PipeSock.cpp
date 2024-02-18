@@ -89,6 +89,7 @@ static UINT ProcessThread(LPVOID pParam)
 	CFifoPipe *pThis = (CFifoPipe *)pParam;
 
 	pThis->OnProcWait();
+	pThis->m_ThreadEvent[0].SetEvent();
 	return 0;
 }
 static UINT PipeInThread(LPVOID pParam)
@@ -97,6 +98,7 @@ static UINT PipeInThread(LPVOID pParam)
 
 	pThis->OnReadProc();
 	pThis->m_InThreadMode = 0;
+	pThis->m_ThreadEvent[1].SetEvent();
 	return 0;
 }
 static UINT PipeOutThread(LPVOID pParam)
@@ -105,6 +107,7 @@ static UINT PipeOutThread(LPVOID pParam)
 
 	pThis->OnWriteProc();
 	pThis->m_OutThreadMode = 0;
+	pThis->m_ThreadEvent[2].SetEvent();
 	return 0;
 }
 static UINT PipeInOutThread(LPVOID pParam)
@@ -113,6 +116,7 @@ static UINT PipeInOutThread(LPVOID pParam)
 
 	pThis->OnReadWriteProc();
 	pThis->m_OutThreadMode = 0;
+	pThis->m_ThreadEvent[2].SetEvent();
 	return 0;
 }
 BOOL CFifoPipe::IsPipeName(LPCTSTR path)
@@ -151,10 +155,12 @@ BOOL CFifoPipe::Open(LPCTSTR pCommand)
 
 		if ( (m_hIn[0] = CreateFile(pCommand, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE ) {
 			m_nLastError = GetLastError();
+			::ThreadMessageBox(_T("Pipe create error\n'%s'\n"), pCommand);
 			return FALSE;
 		}
 
 		m_OutThreadMode = 1;
+		m_ThreadEvent[2].ResetEvent();
 		m_OutThread = AfxBeginThread(PipeInOutThread, this, THREAD_PRIORITY_BELOW_NORMAL);
 
 	} else {
@@ -168,6 +174,7 @@ BOOL CFifoPipe::Open(LPCTSTR pCommand)
 
 		if ( !CreatePipe(&(m_hIn[0]), &(m_hIn[1]), &secAtt, 0) ) {
 			m_nLastError = GetLastError();
+			::ThreadMessageBox(_T("Pipe stdin open error\n'%s'\n"), pCommand);
 			return FALSE;
 		}
 
@@ -177,6 +184,7 @@ BOOL CFifoPipe::Open(LPCTSTR pCommand)
 
 		if ( !CreatePipe(&(m_hOut[0]), &(m_hOut[1]), &secAtt, 0) ) {
 			m_nLastError = GetLastError();
+			::ThreadMessageBox(_T("Pipe stdout open error\n'%s'\n"), pCommand);
 			return FALSE;
 		}
 
@@ -190,15 +198,19 @@ BOOL CFifoPipe::Open(LPCTSTR pCommand)
 
 		if ( !CreateProcess(NULL, (LPTSTR)(LPCTSTR)pCommand, NULL, NULL, TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &startInfo, &m_proInfo) ) {
 			m_nLastError = GetLastError();
+			::ThreadMessageBox(_T("Pipe create process error\n'%s'\n"), pCommand);
 			return FALSE;
 		}
 
+		m_ThreadEvent[0].ResetEvent();
 		m_ProcThread = AfxBeginThread(ProcessThread, this, THREAD_PRIORITY_BELOW_NORMAL);
 
 		m_InThreadMode = 1;
+		m_ThreadEvent[1].ResetEvent();
 		m_InThread = AfxBeginThread(PipeInThread, this, THREAD_PRIORITY_BELOW_NORMAL);
 
 		m_OutThreadMode = 1;
+		m_ThreadEvent[2].ResetEvent();
 		m_OutThread = AfxBeginThread(PipeOutThread, this, THREAD_PRIORITY_BELOW_NORMAL);
 	}
 
@@ -210,7 +222,7 @@ void CFifoPipe::Close()
 {
 	if ( m_proInfo.hProcess != NULL ) {
 		m_AbortEvent[0].SetEvent();
-		WaitForSingleObject(m_ProcThread, INFINITE);
+		WaitForSingleObject(m_ThreadEvent[0], INFINITE);
 
 		TerminateProcess(m_proInfo.hProcess, 0);
 		WaitForSingleObject(m_proInfo.hProcess, INFINITE);
@@ -235,7 +247,7 @@ void CFifoPipe::Close()
 			ExCancelIoEx(m_hIn[0], NULL);
 		else
 			CancelIo(m_hIn[0]);
-		WaitForSingleObject(m_InThread, INFINITE);
+		WaitForSingleObject(m_ThreadEvent[1], INFINITE);
 	}
 
 	if ( m_OutThreadMode != 0 ) {
@@ -245,7 +257,7 @@ void CFifoPipe::Close()
 			ExCancelIoEx(m_hOut[1], NULL);
 		else
 			CancelIo(m_hOut[1]);
-		WaitForSingleObject(m_OutThread, INFINITE);
+		WaitForSingleObject(m_ThreadEvent[2], INFINITE);
 	}
 
 	if ( m_hIn[0] != NULL )
@@ -289,6 +301,15 @@ void CFifoPipe::OnProcWait()
 			   CloseHandle(m_hOut[0]);
 
 			m_hIn[1] = m_hOut[0] = NULL;
+			
+			if ( ExCancelIoEx != NULL ) {
+				ExCancelIoEx(m_hIn[0], NULL);
+				ExCancelIoEx(m_hOut[1], NULL);
+			} else {
+				CancelIo(m_hIn[0]);
+				CancelIo(m_hOut[1]);
+			}
+
 			break;
 
 		} else if ( n == (WAIT_OBJECT_0 + 2) ) {	// m_MsgEvent

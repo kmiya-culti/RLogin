@@ -34,10 +34,12 @@ CColParaDlg::CColParaDlg() : CTreePage(CColParaDlg::IDD)
 	m_FontColName[0] = _T("0");
 	m_FontColName[1] = _T("0");
 	m_GlassStyle = FALSE;
+	m_DarkMode = TRUE;
 	m_EmojiFontName = _T("");
 	m_EmojiImageDir = _T("");
 	m_EmojiColorEnable = FALSE;
 	m_UrlOpt = _T("#COLOPT");
+	m_Constrast = 0.0;
 }
 CColParaDlg::~CColParaDlg()
 {
@@ -59,6 +61,7 @@ void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_TEXTCOL, m_FontColName[0]);
 	DDX_Text(pDX, IDC_BACKCOL, m_FontColName[1]);
 	DDX_Check(pDX, IDC_GLASSSTYLE, m_GlassStyle);
+	DDX_Check(pDX, IDC_DARKMODE, m_DarkMode);
 	DDX_Control(pDX, IDC_SLIDER_CONTRAST, m_SliderConstrast);
 	DDX_Control(pDX, IDC_SLIDER_BRIGHT, m_SliderBright);
 	DDX_Control(pDX, IDC_SLIDER_HUECOL, m_SliderHuecol);
@@ -75,6 +78,7 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CTreePage)
 	ON_EN_CHANGE(IDC_TEXTCOL, &CColParaDlg::OnEnChangeColor)
 	ON_EN_CHANGE(IDC_BACKCOL, &CColParaDlg::OnEnChangeColor)
 	ON_BN_CLICKED(IDC_GLASSSTYLE, &CColParaDlg::OnBnClickedGlassStyle)
+	ON_BN_CLICKED(IDC_DARKMODE, &CColParaDlg::OnBnClickedDarkMode)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_ATTR1, IDC_ATTR8, &CColParaDlg::OnUpdateCheck)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_CONTRAST, &CColParaDlg::OnNMReleasedcaptureContrast)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_BRIGHT, &CColParaDlg::OnNMReleasedcaptureContrast)
@@ -216,6 +220,7 @@ void CColParaDlg::DoInit()
 	else                  m_WakeUpSleep = 8;
 
 	m_GlassStyle = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("GlassStyle"), 255);
+	m_DarkMode = AfxGetApp()->GetProfileInt(_T("RLoginApp"), _T("DarkMode"), TRUE);
 
 	m_EmojiColorEnable = m_pSheet->m_pTextRam->IsOptEnable(TO_RLCOLEMOJI);
 	m_EmojiFontName = AfxGetApp()->GetProfileString(_T("RLoginApp"), _T("EmojiFontName"), _T("Segoe UI emoji"));
@@ -368,6 +373,9 @@ BOOL CColParaDlg::OnInitDialog()
 		pDlgLtem->EnableWindow(FALSE);
 #endif
 
+	if ( (pWnd = (CButton *)GetDlgItem(IDC_DARKMODE)) != NULL )
+		pWnd->EnableWindow(bDarkModeSupport);
+
 	DoInit();
 
 	SubclassComboBox(IDC_EMOJIFONTNAME);
@@ -519,6 +527,25 @@ void CColParaDlg::OnBnClickedGlassStyle()
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("GlassStyle"), m_GlassStyle);
 	ExDwmEnableWindow(::AfxGetMainWnd()->GetSafeHwnd(), m_GlassStyle);
 	((CMainFrame *)::AfxGetMainWnd())->m_bGlassStyle = m_GlassStyle;
+}
+void CColParaDlg::OnBnClickedDarkMode()
+{
+	UpdateData(TRUE);
+
+	AfxGetApp()->WriteProfileInt(_T("RLoginApp"), _T("DarkMode"), m_DarkMode);
+
+	ExDarkModeEnable(m_DarkMode);
+
+	::AfxGetMainWnd()->SendMessage(WM_SETTINGCHANGE, NULL, (LPARAM)_T("ImmersiveColorSet"));
+
+	CWnd *pParent = GetParent();
+	if ( pParent != NULL ) {
+		pParent->SendMessage(WM_SETTINGCHANGE, NULL, (LPARAM)_T("ImmersiveColorSet"));
+
+		CWnd *pRoot = pParent->GetParent();
+		if ( pRoot != NULL && pRoot->GetSafeHwnd() != ::AfxGetMainWnd()->GetSafeHwnd() )
+			pRoot->SendMessage(WM_SETTINGCHANGE, NULL, (LPARAM)_T("ImmersiveColorSet"));
+	}
 }
 
 void CColParaDlg::OnSelendokColset() 

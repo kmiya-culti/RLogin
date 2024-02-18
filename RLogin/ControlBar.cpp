@@ -7,12 +7,14 @@
 #include "ChildFrm.h"
 #include "RLoginDoc.h"
 #include "RLoginView.h"
+#include "ControlBar.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CDockContextEx
 
 CDockContextEx::CDockContextEx(CControlBar *pBar) : CDockContext(pBar)
 {
+	m_pDestroyWnd = NULL;
 }
 BOOL CDockContextEx::IsHitGrip(CControlBar *pBar, CPoint point)
 {
@@ -39,8 +41,6 @@ BOOL CDockContextEx::IsHitGrip(CControlBar *pBar, CPoint point)
 }
 void CDockContextEx::StartDrag(CPoint pt)
 {
-//	CDockContext::StartDrag(pt);
-
 	m_dwOverDockStyle = m_pBar->IsFloating() ? 0 : m_dwStyle;
 
 	if ( m_dwOverDockStyle != 0 && !IsHitGrip(m_pBar, pt) )
@@ -51,7 +51,8 @@ void CDockContextEx::StartDrag(CPoint pt)
 	m_dwStyle = m_pBar->m_dwStyle & CBRS_ALIGN_ANY;
 	m_bForceFrame = m_bFlip = m_bDitherLast = FALSE;
 
-	TrackLoop();
+	//TrackLoop();
+	::AfxGetMainWnd()->PostMessage(WM_DOCKBARDRAG, (WPARAM)m_pBar, (LPARAM)this);
 }
 void CDockContextEx::StartResize(int nHitTest, CPoint pt)
 {
@@ -89,9 +90,12 @@ void CDockContextEx::TrackLoop()
 	CRect BaseHorz, BaseVert;
 	CRect SaveRect;
 	CMiniDockFrameWnd *pFloatBar;
+	CDockBarEx *pDockBar;
 	BOOL bIdle = FALSE;
 	BOOL bVert = FALSE;
 	BOOL bFloat = TRUE;
+	DWORD dwSaveDockBar = 0;
+	DWORD dwOldStyle = 0;
 
 #ifdef	USE_TRACKVIEW
 	CTrackWnd trackHorz, trackVert;
@@ -105,7 +109,7 @@ void CDockContextEx::TrackLoop()
 	m_pBar->SetCapture();
 	m_bDragging = FALSE;
 
-	while ( CWnd::GetCapture() == m_pBar ) {
+	while ( ::GetCapture() == m_pBar->GetSafeHwnd() ) {
 		for ( count = 0 ; bIdle || !::PeekMessage(&msg, NULL, NULL, NULL, PM_NOREMOVE) ; count++ ) {
 			bIdle = FALSE;
 			if ( !((CRLoginApp *)AfxGetApp())->OnIdle(count) )
@@ -175,39 +179,58 @@ void CDockContextEx::TrackLoop()
 				m_dwOverDockStyle = CanDock() & m_dwDockStyle;
 
 				if ( bFloat ) {
-					if ( m_dwOverDockStyle == 0 ) {
-						// フロートで移動
-						if ( SaveRect.left != rect.left || SaveRect.top != rect.top ) {
-							pFloatBar->SetWindowPos(NULL, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
-							SaveRect = rect;
-						}
-					} else {
+					if ( m_dwOverDockStyle != 0 && m_dwOverDockStyle != dwOldStyle ) {
 						// フロートからドッキング
+						dwSaveDockBar = 0;
 						m_pDockSite->DockControlBar(m_pBar, GetDockBar(m_dwOverDockStyle), &rect);
 						m_dwStyle = m_pBar->m_dwStyle & CBRS_ALIGN_ANY;
 						bVert = ((m_dwStyle & CBRS_ORIENT_VERT) != 0 ? TRUE : FALSE);
 						bFloat = FALSE;
+					} else {
+						// フロートで移動
+						if ( SaveRect.left != rect.left || SaveRect.top != rect.top ) {
+							pFloatBar->SetWindowPos(NULL, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+							SaveRect = rect;
+							dwOldStyle = 0;
+						}
 					}
+
 				} else {
 					if ( m_dwOverDockStyle == 0 ) {
 						// フロートに変更
+						dwSaveDockBar = 0;
+						dwOldStyle = m_dwStyle;
 						m_pDockSite->FloatControlBar(m_pBar, rect.TopLeft(), m_dwStyle);
 						pFloatBar = (CMiniDockFrameWnd *)m_pBar->m_pDockBar->GetParent();
+						SaveRect = rect;
 						m_dwStyle = m_pBar->m_dwStyle & CBRS_ALIGN_ANY;
 						bVert = ((m_dwStyle & CBRS_ORIENT_VERT) != 0 ? TRUE : FALSE);
 						bFloat = TRUE;
+						if ( dwOldStyle != m_dwStyle ) {
+							rect = bVert ? m_rectDragVert : m_rectDragHorz;
+							pFloatBar->SetWindowPos(NULL, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+							SaveRect = rect;
+						}
 					} else if ( m_dwStyle == m_dwOverDockStyle ) {
 						// 同じドックで移動
 						if ( SaveRect.left != rect.left || SaveRect.top != rect.top ) {
-							m_pDockSite->DockControlBar(m_pBar, GetDockBar(m_dwOverDockStyle), &rect);
+							if ( (pDockBar = (CDockBarEx *)GetDockBar(m_dwOverDockStyle)) != NULL ) {
+								if ( dwSaveDockBar == m_dwOverDockStyle ) {
+									pDockBar->LoadBarPos(m_pBar);
+								} else {
+									pDockBar->SaveBarPos();
+									dwSaveDockBar = m_dwOverDockStyle;
+								}
+							}
+							m_pDockSite->DockControlBar(m_pBar, pDockBar, &rect);
 							SaveRect = rect;
 						}
 					} else {
 						// 違うドックに移動
+						dwSaveDockBar = 0;
 						m_pDockSite->DockControlBar(m_pBar, GetDockBar(m_dwOverDockStyle), &rect);
 						m_dwStyle = m_pBar->m_dwStyle & CBRS_ALIGN_ANY;
-						m_ptLast = point;
-						m_bDragging = FALSE;
+						bVert = ((m_dwStyle & CBRS_ORIENT_VERT) != 0 ? TRUE : FALSE);
 					}
 				}
 			}
@@ -234,6 +257,21 @@ ENDOF:
 
 	ReleaseCapture();
 	m_bDragging = FALSE;
+
+	if ( m_pDestroyWnd != NULL ) {
+		// CFrameWndを削除(CMiniDockFrameWndEx::DestroyWindow)
+		switch(m_pDestroyWnd->m_DelayedDestroy) {
+		case DELAYDESTORY_NONE:
+		case DELAYDESTORY_RESERV:
+			m_pDestroyWnd->m_DelayedDestroy = DELAYDESTORY_NONE;
+			break;
+		case DELAYDESTORY_REQUEST:
+			m_pDestroyWnd->m_DelayedDestroy = DELAYDESTORY_EXEC;
+			m_pDestroyWnd->DestroyWindow();
+			break;
+		}
+		m_pDestroyWnd = NULL;
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -244,12 +282,47 @@ IMPLEMENT_DYNCREATE(CMiniDockFrameWndEx, CMiniDockFrameWnd)
 CMiniDockFrameWndEx::CMiniDockFrameWndEx()
 {
 	m_bDarkMode = FALSE;
+	m_DelayedDestroy = DELAYDESTORY_NONE;
+}
+
+BOOL CMiniDockFrameWndEx::DestroyWindow()
+{
+	// CFrameWndの削除を遅らせる(CMiniDockFrameWndEx::OnNcLButtonDown)
+	switch(m_DelayedDestroy) {
+	case DELAYDESTORY_NONE:
+	case DELAYDESTORY_EXEC:
+		return CMiniDockFrameWnd::DestroyWindow();
+
+	case DELAYDESTORY_RESERV:
+		SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOREDRAW | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING | SWP_HIDEWINDOW);
+		m_DelayedDestroy = DELAYDESTORY_REQUEST;
+		return TRUE;
+	}
+	return FALSE;
+}
+LRESULT CALLBACK OwnerDockBarProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+{
+	if ( uMsg == WM_ERASEBKGND ) {
+		CControlBarEx::EraseBkgnd((CControlBar*)uIdSubclass, CDC::FromHandle((HDC)wParam), GetAppColor(APPCOL_BARBACK));
+		return TRUE;
+	}
+	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+}
+BOOL CMiniDockFrameWndEx::Create(CWnd* pParent, DWORD dwBarStyle)
+{
+	BOOL ret = CMiniDockFrameWnd::Create(pParent, dwBarStyle);
+
+	if ( ret && m_wndDockBar.GetSafeHwnd() != NULL )
+		SetWindowSubclass(m_wndDockBar.GetSafeHwnd(), OwnerDockBarProc, (UINT_PTR)&m_wndDockBar, (DWORD_PTR)this);
+
+	return ret;
 }
 
 BEGIN_MESSAGE_MAP(CMiniDockFrameWndEx, CMiniDockFrameWnd)
 	ON_WM_CREATE()
 	ON_WM_SETTINGCHANGE()
 	ON_WM_ERASEBKGND()
+	ON_WM_NCLBUTTONDOWN()
 END_MESSAGE_MAP()
 
 int CMiniDockFrameWndEx::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -263,7 +336,7 @@ int CMiniDockFrameWndEx::OnCreate(LPCREATESTRUCT lpCreateStruct)
 }
 void CMiniDockFrameWndEx::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 {
-	if ( lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 ) {
+	if ( bDarkModeSupport && lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 ) {
 		m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
 		Invalidate(TRUE);
 	}
@@ -274,8 +347,33 @@ BOOL CMiniDockFrameWndEx::OnEraseBkgnd(CDC* pDC)
 {
 	CRect rect;
 	GetClientRect(rect);
-	pDC->FillSolidRect(rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	pDC->FillSolidRect(rect, GetAppColor(APPCOL_BARBACK));
 	return TRUE;
+}
+void CMiniDockFrameWndEx::OnNcLButtonDown(UINT nHitTest, CPoint point)
+{
+	if ( nHitTest == HTCAPTION) {
+		ActivateTopParent();
+
+		if ( (m_wndDockBar.m_dwStyle & CBRS_FLOAT_MULTI) == 0 ) {
+			int nPos = 1;
+			CControlBar* pBar = NULL;
+			while(pBar == NULL && nPos < m_wndDockBar.m_arrBars.GetSize())
+				pBar = (CControlBar *)m_wndDockBar.m_arrBars[nPos];
+			CDockContextEx *pCtx = (CDockContextEx *)pBar->m_pDockContext;
+
+			ASSERT(pBar != NULL && pCtx != NULL && pCtx->m_pDestroyWnd == NULL);
+
+			// CFrameWndの削除でghostwindowのような動作を抑制
+			pCtx->m_pDestroyWnd = this;
+			m_DelayedDestroy = DELAYDESTORY_RESERV;
+
+			pBar->m_pDockContext->StartDrag(point);
+			return;
+		}
+	}
+
+	CMiniDockFrameWnd::OnNcLButtonDown(nHitTest, point);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -291,7 +389,7 @@ CControlBarEx::CControlBarEx()
 void CControlBarEx::DrawBorders(CControlBar *pBar, CDC* pDC, CRect& rect, COLORREF bkColor)
 {
 	CSize bs(1, 1);
-	COLORREF bdColor = GetSysColor(COLOR_BTNSHADOW);
+	COLORREF bdColor = GetAppColor(APPCOL_BARSHADOW);
 
 	pDC->FillSolidRect(CRect(rect.left, rect.bottom - 1, rect.right, rect.bottom), bkColor); 
 	rect.bottom -= 1;
@@ -317,11 +415,11 @@ void CControlBarEx::DrawGripper(CControlBar *pBar, CDC* pDC, const CRect& rect)
 {
 	if ( pBar->m_dwStyle & CBRS_ORIENT_HORZ ) {
 		pDC->Draw3dRect(rect.left + AFX_CX_BORDER_GRIPPER, rect.top + AFX_CY_BORDER_GRIPPER * 2, 
-			AFX_CX_GRIPPER, rect.Height() - AFX_CY_BORDER_GRIPPER * 4, GetSysColor(COLOR_BTNHIGHLIGHT), GetSysColor(COLOR_BTNSHADOW));
+			AFX_CX_GRIPPER, rect.Height() - AFX_CY_BORDER_GRIPPER * 4, GetAppColor(APPCOL_BARHIGH), GetAppColor(APPCOL_BARSHADOW));
 
 	} else {
 		pDC->Draw3dRect(rect.left + AFX_CX_BORDER_GRIPPER * 2, rect.top + AFX_CY_BORDER_GRIPPER, 
-			rect.Width() - AFX_CX_BORDER_GRIPPER * 4, AFX_CY_GRIPPER, GetSysColor(COLOR_BTNHIGHLIGHT), GetSysColor(COLOR_BTNSHADOW));
+			rect.Width() - AFX_CX_BORDER_GRIPPER * 4, AFX_CY_GRIPPER, GetAppColor(APPCOL_BARHIGH), GetAppColor(APPCOL_BARSHADOW));
 	}
 }
 
@@ -348,7 +446,7 @@ BOOL CControlBarEx::SetCursor(CControlBar *pBar, UINT nHitTest, UINT message)
 }
 BOOL CControlBarEx::SettingChange(CControlBar *pBar, BOOL &bDarkMode, UINT uFlags, LPCTSTR lpszSection)
 {
-	if ( lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 ) {
+	if ( bDarkModeSupport && lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 ) {
 		bDarkMode = DarkModeCheck(pBar);
 		pBar->RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_FRAME | RDW_ERASE);
 		return TRUE;
@@ -365,7 +463,7 @@ BOOL CControlBarEx::EraseBkgnd(CControlBar *pBar, CDC* pDC, COLORREF bkCol)
 
 void CControlBarEx::DrawBorders(CDC* pDC, CRect& rect)
 {
-	CControlBarEx::DrawBorders(this, pDC, rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	CControlBarEx::DrawBorders(this, pDC, rect, GetAppColor(APPCOL_BARBACK));
 }
 BOOL CControlBarEx::DrawThemedGripper(CDC* pDC, const CRect& rect, BOOL fCentered)
 {
@@ -403,7 +501,7 @@ void CControlBarEx::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 }
 BOOL CControlBarEx::OnEraseBkgnd(CDC* pDC)
 {
-	CControlBarEx::EraseBkgnd(this, pDC, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	CControlBarEx::EraseBkgnd(this, pDC, GetAppColor(APPCOL_BARBACK));
 	return TRUE;
 }
 
@@ -416,16 +514,48 @@ CDockBarEx::CDockBarEx(BOOL bFloating) : CDockBar(bFloating)
 {
 	m_bDarkMode = FALSE;
 }
+void CDockBarEx::SaveBarPos()
+{
+	BarPosNode node;
+	CControlBar *pBar;
+
+	m_SavePos.RemoveAll();
+
+	for ( int n = 0 ;  n < m_arrBars.GetSize() ; n++ ) {
+		if ( (pBar = GetDockedControlBar(n)) == NULL )
+			continue;
+		node.hWnd = pBar->GetSafeHwnd();
+		pBar->GetWindowRect(node.rect);
+		ScreenToClient(node.rect);
+		m_SavePos.Add(node);
+	}
+}
+void CDockBarEx::LoadBarPos(CControlBar *pThis)
+{
+	CControlBar *pBar;
+
+	for ( int n = 0 ;  n < m_arrBars.GetSize() ; n++ ) {
+		if ( (pBar = GetDockedControlBar(n)) == NULL )
+			continue;
+		for ( int i = 0 ; i < m_SavePos.GetSize() ; i++ ) {
+			if ( m_SavePos[i].hWnd != pBar->GetSafeHwnd() || m_SavePos[i].hWnd == pThis->GetSafeHwnd() )
+				continue;
+			pBar->SetWindowPos(NULL, m_SavePos[i].rect.left, m_SavePos[i].rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+			break;
+		}
+	}
+}
 
 void CDockBarEx::DrawBorders(CDC* pDC, CRect& rect)
 {
-	CControlBarEx::DrawBorders(this, pDC, rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	CControlBarEx::DrawBorders(this, pDC, rect, GetAppColor(APPCOL_BARBACK));
 }
 
 BEGIN_MESSAGE_MAP(CDockBarEx, CDockBar)
 	ON_WM_CREATE()
 	ON_WM_SETTINGCHANGE()
 	ON_WM_ERASEBKGND()
+	ON_WM_RBUTTONDOWN()
 END_MESSAGE_MAP()
 
 int CDockBarEx::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -444,10 +574,19 @@ void CDockBarEx::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 }
 BOOL CDockBarEx::OnEraseBkgnd(CDC* pDC)
 {
-	if ( m_bDarkMode && CControlBarEx::EraseBkgnd(this, pDC) )
-		return TRUE;
+	CControlBarEx::EraseBkgnd(this, pDC, GetAppColor(APPCOL_BARBACK));
+	return TRUE;
+}
+void CDockBarEx::OnRButtonDown(UINT nFlags, CPoint point)
+{
+	CMenuLoad PopUpMenu;
+	CMenu *pSubMenu;
 
-	return CDockBar::OnEraseBkgnd(pDC);
+	PopUpMenu.LoadMenu(IDR_MAINFRAME);
+	pSubMenu = PopUpMenu.GetSubMenu(1);
+
+	GetCursorPos(&point);
+	((CMainFrame *)::AfxGetMainWnd())->TrackPopupMenuIdle(pSubMenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, ::AfxGetMainWnd());
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -531,15 +670,8 @@ BOOL CDialogBarEx::Create(CWnd* pParentWnd, LPCTSTR lpszTemplateName, UINT nStyl
 	m_InitDpi.cy = SCREEN_DPI_Y;
 	m_NowDpi = m_InitDpi;
 
-	if ( !FontName.IsEmpty() )
+	if ( !FontName.IsEmpty() || FontSize != 9 )
 		dlgTemp.SetFont(FontName, FontSize);
-	else {
-		CString name;
-		WORD size;
-		dlgTemp.GetFont(name, size);
-		if ( FontSize != size )
-			dlgTemp.SetFont(name, FontSize);
-	}
 
 	lpDialogTemplate = (LPCDLGTEMPLATE)LockResource(dlgTemp.m_hTemplate);
 
@@ -571,12 +703,13 @@ BOOL CDialogBarEx::Create(CWnd* pParentWnd, LPCTSTR lpszTemplateName, UINT nStyl
 	if (!ExecuteDlgInit(lpszTemplateName))
 		return FALSE;
 
-	m_DarkBrush.CreateSolidBrush(DARKMODE_BACKCOLOR);
 	m_bDarkMode = CControlBarEx::DarkModeCheck(this);
-	EnumChildWindows(GetSafeHwnd(), EnumSetThemeProc, (LPARAM)this);
+
+	if ( bDarkModeSupport )
+		EnumChildWindows(GetSafeHwnd(), EnumSetThemeProc, (LPARAM)this);
 
 	// force the size to zero - resizing bar will occur later
-	SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOZORDER|SWP_NOACTIVATE|SWP_SHOWWINDOW);
+	SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 
 	return TRUE;
 }
@@ -633,7 +766,7 @@ void CDialogBarEx::DpiChanged()
 		rect.bottom += (MulDiv(client.Height(), SCREEN_DPI_Y, m_NowDpi.cy) - client.Height());
 
 		//MoveWindow(rect, FALSE);
-		SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), (GetStyle() & WS_VISIBLE) != 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW);
+		SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), ((GetStyle() & WS_VISIBLE) != 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW) | SWP_NOMOVE);
 		m_sizeDefault = rect.Size();    // set fixed size
 
 		GetClientRect(rect);
@@ -708,29 +841,27 @@ void CDialogBarEx::FontSizeCheck()
 	CDialogExt::GetDlgFontBase(pDc, GetFont(), m_ZoomMul);
 	ReleaseDC(pDc);
 
-	GetWindowRect(rect);
-
-	rect.left   = MulDiv(rect.left,   m_ZoomMul.cx, m_ZoomDiv.cx);
-	rect.right  = MulDiv(rect.right,  m_ZoomMul.cx, m_ZoomDiv.cx);
-	rect.top    = MulDiv(rect.top,    m_ZoomMul.cy, m_ZoomDiv.cy);
-	rect.bottom = MulDiv(rect.bottom, m_ZoomMul.cy, m_ZoomDiv.cy);
-
-//	SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
-	m_sizeDefault = rect.Size();    // set fixed size
+	m_sizeDefault.cx = MulDiv(m_sizeDefault.cx, m_ZoomMul.cx, m_ZoomDiv.cx);
+	m_sizeDefault.cy = MulDiv(m_sizeDefault.cy, m_ZoomMul.cy, m_ZoomDiv.cy);
 
 	EnumChildWindows(GetSafeHwnd(), FontSizeCheckProc, (LPARAM)this);
-
 	Invalidate();
 }
 
 void CDialogBarEx::DrawBorders(CDC* pDC, CRect& rect)
 {
-	CControlBarEx::DrawBorders(this, pDC, rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	CControlBarEx::DrawBorders(this, pDC, rect, GetAppColor(APPCOL_BARBACK));
 }
 BOOL CDialogBarEx::DrawThemedGripper(CDC* pDC, const CRect& rect, BOOL fCentered)
 {
 	CControlBarEx::DrawGripper(this, pDC, rect);
 	return TRUE;
+}
+CSize CDialogBarEx::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
+{
+	CSize sz = CDialogBar::CalcFixedLayout(bStretch, bHorz);
+	Invalidate(TRUE);
+	return sz;
 }
 
 BEGIN_MESSAGE_MAP(CDialogBarEx, CDialogBar)
@@ -755,19 +886,14 @@ afx_msg HBRUSH CDialogBarEx::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 	case CTLCOLOR_MSGBOX:		// Message box
 	case CTLCOLOR_EDIT:			// Edit control
 	case CTLCOLOR_LISTBOX:		// List-box control
-	case CTLCOLOR_BTN:			// Button control
 		break;
 
+	case CTLCOLOR_BTN:			// Button control
 	case CTLCOLOR_DLG:			// Dialog box
 	case CTLCOLOR_SCROLLBAR:
 	case CTLCOLOR_STATIC:		// Static control
-		if ( m_bDarkMode && m_DarkBrush.m_hObject != NULL ) {
-			hbr = m_DarkBrush;
-			pDC->SetTextColor(GetSysColor(COLOR_WINDOW));
-		} else {
-			hbr = GetSysColorBrush(COLOR_WINDOW);
-			pDC->SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
-		}
+		hbr = GetAppColorBrush(APPCOL_BARBACK);
+		pDC->SetTextColor(GetAppColor(APPCOL_BARTEXT));
 		pDC->SetBkMode(TRANSPARENT);
 		break;
 	}
@@ -783,7 +909,7 @@ void CDialogBarEx::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 }
 BOOL CDialogBarEx::OnEraseBkgnd(CDC* pDC)
 {
-	CControlBarEx::EraseBkgnd(this, pDC, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	CControlBarEx::EraseBkgnd(this, pDC, GetAppColor(APPCOL_BARBACK));
 	return TRUE;
 }
 
@@ -980,6 +1106,7 @@ CTabDlgBar::CTabDlgBar()
 {
 	m_InitSize.cx = m_InitSize.cy = 0;
 	m_pShowWnd = NULL;
+	m_FontSize = 0;
 }
 
 CTabDlgBar::~CTabDlgBar()
@@ -1005,7 +1132,7 @@ void CTabDlgBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 	int n;
 	TC_ITEM tci;
 	CString title;
-	TCHAR tmp[MAX_PATH + 2];
+	TCHAR tmp[MAX_PATH + 2] = { _T('\0') };
 	CWnd *pWnd;
 	BOOL bUpdate = FALSE;
 

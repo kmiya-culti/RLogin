@@ -25,6 +25,7 @@ CBlockDlg::CBlockDlg(CWnd* pParent /*=NULL*/)
 	m_pTextRam = NULL;
 	m_SelBlock = (-1);
 	m_ScrollPos = 0;
+	m_ScrollPage = 0;
 }
 CBlockDlg::~CBlockDlg()
 {

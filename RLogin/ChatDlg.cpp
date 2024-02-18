@@ -113,7 +113,7 @@ void CChatDlg::OnBnClickedNewnode()
 	np->m_SendStr = m_SendStr;
 
 	if ( !np->m_RecvStr.IsEmpty() && !np->m_Reg.Compile(np->m_RecvStr) ) {
-		AfxMessageBox(np->m_Reg.m_ErrMsg);
+		::AfxMessageBox(np->m_Reg.m_ErrMsg);
 		delete np;
 		return;
 	}
@@ -143,7 +143,7 @@ void CChatDlg::OnBnClickedNextnode()
 	np->m_SendStr = m_SendStr;
 
 	if ( !np->m_RecvStr.IsEmpty() && !np->m_Reg.Compile(np->m_RecvStr) ) {
-		AfxMessageBox(np->m_Reg.m_ErrMsg);
+		::AfxMessageBox(np->m_Reg.m_ErrMsg);
 		delete np;
 		return;
 	}
@@ -173,7 +173,7 @@ void CChatDlg::OnBnClickedUpdatenode()
 	np->m_SendStr = m_SendStr;
 
 	if ( !np->m_RecvStr.IsEmpty() && !np->m_Reg.Compile(np->m_RecvStr) )
-		AfxMessageBox(np->m_Reg.m_ErrMsg);
+		::AfxMessageBox(np->m_Reg.m_ErrMsg);
 
 	tmp.Format(_T("%s/%s"), (LPCTSTR)m_RecvStr, (LPCTSTR)m_SendStr);
 	m_NodeTree.SetItemText(hti, tmp);

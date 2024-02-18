@@ -108,7 +108,7 @@ BOOL CViewDropTarget::DescToDrop(CWnd* pWnd, COleDataObject* pDataObject, HGLOBA
 		if ( (pGroupDesc->fgd[n].dwFlags & FD_ATTRIBUTES) != 0 && (pGroupDesc->fgd[n].dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0 ) {
 
 			if ( doSub == 0 )
-				doSub = (AfxMessageBox(CStringLoad(IDS_DROPSUBDIRCHECK), MB_ICONQUESTION | MB_YESNO) == IDYES ? 2 : 1);
+				doSub = (::AfxMessageBox(CStringLoad(IDS_DROPSUBDIRCHECK), MB_ICONQUESTION | MB_YESNO) == IDYES ? 2 : 1);
 
 			if ( doSub == 1 )
 				continue;
@@ -186,6 +186,7 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_WM_SETCURSOR()
 	ON_WM_VSCROLL()
 	ON_WM_TIMER()
+	ON_WM_SETTINGCHANGE()
 
 	ON_WM_RBUTTONDOWN()
 	ON_WM_RBUTTONDBLCLK()
@@ -340,6 +341,8 @@ CRLoginView::CRLoginView()
 
 	m_VramTipPos.SetSize(0, 0);
 	m_bVramTipDisp = FALSE;
+
+	m_bDarkMode = FALSE;
 }
 
 CRLoginView::~CRLoginView()
@@ -983,7 +986,7 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag, BOOL delaySend)
 		if ( !m_KeyMacSizeCheck && m_KeyMacBuf.GetSize() >= KEYMACBUFMAX ) {
 			m_KeyMacSizeCheck = TRUE;
 
-			if ( MessageBox(CStringLoad(IDE_KEYMACTOOLONG), _T("Warning"), MB_ICONWARNING | MB_YESNO) != IDYES ) {
+			if ( ::AfxMessageBox(CStringLoad(IDE_KEYMACTOOLONG), MB_ICONWARNING | MB_YESNO) != IDYES ) {
 				m_KeyMacFlag = FALSE;
 				m_KeyMacBuf.Clear();
 			}
@@ -1353,6 +1356,10 @@ int CRLoginView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	((CRLoginApp *)AfxGetApp())->AddIdleProc(IDLEPROC_VIEW, this);
 	DelayInvalThreadStart();
+
+	m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
+	if ( GetScrollBarCtrl(SB_VERT) != NULL && GetScrollBarCtrl(SB_VERT)->GetSafeHwnd() != NULL )
+		ExSetWindowTheme(GetScrollBarCtrl(SB_VERT)->GetSafeHwnd(), (m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
 
 	return 0;
 }
@@ -3363,7 +3370,7 @@ void CRLoginView::OnEditPaste()
 	if ( IsClipboardFormatAvailable(CF_HDROP) ) {
 		if ( pDoc->m_TextRam.m_DropFileMode == 0 || pDoc->m_TextRam.m_DropFileCmd[pDoc->m_TextRam.m_DropFileMode].IsEmpty() )
 			return;
-		if ( MessageBox(CStringLoad(IDS_CLIPBOARDDROP), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
+		if ( ::AfxMessageBox(CStringLoad(IDS_CLIPBOARDDROP),  MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 		if ( !OpenClipboard() )
 			return;
@@ -3694,7 +3701,7 @@ BOOL CRLoginView::SetDropFile(LPCTSTR FileName, BOOL &doCmd, BOOL &doSub)
 		BOOL DoLoop;
 	    CFileFind Finder;
 
-		if ( !doSub && MessageBox(CStringLoad(IDS_DROPSUBDIRCHECK), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
+		if ( !doSub && ::AfxMessageBox(CStringLoad(IDS_DROPSUBDIRCHECK), MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return FALSE;
 
 		doSub = TRUE;
@@ -3857,6 +3864,17 @@ BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 		return CView::OnSetCursor(pWnd, nHitTest, message);
 	else
 		return FALSE;
+}
+void CRLoginView::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
+{
+	if ( bDarkModeSupport && lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 ) {
+		m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
+		if ( GetScrollBarCtrl(SB_VERT) != NULL && GetScrollBarCtrl(SB_VERT)->GetSafeHwnd() != NULL )
+			ExSetWindowTheme(GetScrollBarCtrl(SB_VERT)->GetSafeHwnd(), (m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+		RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_FRAME | RDW_ERASE);
+	}
+
+	CView::OnSettingChange(uFlags, lpszSection);
 }
 
 void CRLoginView::OnMouseEvent()

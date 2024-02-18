@@ -231,13 +231,13 @@ void CFileUpDown::DownLoad()
 
 	if ( m_bFileAppend && !_tstati64(m_PathName, &st) && (st.st_mode & _S_IFMT) == _S_IFREG ) {
 		if ( (fp = _tfopen(m_PathName, _T("r+b"))) == NULL ) {
-			::AfxMessageBox(IDE_FILEOPENERROR, MB_ICONERROR);
+			::ThreadMessageBox(_T("DownLoad '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 			return;
 		}
 		_fseeki64(fp, 0, SEEK_END);
 
 	} else if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL ) {
-		::AfxMessageBox(IDE_FILEOPENERROR, MB_ICONERROR);
+		::ThreadMessageBox(_T("DownLoad '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 		return;
 	}
 
@@ -324,12 +324,12 @@ void CFileUpDown::DownLoad()
 									goto ENDOFRET;
 								if ( m_bFileAppend && !_tstati64(m_PathName, &st) && (st.st_mode & _S_IFMT) == _S_IFREG ) {
 									if ( (fp = _tfopen(m_PathName, _T("r+b"))) == NULL ) {
-										::AfxMessageBox(IDE_FILEOPENERROR, MB_ICONERROR);
+										::ThreadMessageBox(_T("uudecode '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 										goto ENDOFRET;
 									}
 									_fseeki64(fp, 0, SEEK_END);
 								} else if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL ) {
-									::AfxMessageBox(IDE_FILEOPENERROR, MB_ICONERROR);
+									::ThreadMessageBox(_T("uudecode '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 									goto ENDOFRET;
 								}
 								UpDownInit(0, 0);
@@ -388,7 +388,7 @@ void CFileUpDown::DownLoad()
 									fp = _tfopen(m_PathName, _T("wb"));
 
 								if ( fp == NULL ) {
-									::AfxMessageBox(IDE_FILEOPENERROR, MB_ICONERROR);
+									::ThreadMessageBox(_T("ish decode '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 									goto ENDOFRET;
 								}
 							}
@@ -487,11 +487,15 @@ BOOL CFileUpDown::GetFile(GETPROCLIST *pProc)
 		if ( m_PathName.IsEmpty() )
 			return EOF;
 
-		if ( _tstati64(m_PathName, &st) || (st.st_mode & _S_IFMT) != _S_IFREG )
+		if ( _tstati64(m_PathName, &st) || (st.st_mode & _S_IFMT) != _S_IFREG ) {
+			::ThreadMessageBox(_T("Upload '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 			return EOF;
+		}
 
-		if ( (m_UpFp = _tfopen(m_PathName, _T("rb"))) == NULL )
+		if ( (m_UpFp = _tfopen(m_PathName, _T("rb"))) == NULL ) {
+			::ThreadMessageBox(_T("Upload '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 			return EOF;
+		}
 
 		m_FileSize = st.st_size;
 		m_TranSize = 0;
@@ -541,11 +545,15 @@ BOOL CFileUpDown::GetIshFile(GETPROCLIST *pProc)
 		if ( m_PathName.IsEmpty() )
 			return EOF;
 
-		if ( _tstati64(m_PathName, &st) || (st.st_mode & _S_IFMT) != _S_IFREG )
+		if ( _tstati64(m_PathName, &st) || (st.st_mode & _S_IFMT) != _S_IFREG ) {
+			::ThreadMessageBox(_T("ish Upload '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 			return EOF;
+		}
 
-		if ( (m_UpFp = _tfopen(m_PathName, _T("rb"))) == NULL )
+		if ( (m_UpFp = _tfopen(m_PathName, _T("rb"))) == NULL ) {
+			::ThreadMessageBox(_T("ish Upload '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 			return EOF;
+		}
 
 		m_FileSize = st.st_size;
 		m_TranSize = 0;

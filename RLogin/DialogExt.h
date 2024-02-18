@@ -68,6 +68,38 @@ public:
 public:
 	DECLARE_MESSAGE_MAP()
 	BOOL OnSetCursor(CWnd *pWnd, UINT nHitTest, UINT message);
+	afx_msg void OnPaint();
+};
+
+#define	TABCOL_FACE			0
+#define	TABCOL_TEXT			1
+#define	TABCOL_BACK			2
+#define	TABCOL_SELFACE		3
+#define	TABCOL_SELTEXT		4
+#define	TABCOL_SELBACK		5
+#define	TABCOL_BODER		6
+
+#define	TABCOL_COLREF		0x80000000
+
+class CTabCtrlExt: public CTabCtrl
+{
+	DECLARE_DYNAMIC(CTabCtrlExt)
+
+public:
+	CTabCtrlExt();
+
+public:
+	DWORD m_ColTab[7];
+	BOOL m_bGradient;
+
+public:
+	COLORREF GetColor(int num);
+	virtual void DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);
+
+public:
+	DECLARE_MESSAGE_MAP()
+	afx_msg void OnPaint();
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -94,7 +126,6 @@ public:
 public:
 	UINT m_nIDTemplate;
 	BOOL m_bBackWindow;
-	CBrush m_DarkBrush;
 	CString m_FontName;
 	int m_FontSize;
 	CArray<CShortCutKey, CShortCutKey &> m_Data;
@@ -110,6 +141,7 @@ public:
 	CString m_SaveProfile;
 	int m_LoadPosMode;
 	BOOL m_bDarkMode;
+	CSize m_DefFsz, m_NowFsz;
 
 // クラスファンクション
 public:
@@ -133,6 +165,8 @@ public:
 	static BOOL IsDialogExt(CWnd *pWnd);
 	static void GetDlgFontBase(CDC *pDC, CFont *pFont, CSize &size);
 
+	void GetFontSize(CDialogTemplate *pDlgTemp, CSize &fsz);
+
 // オーバーライド
 public:
 	virtual INT_PTR DoModal();
@@ -147,6 +181,7 @@ protected:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnInitMenuPopup(CMenu *pPopupMenu, UINT nIndex,BOOL bSysMenu);
 	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
 	afx_msg LRESULT OnKickIdle(WPARAM wParam, LPARAM lParam);

@@ -432,7 +432,7 @@ void CTrackWnd::OnPaint()
 
 	switch(m_TypeCol) {
 	case 0:
-		bc = GetSysColor(COLOR_WINDOW);
+		bc = RGB(255, 255, 255);
 		break;
 	case 1:
 		bc = RGB(255, 64, 64);

@@ -8,6 +8,7 @@
 #include "ChildFrm.h"
 #include "RLoginDoc.h"
 #include "RLoginView.h"
+#include "DialogExt.h"
 #include "TabBar.h"
 
 #ifdef _DEBUG
@@ -16,209 +17,66 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-#define NEWCLICK_SIZE	18
-#define	MINTAB_SIZE		48
-#define	DEFTAB_COUNT	4
+#define NEWCLICK_SIZE		18
+#define	MINTAB_SIZE			48
+#define	DEFTAB_COUNT		4
+
+#define	TABTOP_SIZE			2
+#define	TABBTM_SIZE			3
+#define	TABLINE_SIZE		1
+
+#define	TABSTYLE_TOP		0
+#define	TABSTYLE_BOTTOM		1
+#define	TABSTYLE_LEFT		2
+#define	TABSTYLE_RIGHT		3
 
 //////////////////////////////////////////////////////////////////////
-// CTabCtrlExt
+// CTabCtrlBar
 
-CTabCtrlExt::CTabCtrlExt()
+IMPLEMENT_DYNAMIC(CTabCtrlBar, CTabCtrlExt)
+
+CTabCtrlBar::CTabCtrlBar()
 {
+	m_ColTab[TABCOL_FACE]    = APPCOL_BARFACE;
+	m_ColTab[TABCOL_TEXT]    = COLOR_GRAYTEXT;
+	m_ColTab[TABCOL_BACK]    = APPCOL_BARBACK;
+	m_ColTab[TABCOL_SELFACE] = APPCOL_BARHIGH;
+	m_ColTab[TABCOL_SELTEXT] = APPCOL_BARTEXT;
+	m_ColTab[TABCOL_SELBACK] = APPCOL_BARHIGH;
+	m_ColTab[TABCOL_BODER]   = APPCOL_BARBODER;
 }
-CTabCtrlExt::~CTabCtrlExt()
+void CTabCtrlBar::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 {
-}
-void CTabCtrlExt::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
-{
-	CDC *pDC = CDC::FromHandle(lpDrawItemStruct->hDC);
-	CRect rect = lpDrawItemStruct->rcItem;
 	int nTabIndex = (int)(lpDrawItemStruct->itemID);
-	BOOL bSelected = FALSE;
-	BOOL bGradient = FALSE;
+	BOOL bSelected = (lpDrawItemStruct->itemState & ODS_SELECTED) != 0 ? TRUE : FALSE;
 	TC_ITEM tci;
-	TCHAR title[MAX_PATH + 2] = { _T('\0') };
-	int nSavedDC;
 	CChildFrame *pWnd;
+	CTabBar *pParent;
 	CRLoginDoc *pDoc;
-	COLORREF bc, tc, gc;
-	int ex = ::GetSystemMetrics(SM_CXEDGE) * 2;
-	int ox = 0;
-	CImageList* pImageList = GetImageList();
-
-	ASSERT(pDC != NULL);
-
-	if ( nTabIndex < 0 )
-		return;
-	else if ( nTabIndex == GetCurSel() )
-		bSelected = TRUE;
 
 	ZeroMemory(&tci, sizeof(tci));
-	tci.mask = TCIF_TEXT | TCIF_PARAM | TCIF_IMAGE;
-	tci.pszText = title;
-	tci.cchTextMax = MAX_PATH;
+	tci.mask = TCIF_PARAM;
 
-	if ( !GetItem(nTabIndex, &tci) ) {
-		title[0] = _T('\0');
-		tci.iImage = (-1);
-		tci.lParam = NULL;
-	}
-
-	nSavedDC = pDC->SaveDC();
-
-	if ( bSelected ) {
-		if ( (HWND)tci.lParam != NULL && (pWnd = (CChildFrame *)FromHandle((HWND)tci.lParam)) != NULL && (pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument())) != NULL ) {
-			if ( m_bDarkMode ) {
-				bc = pDoc->m_TextRam.m_TabTextColor;
-				tc = pDoc->m_TextRam.m_TabBackColor;
-				gc = ::GetSysColor(COLOR_BTNTEXT);
+	if ( bSelected && nTabIndex >= 0 && GetItem(nTabIndex, &tci) && (pParent = (CTabBar *)GetParent()) != NULL && (HWND)tci.lParam != NULL && (pWnd = (CChildFrame *)FromHandle((HWND)tci.lParam)) != NULL && (pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument())) != NULL ) {
+		if ( pParent->m_bDarkMode ) {
+				m_ColTab[TABCOL_SELFACE] = pDoc->m_TextRam.m_TabTextColor | TABCOL_COLREF;
+				m_ColTab[TABCOL_SELTEXT] = pDoc->m_TextRam.m_TabBackColor | TABCOL_COLREF;
 			} else {
-				bc = pDoc->m_TextRam.m_TabBackColor;
-				tc = pDoc->m_TextRam.m_TabTextColor;
-				gc = ::GetSysColor(COLOR_BTNHIGHLIGHT);
+				m_ColTab[TABCOL_SELFACE] = pDoc->m_TextRam.m_TabBackColor | TABCOL_COLREF;
+				m_ColTab[TABCOL_SELTEXT] = pDoc->m_TextRam.m_TabTextColor | TABCOL_COLREF;
 			}
-			if ( bc != gc && pDoc->m_TextRam.IsOptEnable(TO_RLTABGRAD) )
-				bGradient = TRUE;
-		} else if ( m_bDarkMode ) {
-			bc = ::GetSysColor(COLOR_BTNTEXT);
-			tc = ::GetSysColor(COLOR_BTNHIGHLIGHT);
-			gc = ::GetSysColor(COLOR_BTNTEXT);
-		} else {
-			bc = ::GetSysColor(COLOR_BTNHIGHLIGHT);
-			tc = ::GetSysColor(COLOR_BTNTEXT);
-			gc = ::GetSysColor(COLOR_BTNHIGHLIGHT);
-		}
+			m_bGradient = (GetColor(TABCOL_SELFACE) != GetColor(TABCOL_SELBACK) && pDoc->m_TextRam.IsOptEnable(TO_RLTABGRAD) ? TRUE : FALSE);
 	} else {
-		if ( m_bDarkMode ) {
-			bc = DARKMODE_BACKCOLOR;
-			tc = ::GetSysColor(COLOR_GRAYTEXT);
-			gc = DARKMODE_BACKCOLOR;
-		} else {
-			bc = ::GetSysColor(COLOR_BTNFACE);
-			tc = ::GetSysColor(COLOR_GRAYTEXT);
-			gc = ::GetSysColor(COLOR_BTNFACE);
-		}
+		m_ColTab[TABCOL_SELFACE] = APPCOL_BARHIGH;
+		m_ColTab[TABCOL_SELTEXT] = APPCOL_BARTEXT;
+		m_bGradient = FALSE;
 	}
 
-	if ( bGradient ) {
-		TRIVERTEX tv[2] = { { rect.left, rect.top, (COLOR16)(GetRValue(bc) * 257), (COLOR16)(GetGValue(bc) * 257), (COLOR16)(GetBValue(bc) * 257), 0xffff },
-							{ rect.right, rect.bottom, (COLOR16)(GetRValue(gc) * 257), (COLOR16)(GetGValue(gc) * 257), (COLOR16)(GetBValue(gc) * 257), 0xffff } };
-		GRADIENT_RECT gr = { 0, 1 };
-
-		pDC->GradientFill(tv, 2, &gr, 1, GRADIENT_FILL_RECT_V);
-	} else
-		pDC->FillSolidRect(rect, bc);
-
-	if ( pImageList != 0 && tci.iImage >= 0 ) {
-		IMAGEINFO info;
-		pImageList->GetImageInfo(tci.iImage, &info);
-		CRect ImageRect(info.rcImage);
-
-		pImageList->Draw(pDC, tci.iImage, CPoint(rect.left + ex, rect.top + (rect.Height() - ImageRect.Height()) / 2), ILD_TRANSPARENT);
-		ox += (ImageRect.Width() + ex);
-	}
-
-	if ( title[0] != _T('\0') ) {
-		pDC->SetBkMode(TRANSPARENT);
-		pDC->SetTextColor(tc);
-		rect.left += (ox + ex);
-		pDC->DrawText(title, rect, DT_SINGLELINE | DT_VCENTER | DT_LEFT);
-	}
-
-	pDC->RestoreDC(nSavedDC);
+	CTabCtrlExt::DrawItem(lpDrawItemStruct);
 }
 
-IMPLEMENT_DYNAMIC(CTabCtrlExt, CTabCtrl)
-
-BEGIN_MESSAGE_MAP(CTabCtrlExt, CTabCtrl)
-	ON_WM_CREATE()
-	ON_WM_ERASEBKGND()
-	ON_WM_SETTINGCHANGE()
-	ON_WM_PAINT()
+BEGIN_MESSAGE_MAP(CTabCtrlBar, CTabCtrlExt)
 END_MESSAGE_MAP()
-
-int CTabCtrlExt::OnCreate(LPCREATESTRUCT lpCreateStruct)
-{
-	if (CTabCtrl::OnCreate(lpCreateStruct) == -1)
-		return -1;
-
-	m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
-
-	return 0;
-}
-BOOL CTabCtrlExt::OnEraseBkgnd(CDC* pDC)
-{
-	CRect rect;
-	GetClientRect(rect);
-	pDC->FillSolidRect(rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
-	return TRUE;
-}
-void CTabCtrlExt::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
-{
-	if ( lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 ) {
-		m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
-		Invalidate(TRUE);
-	}
-
-	CTabCtrl::OnSettingChange(uFlags, lpszSection);
-}
-void CTabCtrlExt::OnPaint()
-{
-	if ( (GetStyle() & (TCS_MULTILINE | TCS_BUTTONS)) != 0 ) {
-		Default();
-		return;
-	}
-
-#define	TABTOP_SIZE		2
-#define	TABBTM_SIZE		3
-#define	TABLINE_SIZE	1
-
-	int n;
-	CRect rect, frame;
-	CPaintDC dc(this);
-	DRAWITEMSTRUCT dis;
-	CFont *pOldFont = GetFont();
-	int nIndex = GetCurSel();
-	COLORREF bdCol = GetSysColor(COLOR_BTNSHADOW);
-	COLORREF bkCol = m_bDarkMode ? GetSysColor(COLOR_BTNTEXT) : GetSysColor(COLOR_BTNHIGHLIGHT);
-	CPen *pOldPen, bdPen(PS_SOLID, TABLINE_SIZE, bdCol);
-
-
-	pOldFont = dc.SelectObject(pOldFont);
-	pOldPen = dc.SelectObject(&bdPen);
-
-	ZeroMemory(&dis, sizeof(dis));
-	dis.hDC = dc.GetSafeHdc();
-
-	GetClientRect(frame);
-	dc.FillSolidRect(0, frame.bottom - TABBTM_SIZE, frame.Width(), TABBTM_SIZE, bkCol);
-	dc.FillSolidRect(0, frame.bottom - TABBTM_SIZE, frame.Width(), TABLINE_SIZE, bdCol);
-
-	for ( n = 0 ; n < GetItemCount() ; n++ ) {
-		GetItemRect(n, rect);
-
-		if ( rect.top < TABTOP_SIZE )
-			rect.top = TABTOP_SIZE;
-		if ( n == nIndex )
-			rect.top -= TABTOP_SIZE;
-		rect.bottom = frame.bottom - TABBTM_SIZE;
-
-		dis.itemID = n;
-		dis.rcItem = rect;
-		DrawItem(&dis);
-
-		if ( n == nIndex )
-			dc.FillSolidRect(rect.left, frame.bottom - TABBTM_SIZE, rect.Width(), TABBTM_SIZE, bkCol);
-
-		dc.MoveTo(rect.left, frame.bottom - TABBTM_SIZE);
-		dc.LineTo(rect.left, rect.top);
-		dc.LineTo(rect.right, rect.top);
-		dc.LineTo(rect.right, frame.bottom - TABBTM_SIZE);
-	}
-
-	dc.SelectObject(pOldPen);
-	dc.SelectObject(pOldFont);
-}
 
 //////////////////////////////////////////////////////////////////////
 // CTabBar
@@ -254,6 +112,7 @@ BEGIN_MESSAGE_MAP(CTabBar, CControlBarEx)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_MDI_TAB_CTRL, OnSelchange)
 	ON_NOTIFY(TTN_GETDISPINFO, 0, OnGetDispInfo)
 	ON_WM_RBUTTONDOWN()
+	ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
@@ -379,7 +238,6 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		SetFont(&m_TabFont);
 	}
 
-//	m_TabCtrl.SetPadding(CSize(2, 3));
 	m_TabCtrl.SetMinTabWidth(16);
 	
 	CToolTipCtrl *pToolTip = m_TabCtrl.GetToolTips();
@@ -392,8 +250,8 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// CheckBox ImageList idx, 0=OFF,1=ON,2=NONE
 	CBitmapEx bitmap;
 	for ( int n = 0 ; n < 3 ; n++ ) {
-		bitmap.LoadResBitmap(IDB_CHECKBOX1 + n, SCREEN_DPI_X, SCREEN_DPI_Y, GetSysColor(COLOR_WINDOW));
-		m_ImageList.Add(&bitmap, GetSysColor(COLOR_WINDOW));
+		bitmap.LoadResBitmap(IDB_CHECKBOX1 + n, SCREEN_DPI_X, SCREEN_DPI_Y, RGB(255, 0, 0));
+		m_ImageList.Add(&bitmap, RGB(255, 0, 0));
 		bitmap.DeleteObject();
 	}
 
@@ -519,19 +377,8 @@ void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 			m_TabCtrl.SetImageList(m_ImageCount > 0 ? &m_ImageList : NULL);
 		}
 
-		if ( ntc.mask != 0 ) {
-			// OwnerDrawItemのおかげで以下のバグを回避？
-
-			// SetItemではiImageを設定するとテキストと重なるバグあり? しかたなくInsert/Deleteで代用
-			//if ( (ntc.mask & TCIF_IMAGE) != 0 && (ntc.iImage == (-1) || tci.iImage == (-1)) ) {
-			//	ntc.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
-			//	ntc.pszText = tmp;
-			//	ntc.lParam = tci.lParam;
-			//	m_TabCtrl.InsertItem(n, &ntc);
-			//	m_TabCtrl.DeleteItem(n + 1);
-			//} else
-				m_TabCtrl.SetItem(n, &ntc);
-		}
+		if ( ntc.mask != 0 )
+			m_TabCtrl.SetItem(n, &ntc);
 
 		if ( pActive != NULL && pWnd != NULL && pActive->m_hWnd == pWnd->m_hWnd )
 			sel = n;
@@ -657,6 +504,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 	clock_t stc = clock() - (CLOCKS_PER_SEC * 2);
 	int count = m_TabCtrl.GetItemCount();
 	BOOL bIdle = FALSE;
+	BOOL bCheck = FALSE;
 
 	ASSERT(pApp != NULL && pMain != NULL);
 
@@ -673,9 +521,19 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 		 (hTabWnd = pChild->GetSafeHwnd()) == NULL )
 		return;
 
-	if ( pMain->m_bBroadCast && point.x >= (rect.left + 6) && point.x <= (rect.left + 6 + ICONIMG_SIZE) ) {
-		pDoc->m_bCastLock = (pDoc->m_bCastLock ? FALSE : TRUE);
-		return;
+	if ( pMain->m_bBroadCast ) {
+		if ( (m_TabCtrl.GetStyle() & TCS_VERTICAL) != 0 ) {
+			if ( (m_TabCtrl.GetStyle() & TCS_RIGHT) != 0 ) {
+				if ( point.y >= (rect.top + 6) && point.y <= (rect.top + 6 + ICONIMG_SIZE) )
+					bCheck = TRUE;
+			} else if ( point.y <= (rect.bottom - 6) && point.y >= (rect.bottom - 6 - ICONIMG_SIZE) )
+				bCheck = TRUE;
+		} else if ( point.x >= (rect.left + 6) && point.x <= (rect.left + 6 + ICONIMG_SIZE) )
+			bCheck = TRUE;
+		if ( bCheck ) {
+			pDoc->m_bCastLock = (pDoc->m_bCastLock ? FALSE : TRUE);
+			return;
+		}
 	}
 
 	if ( idx != m_TabCtrl.GetCurSel() && pMain != NULL ) {
@@ -896,7 +754,7 @@ int CTabBar::GetImageIndex(LPCTSTR filename)
 		CClientDC dc(&m_TabCtrl);
 		CBmpFile image;
 		CBitmap *pBitmap;
-		COLORREF bc = GetSysColor(COLOR_WINDOW);
+		COLORREF bc = RGB(255, 255, 255);
 
 		if ( image.LoadFile(filename) && (pBitmap = image.GetBitmap(&dc, ICONIMG_SIZE, ICONIMG_SIZE, bc)) != NULL )
 			idx = m_ImageList.Add(pBitmap, bc);
@@ -1003,25 +861,34 @@ void CTabBar::GetTitle(int nIndex, CString &title)
 		title.Format(_T("%d %s"), nIndex + 1, (LPCTSTR)str);
 }
 
-int CTabBar::LineCount()
+int CTabBar::LineCount(BOOL bHorz)
 {
 	int n;
 	int line = 0;
-	int cols = 1;
 	int top = (-1);
 	CRect rect;
 
-	for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n += cols ) {
-		if ( !m_TabCtrl.GetItemRect(n, rect) )
-			continue;
+	if ( !m_bMultiLine || m_TabCtrl.GetItemCount() <= 0 )
+		return 1;
 
-		if ( top >= rect.top )
-			continue;
-
-		top = rect.top;
-
-		if ( line++ == 1 )
-			cols = n;
+	if ( bHorz ) {
+		for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+			if ( !m_TabCtrl.GetItemRect(n, rect) )
+				break;
+			if ( top != rect.top ) {
+				top = rect.top;
+				line++;
+			}
+		}
+	} else {
+		for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+			if ( !m_TabCtrl.GetItemRect(n, rect) )
+				continue;
+			if ( top != rect.left ) {
+				top = rect.left;
+				line++;
+			}
+		}
 	}
 
 	return line;
@@ -1031,7 +898,6 @@ void CTabBar::ReSize(BOOL bCallLayout)
 	int width, height, lines;
 	int count = m_TabCtrl.GetItemCount();
 	CRect rect;
-	CSize sz;
 	BOOL bSetSize = FALSE;
 	BOOL bHorz = (GetBarStyle() & (CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM)) != 0 ? TRUE : FALSE;
 	DWORD reqStyle;
@@ -1039,55 +905,18 @@ void CTabBar::ReSize(BOOL bCallLayout)
 	if ( m_TabCtrl.GetSafeHwnd() == NULL )
 		return;
 
-	// CTabCtrlのTCS_VERTICALは、バグっぽい動作が目立つのでEnableDockingでCBRS_ALIGN_ANYは出来そうに無い
-
 	switch(GetBarStyle() & (CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM | CBRS_ALIGN_LEFT | CBRS_ALIGN_RIGHT)) {
 	case CBRS_ALIGN_TOP:	reqStyle = 0; break;
 	case CBRS_ALIGN_BOTTOM: reqStyle = TCS_BOTTOM; break;
-	case CBRS_ALIGN_LEFT:	reqStyle = TCS_MULTILINE | TCS_VERTICAL; break;
-	case CBRS_ALIGN_RIGHT:	reqStyle = TCS_MULTILINE | TCS_VERTICAL | TCS_RIGHT; break;
+	case CBRS_ALIGN_LEFT:	reqStyle = TCS_VERTICAL; break;
+	case CBRS_ALIGN_RIGHT:	reqStyle = TCS_VERTICAL | TCS_RIGHT; break;
 	}
 
 	if ( m_bMultiLine )
 		reqStyle |= (TCS_MULTILINE | TCS_BUTTONS);
 
-	if ( (m_TabCtrl.GetStyle() & (TCS_MULTILINE | TCS_VERTICAL | TCS_BOTTOM | TCS_RIGHT)) != reqStyle ) {
-#if 1
+	if ( (m_TabCtrl.GetStyle() & (TCS_MULTILINE | TCS_VERTICAL | TCS_BOTTOM | TCS_RIGHT)) != reqStyle )
 		m_TabCtrl.ModifyStyle((TCS_MULTILINE | TCS_VERTICAL | TCS_BOTTOM | TCS_RIGHT), reqStyle);
-#else
-		CPtrArray ItemData;
-		TCHAR tmp[MAX_PATH + 2];
-
-		for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
-			TC_ITEM *pTci = new TC_ITEM;
-			pTci->mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
-			pTci->pszText = tmp;
-			pTci->cchTextMax = MAX_PATH;
-
-			m_TabCtrl.GetItem(n, pTci);
-			ItemData.Add(pTci);
-		}
-
-		m_TabCtrl.GetWindowRect(rect);
-		m_TabCtrl.DestroyWindow();
-		m_TabCtrl.Create(WS_VISIBLE | WS_CHILD | TCS_FOCUSNEVER | TCS_FIXEDWIDTH | TCS_FORCELABELLEFT | reqStyle, rect, this, IDC_MDI_TAB_CTRL);
-
-		if ( m_TabFont.GetSafeHandle() != NULL )
-			m_TabCtrl.SetFont(&m_TabFont);
-		else
-			m_TabCtrl.SetFont(CFont::FromHandle((HFONT)::GetStockObject(DEFAULT_GUI_FONT)));
-
-		m_TabCtrl.SetMinTabWidth(16);
-		m_TabCtrl.SetImageList(m_ImageCount > 0 ? &m_ImageList : NULL);
-
-		for ( int n = 0 ; n < ItemData.GetSize() ; n++ ) {
-			m_TabCtrl.InsertItem(n, (TC_ITEM *)ItemData[n]);
-			delete ItemData[n];
-		}
-
-		ItemData.RemoveAll();
-#endif
-	}
 
 	m_TabCtrl.GetClientRect(rect);
 
@@ -1106,7 +935,6 @@ void CTabBar::ReSize(BOOL bCallLayout)
 				else
 					width = m_MinTabSize;
 			}
-
 		} else {
 			if ( (m_MinTabSize = (rect.Width() - NEWCLICK_SIZE) / 20) < MINTAB_SIZE )
 				m_MinTabSize = MINTAB_SIZE;
@@ -1115,13 +943,10 @@ void CTabBar::ReSize(BOOL bCallLayout)
 				width = m_MinTabSize;
 		}
 
-		m_TabCtrl.GetItemRect(0, rect);
+		height = m_TabHeight;
 
-		if ( width != rect.Width() && m_TabCtrl.GetItemCount() > 0 ) {
-			sz.cx = width;
-			sz.cy = m_TabHeight;
-
-			m_TabCtrl.SetItemSize(sz);
+		if ( m_TabCtrl.GetItemRect(0, rect) && (width != rect.Width() || height != rect.Height()) ) {
+			m_TabCtrl.SetItemSize(CSize(width, height));
 			bSetSize = TRUE;
 		}
 
@@ -1137,7 +962,6 @@ void CTabBar::ReSize(BOOL bCallLayout)
 				else
 					height = m_MinTabSize;
 			}
-
 		} else {
 			if ( (m_MinTabSize = (rect.Height() - NEWCLICK_SIZE) / 20) < MINTAB_SIZE )
 				m_MinTabSize = MINTAB_SIZE;
@@ -1146,18 +970,15 @@ void CTabBar::ReSize(BOOL bCallLayout)
 				height = m_MinTabSize;
 		}
 
-		m_TabCtrl.GetItemRect(0, rect);
+		width = m_TabHeight;
 
-		if ( height != rect.Height() && m_TabCtrl.GetItemCount() > 0 ) {
-			sz.cx = height;
-			sz.cy = m_TabHeight;
-
-			m_TabCtrl.SetItemSize(sz);
+		if ( m_TabCtrl.GetItemRect(0, rect) && (width != rect.Width() || height != rect.Height()) ) {
+			m_TabCtrl.SetItemSize(CSize(height, width));	// 注意
 			bSetSize = TRUE;
 		}
 	}
 
-	lines = (m_bMultiLine ? LineCount() : 1);
+	lines = LineCount(bHorz);
 
 	if ( lines != m_TabLines || (bSetSize && bCallLayout) ) {
 		m_TabLines = lines;
@@ -1463,4 +1284,10 @@ void CTabBar::OnRButtonDown(UINT nFlags, CPoint point)
 
 		pMain->PostMessage(WM_COMMAND, (WPARAM)ID_FILE_NEW);
 	}
+}
+
+BOOL CTabBar::OnEraseBkgnd(CDC* pDC)
+{
+	CControlBarEx::EraseBkgnd(this, pDC, GetAppColor(APPCOL_BARBACK));
+	return TRUE;
 }

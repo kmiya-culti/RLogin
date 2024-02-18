@@ -30,6 +30,7 @@ public:
 	COLORREF m_ColTab[16];
 	BOOL m_Attrb[24];
 	BOOL m_GlassStyle;
+	BOOL m_DarkMode;
 	CSliderCtrl m_SliderConstrast;
 	CSliderCtrl m_SliderBright;
 	CSliderCtrl m_SliderHuecol;
@@ -69,6 +70,7 @@ protected:
 	afx_msg void OnSelendokColset();
 	afx_msg void OnEnChangeColor();
 	afx_msg void OnBnClickedGlassStyle();
+	afx_msg void OnBnClickedDarkMode();
 	afx_msg void OnUpdateCheck(UINT nId);
 	afx_msg void OnNMReleasedcaptureContrast(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);

@@ -18,6 +18,7 @@ public:
 	CWinThread *m_OutThread;
 
 	CEvent m_AbortEvent[3];
+	CEvent m_ThreadEvent[3];
 	PROCESS_INFORMATION m_proInfo;
 
 public:

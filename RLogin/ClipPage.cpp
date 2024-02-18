@@ -32,6 +32,7 @@ CClipPage::CClipPage() : CTreePage(CClipPage::IDD)
 	m_ClipCrLf = 0;
 	m_PastEdit = 1;
 	m_UrlOpt = _T("#CLIPOPT");
+	m_RtfMode = 0;
 }
 CClipPage::~CClipPage()
 {

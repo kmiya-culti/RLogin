@@ -847,6 +847,8 @@ public:
 	CString m_Menu;
 	CString m_Text;
 
+	CKeyCmds();
+
 	void SetMenu(CMenu *pMenu);
 	void ResetMenu(CMenu *pMenu);
 	const CKeyCmds & operator = (CKeyCmds &data);
@@ -1231,6 +1233,7 @@ class CBitmapEx : public CBitmap
 public:
 	BOOL LoadResBitmap(int nId, int dpiX, int dpiY, COLORREF backCol);
 	BOOL CopyBitmap(CBitmap *pSrcBitmap);
+	BOOL CreateMaskBitmap(CBitmap *pSrcBitmap, COLORREF backCol);
 };
 
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

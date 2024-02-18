@@ -211,7 +211,7 @@ BOOL CTraceDlg::OnInitDialog()
 		m_TraceMaxCount = 200000;
 
 	if ( !m_TraceLogFile.IsEmpty() && !m_File.Open(m_TraceLogFile, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareDenyWrite) )
-		AfxMessageBox(CStringLoad(IDE_LOGOPENERROR));
+		::AfxMessageBox(CStringLoad(IDE_LOGOPENERROR), MB_ICONERROR);
 
 	if ( m_File.m_hFile != CFile::hFileNull )
 		m_File.SeekToEnd();
@@ -386,7 +386,7 @@ void CTraceDlg::OnTekSave()
 		return;
 
 	if ( !m_File.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareDenyWrite) )
-		AfxMessageBox(CStringLoad(IDE_LOGOPENERROR));
+		::AfxMessageBox(CStringLoad(IDE_LOGOPENERROR), MB_ICONERROR);
 
 	if ( m_File.m_hFile != CFile::hFileNull )
 		m_File.SeekToEnd();
@@ -468,7 +468,6 @@ static UINT MessageThread(LPVOID pParam)
 {
 	CString *pMsg = (CString *)pParam;
 
-	MessageBeep(MB_ICONINFORMATION);
 	::AfxMessageBox(*pMsg, MB_ICONINFORMATION);
 	delete pMsg;
 
@@ -772,7 +771,7 @@ void CCmdHisDlg::OnTekSave()
 		return;
 
 	if ( !m_File.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareDenyWrite) ) {
-		AfxMessageBox(CStringLoad(IDE_LOGOPENERROR));
+		::AfxMessageBox(CStringLoad(IDE_LOGOPENERROR), MB_ICONERROR);
 		return;
 	}
 

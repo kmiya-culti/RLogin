@@ -117,7 +117,9 @@ void CToolBarEx::CreateItemImage(int width, int height)
 
 			for ( i = 0 ; i < 3 ; i++ ) {
 				DisDC.FillSolidRect(0, 0, width, height, RGB(192, 192, 192));
-				DisDC.TransparentBlt(0, 0, width, height, &SrcDC, (mapinfo.bmHeight == height && mapinfo.bmWidth >= (width * 3) ? (width * i) : 0), 0, (mapinfo.bmWidth <= mapinfo.bmHeight ? mapinfo.bmWidth : mapinfo.bmHeight), mapinfo.bmHeight, RGB(192, 192, 192));
+				DisDC.TransparentBlt(0, 0, width, height, &SrcDC,
+					(mapinfo.bmWidth >= (mapinfo.bmHeight * 3) ? (mapinfo.bmHeight * i) : 0), 0,
+					(mapinfo.bmWidth <= mapinfo.bmHeight ? mapinfo.bmWidth : mapinfo.bmHeight), mapinfo.bmHeight, RGB(192, 192, 192));
 
 				DisDC.SelectObject(pDisOld);
 				ImageList[i].Add(&ImageMap, RGB(192, 192, 192));
@@ -201,7 +203,7 @@ void CToolBarEx::CreateItemImage(int width, int height)
 
 void CToolBarEx::DrawBorders(CDC* pDC, CRect& rect)
 {
-	CControlBarEx::DrawBorders(this, pDC, rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	CControlBarEx::DrawBorders(this, pDC, rect, GetAppColor(APPCOL_BARBACK));
 }
 BOOL CToolBarEx::DrawThemedGripper(CDC* pDC, const CRect& rect, BOOL fCentered)
 {
@@ -322,10 +324,8 @@ void CToolBarEx::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 }
 BOOL CToolBarEx::OnEraseBkgnd(CDC* pDC)
 {
-	if ( CControlBarEx::EraseBkgnd(this, pDC, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW)) )
-		return TRUE;
-
-	return CToolBar::OnEraseBkgnd(pDC);
+	CControlBarEx::EraseBkgnd(this, pDC, GetAppColor(APPCOL_BARBACK));
+	return TRUE;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -336,6 +336,10 @@ IMPLEMENT_DYNAMIC(CStatusBarEx, CStatusBar)
 CStatusBarEx::CStatusBarEx() : CStatusBar()
 {
 	m_bDarkMode = FALSE;
+	m_NowDpi.cx = SYSTEM_DPI_X;
+	m_NowDpi.cy = SYSTEM_DPI_Y;
+	m_lpIDArray = NULL;
+	m_nIDCount = 0;
 }
 
 BOOL CStatusBarEx::SetIndicators(const UINT* lpIDArray, int nIDCount)
@@ -345,6 +349,9 @@ BOOL CStatusBarEx::SetIndicators(const UINT* lpIDArray, int nIDCount)
 	for ( int n = 0 ; bRet && n < nIDCount ; n++ )
 		SetPaneStyle(n, GetPaneStyle(n) | SBT_OWNERDRAW);
 
+	m_lpIDArray = lpIDArray;
+	m_nIDCount = nIDCount;
+
 	return bRet;
 }
 void CStatusBarEx::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
@@ -352,25 +359,99 @@ void CStatusBarEx::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	CDC *pDC = CDC::FromHandle(lpDrawItemStruct->hDC);
 	CRect rect(lpDrawItemStruct->rcItem);
 	LPCTSTR str = (LPCTSTR)(lpDrawItemStruct->itemData);
+	CFont *pFont = GetFont();
 
     if ( str == NULL || *str == _T('\0') )
 		return;
 
-	pDC->SetTextColor(m_bDarkMode ? GetSysColor(COLOR_MENU) : GetSysColor(COLOR_MENUTEXT));
+	if ( pFont != NULL )
+		pFont = pDC->SelectObject(pFont);
+
+	pDC->SetTextColor(GetAppColor(APPCOL_BARTEXT));
 	pDC->SetBkMode(TRANSPARENT);
 	pDC->DrawText(str, (int)_tcslen(str), rect, DT_SINGLELINE | DT_VCENTER | DT_LEFT);
+
+	if ( pFont != NULL )
+		pDC->SelectObject(pFont);
+}
+void CStatusBarEx::UpdateWidth(int nMul, int nDiv)
+{
+	int n;
+	int cxWidth;
+	UINT nID, nStyle;
+
+	for ( n = 0 ; n < GetCount() ; n++ ) {
+		GetPaneInfo(n, nID, nStyle, cxWidth);
+		SetPaneInfo(n, nID, nStyle, MulDiv(cxWidth, nMul, nDiv));
+	}
+	UpdateAllPanes(TRUE, FALSE);
+}
+void CStatusBarEx::DpiChanged()
+{
+	CFont *pFont;
+	LOGFONT LogFont;
+
+	if ( (pFont = GetFont()) == NULL )
+		return;
+
+	pFont->GetLogFont(&LogFont);
+
+	if ( m_NewFont.GetSafeHandle() != NULL )
+		m_NewFont.DeleteObject();
+
+	LogFont.lfHeight = MulDiv(LogFont.lfHeight, SCREEN_DPI_Y, m_NowDpi.cy);
+
+	m_NewFont.CreateFontIndirect(&LogFont);
+
+	UpdateWidth(SCREEN_DPI_X, m_NowDpi.cx);
+
+	m_NowDpi.cx = SCREEN_DPI_X;
+	m_NowDpi.cy = SCREEN_DPI_Y;
+}
+void CStatusBarEx::FontSizeCheck()
+{
+	CDC *pDc = GetDC();
+	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
+	int FontSize = ::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9);
+	CSize ZoomDiv, ZoomMul;
+		
+	CDialogExt::GetDlgFontBase(pDc, GetFont(), ZoomDiv);
+
+	if ( m_NewFont.GetSafeHandle() != NULL )
+		m_NewFont.DeleteObject();
+
+	if ( !FontName.IsEmpty() || FontSize != 9 )
+		m_NewFont.CreatePointFont(MulDiv(FontSize * 10, SCREEN_DPI_Y, SYSTEM_DPI_Y), FontName);
+
+	CDialogExt::GetDlgFontBase(pDc, GetFont(), ZoomMul);
+	ReleaseDC(pDc);
+
+	UpdateWidth(ZoomMul.cx, ZoomDiv.cx);
+
+	m_NowDpi.cx = SCREEN_DPI_X;
+	m_NowDpi.cy = SCREEN_DPI_Y;
 }
 
 BEGIN_MESSAGE_MAP(CStatusBarEx, CStatusBar)
 	ON_WM_CREATE()
 	ON_WM_SETTINGCHANGE()
 	ON_WM_ERASEBKGND()
+	ON_MESSAGE(WM_GETFONT, OnGetFont)
 END_MESSAGE_MAP()
 
 int CStatusBarEx::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
 	if ( CStatusBar::OnCreate(lpCreateStruct) == (-1) )
 		return (-1);
+	
+	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
+	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
+
+	if ( !FontName.IsEmpty() || FontSize != 9 )
+		m_NewFont.CreatePointFont(MulDiv(FontSize * 10, SCREEN_DPI_Y, SYSTEM_DPI_Y), FontName);
+
+	m_NowDpi.cx = SCREEN_DPI_X;
+	m_NowDpi.cy = SCREEN_DPI_Y;
 
 	m_bDarkMode = CControlBarEx::DarkModeCheck(this);
 
@@ -383,9 +464,10 @@ void CStatusBarEx::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 }
 BOOL CStatusBarEx::OnEraseBkgnd(CDC* pDC)
 {
-	if ( m_bDarkMode && CControlBarEx::EraseBkgnd(this, pDC) )
-		return TRUE;
-
-	return CStatusBar::OnEraseBkgnd(pDC);
+	CControlBarEx::EraseBkgnd(this, pDC, GetAppColor(APPCOL_BARBACK));
+	return TRUE;
 }
-
+LRESULT CStatusBarEx::OnGetFont(WPARAM, LPARAM)
+{
+	return (m_NewFont.GetSafeHandle() != NULL ? (LRESULT)m_NewFont.GetSafeHandle() : Default());
+}

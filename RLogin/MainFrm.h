@@ -142,6 +142,7 @@ class CMainFrame : public CMDIFrameWnd
 public:
 	CMainFrame();
 	virtual ~CMainFrame();
+
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
@@ -213,6 +214,7 @@ public:
 	CPtrArray m_FifoActive;
 	CPtrArray m_ThreadMsg;
 	BOOL m_bDarkMode;
+	BOOL m_bDockBarMode;
 
 	BOOL WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf, LPCTSTR pipename);
 	BOOL PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
@@ -349,13 +351,13 @@ public:
 
 	inline CImageList *GetTabImageList() { return &(m_wndTabBar.m_ImageList); }
 	inline int GetTabImageIndex(LPCTSTR filename) { return m_wndTabBar.GetImageIndex(filename); }
-	inline void BarFontCheck() { m_wndTabBar.FontSizeCheck(); m_wndQuickBar.FontSizeCheck(); m_wndVoiceBar.FontSizeCheck(); m_wndTabDlgBar.FontSizeCheck(); RecalcLayout(TRUE); }
+	inline void BarFontCheck() { m_wndTabBar.FontSizeCheck(); m_wndQuickBar.FontSizeCheck(); m_wndVoiceBar.FontSizeCheck(); m_wndTabDlgBar.FontSizeCheck(); m_wndStatusBar.FontSizeCheck(); RecalcLayout(TRUE); }
 	inline void QuickBarInit() { m_wndQuickBar.InitDialog(); }
 	inline void TabDlgShow(BOOL bShow) { ShowControlBar(&m_wndTabDlgBar, bShow, FALSE); }
 	inline BOOL TabDlgInDrag(CPoint point, CWnd *pWnd, int nImage) { if ( !m_bTabDlgBarShow ) return FALSE; m_wndTabDlgBar.TrackLoop(point, (-7), pWnd, nImage); return TRUE; }
 	inline void TabBarUpdate() { m_wndTabBar.Invalidate(FALSE); }
 
-	void DrawSystemBar(BOOL bActive);
+	void DrawSystemBar();
 
 // コントロール バー用メンバ
 protected: 
@@ -440,6 +442,11 @@ protected:
 	afx_msg void OnViewSubToolbar();
 	afx_msg void OnUpdateSubToolbar(CCmdUI *pCmdUI);
 
+	afx_msg void OnDockBarFixed();
+	afx_msg void OnUpdateDockBarFixed(CCmdUI *pCmdUI);
+	afx_msg void OnDockBarInit();
+	afx_msg void OnUpdateDockBarInit(CCmdUI *pCmdUI);
+
 	afx_msg void OnVersioncheck();
 	afx_msg void OnUpdateVersioncheck(CCmdUI *pCmdUI);
 	afx_msg void OnNewVersionFound();
@@ -463,6 +470,7 @@ protected:
 	afx_msg void OnKnownhostdel();
 	afx_msg void OnChartooltip();
 	afx_msg void OnUpdateChartooltip(CCmdUI *pCmdUI);
+	afx_msg void OnAppcoledit();
 
 	afx_msg LRESULT OnIConMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnThreadMsg(WPARAM wParam, LPARAM lParam);
@@ -473,9 +481,13 @@ protected:
 	afx_msg LRESULT OnSpeakMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnFifoMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnDocumentMsg(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnDockBarDrag(WPARAM wParam, LPARAM lParam);
 
 	afx_msg LRESULT OnUahDrawMenu(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam);
+
+	afx_msg void OnNcPaint();
+	afx_msg BOOL OnNcActivate(BOOL bActive);
 };
 
 

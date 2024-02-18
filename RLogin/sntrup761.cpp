@@ -311,10 +311,10 @@ static void Decode(uint16 *out,const unsigned char *S,const uint16 *M,int64 len)
     if (i < len)
       *out++ = R2[i/2];
 
-	delete R2;
-	delete M2;
-	delete bottomr;
-	delete bottomt;
+	delete [] R2;
+	delete [] M2;
+	delete [] bottomr;
+	delete [] bottomt;
   }
 }
 
@@ -363,8 +363,8 @@ static void Encode(unsigned char *out,const uint16 *R,const uint16 *M,int64 len)
       M2[i/2] = M[i];
     }
     Encode(out,R2,M2,(len+1)/2);
-	delete R2;
-	delete M2;
+	delete [] R2;
+	delete [] M2;
   }
 }
 
@@ -662,7 +662,7 @@ static void Hash_prefix(unsigned char *out,int b,const unsigned char *in,int inl
   crypto_hash_sha512(h,x,inlen+1);
   for (i = 0;i < 32;++i) out[i] = h[i];
 
-  delete x;
+  delete [] x;
 }
 
 /* ----- higher-level randomness */

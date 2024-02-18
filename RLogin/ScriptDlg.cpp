@@ -114,9 +114,9 @@ void CScriptDlg::OnOK()
 		} catch(LPCTSTR pMsg) {
 			CString tmp;
 			tmp.Format(_T("Script Error '%s'"), pMsg);
-			MessageBox(tmp);
+			::AfxMessageBox(tmp, MB_ICONERROR);
 		} catch(...) {
-			MessageBox(_T("Script Unkown Error"));
+			::AfxMessageBox(_T("Script Unkown Error"), MB_ICONERROR);
 		}
 		return;
 	}

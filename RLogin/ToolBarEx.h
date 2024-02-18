@@ -50,6 +50,15 @@ public:
 	
 public:
 	BOOL m_bDarkMode;
+	CFont m_NewFont;
+	CSize m_NowDpi;
+	const UINT *m_lpIDArray;
+	int m_nIDCount;
+
+public:
+	void UpdateWidth(int nMul, int nDiv);
+	void DpiChanged();
+	void FontSizeCheck();
 
 	BOOL SetIndicators(const UINT* lpIDArray, int nIDCount);
 	virtual void DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);
@@ -59,4 +68,5 @@ public:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	afx_msg LRESULT OnGetFont(WPARAM, LPARAM);
 };

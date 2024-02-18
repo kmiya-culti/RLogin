@@ -1569,6 +1569,9 @@ BOOL CFifoSync::Open(AFX_THREADPROC pfnThreadProc, LPVOID pParam, int nPriority)
 	m_Threadtatus = FIFO_THREAD_EXEC;
 	m_AbortEvent.ResetEvent();
 
+	// pfnThreadProc‚ÌI—¹Žž‚Ém_ThreadEvent.SetEvent‚ð–Y‚ê‚¸‚ÉŒÄ‚Ô‚±‚Æ!
+	m_ThreadEvent.ResetEvent();
+
 	if ( (m_pWinThread = AfxBeginThread(pfnThreadProc, pParam, nPriority)) == NULL ) {
 		m_Threadtatus = FIFO_THREAD_ERROR;
 		return FALSE;
@@ -1584,7 +1587,7 @@ void CFifoSync::Close()
 	if ( m_Threadtatus == FIFO_THREAD_EXEC ) {
 		m_Threadtatus = FIFO_THREAD_ERROR;
 		Abort();
-		WaitForSingleObject(*m_pWinThread, INFINITE);
+		WaitForSingleObject(m_ThreadEvent, INFINITE);
 	}
 
 	m_pWinThread = NULL;
@@ -1709,6 +1712,7 @@ static UINT FifoSocketOpenWorker(LPVOID pParam)
 	// m_SSL_pSock SSL_read/SSL_write‚ðŽg—p
 	OPENSSL_thread_stop();
 
+	pThis->m_ThreadEvent.SetEvent();
 	return 0;
 }
 void CFifoSocket::ThreadEnd()
@@ -1730,17 +1734,21 @@ BOOL CFifoSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort
 		m_nSocketType = nSocketType;
 	}
 
-	if ( (m_SockEvent = WSACreateEvent()) == WSA_INVALID_EVENT )
+	if ( (m_SockEvent = WSACreateEvent()) == WSA_INVALID_EVENT ) {
+		::ThreadMessageBox(_T("Socket event error\n'%s:%d'\n"), lpszHostAddress, nHostPort);
 		return FALSE;
+	}
 
 	m_hSocket = INVALID_SOCKET;
 	m_Threadtatus = FIFO_THREAD_EXEC;
 	m_AbortEvent.ResetEvent();
+	m_ThreadEvent.ResetEvent();
 	m_bAbort = FALSE;
 
 	if ( (m_pWinThread = AfxBeginThread(FifoSocketOpenWorker, this, THREAD_PRIORITY_NORMAL)) == NULL ) {
 		m_Threadtatus = FIFO_THREAD_ERROR;
 		WSACloseEvent(m_SockEvent);
+		::ThreadMessageBox(_T("Socket begin thread error\n'%s:%d'\n"), lpszHostAddress, nHostPort);
 		return FALSE;
 	}
 
@@ -1756,7 +1764,7 @@ BOOL CFifoSocket::Close()
 	if ( m_Threadtatus == FIFO_THREAD_EXEC ) {
 		m_Threadtatus = FIFO_THREAD_ERROR;
 		m_AbortEvent.SetEvent();
-		WaitForSingleObject(*m_pWinThread, INFINITE);
+		WaitForSingleObject(m_ThreadEvent, INFINITE);
 	}
 
 	if ( m_hSocket != INVALID_SOCKET )
@@ -1790,6 +1798,7 @@ static UINT FifoSocketWorker(LPVOID pParam)
 	status = (pThis->SocketLoop() ? FIFO_THREAD_NONE : FIFO_THREAD_ERROR);
 	pThis->ThreadEnd();
 	pThis->m_Threadtatus = status;
+	pThis->m_ThreadEvent.SetEvent();
 
 	return 0;
 }
@@ -1809,6 +1818,7 @@ BOOL CFifoSocket::Attach(SOCKET hSocket)
 
 	m_Threadtatus = FIFO_THREAD_EXEC;
 	m_AbortEvent.ResetEvent();
+	m_ThreadEvent.ResetEvent();
 	m_bAbort = FALSE;
 
 	if ( (m_pWinThread = AfxBeginThread(FifoSocketWorker, this, THREAD_PRIORITY_NORMAL)) == NULL ) {
@@ -1827,7 +1837,7 @@ void CFifoSocket::Detach()
 	if ( m_Threadtatus == FIFO_THREAD_EXEC ) {
 		m_Threadtatus = FIFO_THREAD_ERROR;
 		m_AbortEvent.SetEvent();
-		WaitForSingleObject(*m_pWinThread, INFINITE);
+		WaitForSingleObject(m_ThreadEvent, INFINITE);
 	}
 
 	m_pWinThread = NULL;
@@ -1842,7 +1852,6 @@ void CFifoSocket::Detach()
 // Thread process...
 BOOL CFifoSocket::AddInfoOpen()
 {
-	int n;
 	ADDRINFOT hints;
 	ADDRINFOT *ai, *aitop;
 	DWORD val;
@@ -1850,7 +1859,7 @@ BOOL CFifoSocket::AddInfoOpen()
     struct sockaddr_in in;
     struct sockaddr_in6 in6;
 	struct in6_addr in6addr_any = IN6ADDR_ANY_INIT;
-	UINT nSocketPort = m_nSocketPort;
+	clock_t RetryLimit = clock() + CLOCKS_PER_SEC * 3;
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = m_nFamily;
@@ -1862,22 +1871,22 @@ BOOL CFifoSocket::AddInfoOpen()
 		return FALSE;
 	}
 
-	for ( ; ; ) {
+	while ( m_Threadtatus == FIFO_THREAD_EXEC ) {
 		for ( ai = aitop ; ai != NULL ; ai = ai->ai_next ) {
 			if ( ai->ai_family != AF_INET && ai->ai_family != AF_INET6 )
 				continue;
 
-			if ( (m_hSocket = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == (-1) ) {
+			if ( (m_hSocket = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == INVALID_SOCKET ) {
 				m_nLastError = WSAGetLastError();
 				continue;
 			}
 
-			if ( nSocketPort != 0 ) {
+			if ( m_nSocketPort != 0 ) {
 				if ( ai->ai_family == AF_INET ) {
 					memset(&in, 0, sizeof(in));
 					in.sin_family = AF_INET;
 					in.sin_addr.s_addr = INADDR_ANY;
-					in.sin_port = htons(nSocketPort);
+					in.sin_port = htons(m_nSocketPort);
 					if ( ::bind(m_hSocket, (struct sockaddr *)&in, sizeof(in)) == SOCKET_ERROR ) {
 						m_nLastError = WSAGetLastError();
 						::closesocket(m_hSocket);
@@ -1887,7 +1896,7 @@ BOOL CFifoSocket::AddInfoOpen()
 					memset(&in6, 0, sizeof(in6));
 					in6.sin6_family = AF_INET6;
 					in6.sin6_addr = in6addr_any;
-					in6.sin6_port = htons(nSocketPort);
+					in6.sin6_port = htons(m_nSocketPort);
 					if ( ::bind(m_hSocket, (struct sockaddr *)&in6, sizeof(in6)) == SOCKET_ERROR ) {
 						m_nLastError = WSAGetLastError();
 						::closesocket(m_hSocket);
@@ -1896,21 +1905,20 @@ BOOL CFifoSocket::AddInfoOpen()
 				}
 			}
 
+			val = 1;
+			if ( ::ioctlsocket(m_hSocket, FIONBIO, &val) == SOCKET_ERROR ) {
+				m_nLastError = WSAGetLastError();
+				::closesocket(m_hSocket);
+				continue;
+			}
+
 			if ( ::connect(m_hSocket, ai->ai_addr, (int)ai->ai_addrlen) == SOCKET_ERROR ) {
-				if ( (n = WSAGetLastError()) != WSAEWOULDBLOCK ) {
-					m_nLastError = n;
+				if ( (m_nLastError = WSAGetLastError()) != WSAEWOULDBLOCK ) {
 					::closesocket(m_hSocket);
 					continue;
 				}
 			} else
 				SendFdEvents(FIFO_STDOUT, FD_CONNECT, NULL);
-
-			val = 1;
-			if ( ::ioctlsocket(m_hSocket, FIONBIO, &val) != 0 ) {
-				m_nLastError = WSAGetLastError();
-				::closesocket(m_hSocket);
-				continue;
-			}
 
 			// socket open success
 			m_nLastError = 0;
@@ -1918,8 +1926,10 @@ BOOL CFifoSocket::AddInfoOpen()
 			return TRUE;
 		}
 
-		if ( nSocketPort-- == 0 )
+		if ( m_nSocketPort == 0 || m_nLastError != WSAEADDRINUSE || RetryLimit < clock() )
 			break;
+
+		m_nSocketPort--;
 	}
 
 	FreeAddrInfo(aitop);
@@ -2041,7 +2051,7 @@ BOOL CFifoSocket::SocketLoop()
 
 			if ( (NetworkEvents.lNetworkEvents & FD_CONNECT) != 0 ) {
 				if ( NetworkEvents.iErrorCode[FD_CONNECT_BIT] != 0 ) {
-					m_nLastError = WSAGetLastError();
+					m_nLastError = NetworkEvents.iErrorCode[FD_CONNECT_BIT];
 					return FALSE;
 				}  else
 					SendFdEvents(FIFO_STDOUT, FD_CONNECT, NULL);
@@ -2049,7 +2059,7 @@ BOOL CFifoSocket::SocketLoop()
 
 			if ( (NetworkEvents.lNetworkEvents & FD_CLOSE) != 0 ) {
 				if ( NetworkEvents.iErrorCode[FD_CLOSE_BIT] != 0 ) {
-					m_nLastError = WSAGetLastError();
+					m_nLastError = NetworkEvents.iErrorCode[FD_CLOSE_BIT];
 					return FALSE;
 				} else {
 					Read(FIFO_STDIN, NULL, 0);				// Endof Set
@@ -2063,7 +2073,7 @@ BOOL CFifoSocket::SocketLoop()
 
 			if ( (NetworkEvents.lNetworkEvents & FD_READ) != 0 ) {
 				if ( NetworkEvents.iErrorCode[FD_READ_BIT] != 0 ) {
-					m_nLastError = WSAGetLastError();
+					m_nLastError = NetworkEvents.iErrorCode[FD_READ_BIT];
 					return FALSE;
 				} else {
 					if ( sslErr == (0x200 | SSL_ERROR_WANT_READ) )	// SSL_write is SSL_ERROR_WANT_READ
@@ -2119,7 +2129,7 @@ BOOL CFifoSocket::SocketLoop()
 
 			if ( (NetworkEvents.lNetworkEvents & FD_WRITE) != 0 ) {
 				if ( NetworkEvents.iErrorCode[FD_WRITE_BIT] != 0 ) {
-					m_nLastError = WSAGetLastError();
+					m_nLastError = NetworkEvents.iErrorCode[FD_WRITE_BIT];
 					return FALSE;
 				} else {
 					if ( sslErr == (0x100 | SSL_ERROR_WANT_WRITE) )	// SSL_read is SSL_ERROR_WANT_WRITE
@@ -2188,7 +2198,7 @@ BOOL CFifoSocket::SocketLoop()
 
 			if ( (NetworkEvents.lNetworkEvents & FD_OOB) != 0 ) {
 				if ( NetworkEvents.iErrorCode[FD_OOB_BIT] != 0 ) {
-					m_nLastError = WSAGetLastError();
+					m_nLastError = NetworkEvents.iErrorCode[FD_OOB_BIT];
 					return FALSE;
 				} else if ( (len = ::recv(m_hSocket, (CHAR *)buffer, m_nBufSize, MSG_OOB)) <= 0 ) {
 					fdEvents |= FD_OOB;
@@ -2344,6 +2354,7 @@ static UINT ListenWorker(LPVOID pParam)
 		pThis->SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)pThis->m_nLastError);
 
 	pThis->RemoveAllMsg();
+	pThis->m_ThreadEvent.SetEvent();
 
 	return 0;
 }
@@ -2358,6 +2369,8 @@ BOOL CFifoListen::Open(LPCTSTR lpszHostAddress, UINT nHostPort, int nFamily, int
 	m_nBacklog    = nBacklog;
 
 	m_Threadtatus = (-1);
+	m_AbortEvent.ResetEvent();
+	m_ThreadEvent.ResetEvent();
 
 	if ( (m_pWinThread = AfxBeginThread(ListenWorker, this, THREAD_PRIORITY_NORMAL)) == NULL )
 		return FALSE;
@@ -2368,7 +2381,7 @@ BOOL CFifoListen::Close()
 {
 	if ( m_pWinThread != NULL ) {
 		m_AbortEvent.SetEvent();
-		WaitForSingleObject(*m_pWinThread, INFINITE);
+		WaitForSingleObject(m_ThreadEvent, INFINITE);
 		m_pWinThread = NULL;
 	}
 

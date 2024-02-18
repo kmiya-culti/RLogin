@@ -159,6 +159,7 @@ UINT CFifoSocks::DecodeSocksWorker(void *pParam)
 	pThis->SendFdCommand(FIFO_STDOUT, FIFO_CMD_MSGQUEIN, FIFO_QCMD_SYNCRET, pThis->m_ChanId, 0, (void *)pThis);
 
 	pThis->m_Threadtatus = FIFO_THREAD_NONE;
+	pThis->m_ThreadEvent.SetEvent();
 	return 0;
 }
 void CFifoSocks::DecodeSocks()
@@ -970,6 +971,8 @@ UINT CFifoRcp::RcpUpDowndWorker(void *pParam)
 
 	pThis->SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)pThis->m_nLastError);
 	pThis->m_Threadtatus = FIFO_THREAD_NONE;
+	pThis->m_ThreadEvent.SetEvent();
+
 	return 0;
 }
 BOOL CFifoRcp::ReadLine(int nFd, CStringA &str)

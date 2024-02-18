@@ -654,7 +654,7 @@ void CCipher::BenchMark(CBuffer *out)
 
 	total = clock() - total;
 	msg.Format(_T("Total %d.%03d sec"), (int)(total / CLOCKS_PER_SEC), (int)(total % CLOCKS_PER_SEC));
-	::AfxMessageBox(msg);
+	::AfxMessageBox(msg, MB_ICONINFORMATION);
 #endif
 }
 
@@ -1435,7 +1435,7 @@ BOOL CXmssKey::LoadStateFile(LPCTSTR fileName)
 		return TRUE;
 
 	} catch(...) {
-		AfxMessageBox(_T("xmss state file read error"));
+		::AfxMessageBox(_T("xmss state file read error"), MB_ICONERROR);
 		return FALSE;
 	}
 }
@@ -2598,7 +2598,7 @@ int CIdKey::HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh)
 				DnsRecordListFree(rec, DnsFreeRecordList);
 
 				if ( found == 001 ) {
-					if ( AfxMessageBox(CStringLoad(IDE_DNSDIGESTNOTMATCH), MB_ICONWARNING | MB_YESNO) != IDYES )
+					if ( ::AfxMessageBox(CStringLoad(IDE_DNSDIGESTNOTMATCH), MB_ICONWARNING | MB_YESNO) != IDYES )
 						return FALSE;
 				}
 			}
@@ -3548,10 +3548,10 @@ BOOL CIdKey::GetUserSid(CBuffer &buf)
 
 ENDOF:
 	if ( pSid != NULL )
-		delete pSid;
+		delete [] pSid;
 
 	if ( pDomain != NULL )
-		delete pDomain;
+		delete [] pDomain;
 
 	return rt;
 }
@@ -3584,10 +3584,10 @@ BOOL CIdKey::GetHostSid(CBuffer &buf)
 
 ENDOF:
 	if ( pSid != NULL )
-		delete pSid;
+		delete [] pSid;
 
 	if ( pDomain != NULL )
-		delete pDomain;
+		delete [] pDomain;
 
 	return rt;
 }
@@ -3617,7 +3617,7 @@ void CIdKey::GetUserHostName(CString &str)
 		if ( GetUserName(pBuf, &size) )
 			str += pBuf;
 		else if ( GetLastError() == ERROR_INSUFFICIENT_BUFFER ) {
-			delete pBuf;
+			delete [] pBuf;
 			max = size;
 			pBuf = new TCHAR[max];
 			if ( GetUserName(pBuf, &size) )
@@ -3629,14 +3629,14 @@ void CIdKey::GetUserHostName(CString &str)
 		if ( GetComputerName(pBuf, &size) )
 			str += pBuf;
 		else if ( GetLastError() == ERROR_BUFFER_OVERFLOW ) {
-			delete pBuf;
+			delete [] pBuf;
 			max = size;
 			pBuf = new TCHAR[max];
 			if ( GetComputerName(pBuf, &size) )
 				str += pBuf;
 		}
 
-		delete pBuf;
+		delete [] pBuf;
 	}
 }
 
@@ -5404,7 +5404,7 @@ int CIdKey::SavePrivateKey(int fmt, LPCTSTR file, LPCTSTR pass)
 		return FALSE;
 
 	if ( mbs.IsEmpty() ) {
-		if ( AfxMessageBox(CStringLoad(IDM_NONENCRYPTFILE), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
+		if ( ::AfxMessageBox(CStringLoad(IDM_NONENCRYPTFILE), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 			return FALSE;
 	}
 

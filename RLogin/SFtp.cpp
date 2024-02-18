@@ -355,7 +355,7 @@ LPCTSTR CFileNode::GetRemotePath(LPCTSTR dir, class CSFtp *pWnd)
 		else if ( (pWnd->m_AutoRenMode & 0x80) != 0 )
 			m_name += m_file;
 		else {
-			if ( pWnd->MessageBox(CStringLoad(IDE_FILENAMEERROR), _T("QUESTION"), MB_YESNO) == IDYES ) {
+			if ( ::DoitMessageBox(CStringLoad(IDE_FILENAMEERROR), MB_ICONQUESTION | MB_YESNO, pWnd) == IDYES ) {
 				pWnd->m_AutoRenMode = 0x80;
 				m_name += tmp;
 			} else
@@ -975,7 +975,7 @@ int CSFtp::ReceiveBuffer(CBuffer *bp)
 
 	if ( type == SSH2_FXP_VERSION ) {
 		if ( (m_VerId = id) != SSH2_FILEXFER_VERSION ) {
-			MessageBox(_T("SFTP Version Error"));
+			::DoitMessageBox(_T("SFTP Version Error"), MB_ICONERROR, this);
 			Close();
 			return FALSE;
 		}
@@ -1008,7 +1008,7 @@ int CSFtp::ReceiveBuffer(CBuffer *bp)
 			m_CmdQue.GetNext(pos);
 		}
 #endif
-		MessageBox(_T("Unkown sftp Message Received"));
+		::DoitMessageBox(_T("Unkown sftp Message Received"), MB_ICONERROR, this);
 	}
 
 ENDOF:
@@ -1381,7 +1381,7 @@ int CSFtp::RemoteMirrorUploadRes(int st, class CCmdQue *pQue)
 		if ( i >= pQue->m_SaveNode.GetSize() ) {
 			if ( (m_DoUpdate & 0x20) == 0 ) {
 				m_DoUpdate |= 0x20;
-				if ( MessageBox(CStringLoad(IDS_LOCALFILEDELETE), _T("Question"), MB_YESNO | MB_ICONQUESTION) != IDYES ) {
+				if ( ::DoitMessageBox(CStringLoad(IDS_LOCALFILEDELETE), MB_YESNO | MB_ICONQUESTION, this) != IDYES ) {
 					m_DoUpdate &= ~0x40;
 					break;
 				}
@@ -1454,7 +1454,7 @@ int CSFtp::RemoteCopyDirRes(int st, class CCmdQue *pQue)
 		if ( i >= pQue->m_FileNode.GetSize() ) {
 			if ( (m_DoUpdate & 0x20) == 0 ) {
 				m_DoUpdate |= 0x20;
-				if ( MessageBox(CStringLoad(IDS_REMOTEFILEDELETE), _T("Question"), MB_YESNO | MB_ICONQUESTION) != IDYES ) {
+				if ( ::DoitMessageBox(CStringLoad(IDS_REMOTEFILEDELETE), MB_YESNO | MB_ICONQUESTION, this) != IDYES ) {
 					m_DoUpdate &= ~0x40;
 					break;
 				}
@@ -3028,7 +3028,7 @@ void CSFtp::DispErrMsg(LPCTSTR msg, LPCTSTR file)
 		m_LastErrorMsg.Empty();
 	}
 
-	MessageBox(tmp);
+	::DoitMessageBox(tmp, MB_ICONERROR, this);
 }
 LPCTSTR CSFtp::JointPath(LPCTSTR dir, LPCTSTR file, CString &path)
 {
@@ -3112,7 +3112,7 @@ static const INITDLGTAB ItemTab[] = {
 void CSFtp::OnCancel()
 {
 	if ( m_bTheadExec ) {
-		MessageBox(CStringLoad(IDE_SFTPTHREADCMDEXEC));
+		::DoitMessageBox(CStringLoad(IDE_SFTPTHREADCMDEXEC), MB_ICONWARNING, this);
 		return;
 	}
 
@@ -3146,10 +3146,12 @@ void CSFtp::OnOK()
 				else {
 					if ( m_bShellExec[0] == 0 ) {
 						CMsgChkDlg dlg(this);
+						dlg.m_bNoChkEnable = TRUE;
+						dlg.m_pParent = this;
 						dlg.m_MsgText.Format(IDS_SFTPLOCALEXEC, m_LocalNode[n].m_file);
 						dlg.m_Title = _T("Local File Execute");
 						dlg.m_bNoCheck = FALSE;
-						if ( dlg.DoModal() == IDOK ) {
+						if ( dlg.DoModal() == IDYES ) {
 							if ( dlg.m_bNoCheck )
 								m_bShellExec[0] = 1;
 							ShellExecute(GetSafeHwnd(), NULL, m_LocalNode[n].m_path, NULL, NULL, SW_NORMAL);
@@ -3171,10 +3173,12 @@ void CSFtp::OnOK()
 				else {
 					if ( m_bShellExec[1] == 0 ) {
 						CMsgChkDlg dlg(this);
+						dlg.m_bNoChkEnable = TRUE;
+						dlg.m_pParent = this;
 						dlg.m_MsgText.Format(IDS_SFTPREMOTEEXEC, m_RemoteNode[n].m_file);
 						dlg.m_Title = _T("Remote File Execute");
 						dlg.m_bNoCheck = FALSE;
-						if ( dlg.DoModal() == IDOK ) {
+						if ( dlg.DoModal() == IDYES ) {
 							if ( dlg.m_bNoCheck )
 								m_bShellExec[1] = 1;
 							m_DoUpdate = 0;
@@ -3237,7 +3241,7 @@ BOOL CSFtp::OnInitDialog()
 
 	if ( !m_wndToolBar.CToolBar::CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT, WS_CHILD | WS_VISIBLE | CBRS_TOP | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
 		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_SFTPTOOL), m_wndToolBar, this) )
-		MessageBox(_T("Failed to create toolbar"));
+		::AfxMessageBox(_T("Failed to create toolbar"), MB_ICONWARNING);
 
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST,0, reposQuery, rect);
 	m_ToolBarOfs = rect.top;
@@ -3895,7 +3899,7 @@ void CSFtp::OnSftpDelete()
 			}
 		}
 		tmp += CStringLoad(IDS_FILEDELETEREQ);
-		if ( MessageBox(tmp, _T("Question"), MB_YESNO | MB_ICONQUESTION) != IDYES )
+		if ( ::DoitMessageBox(tmp, MB_YESNO | MB_ICONQUESTION, this) != IDYES )
 			return;
 		for ( n = 0 ; n < m_LocalList.GetItemCount() ; n++ ) {
 			if ( m_LocalList.GetItemState(n, LVIS_SELECTED) != 0 ) {
@@ -3922,7 +3926,7 @@ void CSFtp::OnSftpDelete()
 			}
 		}
 		tmp += CStringLoad(IDS_FILEDELETEREQ);
-		if ( MessageBox(tmp, _T("Question"), MB_YESNO | MB_ICONQUESTION) != IDYES )
+		if ( ::DoitMessageBox(tmp, MB_YESNO | MB_ICONQUESTION, this) != IDYES )
 			return;
 		for ( n = 0 ; n < m_RemoteList.GetItemCount() ; n++ ) {
 			if ( m_RemoteList.GetItemState(n, LVIS_SELECTED) != 0 ) {
@@ -4238,11 +4242,11 @@ LRESULT CSFtp::OnReceiveBuffer(WPARAM wParam, LPARAM lParam)
 		}
 
 	} catch(LPCTSTR msg) {
-		MessageBox(msg);
+		::DoitMessageBox(msg, MB_ICONERROR, this);
 		m_RecvBuf.Clear();
 
 	} catch(...) {
-		MessageBox(_T("SFTP unkown error"));
+		::DoitMessageBox(_T("SFTP unkown error"), MB_ICONERROR, this);
 		m_RecvBuf.Clear();
 	}
 

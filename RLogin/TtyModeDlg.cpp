@@ -204,6 +204,7 @@ BEGIN_MESSAGE_MAP(CColEditDlg, CTtyModeDlg)
 	ON_COMMAND(ID_EDIT_PASTE_ALL, &CColEditDlg::OnEditPasteAll)
 	ON_NOTIFY(NM_CUSTOMDRAW, IDC_MODE_LIST, &CColEditDlg::OnNMCustomdrawList)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_MODE_LIST, &CColEditDlg::OnLvnItemchangedList)
+	ON_NOTIFY(NM_DBLCLK, IDC_MODE_LIST, &CColEditDlg::OnNMDblclk)
 END_MESSAGE_MAP()
 
 static const LV_COLUMN InitColListTab[10] = {
@@ -258,11 +259,8 @@ BOOL CColEditDlg::OnInitDialog()
 
 	InitItemOffset(ItemTab);
 
-//	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT);
 	m_List.InitColumn(_T("ColEditDlg"), InitColListTab, 10);
-	// 98 7654 3210
-	// 11 1001 1100
-	m_List.m_EditSubItem = 0x39C;
+	m_List.m_EditSubItem = 0x39C;		// 0011 1001 1100
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 4);
 
 	InitList();
@@ -324,7 +322,10 @@ void CColEditDlg::OnEditPasteAll()
 	if ( !((CMainFrame *)::AfxGetMainWnd())->CopyClipboardData(str) )
 		return;
 
-	if ( *str == _T('{') &&  json.GetJsonFormat(str) ) {
+	for ( p = str ; *p != _T('\0') && *p <= _T(' ') ; )
+		p++;
+
+	if ( *p == _T('{') && json.GetJsonFormat(str) ) {
 		for ( n = 0 ; n < 16 ; n++ ) {
 			if ( (i = json.Find(colname[n])) >= 0 ) {
 				p = json[i];
@@ -422,6 +423,34 @@ void CColEditDlg::OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult)
 		m_List.SetItemText(pNMLV->iItem, 1, _T(""));
 	else if ( pNMLV->iSubItem >= 7 && pNMLV->iSubItem <= 9 )
 		m_List.SetItemText(pNMLV->iItem, 6, _T(""));
+
+	*pResult = 0;
+}
+void CColEditDlg::OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	NMLISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
+	int nItem = pNMListView->iItem;
+	int nSubItem = pNMListView->iSubItem;
+
+	if ( nItem < 0 || (nSubItem != 1 && nSubItem != 6) )
+		return;
+
+	int nIndex = (int)m_List.GetItemData(nItem);
+	COLORREF col = RGB(_tstoi(m_List.GetItemText(nItem, nSubItem + 1)), _tstoi(m_List.GetItemText(nItem, nSubItem + 2)), _tstoi(m_List.GetItemText(nItem, nSubItem + 3)));
+	CColorDialog cdl(col, CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT, this);
+	CString str;
+
+	if ( DpiAwareDoModal(cdl) == IDOK ) {
+		m_ColTab[nIndex] = cdl.GetColor();
+		str.Format(_T("%d"), GetRValue(m_ColTab[nIndex]));
+		m_List.SetItemText(nItem, nSubItem + 1, str);
+		str.Format(_T("%d"), GetGValue(m_ColTab[nIndex]));
+		m_List.SetItemText(nItem, nSubItem + 2, str);
+		str.Format(_T("%d"), GetBValue(m_ColTab[nIndex]));
+		m_List.SetItemText(nItem, nSubItem + 3, str);
+
+		m_List.SetItemText(nItem, nSubItem, _T(""));
+	}
 
 	*pResult = 0;
 }
@@ -543,6 +572,8 @@ BOOL CKnownHostsDlg::OnInitDialog()
 	SetWindowText(_T("Known Host Keys Delete"));
 	SetDlgItemText(IDOK, _T("DELETE"));
 
+	SetSaveProfile(_T("KnownHostsDlg"));
+
 	return TRUE;
 }
 
@@ -565,7 +596,7 @@ void CKnownHostsDlg::OnOK()
 
 	msg.Format((LPCTSTR)CStringLoad(IDS_KNOWNHOSTDELMSG), dels);
 
-	if ( dels > 0 && MessageBox(msg, _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+	if ( dels > 0 && ::AfxMessageBox(msg, MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 		for ( n = 0 ; n < m_Data.GetSize() ; ) {
 			pData = (KNOWNHOSTDATA *)m_Data.GetAt(n);
 			if ( !pData->del ) {
@@ -618,4 +649,370 @@ void CKnownHostsDlg::OnLvnItemchangedModeList(NMHDR *pNMHDR, LRESULT *pResult)
 	}
 
 	*pResult = 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CAppColDlg
+
+IMPLEMENT_DYNAMIC(CAppColDlg, CTtyModeDlg)
+
+CAppColDlg::CAppColDlg()
+{
+}
+CAppColDlg::~CAppColDlg()
+{
+}
+
+BEGIN_MESSAGE_MAP(CAppColDlg, CTtyModeDlg)
+	ON_COMMAND(ID_EDIT_COPY_ALL, &CAppColDlg::OnEditCopyAll)
+	ON_COMMAND(ID_EDIT_PASTE_ALL, &CAppColDlg::OnEditPasteAll)
+	ON_NOTIFY(NM_DBLCLK, IDC_MODE_LIST, &CAppColDlg::OnNMDblclk)
+	ON_NOTIFY(NM_CUSTOMDRAW, IDC_MODE_LIST, &CAppColDlg::OnNMCustomdrawList)
+	ON_NOTIFY(LVN_ITEMCHANGED, IDC_MODE_LIST, &CAppColDlg::OnLvnItemchangedList)
+	ON_WM_SETTINGCHANGE()
+END_MESSAGE_MAP()
+
+static const LV_COLUMN InitAppColTab[10] = {
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT, 130, _T("Title"),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  30, _T("Lc"),		0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  40, _T("Red"),		0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  40, _T("Green"),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  40, _T("Blue"),		0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  30, _T("Dc"),		0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  40, _T("Red"),		0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  40, _T("Green"),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  40, _T("Blue"),		0, 0 },
+};
+
+static const int AppColList[] = {
+	APPCOL_MENUFACE, APPCOL_MENUTEXT, APPCOL_MENUHIGH,
+	APPCOL_DLGFACE, APPCOL_DLGTEXT, APPCOL_DLGOPTFACE, 
+	APPCOL_BARBACK, APPCOL_BARSHADOW,
+	APPCOL_BARFACE, APPCOL_BARHIGH, APPCOL_BARBODER, APPCOL_BARTEXT,
+	APPCOL_TABFACE, APPCOL_TABTEXT, APPCOL_TABHIGH, APPCOL_TABSHADOW,
+	(-1)
+};
+
+static LPCTSTR ColNameList[] = {
+	{ _T("SCROLLBAR") },				{ _T("BACKGROUND") },				{ _T("ACTIVECAPTION") },
+	{ _T("INACTIVECAPTION") },			{ _T("MENU") },						{ _T("WINDOW") },
+	{ _T("WINDOWFRAME") },				{ _T("MENUTEXT") },					{ _T("WINDOWTEXT") },
+	{ _T("CAPTIONTEXT") },				{ _T("ACTIVEBORDER") },				{ _T("INACTIVEBORDER") },
+	{ _T("APPWORKSPACE") },				{ _T("HIGHLIGHT") },				{ _T("HIGHLIGHTTEXT") },
+	{ _T("BTNFACE") },					{ _T("BTNSHADOW") },				{ _T("GRAYTEXT") },
+	{ _T("BTNTEXT") },					{ _T("INACTIVECAPTIONTEXT") },		{ _T("BTNHIGHLIGHT") },
+	{ _T("3DDKSHADOW") },				{ _T("3DLIGHT") },					{ _T("INFOTEXT") },
+	{ _T("INFOBK") },					{ _T("NONE") },						{ _T("HOTLIGHT") },
+	{ _T("GRADIENTACTIVECAPTION") },	{ _T("GRADIENTINACTIVECAPTION") },	{ _T("MENUHILIGHT") },
+	{ _T("MENUBAR") }
+};
+
+void CAppColDlg::InitList()
+{
+	int n, i;
+	CString str;
+
+	m_List.DeleteAllItems();
+
+	for ( n = 0 ; n < m_nIndex.GetSize() ; n++ ) {
+		if ( (i = m_nIndex[n]) < APPCOL_SYSMAX )
+			str = ColNameList[i];
+		else
+			str.LoadString(IDT_APPCOL_TITLE1 + i - APPCOL_SYSMAX);
+		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, i);
+
+		str.Format(_T("%d"), GetRValue(m_ColTab[0][i]));
+		m_List.SetItemText(n, 2, str);
+		str.Format(_T("%d"), GetGValue(m_ColTab[0][i]));
+		m_List.SetItemText(n, 3, str);
+		str.Format(_T("%d"), GetBValue(m_ColTab[0][i]));
+		m_List.SetItemText(n, 4, str);
+
+		str.Format(_T("%d"), GetRValue(m_ColTab[1][i]));
+		m_List.SetItemText(n, 6, str);
+		str.Format(_T("%d"), GetGValue(m_ColTab[1][i]));
+		m_List.SetItemText(n, 7, str);
+		str.Format(_T("%d"), GetBValue(m_ColTab[1][i]));
+		m_List.SetItemText(n, 8, str);
+
+		m_List.SetItemData(n, i);
+	}
+}
+
+BOOL CAppColDlg::OnInitDialog()
+{
+	CDialogExt::OnInitDialog();
+
+	InitItemOffset(ItemTab);
+
+	m_List.InitColumn(_T("AppColDlg"), InitAppColTab, 9);
+	m_List.m_EditSubItem = 0x1DC;			// 0001 1101 1100
+	m_List.SetPopUpMenu(IDR_POPUPMENU, 4);
+
+	memcpy(m_ColTab, AppColorTable, sizeof(m_ColTab));
+
+	for ( int n = 0 ; AppColList[n] >= 0 ; n++ )
+		m_nIndex.Add(AppColList[n]);
+		
+	for ( int n = 0 ; n < APPCOL_SYSMAX ; n++ ) {
+		if ( AppColorTable[0][n] != GetSysColor(n) )
+			m_nIndex.Add(n);
+	}
+
+	InitList();
+
+	SetWindowText(_T("App Color Edit"));
+
+	return TRUE;
+}
+
+void CAppColDlg::OnOK()
+{
+	int n, i;
+
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( (i = (int)m_List.GetItemData(n)) < 0 || i >= APPCOL_MAX )
+			continue;
+		AppColorTable[0][i] = RGB(_tstoi(m_List.GetItemText(n, 2)), _tstoi(m_List.GetItemText(n, 3)), _tstoi(m_List.GetItemText(n, 4)));
+		AppColorTable[1][i] = RGB(_tstoi(m_List.GetItemText(n, 6)), _tstoi(m_List.GetItemText(n, 7)), _tstoi(m_List.GetItemText(n, 8)));
+	}
+
+	SaveAppColor();
+	::AfxGetMainWnd()->RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_FRAME | RDW_ERASE);
+
+	CDialogExt::OnOK();
+}
+void CAppColDlg::OnCancel()
+{
+	if ( bUserAppColor && ::AfxMessageBox(CStringLoad(IDS_APPCOLDELMSG), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+		theApp.DelProfileEntry(_T("RLoginApp"), _T("AppColTab"));
+		InitAppColor();
+		::AfxGetMainWnd()->RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_FRAME | RDW_ERASE);
+	}
+
+	CTtyModeDlg::OnCancel();
+}
+
+void CAppColDlg::OnEditCopyAll()
+{
+	int n, i;
+	CString tmp, str;
+
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( (i = (int)m_List.GetItemData(n)) < 0 || i >= APPCOL_MAX )
+			continue;
+		m_ColTab[0][i] = RGB(_tstoi(m_List.GetItemText(n, 2)), _tstoi(m_List.GetItemText(n, 3)), _tstoi(m_List.GetItemText(n, 4)));
+		m_ColTab[1][i] = RGB(_tstoi(m_List.GetItemText(n, 6)), _tstoi(m_List.GetItemText(n, 7)), _tstoi(m_List.GetItemText(n, 8)));
+
+		str.Format(_T("%d\t"), i);
+		tmp += str;
+
+		str.Format(_T("%d\t"), GetRValue(m_ColTab[0][i]));
+		tmp += str;
+		str.Format(_T("%d\t"), GetGValue(m_ColTab[0][i]));
+		tmp += str;
+		str.Format(_T("%d\t"), GetBValue(m_ColTab[0][i]));
+		tmp += str;
+
+		str.Format(_T("%d\t"), GetRValue(m_ColTab[1][i]));
+		tmp += str;
+		str.Format(_T("%d\t"), GetGValue(m_ColTab[1][i]));
+		tmp += str;
+		str.Format(_T("%d\r\n"), GetBValue(m_ColTab[1][i]));
+		tmp += str;
+	}
+
+	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(tmp);
+}
+void CAppColDlg::OnEditPasteAll()
+{
+	int n, i, c;
+	LPCTSTR p;
+	CString str, tmp;
+	CStringArrayExt line, pam;
+	BOOL bUpdate;
+
+	if ( !((CMainFrame *)::AfxGetMainWnd())->CopyClipboardData(str) )
+		return;
+
+	for ( p = str ; *p != _T('\0') && *p <= _T(' ') ; )
+		p++;
+
+	for ( p = str ; *p != _T('\0') ; p++ ) {
+		if ( *p == _T('\n') ) {
+			if ( !tmp.IsEmpty() )
+				line.Add(tmp);
+			tmp.Empty();
+		} else if ( *p != _T('\r') ) {
+			tmp += *p;
+		}
+	}
+	if ( !tmp.IsEmpty() )
+		line.Add(tmp);
+
+	for ( n = 0 ; n < line.GetSize() ; n++ ) {
+		bUpdate = FALSE;
+		pam.GetString(line[n]);
+		if ( pam.GetSize() >= 7 ) {
+			if ( (i = pam.GetVal(0)) >= 0 && i < APPCOL_MAX ) {
+				m_ColTab[0][i] = RGB(pam.GetVal(1), pam.GetVal(2), pam.GetVal(3));
+				m_ColTab[1][i] = RGB(pam.GetVal(4), pam.GetVal(5), pam.GetVal(6));
+				bUpdate = TRUE;
+			}
+		} else if ( pam.GetSize() >= 4 ) {
+			if ( (i = pam.GetVal(0)) >= 0 && i < APPCOL_MAX ) {
+				m_ColTab[0][i] = RGB(pam.GetVal(1), pam.GetVal(2), pam.GetVal(3));
+				bUpdate = TRUE;
+			}
+		} else {
+			pam.GetString(line[n], _T(','));
+			if ( pam.GetSize() >= 7 ) {
+				if ( (i = pam.GetVal(0)) >= 0 && i < APPCOL_MAX ) {
+					m_ColTab[0][i] = RGB(pam.GetVal(1), pam.GetVal(2), pam.GetVal(3));
+					m_ColTab[1][i] = RGB(pam.GetVal(4), pam.GetVal(5), pam.GetVal(6));
+					bUpdate = TRUE;
+				}
+			} else if ( pam.GetSize() >= 4 ) {
+				if ( (i = pam.GetVal(0)) >= 0 && i < APPCOL_MAX ) {
+					m_ColTab[0][i] = RGB(pam.GetVal(1), pam.GetVal(2), pam.GetVal(3));
+					bUpdate = TRUE;
+				}
+			} else {
+				p = line[n];
+				while ( *p != _T('\0') && (*p == _T(' ') || *p == _T('\t') || *p == _T(',')) )
+					p++;
+				if ( *p >= _T('0') && *p <= _T('9') && (i = _tstoi(p)) >= 0 && i < APPCOL_MAX ) {
+					while ( *p != _T('\0') && *p >= _T('0') && *p <= _T('9') )
+						p++;
+					while ( *p != _T('\0') && (*p == _T(' ') || *p == _T('\t') || *p == _T(',')) )
+						p++;
+					if ( *p == _T('#') || *p == _T('$') ) {
+						p++;
+						for ( c = 0 ; ; p++ ) {
+							if ( *p >= _T('0') && *p <= _T('9') )
+								c = c * 16 + (*p - _T('0'));
+							else if ( *p >= _T('A') && *p <= _T('F') )
+								c = c * 16 + (*p - _T('A') + 10);
+							else if ( *p >= _T('a') && *p <= _T('f') )
+								c = c * 16 + (*p - _T('a') + 10);
+							else
+								break;
+						}
+						m_ColTab[0][i] = RGB((c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF);
+						bUpdate = TRUE;
+					}
+
+					while ( *p != _T('\0') && (*p == _T(' ') || *p == _T('\t') || *p == _T(',')) )
+						p++;
+					if ( *p == _T('#') || *p == _T('$') ) {
+						p++;
+						for ( c = 0 ; ; p++ ) {
+							if ( *p >= _T('0') && *p <= _T('9') )
+								c = c * 16 + (*p - _T('0'));
+							else if ( *p >= _T('A') && *p <= _T('F') )
+								c = c * 16 + (*p - _T('A') + 10);
+							else if ( *p >= _T('a') && *p <= _T('f') )
+								c = c * 16 + (*p - _T('a') + 10);
+							else
+								break;
+						}
+						m_ColTab[1][i] = RGB((c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF);
+						bUpdate = TRUE;
+					}
+				}
+			}
+		}
+		if ( bUpdate ) {
+			for ( c = 0 ; c < m_nIndex.GetSize() ; c++ ) {
+				if ( i == m_nIndex[n] )
+					break;
+			}
+			if ( c >= m_nIndex.GetSize() )
+				m_nIndex.Add(i);
+		}
+	}
+
+	InitList();
+}
+
+void CAppColDlg::OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	NMLISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
+	int nItem = pNMListView->iItem;
+	int nSubItem = pNMListView->iSubItem;
+
+	if ( nItem < 0 || (nSubItem != 1 && nSubItem != 5) )
+		return;
+
+	int nIndex = (int)m_List.GetItemData(nItem);
+	int nBase = (nSubItem == 1 ? 0 : 1);
+	COLORREF col = RGB(_tstoi(m_List.GetItemText(nItem, nSubItem + 1)), _tstoi(m_List.GetItemText(nItem, nSubItem + 2)), _tstoi(m_List.GetItemText(nItem, nSubItem + 3)));
+	CColorDialog cdl(col, CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT, this);
+	CString str;
+
+	if ( DpiAwareDoModal(cdl) == IDOK ) {
+		m_ColTab[nBase][nIndex] = cdl.GetColor();
+		str.Format(_T("%d"), GetRValue(m_ColTab[nBase][nIndex]));
+		m_List.SetItemText(nItem, nSubItem + 1, str);
+		str.Format(_T("%d"), GetGValue(m_ColTab[nBase][nIndex]));
+		m_List.SetItemText(nItem, nSubItem + 2, str);
+		str.Format(_T("%d"), GetBValue(m_ColTab[nBase][nIndex]));
+		m_List.SetItemText(nItem, nSubItem + 3, str);
+
+		m_List.SetItemText(nItem, nSubItem, _T(""));
+	}
+
+	*pResult = 0;
+}
+
+void CAppColDlg::OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLVCUSTOMDRAW pLVCD = reinterpret_cast<LPNMLVCUSTOMDRAW>(pNMHDR);
+
+	switch(pLVCD->nmcd.dwDrawStage) {
+	case CDDS_PREPAINT:
+        *pResult = CDRF_NOTIFYITEMDRAW;
+		break;
+	case CDDS_ITEMPREPAINT:
+        *pResult = CDRF_NOTIFYSUBITEMDRAW;
+		break;
+	case CDDS_ITEMPREPAINT | CDDS_SUBITEM:
+		if ( pLVCD->iSubItem == 1 )
+			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 2)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 3)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 4)));
+		else if ( pLVCD->iSubItem == 5 )
+			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 6)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 7)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 8)));
+		else
+			pLVCD->clrTextBk = GetSysColor(COLOR_WINDOW);
+        *pResult = CDRF_NEWFONT;
+		break;
+	default:
+        *pResult = 0;
+		break;
+	}
+}
+void CAppColDlg::OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
+
+	if ( pNMLV->iSubItem >= 2 && pNMLV->iSubItem <= 4 )
+		m_List.SetItemText(pNMLV->iItem, 1, _T(""));
+	else if ( pNMLV->iSubItem >= 6 && pNMLV->iSubItem <= 8 )
+		m_List.SetItemText(pNMLV->iItem, 5, _T(""));
+
+	*pResult = 0;
+}
+
+void CAppColDlg::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
+{
+	CTtyModeDlg::OnSettingChange(uFlags, lpszSection);
+
+	if ( lpszSection != NULL )
+		return;
+
+	if ( ::AfxMessageBox(_T("System color changed\nUpdate color table ?"), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+		InitAppColor();
+		LoadAppColor();
+		memcpy(m_ColTab, AppColorTable, sizeof(m_ColTab));
+		InitList();
+	}
 }

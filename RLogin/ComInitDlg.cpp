@@ -33,6 +33,7 @@ CComInitDlg::CComInitDlg(CWnd* pParent /*=NULL*/)
 	m_BaudRate = _T("9600");
 	m_SendWait[0] = 0;
 	m_SendWait[1] = 0;
+	m_XonLim = 0;
 }
 CComInitDlg::~CComInitDlg()
 {

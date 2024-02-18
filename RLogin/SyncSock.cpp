@@ -69,6 +69,7 @@ static UINT ProcThread(LPVOID pParam)
 
 	pThis->m_ThreadMode = CSyncSock::THREAD_ENDOF;
 	pThis->m_pMainWnd->PostMessage(WM_THREADCMD, THCMD_ENDOF, (LPARAM)pThis);
+	pThis->m_ThreadEvent.SetEvent();
 
 	return 0;
 }
@@ -149,6 +150,7 @@ void CSyncSock::ThreadCommand(int cmd)
 		m_pViewWnd = m_pDoc->GetAciveView();
 
 		m_ThreadMode = THREAD_RUN;
+		m_ThreadEvent.ResetEvent();
 		m_pSyncThread = AfxBeginThread(ProcThread, this, THREAD_PRIORITY_NORMAL);
 
 		m_pDoc->SetSleepReq(SLEEPSTAT_DISABLE);
@@ -224,7 +226,7 @@ void CSyncSock::ThreadCommand(int cmd)
 		break;
 	case THCMD_YESNO:
 		work = m_pDoc->LocalStr(m_Message);
-		if ( m_pMainWnd->MessageBox(work, _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES )
+		if ( ::AfxMessageBox(work, MB_ICONQUESTION | MB_YESNO) == IDYES )
 			m_Param = 'Y';
 		break;
 	case THCMD_XONXOFF:
@@ -237,7 +239,7 @@ void CSyncSock::ThreadCommand(int cmd)
 		m_pDoc->SendScript((LPCWSTR)m_SendBuf.GetPtr(), NULL);
 		break;
 	case TGCMD_MESSAGE:
-		m_pMainWnd->MessageBox(MbsToTstr(m_Message));
+		::AfxMessageBox(MbsToTstr(m_Message), MB_ICONINFORMATION);
 		break;
 	}
 }
@@ -282,7 +284,7 @@ void CSyncSock::DoAbort(BOOL bClose)
 	if ( m_pDoc != NULL && m_pDoc->m_pSock != NULL )
 		m_pDoc->m_pSock->SyncAbort();
 
-	WaitForSingleObject(*m_pSyncThread, INFINITE);
+	WaitForSingleObject(m_ThreadEvent, INFINITE);
 	m_ThreadMode = THREAD_NONE;
 
 	if ( m_pDoc != NULL && m_pDoc->m_pSock != NULL )

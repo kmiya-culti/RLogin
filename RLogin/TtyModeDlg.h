@@ -47,7 +47,7 @@ public:
 	COLORREF m_ColTab[16];
 
 public:
-	virtual void InitList();
+	void InitList();
 
 protected:
 	virtual BOOL OnInitDialog();
@@ -59,6 +59,7 @@ protected:
 	afx_msg void OnEditPasteAll();
 	afx_msg void OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult);
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -85,7 +86,7 @@ public:
 	CPtrArray m_Data;
 
 public:
-	virtual void InitList();
+	void InitList();
 
 protected:
 	virtual BOOL OnInitDialog();
@@ -94,4 +95,37 @@ protected:
 protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnLvnItemchangedModeList(NMHDR *pNMHDR, LRESULT *pResult);
+};
+
+/////////////////////////////////////////////////////////////////////////////
+// CAppColDlg
+
+class CAppColDlg : public CTtyModeDlg
+{
+	DECLARE_DYNAMIC(CAppColDlg)
+
+public:
+	CAppColDlg();
+	virtual ~CAppColDlg();
+
+public:
+	CArray<int, int> m_nIndex;
+	COLORREF m_ColTab[2][APPCOL_MAX];
+
+public:
+	void InitList();
+
+protected:
+	virtual BOOL OnInitDialog();
+	virtual void OnOK();
+	virtual void OnCancel();
+
+protected:
+	DECLARE_MESSAGE_MAP()
+	afx_msg void OnEditCopyAll();
+	afx_msg void OnEditPasteAll();
+	afx_msg void OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
 };

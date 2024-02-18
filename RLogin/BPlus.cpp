@@ -121,6 +121,7 @@ CBPlus::CBPlus(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, pWnd)
 	BP_Special_Quoting = 1;
 	F_FileType = FALSE;
 	SA_Buf = new buf_type[Max_SA+1];
+	Seq_Num = 0;
 }
 
 CBPlus::~CBPlus()

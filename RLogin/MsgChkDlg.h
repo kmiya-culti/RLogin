@@ -19,11 +19,15 @@ public:
 public:
 	CStatic m_IconWnd;
 	CStatic m_MsgWnd;
+	CStatic m_BackWnd;
 	BOOL m_bNoCheck;
+
+	UINT m_nType;
+	CWnd *m_pParent;
+	BOOL m_bNoChkEnable;
 	CString m_Title;
 	CString m_MsgText;
-	CFont m_MsgFont;
-	CBrush m_BkBrush;
+	int m_BtnRes[3];
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
@@ -32,6 +36,9 @@ protected:
 
 protected:
 	DECLARE_MESSAGE_MAP()
+	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
-	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnBnClickedButton1();
+	afx_msg void OnBnClickedButton2();
+	afx_msg void OnBnClickedButton3();
 };

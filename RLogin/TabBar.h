@@ -8,26 +8,18 @@
 #define	TBTMID_SETCURSOR		1024
 #define	TBTMID_GHOSTWMD			1025
 
-class CTabCtrlExt : public CTabCtrl
+class CTabCtrlBar : public CTabCtrlExt
 {
-	DECLARE_DYNAMIC(CTabCtrlExt)
+	DECLARE_DYNAMIC(CTabCtrlBar)
 
 public:
-	CTabCtrlExt();
-	virtual ~CTabCtrlExt();
-
-public:
-	BOOL m_bDarkMode;
+	CTabCtrlBar();
 
 public:
 	virtual void DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);
 
 public:
 	DECLARE_MESSAGE_MAP()
-	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
-	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
-	afx_msg void OnPaint();
 };
 
 class CTabBar : public CControlBarEx
@@ -39,7 +31,7 @@ public:
 	virtual ~CTabBar();
 
 public:
-	CTabCtrlExt m_TabCtrl;
+	CTabCtrlBar m_TabCtrl;
 	CFont m_TabFont;
 	int m_GhostReq;
 	int m_GhostItem;
@@ -69,7 +61,7 @@ public:
 	int GetSize() { return m_TabCtrl.GetItemCount(); }
 	CWnd *GetAt(int nIndex);
 	void GetTitle(int nIndex, CString &title);
-	int LineCount();
+	int LineCount(BOOL bHorz);
 	void ReSize(BOOL bCallLayout);
 	void SetGhostWnd(BOOL sw);
 	void NextActive();
@@ -98,4 +90,5 @@ protected:
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnGetDispInfo(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 };

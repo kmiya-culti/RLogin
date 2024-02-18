@@ -18,6 +18,7 @@ CEscParaDlg::CEscParaDlg(CWnd* pParent /*=NULL*/)
 {
 	m_Code = 0;
 	m_Name = _T("NOP");
+	m_pTextRam = NULL;
 }
 
 CEscParaDlg::~CEscParaDlg()

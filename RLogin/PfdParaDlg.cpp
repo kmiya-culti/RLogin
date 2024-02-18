@@ -92,7 +92,7 @@ void CPfdParaDlg::OnOK()
 	UpdateData(TRUE);
 
 	if ( m_Data.m_ListenHost.IsEmpty() || m_Data.m_ListenPort.IsEmpty() ) {
-		MessageBox(CStringLoad(IDE_PFDLISTENEMPTY), NULL, MB_ICONSTOP);
+		::AfxMessageBox(CStringLoad(IDE_PFDLISTENEMPTY), MB_ICONERROR);
 		return;
 	}
 

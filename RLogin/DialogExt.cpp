@@ -45,6 +45,7 @@ CSizeGrip::~CSizeGrip()
 
 BEGIN_MESSAGE_MAP(CSizeGrip, CScrollBar)
     ON_WM_SETCURSOR()
+	ON_WM_PAINT()
 END_MESSAGE_MAP()
 
 BOOL CSizeGrip::Create(CWnd *pParentWnd, int cx, int cy)
@@ -86,6 +87,432 @@ BOOL CSizeGrip::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
         return TRUE;
     }
     return CScrollBar::OnSetCursor(pWnd, nHitTest, message);
+}
+void CSizeGrip::OnPaint()
+{
+	CPaintDC dc(this);
+	CDialogExt *pParent = (CDialogExt *)GetParent();
+	int sz1 = MulDiv(1, pParent->m_NowDpi.cx, DEFAULT_DPI_X);
+	int sz2 = MulDiv(2, pParent->m_NowDpi.cx, DEFAULT_DPI_X);
+	int sz3 = MulDiv(3, pParent->m_NowDpi.cx, DEFAULT_DPI_X);
+	CRect rect;
+	int pos[6][2];
+
+	GetClientRect(rect);
+
+	pos[0][0] = pos[1][0] = pos[2][0] = rect.left + sz3 * 2;
+	pos[3][0] = pos[4][0] = rect.left + sz3;
+	pos[5][0] = rect.left;
+
+	pos[0][1] = rect.top + sz1;
+	pos[1][1] = pos[3][1] = rect.top + sz1 + sz3;
+	pos[2][1] = pos[4][1] = pos[5][1] = rect.top + sz1 + sz3 * 2;
+
+	for ( int n = 0 ; n < 6 ; n++ )
+		dc.FillSolidRect(pos[n][0], pos[n][1], sz2, sz2, GetAppColor(COLOR_ACTIVEBORDER));
+}
+
+//////////////////////////////////////////////////////////////////////
+
+#define	TABTOP_SIZE			2
+#define	TABBTM_SIZE			3
+#define	TABLINE_SIZE		1
+#define	TABGAP_SIZE			4
+
+#define	TABSTYLE_TOP		0
+#define	TABSTYLE_BOTTOM		1
+#define	TABSTYLE_LEFT		2
+#define	TABSTYLE_RIGHT		3
+
+IMPLEMENT_DYNAMIC(CTabCtrlExt, CTabCtrl)
+
+CTabCtrlExt::CTabCtrlExt()
+{
+	m_ColTab[TABCOL_FACE]    = APPCOL_TABFACE;
+	m_ColTab[TABCOL_TEXT]    = COLOR_GRAYTEXT;
+	m_ColTab[TABCOL_BACK]    = APPCOL_DLGFACE;
+	m_ColTab[TABCOL_SELFACE] = APPCOL_TABHIGH;
+	m_ColTab[TABCOL_SELTEXT] = APPCOL_TABTEXT;
+	m_ColTab[TABCOL_SELBACK] = APPCOL_TABHIGH;
+	m_ColTab[TABCOL_BODER]   = APPCOL_TABSHADOW;
+
+	m_bGradient = FALSE;
+}
+
+BEGIN_MESSAGE_MAP(CTabCtrlExt, CTabCtrl)
+	ON_WM_PAINT()
+	ON_WM_ERASEBKGND()
+END_MESSAGE_MAP()
+
+COLORREF CTabCtrlExt::GetColor(int num)
+{
+	if ( (m_ColTab[num] & TABCOL_COLREF) != 0 )
+		return (COLORREF)(m_ColTab[num] & 0x00FFFFFF);
+	else
+		return GetAppColor((int)(m_ColTab[num] & 0xFF));
+}
+void CTabCtrlExt::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
+{
+	CDC *pDC = CDC::FromHandle(lpDrawItemStruct->hDC);
+	CRect rect = lpDrawItemStruct->rcItem;
+	int nTabIndex = (int)(lpDrawItemStruct->itemID);
+	BOOL bSelected = (lpDrawItemStruct->itemState & ODS_SELECTED) != 0 ? TRUE : FALSE;
+	TC_ITEM tci;
+	TCHAR title[MAX_PATH + 2] = { _T('\0') };
+	int nSavedDC;
+	COLORREF bc, tc, gc;
+	CImageList* pImageList = GetImageList();
+	int rotation = TABSTYLE_TOP;
+	CFont *pOldFont = NULL, font;
+	LOGFONT logfont;
+	CSize sz;
+	CPoint base;
+
+	ASSERT(pDC != NULL);
+
+	if ( nTabIndex < 0 )
+		return;
+
+	ZeroMemory(&tci, sizeof(tci));
+	tci.mask = TCIF_TEXT | TCIF_PARAM | TCIF_IMAGE;
+	tci.pszText = title;
+	tci.cchTextMax = MAX_PATH;
+
+	if ( !GetItem(nTabIndex, &tci) ) {
+		title[0] = _T('\0');
+		tci.iImage = (-1);
+		tci.lParam = NULL;
+	}
+	if ( (GetStyle() & TCS_VERTICAL) != 0 )
+		rotation = (GetStyle() & TCS_RIGHT) != 0 ? TABSTYLE_RIGHT : TABSTYLE_LEFT;
+	else if ( (GetStyle() & TCS_BOTTOM) != 0 )
+		rotation = TABSTYLE_BOTTOM;
+
+	nSavedDC = pDC->SaveDC();
+
+	if ( rotation >= TABSTYLE_LEFT && (pOldFont = GetFont()) != NULL ) {
+		pOldFont->GetLogFont(&logfont);
+		logfont.lfEscapement = (rotation == TABSTYLE_LEFT != 0 ? 900 : 2700);
+		font.CreateFontIndirect(&logfont);
+		pOldFont = pDC->SelectObject(&font);
+	}
+
+	sz = pDC->GetTextExtent(title[0] == _T('\0') ? _T("ABC") : title);
+	pDC->SetTextAlign(TA_LEFT | TA_BOTTOM);
+
+	switch(rotation) {
+	case TABSTYLE_TOP:
+	case TABSTYLE_BOTTOM:
+		base.x = rect.left + TABGAP_SIZE;
+		base.y = rect.bottom - (rect.Height() - sz.cy) / 2;
+		break;
+	case TABSTYLE_LEFT:
+		base.x = rect.right - (rect.Width() - sz.cy) / 2;
+		base.y = rect.bottom - TABGAP_SIZE;
+		break;
+	case TABSTYLE_RIGHT:
+		base.x = rect.left + (rect.Width() - sz.cy) / 2;
+		base.y = rect.top + TABGAP_SIZE;
+		break;
+	}
+
+	if ( bSelected ) {
+		bc = GetColor(TABCOL_SELFACE);
+		tc = GetColor(TABCOL_SELTEXT);
+		gc = GetColor(TABCOL_SELBACK);
+	} else {
+		bc = GetColor(TABCOL_FACE);
+		tc = GetColor(TABCOL_TEXT);
+		gc = GetColor(TABCOL_FACE);
+	}
+
+	if ( m_bGradient ) {
+		TRIVERTEX tv[2] = { { 0, 0, (COLOR16)(GetRValue(bc) * 257), (COLOR16)(GetGValue(bc) * 257), (COLOR16)(GetBValue(bc) * 257), 0xffff },
+							{ 0, 0, (COLOR16)(GetRValue(gc) * 257), (COLOR16)(GetGValue(gc) * 257), (COLOR16)(GetBValue(gc) * 257), 0xffff } };
+		GRADIENT_RECT gr = { 0, 1 };
+		DWORD dwMode = 0;
+
+		switch(rotation) {
+		case TABSTYLE_TOP:
+			tv[0].x = rect.left;
+			tv[0].y = rect.top;
+			tv[1].x = rect.right;
+			tv[1].y = rect.bottom;
+			dwMode = GRADIENT_FILL_RECT_V;
+			break;
+		case TABSTYLE_BOTTOM:
+			tv[0].x = rect.right;
+			tv[0].y = rect.bottom;
+			tv[1].x = rect.left;
+			tv[1].y = rect.top;
+			dwMode = GRADIENT_FILL_RECT_V;
+			break;
+		case TABSTYLE_LEFT:
+			tv[0].x = rect.left;
+			tv[0].y = rect.top;
+			tv[1].x = rect.right;
+			tv[1].y = rect.bottom;
+			dwMode = GRADIENT_FILL_RECT_H;
+			break;
+		case TABSTYLE_RIGHT:
+			tv[0].x = rect.right;
+			tv[0].y = rect.bottom;
+			tv[1].x = rect.left;
+			tv[1].y = rect.top;
+			dwMode = GRADIENT_FILL_RECT_H;
+			break;
+		}
+
+		pDC->GradientFill(tv, 2, &gr, 1, dwMode);
+
+	} else
+		pDC->FillSolidRect(rect, bc);
+
+	if ( pImageList != 0 && tci.iImage >= 0 ) {
+		IMAGEINFO info;
+		pImageList->GetImageInfo(tci.iImage, &info);
+		CRect ImageRect(info.rcImage);
+
+		switch(rotation) {
+		case TABSTYLE_TOP:
+		case TABSTYLE_BOTTOM:
+			pImageList->Draw(pDC, tci.iImage, CPoint(base.x, rect.top + (rect.Height() - ImageRect.Height()) / 2 + 1), ILD_TRANSPARENT);
+			base.x += (ImageRect.Width() + TABGAP_SIZE);
+			break;
+		case TABSTYLE_LEFT:
+			pImageList->Draw(pDC, tci.iImage, CPoint(rect.left + (rect.Width() - ImageRect.Width()) / 2 + 1, base.y - ImageRect.Height()), ILD_TRANSPARENT);
+			base.y -= (ImageRect.Height() + TABGAP_SIZE);
+			break;
+		case TABSTYLE_RIGHT:
+			pImageList->Draw(pDC, tci.iImage, CPoint(rect.left + (rect.Width() - ImageRect.Width()) / 2 + 1, base.y), ILD_TRANSPARENT);
+			base.y += (ImageRect.Height() + TABGAP_SIZE);
+			break;
+		}
+	}
+
+	if ( title[0] != _T('\0') ) {
+		pDC->SetBkMode(TRANSPARENT);
+		pDC->SetTextColor(tc);
+
+		switch(rotation) {
+		case TABSTYLE_TOP:
+		case TABSTYLE_BOTTOM:
+			pDC->DrawText(title, CRect(base.x, base.y, rect.right, rect.top), DT_SINGLELINE | DT_TOP | DT_LEFT);
+			break;
+		case TABSTYLE_LEFT:
+			pDC->DrawText(title, CRect(base.x, base.y, rect.left, rect.top), DT_SINGLELINE | DT_TOP | DT_LEFT);
+			break;
+		case TABSTYLE_RIGHT:
+			pDC->DrawText(title, CRect(base.x, base.y, rect.right, rect.bottom), DT_SINGLELINE | DT_TOP | DT_LEFT);
+			break;
+		}
+	}
+
+	pDC->RestoreDC(nSavedDC);
+}
+
+void CTabCtrlExt::OnPaint()
+{
+	if ( (GetStyle() & (TCS_MULTILINE | TCS_BUTTONS)) != 0 ) {
+		Default();
+		return;
+	}
+
+	int n;
+	CPoint last;
+	CRect rect, frame;
+	CPaintDC dc(this);
+	DRAWITEMSTRUCT dis;
+	CFont *pOldFont = GetFont();
+	int nIndex = GetCurSel();
+	COLORREF bdCol = GetColor(TABCOL_BODER);
+	COLORREF bkCol = GetColor(TABCOL_SELBACK);
+	CPen *pOldPen, bdPen(PS_SOLID, TABLINE_SIZE, bdCol);
+	int dwStyle = GetStyle();
+	CRect clip = dc.m_ps.rcPaint;
+
+	pOldFont = dc.SelectObject(pOldFont);
+	pOldPen = dc.SelectObject(&bdPen);
+
+	ZeroMemory(&dis, sizeof(dis));
+	dis.hDC = dc.GetSafeHdc();
+	dis.CtlType = ODT_TAB;
+	dis.itemAction = ODA_DRAWENTIRE;
+
+	GetClientRect(frame);
+
+	if ( (dwStyle & (TCS_BOTTOM | TCS_VERTICAL)) == 0 ) {
+		// TOP Style (default)
+		last.SetPoint(0, frame.bottom - TABBTM_SIZE);
+
+		for ( n = 0 ; n < GetItemCount() ; n++ ) {
+			GetItemRect(n, rect);
+
+			if ( last.x <= clip.right && rect.right >= clip.left ) {
+				if ( rect.top < TABTOP_SIZE )
+					rect.top = TABTOP_SIZE;
+				if ( n == nIndex )
+					rect.top -= TABTOP_SIZE;
+				rect.bottom = frame.bottom - TABBTM_SIZE;
+
+				dis.itemID = n;
+				dis.rcItem = rect;
+				dis.itemState = (n == nIndex ? ODS_SELECTED : 0);
+				DrawItem(&dis);
+
+				dc.FillSolidRect(last.x, last.y, rect.right - last.x, TABBTM_SIZE, bkCol);
+
+				dc.MoveTo(last);
+				dc.LineTo(rect.left, frame.bottom - TABBTM_SIZE);
+				dc.LineTo(rect.left, rect.top);
+				dc.LineTo(rect.right, rect.top);
+				dc.LineTo(rect.right, frame.bottom - TABBTM_SIZE);
+
+				if ( n != nIndex )
+					dc.LineTo(rect.left, frame.bottom - TABBTM_SIZE);
+			}
+
+			last.SetPoint(rect.right, frame.bottom - TABBTM_SIZE);
+		}
+
+		if ( last.x <= clip.right ) {
+			dc.FillSolidRect(last.x, last.y, frame.right - last.x, TABBTM_SIZE, bkCol);
+			dc.MoveTo(last);
+			dc.LineTo(frame.right, frame.bottom - TABBTM_SIZE);
+		}
+
+	} else if ( (dwStyle & (TCS_BOTTOM | TCS_VERTICAL)) == TCS_BOTTOM ) {
+		// BOTTOM Style
+		frame.bottom -= 1;
+		last.SetPoint(0, frame.top + TABBTM_SIZE);
+
+		for ( n = 0 ; n < GetItemCount() ; n++ ) {
+			GetItemRect(n, rect);
+
+			if ( last.x <= clip.right && rect.right >= clip.left ) {
+				if ( (frame.bottom - rect.bottom) < TABTOP_SIZE )
+					rect.bottom = frame.bottom - TABTOP_SIZE;
+				if ( n == nIndex )
+					rect.bottom += TABTOP_SIZE;
+				rect.top = frame.top + TABBTM_SIZE;
+
+				dis.itemID = n;
+				dis.rcItem = rect;
+				dis.itemState = (n == nIndex ? ODS_SELECTED : 0);
+				DrawItem(&dis);
+
+				dc.FillSolidRect(last.x, last.y - TABBTM_SIZE, rect.right - last.x, TABBTM_SIZE, bkCol);
+
+				dc.MoveTo(last);
+				dc.LineTo(rect.left, frame.top + TABBTM_SIZE);
+				dc.LineTo(rect.left, rect.bottom);
+				dc.LineTo(rect.right, rect.bottom);
+				dc.LineTo(rect.right, frame.top + TABBTM_SIZE);
+
+				if ( n != nIndex )
+					dc.LineTo(rect.left, frame.top + TABBTM_SIZE);
+			}
+
+			last.SetPoint(rect.right, frame.top + TABBTM_SIZE);
+		}
+
+		if ( last.x <= clip.right ) {
+			dc.FillSolidRect(last.x, last.y - TABBTM_SIZE, frame.right - last.x, TABBTM_SIZE, bkCol);
+			dc.MoveTo(last);
+			dc.LineTo(frame.right, frame.top + TABBTM_SIZE);
+		}
+
+	} else if ( (dwStyle & (TCS_BOTTOM | TCS_VERTICAL)) == TCS_VERTICAL ) {
+		// LEFT Style
+		last.SetPoint(frame.right - TABBTM_SIZE, 0);
+
+		for ( n = 0 ; n < GetItemCount() ; n++ ) {
+			GetItemRect(n, rect);
+
+			if ( last.y <= clip.bottom && rect.bottom >= clip.top ) {
+				if ( rect.left < TABTOP_SIZE )
+					rect.left = TABTOP_SIZE;
+				if ( n == nIndex )
+					rect.left -= TABTOP_SIZE;
+				rect.right = frame.right - TABBTM_SIZE;
+
+				dis.itemID = n;
+				dis.rcItem = rect;
+				dis.itemState = (n == nIndex ? ODS_SELECTED : 0);
+				DrawItem(&dis);
+
+				dc.FillSolidRect(last.x, last.y, TABBTM_SIZE, rect.bottom - last.y, bkCol);
+
+				dc.MoveTo(last);
+				dc.LineTo(frame.right - TABBTM_SIZE, rect.top);
+				dc.LineTo(rect.left, rect.top);
+				dc.LineTo(rect.left, rect.bottom);
+				dc.LineTo(frame.right - TABBTM_SIZE, rect.bottom);
+
+				if ( n != nIndex )
+					dc.LineTo(frame.right - TABBTM_SIZE, rect.top);
+			}
+
+			last.SetPoint(frame.right - TABBTM_SIZE, rect.bottom);
+		}
+
+		if ( last.y <= clip.bottom ) {
+			dc.FillSolidRect(last.x, last.y, TABBTM_SIZE, frame.bottom - last.y, bkCol);
+			dc.MoveTo(last);
+			dc.LineTo(frame.right - TABBTM_SIZE, frame.bottom);
+		}
+
+	} else if ( (dwStyle & (TCS_RIGHT | TCS_VERTICAL)) == (TCS_RIGHT | TCS_VERTICAL) ) {	// TCS_RIGHT == TCS_BOTTOM
+		// RIGHT Style
+		frame.right -= 1;
+		last.SetPoint(frame.left + TABBTM_SIZE, 0);
+
+		for ( n = 0 ; n < GetItemCount() ; n++ ) {
+			GetItemRect(n, rect);
+
+			if ( last.y <= clip.bottom && rect.bottom >= clip.top ) {
+				if ( (frame.right - rect.right) < TABTOP_SIZE )
+					rect.right = frame.right - TABTOP_SIZE;
+				if ( n == nIndex )
+					rect.right += TABTOP_SIZE;
+				rect.left = frame.left + TABBTM_SIZE;
+
+				dis.itemID = n;
+				dis.rcItem = rect;
+				dis.itemState = (n == nIndex ? ODS_SELECTED : 0);
+				DrawItem(&dis);
+
+				dc.FillSolidRect(last.x - TABBTM_SIZE, last.y, TABBTM_SIZE, rect.bottom - last.y, bkCol);
+
+				dc.MoveTo(last);
+				dc.LineTo(frame.left + TABBTM_SIZE, rect.top);
+				dc.LineTo(rect.right, rect.top);
+				dc.LineTo(rect.right, rect.bottom);
+				dc.LineTo(frame.left + TABBTM_SIZE, rect.bottom);
+
+				if ( n != nIndex )
+					dc.LineTo(frame.left + TABBTM_SIZE, rect.top);
+			}
+
+			last.SetPoint(frame.left + TABBTM_SIZE, rect.bottom);
+		}
+
+		if ( last.y <= clip.bottom ) {
+			dc.FillSolidRect(last.x - TABBTM_SIZE, last.y, TABBTM_SIZE, frame.bottom - last.y, bkCol);
+			dc.MoveTo(last);
+			dc.LineTo(frame.left + TABBTM_SIZE, frame.bottom);
+		}
+	}
+
+	dc.SelectObject(pOldPen);
+	dc.SelectObject(pOldFont);
+}
+BOOL CTabCtrlExt::OnEraseBkgnd(CDC* pDC)
+{
+	CRect rect;
+	GetClientRect(rect);
+	pDC->FillSolidRect(rect, GetColor(TABCOL_BACK));
+	return TRUE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -145,7 +572,9 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 	GetClassName(hWnd, name, 256);
 
 	if ( _tcscmp(name, _T("Button")) == 0 ) {
-		if ( (pWnd->GetStyle() & BS_TYPEMASK) <= BS_DEFPUSHBUTTON )
+		if ( !pParent->m_bDarkMode && (GetAppColor(APPCOL_DLGTEXT) != GetSysColor(COLOR_MENUTEXT)) )
+			ExSetWindowTheme(hWnd, L"", L"");
+		else if ( (pWnd->GetStyle() & BS_TYPEMASK) <= BS_DEFPUSHBUTTON )
 			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
 		else if ( pParent->m_bDarkMode )
 			ExSetWindowTheme(hWnd, L"", L"");
@@ -156,6 +585,12 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 	} else if ( _tcscmp(name, _T("ScrollBar")) == 0 ) {
 		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
 		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+
+	} else if ( _tcscmp(name, _T("Edit")) == 0 ) {
+		if ( (pWnd->GetStyle() & ES_MULTILINE) != 0 ) {
+			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+			SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		}
 	}
 
 	return TRUE;
@@ -618,24 +1053,30 @@ void CDialogExt::LoadSaveDialogSize(BOOL bSave)
 	int sx, sy;
 	int cx, cy;
 	CWnd *pWnd;
+	CSize fsz = m_NowFsz;
 
 	GetWindowRect(rect);
 
 	if ( bSave ) {
-		AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X, m_NowDpi.cx));
-		AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y, m_NowDpi.cy));
+		AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * m_NowFsz.cx));
+		AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * m_NowFsz.cy));
 
 		if ( m_LoadPosMode == LOADPOS_PROFILE ) {
 			AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("sx"), MulDiv(rect.left, DEFAULT_DPI_X, m_NowDpi.cx));
 			AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("sy"), MulDiv(rect.top,  DEFAULT_DPI_Y, m_NowDpi.cy));
 		}
 
-	} else {
-		cx = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X, m_NowDpi.cx));
-		cy = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y, m_NowDpi.cy));
+		AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("WithFontSize"), m_FontSize);
 
-		cx = MulDiv(cx, m_NowDpi.cx, DEFAULT_DPI_X);
-		cy = MulDiv(cy, m_NowDpi.cy, DEFAULT_DPI_Y);
+	} else {
+		if ( AfxGetApp()->GetProfileInt(m_SaveProfile, _T("cx"), (-1)) != (-1) && AfxGetApp()->GetProfileInt(m_SaveProfile, _T("WithFontSize"), 0) == 0 )
+			fsz = m_DefFsz;
+
+		cx = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * fsz.cx));
+		cy = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * fsz.cy));
+
+		cx = MulDiv(cx, m_NowDpi.cx * fsz.cx, DEFAULT_DPI_X * m_DefFsz.cx);
+		cy = MulDiv(cy, m_NowDpi.cy * fsz.cy, DEFAULT_DPI_Y * m_DefFsz.cy);
 
 		if ( cx < rect.Width() )
 			cx = rect.Width();
@@ -751,6 +1192,18 @@ BOOL CDialogExt::GetSizeAndText(SIZE *pSize, CString &title, CWnd *pParent)
 	return TRUE;
 }
 
+void CDialogExt::GetFontSize(CDialogTemplate *pDlgTemp, CSize &fsz)
+{
+	CString name;
+	WORD size;
+	CDC TempDC;
+	CFont Font;
+
+	pDlgTemp->GetFont(name, size);
+	TempDC.CreateCompatibleDC(NULL);
+	Font.CreatePointFont(size * 10, name, &TempDC);
+	GetDlgFontBase(&TempDC, &Font, fsz);
+}
 BOOL CDialogExt::Create(LPCTSTR lpszTemplateName, CWnd* pParentWnd)
 {
 	HGLOBAL hDialog;
@@ -773,15 +1226,13 @@ BOOL CDialogExt::Create(LPCTSTR lpszTemplateName, CWnd* pParentWnd)
 
 	CDialogTemplate dlgTemp(lpDialogTemplate);
 
-	if ( IsDefineFont() )
+	GetFontSize(&dlgTemp, m_DefFsz);
+
+	if ( IsDefineFont() ) {
 		dlgTemp.SetFont(m_FontName, m_FontSize);
-	//else {
-	//	CString name;
-	//	WORD size;
-	//	dlgTemp.GetFont(name, size);
-	//	if ( m_FontSize != size )
-	//		dlgTemp.SetFont(name, m_FontSize);
-	//}
+		GetFontSize(&dlgTemp, m_NowFsz);
+	} else
+		m_NowFsz = m_DefFsz;
 
 	lpDialogTemplate = (LPCDLGTEMPLATE)LockResource(dlgTemp.m_hTemplate);
 
@@ -812,15 +1263,13 @@ INT_PTR CDialogExt::DoModal()
 
 	CDialogTemplate dlgTemp(lpDialogTemplate);
 
-	if ( IsDefineFont() )
+	GetFontSize(&dlgTemp, m_DefFsz);
+
+	if ( IsDefineFont() ) {
 		dlgTemp.SetFont(m_FontName, m_FontSize);
-	//else {
-	//	CString name;
-	//	WORD size;
-	//	dlgTemp.GetFont(name, size);
-	//	if ( m_FontSize != size )
-	//		dlgTemp.SetFont(name, m_FontSize);
-	//}
+		GetFontSize(&dlgTemp, m_NowFsz);
+	} else
+		m_NowFsz = m_DefFsz;
 
 	lpDialogTemplate = (LPCDLGTEMPLATE)LockResource(dlgTemp.m_hTemplate);
 
@@ -868,6 +1317,7 @@ BEGIN_MESSAGE_MAP(CDialogExt, CDialog)
 	ON_WM_SIZE()
 	ON_WM_SIZING()
 	ON_WM_CTLCOLOR()
+	ON_WM_ERASEBKGND()
 	ON_WM_INITMENUPOPUP()
 	ON_WM_SETTINGCHANGE()
 	ON_MESSAGE(WM_KICKIDLE, OnKickIdle)
@@ -888,27 +1338,26 @@ afx_msg HBRUSH CDialogExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 	case CTLCOLOR_MSGBOX:		// Message box
 	case CTLCOLOR_EDIT:			// Edit control
 	case CTLCOLOR_LISTBOX:		// List-box control
-	case CTLCOLOR_BTN:			// Button control
 		break;
 
+	case CTLCOLOR_BTN:			// Button control
 	case CTLCOLOR_DLG:			// Dialog box
 	case CTLCOLOR_SCROLLBAR:
 	case CTLCOLOR_STATIC:		// Static control
-		if ( m_bDarkMode && m_DarkBrush.m_hObject != NULL ) {
-			hbr = m_DarkBrush;
-			pDC->SetTextColor(GetSysColor(COLOR_WINDOW));
-		} else if ( m_bBackWindow ) {
-			hbr = GetSysColorBrush(COLOR_WINDOW);
-			pDC->SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
-		} else {
-			hbr = GetSysColorBrush(COLOR_MENU);
-			pDC->SetTextColor(GetSysColor(COLOR_MENUTEXT));
-		}
+		hbr = GetAppColorBrush(m_bBackWindow ? APPCOL_DLGOPTFACE : APPCOL_DLGFACE);
+		pDC->SetTextColor(GetAppColor(APPCOL_DLGTEXT));
 		pDC->SetBkMode(TRANSPARENT);
 		break;
 	}
 
 	return hbr;
+}
+BOOL CDialogExt::OnEraseBkgnd(CDC* pDC)
+{
+	CRect rect;
+	GetClientRect(rect);
+	pDC->FillSolidRect(rect, GetAppColor(m_bBackWindow ? APPCOL_DLGOPTFACE : APPCOL_DLGFACE));
+	return TRUE;
 }
 
 afx_msg LRESULT CDialogExt::OnKickIdle(WPARAM wParam, LPARAM lParam)
@@ -1053,7 +1502,8 @@ LRESULT CDialogExt::HandleInitDialog(WPARAM wParam, LPARAM lParam)
 			LoadSaveDialogSize(FALSE);
 	}
 
-	EnumChildWindows(GetSafeHwnd(), EnumSetThemeProc, (LPARAM)this);
+	if ( bDarkModeSupport )
+		EnumChildWindows(GetSafeHwnd(), EnumSetThemeProc, (LPARAM)this);
 
 	return result;
 }
@@ -1098,7 +1548,6 @@ int CDialogExt::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if ( !m_bGripDisable && (lpCreateStruct->style & WS_SIZEBOX) != 0 )
 		m_SizeGrip.Create(this, GRIP_SIZE_CX, GRIP_SIZE_CY);
 
-	m_DarkBrush.CreateSolidBrush(DARKMODE_BACKCOLOR);
 	m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
 
 	return 0;
@@ -1251,7 +1700,7 @@ void CDialogExt::OnDestroy()
 
 void CDialogExt::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 {
-	if ( lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 ) {
+	if ( bDarkModeSupport && lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 ) {
 		m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
 		EnumChildWindows(GetSafeHwnd(), EnumSetThemeProc, (LPARAM)this);
 		RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_FRAME | RDW_ERASE);
@@ -1262,6 +1711,9 @@ void CDialogExt::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 
 LRESULT CDialogExt::OnUahDrawMenu(WPARAM wParam, LPARAM lParam)
 {
+	if ( !bDarkModeSupport )
+		return Default();
+
 	UAHMENU *pUahMenu = (UAHMENU *)lParam;
 	CDC *pDC = CDC::FromHandle(pUahMenu->hdc);
 	MENUBARINFO mbi;
@@ -1277,11 +1729,14 @@ LRESULT CDialogExt::OnUahDrawMenu(WPARAM wParam, LPARAM lParam)
 	rect = mbi.rcBar;
     rect.OffsetRect(-rcWindow.left, -rcWindow.top);
 
-	pDC->FillSolidRect(rect, m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	pDC->FillSolidRect(rect, GetAppColor(APPCOL_MENUFACE));
 	return TRUE;
 }
 LRESULT CDialogExt::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
 {
+	if ( !bDarkModeSupport )
+		return Default();
+
 	UAHDRAWMENUITEM *pUahDrawMenuItem = (UAHDRAWMENUITEM *)lParam;
 	CMenu *pMenu = CMenu::FromHandle(pUahDrawMenuItem->um.hmenu);
 	int npos = pUahDrawMenuItem->umi.iPosition;
@@ -1290,8 +1745,8 @@ LRESULT CDialogExt::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
 	CRect rect = pUahDrawMenuItem->dis.rcItem;
 	DWORD dwFlags = DT_SINGLELINE | DT_VCENTER | DT_CENTER;
 	CString title;
-	COLORREF TextColor = (m_bDarkMode ? GetSysColor(COLOR_WINDOW) : GetSysColor(COLOR_WINDOWTEXT));
-	COLORREF BackColor = (m_bDarkMode ? DARKMODE_BACKCOLOR : GetSysColor(COLOR_WINDOW));
+	COLORREF TextColor = GetAppColor(APPCOL_MENUTEXT);
+	COLORREF BackColor = GetAppColor(APPCOL_MENUFACE);
 	int OldBkMode = pDC->SetBkMode(TRANSPARENT);
 
 	ASSERT(pUahDrawMenuItem != NULL && pDC != NULL && pMenu != NULL);
@@ -1302,10 +1757,10 @@ LRESULT CDialogExt::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
         dwFlags |= DT_HIDEPREFIX;
 
 	if ( (state & (ODS_INACTIVE | ODS_GRAYED | ODS_DISABLED)) != 0 )
-		TextColor = (m_bDarkMode ? GetSysColor(COLOR_GRAYTEXT) : GetSysColor(COLOR_GRAYTEXT));
+		TextColor = GetAppColor(COLOR_GRAYTEXT);
 
 	if ( (state & (ODS_HOTLIGHT | ODS_SELECTED)) != 0 )
-		BackColor = (m_bDarkMode ? GetSysColor(COLOR_MENUTEXT) : GetSysColor(COLOR_MENU));
+		BackColor = GetAppColor(APPCOL_MENUHIGH);
 
 	TextColor = pDC->SetTextColor(TextColor);
 	pDC->FillSolidRect(rect, BackColor);

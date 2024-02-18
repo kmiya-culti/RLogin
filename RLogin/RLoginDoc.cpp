@@ -294,7 +294,7 @@ void CRLoginDoc::OnFileClose()
 			(LPCTSTR)m_ServerEntry.m_HostName,
 			tm.Format(_T("%c")),
 			CStringLoad(IDS_FILECLOSEQES));
-		if ( AfxMessageBox(msg, MB_ICONQUESTION | MB_YESNO) != IDYES )
+		if ( ::AfxMessageBox(msg, MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 	}
 
@@ -1365,7 +1365,7 @@ BOOL CRLoginDoc::SetOptFixEntry(LPCTSTR entryName)
 	for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 		if ( pTab->m_Data[n].m_EntryName.Compare(entryName) == 0 ) {
 			if ( m_OptFixCheck[n] != FALSE ) {
-				AfxMessageBox(CStringLoad(IDE_OPTFIXDEEPENTRY));
+				::AfxMessageBox(CStringLoad(IDE_OPTFIXDEEPENTRY), MB_ICONWARNING);
 				return FALSE;
 			}
 
@@ -1384,7 +1384,7 @@ BOOL CRLoginDoc::SetOptFixEntry(LPCTSTR entryName)
 		}
 	}
 
-	AfxMessageBox(CStringLoad(IDE_OPTFIXNOTFOUND));
+	::AfxMessageBox(CStringLoad(IDE_OPTFIXNOTFOUND), MB_ICONWARNING);
 	return FALSE;
 }
 void CRLoginDoc::SetSleepReq(int req)
@@ -1628,7 +1628,7 @@ void CRLoginDoc::LogInit()
 				m_pLogFile = NULL;
 			}
 			file.Format(_T("LogFile Open Error '%s%s%s'"), (LPCTSTR)dirs, (LPCTSTR)name, (LPCTSTR)exts);
-			AfxMessageBox(file);
+			::AfxMessageBox(file, MB_ICONERROR);
 		}
 	}
 }
@@ -1889,14 +1889,14 @@ void CRLoginDoc::OnSocketError(int err)
 	if ( (pWnd = GetAciveView()) != NULL ) {
 		tmp += _T("\n");
 		tmp += CStringLoad(IDS_SOCKREOPEN);
-		if ( AfxMessageBox(tmp, MB_ICONERROR | MB_YESNO) == IDYES )
+		if ( ::AfxMessageBox(tmp, MB_ICONERROR | MB_YESNO) == IDYES )
 			pWnd->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
 		else if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) || ((CMainFrame *)::AfxGetMainWnd())->IsTimerIdleBusy() )
 			UpdateAllViews(NULL, UPDATE_DISPMSG, (CObject *)_T("Error"));
 		else
 			pWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, (LPARAM)0);
 	} else {
-		AfxMessageBox(tmp);
+		::AfxMessageBox(tmp, MB_ICONERROR);
 		OnFileClose();
 	}
 }
@@ -1930,7 +1930,7 @@ void CRLoginDoc::OnSocketClose()
 
 	CWnd *pWnd = GetAciveView();
 
-	if (m_TextRam.IsOptEnable(TO_RLREOPEN) && pWnd != NULL && AfxMessageBox(CStringLoad(IDS_SOCKREOPEN), MB_ICONQUESTION | MB_YESNO) == IDYES )
+	if (m_TextRam.IsOptEnable(TO_RLREOPEN) && pWnd != NULL && ::AfxMessageBox(CStringLoad(IDS_SOCKREOPEN), MB_ICONQUESTION | MB_YESNO) == IDYES )
 		pWnd->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
 	else if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) || ((CMainFrame *)::AfxGetMainWnd())->IsTimerIdleBusy() )
 		UpdateAllViews(NULL, UPDATE_DISPMSG, (CObject *)_T("Closed"));
@@ -2142,7 +2142,7 @@ SKIPINPUT:
 		hosts.GetParam(m_ServerEntry.m_HostName);
 
 		if ( hosts.GetSize() > 1 ) {
-			if ( hosts.GetSize() > 20 && AfxMessageBox(CStringLoad(IDS_TOOMANYHOSTNAME), MB_ICONWARNING | MB_YESNO) != IDYES )
+			if ( hosts.GetSize() > 20 && ::AfxMessageBox(CStringLoad(IDS_TOOMANYHOSTNAME), MB_ICONWARNING | MB_YESNO) != IDYES )
 				return FALSE;
 			CCommandLineInfoEx cmds;
 			cmds.ParseParam(_T("inpane"), TRUE, FALSE);
@@ -2258,7 +2258,7 @@ void CRLoginDoc::OnLogOpen()
 		return;
 
 	if ( !LogOpen(dlg.GetPathName()) ) {
-		AfxMessageBox(CStringLoad(IDE_LOGOPENERROR));
+		::AfxMessageBox(CStringLoad(IDE_LOGOPENERROR), MB_ICONERROR);
 		delete m_pLogFile;
 		m_pLogFile = NULL;
 		return;
@@ -2271,7 +2271,7 @@ void CRLoginDoc::OnUpdateLogOpen(CCmdUI* pCmdUI)
 
 void CRLoginDoc::OnLoadDefault() 
 {
-	if ( AfxMessageBox(CStringLoad(IDS_ALLINITREQ), MB_ICONQUESTION | MB_YESNO) != IDYES )
+	if ( ::AfxMessageBox(CStringLoad(IDS_ALLINITREQ), MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return;
 
 	LoadDefOption(m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
@@ -2505,7 +2505,7 @@ void CRLoginDoc::OnScript()
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
-	if ( m_pScript->m_Code.GetSize() > 0 && AfxMessageBox(CStringLoad(IDS_SCRIPTNEW), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+	if ( m_pScript->m_Code.GetSize() > 0 && ::AfxMessageBox(CStringLoad(IDS_SCRIPTNEW), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 		if ( m_pScript != NULL )
 			delete m_pScript;
 		m_pScript = new CScript;

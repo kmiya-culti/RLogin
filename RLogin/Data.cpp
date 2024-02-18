@@ -119,6 +119,7 @@ CBits::CBits(LPBYTE buf, int len)
 	m_EndPtr = buf + len;
 	m_Data = 0;
 	m_Have = 0;
+	m_pOut = NULL;
 }
 int CBits::GetBits(int bits)
 {
@@ -150,6 +151,7 @@ CBits::CBits(class CBuffer *out)
 	m_pOut = out;
 	m_Data = 0;
 	m_Have = 0;
+	m_Ptr = m_EndPtr = NULL;
 }
 void CBits::SetBits(int data, int bits)
 {
@@ -3271,6 +3273,10 @@ BOOL CMenuLoad::GetPopUpMenu(UINT nId, CMenu &PopUpMenu)
 	PopUpMenu.InsertMenu(IDM_SPEAKALL, MF_BYCOMMAND, IDM_SPEAKBACK, CStringLoad(IDM_SPEAKBACK));
 	PopUpMenu.InsertMenu(IDM_SPEAKALL, MF_BYCOMMAND, IDM_SPEAKNEXT, CStringLoad(IDM_SPEAKNEXT));
 
+	// Add View Menu
+	PopUpMenu.InsertMenu(ID_VIEW_MENUBAR, MF_BYCOMMAND, IDM_DOCKBARFIXED, CStringLoad(IDM_DOCKBARFIXED));
+	PopUpMenu.InsertMenu(ID_VIEW_MENUBAR, MF_BYCOMMAND, IDM_DOCKBARINIT,  CStringLoad(IDM_DOCKBARINIT));
+
 	// Create Key History Menu
 	if ( (pMenu = GetItemSubMenu(ID_MACRO_HIS1, &PopUpMenu)) != NULL ) {
 		if ( pMenu->GetMenuString(ID_MACRO_HIS1, tmp, MF_BYCOMMAND) <= 0 )
@@ -6379,6 +6385,11 @@ void CKeyNode::SetComboList(CComboBox *pCombo)
 //////////////////////////////////////////////////////////////////////
 // CKeyCmds & CKeyCmdsTab
 
+CKeyCmds::CKeyCmds()
+{
+	m_Id = 0;
+	m_Flag = FALSE;
+}
 const CKeyCmds & CKeyCmds::operator = (CKeyCmds &data)
 {
 	m_Id = data.m_Id;
@@ -7163,7 +7174,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	149
+#define	CMDSKEYTABMAX	152
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -7292,8 +7303,10 @@ static const struct _CmdsKeyTab {
 	{	IDM_VERSIONCHECK,			L"$VERSION_CHECK"	},
 	{	IDM_CMDHIS,					L"$VIEW_CMDHIS"		},
 	{	ID_VIEW_TABDLGBAR,			L"$VIEW_DIALOGBAR"	},
+	{	IDM_DOCKBARFIXED,			L"$VIEW_FIXEDBAR"	},
 	{	IDM_HISTORYDLG,				L"$VIEW_HISTORY"	},
 	{	IDM_IMAGEDISP,				L"$VIEW_IMAGEDISP"	},
+	{	IDM_DOCKBARINIT,			L"$VIEW_INITBAR"	},
 	{	ID_GOZIVIEW,				L"$VIEW_JOKE"		},
 	{	ID_VIEW_MENUBAR,			L"$VIEW_MENUBAR"	},
 	{	IDM_COMMONITER,				L"$VIEW_MONITOR"	},
@@ -7309,6 +7322,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_TRACEDISP,				L"$VIEW_TRACEDISP"	},
 	{	ID_VIEW_VOICEBAR,			L"$VIEW_VOICEBAR"	},
 	{	ID_WINDOW_CLOSE,			L"$WINDOW_CLOSE"	},
+	{	IDM_APPCOLEDIT,				L"$WINDOW_COLOR"	},
 	{	IDM_DISPWINIDX,				L"$WINDOW_INDEX"	},
 	{	ID_WINDOW_NEW,				L"$WINDOW_NEW"		},
 	{	IDM_XMODEM_DOWNLOAD,		L"$XMODEM_DOWNLOAD"	},
@@ -10592,7 +10606,7 @@ void CStringIndex::SubSetXmlElemnt(CBuffer &str, int nest)
 	CString tmp;
 
 	for ( n = 0 ; n < nest ; n++ ) str += _T(" ");
-	tmp.Format(_T("<%s"), m_nIndex.IsEmpty() ? _T("NoName") : m_nIndex);
+	tmp.Format(_T("<%s"), m_nIndex.IsEmpty() ? _T("NoName") : (LPCTSTR)m_nIndex);
 	str += (LPCTSTR)tmp;
 
 	for ( n = 0 ; n < GetSize() ; n++ ) {
@@ -11868,4 +11882,39 @@ BOOL CBitmapEx::CopyBitmap(CBitmap *pSrcBitmap)
 	delete [] map;
 
 	return rt;
+}
+BOOL CBitmapEx::CreateMaskBitmap(CBitmap *pSrcBitmap, COLORREF backCol)
+{
+	CDC dc;
+	CBitmap *pOld;
+	BITMAP mapinfo;
+	int wbyte;
+	BYTE *map;
+
+	if ( !pSrcBitmap->GetBitmap(&mapinfo) )
+		return FALSE;
+
+	if ( !dc.CreateCompatibleDC(NULL) )
+		return FALSE;
+
+	pOld = dc.SelectObject(pSrcBitmap);
+
+	wbyte = ((mapinfo.bmWidth + 15) / 16) * 2;
+	map = new BYTE[wbyte * mapinfo.bmHeight];
+	ZeroMemory(map, wbyte * mapinfo.bmHeight);
+
+	for ( int y = 0 ; y < mapinfo.bmHeight ; y++ ) {
+		for ( int x = 0 ; x < mapinfo.bmWidth ; x++ ) {
+			if ( dc.GetPixel(x, y) == backCol )
+				map[x / 8 + wbyte * y] |= (0x80 >> (x % 8));
+		}
+	}
+
+	dc.SelectObject(pOld);
+	dc.DeleteDC();
+
+	if ( !CreateBitmap(mapinfo.bmWidth, mapinfo.bmHeight, 1, 1, map) )
+		return FALSE;
+
+	return TRUE;
 }

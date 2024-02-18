@@ -320,8 +320,10 @@ int CZModem::XUpLoad()
 	if ( !CheckFileName(CHKFILENAME_OPEN, "") )
 		goto CANRET;
 
-    if ( (fp = _tfopen(m_PathName, _T("rb"))) == NULL )
+    if ( (fp = _tfopen(m_PathName, _T("rb"))) == NULL ) {
+		::ThreadMessageBox(_T("XUpload '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 		goto CANRET;
+	}
 
     _fseeki64(fp, 0L, SEEK_END);
     file_size = _ftelli64(fp);
@@ -410,8 +412,10 @@ int CZModem::XDownLoad()
 	if ( !CheckFileName(CHKFILENAME_SAVE, "") )
 		goto CANRET;
 
-	if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL )
+	if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL ) {
+		::ThreadMessageBox(_T("XDownload '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 		goto CANRET;
+	}
 
     UpDownOpen("XModem File Download");
 	UpDownInit(0);
@@ -498,8 +502,10 @@ int CZModem::YUpLoad()
 	if ( !CheckFileName(CHKFILENAME_OPEN, "") )
 		goto CANRET;
 
-    if ( (fp = _tfopen(m_PathName, _T("rb"))) == NULL )
+    if ( (fp = _tfopen(m_PathName, _T("rb"))) == NULL ) {
+		::ThreadMessageBox(_T("YUpLoad '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 		goto CANRET;
+	}
 
     _fseeki64(fp, 0L, SEEK_END);
     file_size = _ftelli64(fp);
@@ -662,8 +668,10 @@ RELOAD:
 	if ( !CheckFileName(CHKFILENAME_SAVE, tmp) )
 		goto CANRET;
 
-	if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL )
+	if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL ) {
+		::ThreadMessageBox(_T("YDownLoad '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 		goto CANRET;
+	}
 
     UpDownOpen("YModem File Download");
 	UpDownInit(file_size);
@@ -775,8 +783,10 @@ NEXTFILE:
 		return ERR;
 	}
 
-    if ( (fp = _tfopen(m_PathName, _T("rb"))) == NULL )
+    if ( (fp = _tfopen(m_PathName, _T("rb"))) == NULL ) {
+		::ThreadMessageBox(_T("ZUpLoad '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 		return ERR;
+	}
 
 	fileSize = st.st_size;
 	Rxpos = Txpos = 0L;
@@ -1010,8 +1020,10 @@ int CZModem::ZDownFile()
 		}
 	}
 	
-	if ( fp == NULL && (fp = _tfopen(m_PathName, _T("wb"))) == NULL )
+	if ( fp == NULL && (fp = _tfopen(m_PathName, _T("wb"))) == NULL ) {
+		::ThreadMessageBox(_T("ZDownLoad '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 		goto ERRRET;
+	}
 
 	UpDownOpen("ZModem File Download");
 	UpDownInit(fileSize, Txpos);

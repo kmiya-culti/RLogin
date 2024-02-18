@@ -44,6 +44,7 @@ public:
 
 	volatile enum { THREAD_NONE = 0, THREAD_RUN, THREAD_DOEND, THREAD_ENDOF } m_ThreadMode;
 	CWinThread *m_pSyncThread;
+	CEvent m_ThreadEvent;
 
 	CBuffer m_RecvBuf;
 	CBuffer m_SendBuf;

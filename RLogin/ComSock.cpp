@@ -51,6 +51,7 @@ static UINT ComEventThread(LPVOID pParam)
 
 	pThis->OnReadWriteProc();
 	pThis->m_ThreadMode = CFifoCom::THREAD_NONE;
+	pThis->m_ThreadEvent.SetEvent();
 	return 0;
 }
 BOOL CFifoCom::Open(HANDLE hCom)
@@ -59,6 +60,9 @@ BOOL CFifoCom::Open(HANDLE hCom)
 		return FALSE;
 
 	m_ThreadMode = THREAD_RUN;
+	m_AbortEvent.ResetEvent();
+	m_ThreadEvent.ResetEvent();
+
 	m_pComThread = AfxBeginThread(ComEventThread, this, THREAD_PRIORITY_NORMAL);
 
 	return TRUE;
@@ -68,7 +72,7 @@ void CFifoCom::Close()
 	if ( m_ThreadMode == THREAD_RUN && m_pComThread != NULL ) {
 		m_ThreadMode = THREAD_ENDOF;
 		m_AbortEvent.SetEvent();
-		WaitForSingleObject(m_pComThread, INFINITE);
+		WaitForSingleObject(m_ThreadEvent, INFINITE);
 	}
 	m_pComThread = NULL;
 }
@@ -467,6 +471,8 @@ CComSock::CComSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_SendByteSec  = 0;
 
 	m_fInXOutXMode = 0;
+
+	ZeroMemory(&m_ComStat, sizeof(m_ComStat));
 
 	SetRecvBufSize(COMBUFSIZE);
 }
@@ -1116,5 +1122,5 @@ RETRY:
 		}
 	}
 
-	delete pDevBuf;
+	delete [] pDevBuf;
 }

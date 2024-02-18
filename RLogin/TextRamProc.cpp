@@ -4738,7 +4738,7 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 			break;
 		case 2:		// ESC ] 9 ; 2 ; "txt" ST	Show GUI MessageBox ( txt ) for any purposes.
 			m_IConv.RemoteToStr(m_SendCharSet[m_KanjiMode], p, tmp);
-			::AfxMessageBox(tmp);
+			::AfxMessageBox(tmp, MB_ICONINFORMATION);
 			break;
 		case 3:		// ESC ] 9 ; 3 ; "txt" ST	Change ConEmu Tab to txt. Set empty string to return original Tab text.
 			break;
@@ -8767,7 +8767,7 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 			CFileDialog dlg(FALSE, _T(""), name, OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), ::AfxGetMainWnd());
 
 			if ( DpiAwareDoModal(dlg) == IDOK && !tmp.SaveFile(dlg.GetPathName()) )
-				::AfxMessageBox(_T("Can't File Save"));
+				::AfxMessageBox(_T("Can't File Save"), MB_ICONERROR);
 		}
 	}
 

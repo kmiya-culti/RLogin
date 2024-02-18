@@ -34,6 +34,7 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 
 	m_ProxyCmdMode = FALSE;
 	m_ProxyStatus = PRST_NONE;
+	m_ProxyCode = 0;
 	m_SSL_mode  = 0;
 	m_SSL_pCtx  = NULL;
 	m_SSL_pSock = NULL;
@@ -1060,7 +1061,7 @@ int CExtSocket::SSLConnect()
 			errstr = X509_verify_cert_error_string(result);
 			tmp.Format(CStringLoad(IDS_CERTTRASTREQ), (m_SSL_Msg.IsEmpty() ? _T("Subject: unkown") : m_SSL_Msg), MbsToTstr(errstr));
 
-			if ( AfxMessageBox(tmp, MB_ICONWARNING | MB_YESNO) != IDYES )
+			if ( ::AfxMessageBox(tmp, MB_ICONWARNING | MB_YESNO) != IDYES )
 				goto ERRENDOF;
 
 			if ( cert != NULL && !dig.IsEmpty() )

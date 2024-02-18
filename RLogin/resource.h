@@ -2,6 +2,7 @@
 // Microsoft Visual C++ generated include file.
 // Used by RLogin.rc
 //
+#define IDCANCEL2                       3
 #define IDD_ABOUTBOX                    100
 #define IDD_ALGOPARADLG                 101
 #define IDD_ANYPASTDIG                  102
@@ -82,7 +83,6 @@
 #define IDR_SFTPTOOL                    305
 #define IDR_TEKWND                      306
 #define IDR_STATUSWND                   307
-#define IDR_GRAPWND1                    308
 #define IDR_TRACEWND                    309
 #define IDB_ATTR1                       400
 #define IDB_ATTR2                       401
@@ -285,6 +285,16 @@
 #define IDS_INITFONTSETTITLE            666
 #define IDS_INITTERMOPTTITLE            667
 #define IDS_INITEXTOPTTITLE             668
+#define IDS_APPCOLDELMSG                669
+#define IDS_MESSAGEBOX_OK               670
+#define IDS_MESSAGEBOX_CANCEL           671
+#define IDS_MESSAGEBOX_ABORT            672
+#define IDS_MESSAGEBOX_RETRY            673
+#define IDS_MESSAGEBOX_IGNORE           674
+#define IDS_MESSAGEBOX_YES              675
+#define IDS_MESSAGEBOX_NO               676
+#define IDS_MESSAGEBOX_TRYAGAIN         677
+#define IDS_MESSAGEBOX_CONTINUE         678
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -428,6 +438,22 @@
 #define IDT_TERM_LIST66                 965
 #define IDT_TERM_LIST67                 966
 #define IDT_TERM_LIST68                 967
+#define IDT_APPCOL_TITLE1               968
+#define IDT_APPCOL_TITLE2               969
+#define IDT_APPCOL_TITLE3               970
+#define IDT_APPCOL_TITLE4               971
+#define IDT_APPCOL_TITLE5               972
+#define IDT_APPCOL_TITLE6               973
+#define IDT_APPCOL_TITLE7               974
+#define IDT_APPCOL_TITLE8               975
+#define IDT_APPCOL_TITLE9               976
+#define IDT_APPCOL_TITLE10              977
+#define IDT_APPCOL_TITLE11              978
+#define IDT_APPCOL_TITLE12              979
+#define IDT_APPCOL_TITLE13              980
+#define IDT_APPCOL_TITLE14              981
+#define IDT_APPCOL_TITLE15              982
+#define IDT_APPCOL_TITLE16              983
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002
@@ -1040,6 +1066,7 @@
 #define IDC_EMOJIIMAGEDIR               2509
 #define IDC_EMOJIIMAGESEL               2510
 #define IDC_BACKPOS                     2511
+#define IDC_DARKMODE                    2511
 #define IDC_PLAYSTOP                    2512
 #define IDC_NEXTPOS                     2513
 #define IDC_VOICERATE                   2514
@@ -1211,6 +1238,9 @@
 #define IDM_RIGHTCLOSE                  5152
 #define IDM_OTHERCLOSE                  5153
 #define IDM_VIEW_SUBTOOL                5154
+#define IDM_DOCKBARFIXED                5155
+#define IDM_DOCKBARINIT                 5156
+#define IDM_APPCOLEDIT                  5157
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
@@ -1218,8 +1248,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        173
-#define _APS_NEXT_COMMAND_VALUE         5155
+#define _APS_NEXT_COMMAND_VALUE         5158
 #define _APS_NEXT_CONTROL_VALUE         2540
-#define _APS_NEXT_SYMED_VALUE           669
+#define _APS_NEXT_SYMED_VALUE           679
 #endif
 #endif

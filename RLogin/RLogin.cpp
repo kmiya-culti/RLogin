@@ -25,6 +25,7 @@
 #include "ExtSocket.h"
 #include "Script.h"
 #include "ResTransDlg.h"
+#include "MsgChkDlg.h"
 
 #include "direct.h"
 
@@ -36,6 +37,7 @@
 #include <afxcmn.h>
 #include <sphelper.h>
 #include <mbctype.h>
+#include <afxglobals.h>
 
 #include "Fifo.h"
 
@@ -70,6 +72,7 @@ CCommandLineInfoEx::CCommandLineInfoEx()
 	m_Script.Empty();
 	m_ReqDlg = FALSE;
 	m_Cwd.Empty();
+	m_DarkOff = FALSE;
 }
 void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast)
 {
@@ -132,6 +135,8 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 			m_PasStat = 16;
 		else if ( _tcsicmp(_T("cwd"), pszParam) == 0 )
 			m_PasStat = 17;
+		else if ( _tcsicmp(_T("darkoff"), pszParam) == 0 )
+			m_DarkOff = TRUE;
 		else
 			break;
 		ParseLast(bLast);
@@ -454,6 +459,9 @@ void CCommandLineInfoEx::GetString(CString &str)
 		tmp.Format(_T(" /cwd %s"), ShellEscape(m_Cwd));
 		str += tmp;
 	}
+
+	if ( m_DarkOff == FALSE )
+		str += _T(" /darkoff");
 }
 void CCommandLineInfoEx::SetString(LPCTSTR str)
 {
@@ -738,6 +746,150 @@ CRLoginApp::CRLoginApp()
 	HMODULE ExNtDll = NULL;
 	VOID (__stdcall *ExRtlGetNtVersionNumbers)(LPDWORD major, LPDWORD minor, LPDWORD build) = NULL;
 
+	BOOL bDarkModeSupport = FALSE;
+	BOOL bDarkModeEnable = TRUE;
+	BOOL bUserAppColor = FALSE;
+	BOOL bAppColBrushInit = FALSE;
+	int AppColorBase = 0;
+	COLORREF AppColorTable[2][APPCOL_MAX] = { { 0 }, { 0 } };
+	HBRUSH  AppColorBrush[2][APPCOL_MAX] = { { 0 }, { 0 } };
+	
+void InitAppColor()
+{
+	for ( int n = 0 ; n < APPCOL_SYSMAX ; n++ )
+		AppColorTable[0][n] = GetSysColor(n);
+
+	// 追加の色設定
+	AppColorTable[0][APPCOL_MENUFACE]		= AppColorTable[0][COLOR_WINDOW];
+	AppColorTable[0][APPCOL_MENUTEXT]		= AppColorTable[0][COLOR_WINDOWTEXT];
+	AppColorTable[0][APPCOL_MENUHIGH]		= AppColorTable[0][COLOR_MENU];
+
+	AppColorTable[0][APPCOL_DLGFACE]		= AppColorTable[0][COLOR_MENU];
+	AppColorTable[0][APPCOL_DLGTEXT]		= AppColorTable[0][COLOR_MENUTEXT];
+	AppColorTable[0][APPCOL_DLGOPTFACE]		= AppColorTable[0][COLOR_WINDOW];
+
+	AppColorTable[0][APPCOL_BARBACK]		= AppColorTable[0][COLOR_WINDOW];
+	AppColorTable[0][APPCOL_BARSHADOW]		= AppColorTable[0][COLOR_BTNSHADOW];
+	AppColorTable[0][APPCOL_BARFACE]		= AppColorTable[0][COLOR_MENU];
+	AppColorTable[0][APPCOL_BARHIGH]		= AppColorTable[0][COLOR_WINDOW];
+	AppColorTable[0][APPCOL_BARBODER]		= AppColorTable[0][COLOR_BTNSHADOW];
+	AppColorTable[0][APPCOL_BARTEXT]		= AppColorTable[0][COLOR_MENUTEXT];
+
+	AppColorTable[0][APPCOL_TABFACE]		= AppColorTable[0][COLOR_MENU];
+	AppColorTable[0][APPCOL_TABTEXT]		= AppColorTable[0][COLOR_MENUTEXT];
+	AppColorTable[0][APPCOL_TABHIGH]		= AppColorTable[0][COLOR_WINDOW];
+	AppColorTable[0][APPCOL_TABSHADOW]		= AppColorTable[0][COLOR_BTNSHADOW];
+
+	// ダークモードの色設定
+	memcpy(AppColorTable[1], AppColorTable[0], sizeof(AppColorTable[1]));
+
+	AppColorTable[1][COLOR_WINDOW]			= DARKMODE_BACKCOLOR;
+	AppColorTable[1][COLOR_WINDOWTEXT]		= DARKMODE_TEXTCOLOR;
+	AppColorTable[1][COLOR_WINDOWFRAME]		= DARKMODE_BACKCOLOR;
+
+	AppColorTable[1][COLOR_MENU]			= DARKMODE_BACKCOLOR;
+	AppColorTable[1][COLOR_MENUTEXT]		= AppColorTable[0][COLOR_MENU];
+	AppColorTable[1][COLOR_MENUHILIGHT]		= AppColorTable[0][COLOR_MENUTEXT];
+	AppColorTable[1][COLOR_MENUBAR]			= DARKMODE_BACKCOLOR;
+
+	AppColorTable[1][COLOR_BTNFACE]			= DARKMODE_BACKCOLOR;
+	AppColorTable[1][COLOR_BTNTEXT]			= DARKMODE_TEXTCOLOR;
+	AppColorTable[1][COLOR_BTNSHADOW]		= AppColorTable[0][COLOR_WINDOWFRAME];
+	AppColorTable[1][COLOR_BTNHIGHLIGHT]	= AppColorTable[0][COLOR_BTNSHADOW];
+
+	// 追加のダークモードの色設定
+	AppColorTable[1][APPCOL_MENUFACE]		= DARKMODE_BACKCOLOR;
+	AppColorTable[1][APPCOL_MENUTEXT]		= DARKMODE_TEXTCOLOR;
+	AppColorTable[1][APPCOL_MENUHIGH]		= AppColorTable[0][COLOR_MENUTEXT];
+
+	AppColorTable[1][APPCOL_DLGFACE]		= DARKMODE_BACKCOLOR;
+	AppColorTable[1][APPCOL_DLGTEXT]		= DARKMODE_TEXTCOLOR;
+	AppColorTable[1][APPCOL_DLGOPTFACE]		= DARKMODE_BACKCOLOR;
+
+	AppColorTable[1][APPCOL_BARBACK]		= DARKMODE_BACKCOLOR;
+	AppColorTable[1][APPCOL_BARSHADOW]		= AppColorTable[0][COLOR_BTNSHADOW];
+	AppColorTable[1][APPCOL_BARFACE]		= DARKMODE_BACKCOLOR;
+	AppColorTable[1][APPCOL_BARHIGH]		= AppColorTable[0][COLOR_BACKGROUND];
+	AppColorTable[1][APPCOL_BARBODER]		= AppColorTable[0][COLOR_BTNSHADOW];
+	AppColorTable[1][APPCOL_BARTEXT]		= DARKMODE_TEXTCOLOR;
+
+	AppColorTable[1][APPCOL_TABFACE]		= AppColorTable[0][COLOR_MENU];
+	AppColorTable[1][APPCOL_TABTEXT]		= AppColorTable[0][COLOR_MENUTEXT];
+	AppColorTable[1][APPCOL_TABHIGH]		= AppColorTable[0][COLOR_WINDOW];
+	AppColorTable[1][APPCOL_TABSHADOW]		= AppColorTable[0][COLOR_BTNSHADOW];
+
+	// ブラシの初期化
+	if ( !bAppColBrushInit ) {
+		ZeroMemory(AppColorBrush, sizeof(AppColorBrush));
+		bAppColBrushInit = TRUE;
+	} else {
+		for ( int n = 0 ; n < 2 ; n++ ) {
+			for ( int i = 0 ; i < APPCOL_MAX ; i++ ) {
+				if ( AppColorBrush[n][i] != NULL ) {
+					DeleteObject(AppColorBrush[n][i]);
+					AppColorBrush[n][i] = NULL;
+				}
+			}
+		}
+	}
+
+	bUserAppColor = FALSE;
+}
+void LoadAppColor()
+{
+	int base, idx;
+	CStringIndex index;
+	CString BaseName, IndexName;
+
+	bUserAppColor = FALSE;
+	theApp.GetProfileStringIndex(_T("RLoginApp"), _T("AppColTab"), index);
+
+	for ( int n = 0 ; n < 2 ; n++ ) {
+		BaseName.Format(_T("%d"), n);
+		if ( (base = index.Find(BaseName)) >= 0 ) { 
+			for ( int i = 0 ; i < APPCOL_MAX ; i++ ) {
+				IndexName.Format(_T("%d"), i);
+				if ( (idx = index[base].Find(IndexName)) >= 0 ) {
+					AppColorTable[n][i] = _tstoi(index[base][idx]);
+					bUserAppColor = TRUE;
+				}
+			}
+		}
+	}
+}
+void SaveAppColor()
+{
+	CStringIndex index;
+	CString BaseName, IndexName, ColorName;
+	COLORREF SaveColTab[2][APPCOL_MAX];
+
+	bUserAppColor = FALSE;
+	memcpy(SaveColTab, AppColorTable, sizeof(SaveColTab));
+	InitAppColor();
+
+	for ( int n = 0 ; n < 2 ; n++ ) {
+		BaseName.Format(_T("%d"), n);
+		for ( int i = 0 ; i < APPCOL_MAX ; i++ ) {
+			if ( AppColorTable[n][i] != SaveColTab[n][i] ) {
+				IndexName.Format(_T("%d"), i);
+				ColorName.Format(_T("%d"), SaveColTab[n][i]);
+				index[BaseName][IndexName] = ColorName;
+				bUserAppColor = TRUE;
+			}
+		}
+	}
+	
+	memcpy(AppColorTable, SaveColTab, sizeof(AppColorTable));
+	theApp.WriteProfileStringIndex(_T("RLoginApp"), _T("AppColTab"), index);
+}
+HBRUSH GetAppColorBrush(int nIndex)
+{
+	if ( AppColorBrush[AppColorBase][nIndex] == NULL )
+		AppColorBrush[AppColorBase][nIndex] = CreateSolidBrush(AppColorTable[AppColorBase][nIndex]);
+
+	return AppColorBrush[AppColorBase][nIndex];
+}
+
 void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 {
 #ifdef	USE_DWMAPI
@@ -764,7 +916,11 @@ void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 BOOL ExDwmDarkMode(HWND hWnd)
 {
 #ifdef	USE_DWMAPI
-	if ( ExDwmApi != NULL && ExDwmSetWindowAttribute != NULL && hWnd != NULL ) {
+	BOOL bSetAttr = FALSE;
+	DWORD dwUseLight = 1;
+	DWORD dwAttribute = 0;
+
+	if ( ExDwmApi != NULL && ExDwmSetWindowAttribute != NULL ) {
 		#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 			#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 		#endif
@@ -772,18 +928,38 @@ BOOL ExDwmDarkMode(HWND hWnd)
 			#define	DWMWA_BORDER_COLOR	34
 		#endif
 
-		DWORD dwUseLight = 1;
+		if ( bDarkModeEnable && theApp.RegisterGetDword(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"), _T("AppsUseLightTheme"), &dwUseLight) && !dwUseLight )
+			dwAttribute = 1;
 
-		if ( theApp.RegisterGetDword(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"), _T("AppsUseLightTheme"), &dwUseLight) ) {
-			DWORD dwAttribute = (dwUseLight ? 0 : 1);
-//			COLORREF brc = (dwAttribute ? 0xFFFFFFFE : 0xFFFFFFFF);
-			ExDwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dwAttribute, sizeof(dwAttribute));
-//			ExDwmSetWindowAttribute(hWnd, DWMWA_BORDER_COLOR, &brc, sizeof(brc));
-			return (dwAttribute != 0 ? TRUE : FALSE);
-		}
+		bSetAttr = TRUE;
+	}
+
+	if ( bDarkModeSupport && bSetAttr && hWnd != NULL ) {
+		//COLORREF brc = (dwAttribute ? 0xFFFFFFFE : 0xFFFFFFFF);
+		//ExDwmSetWindowAttribute(hWnd, DWMWA_BORDER_COLOR, &brc, sizeof(brc));
+
+		ExDwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dwAttribute, sizeof(dwAttribute));
+
+		AppColorBase = (dwAttribute ? 1 : 0);
+		return (dwAttribute != 0 ? TRUE : FALSE);
 	}
 #endif
 	return FALSE;
+}
+void ExDarkModeEnable(BOOL bEnable)
+{
+	// メニューがダークモードになるが非公開関数
+	if ( !bDarkModeSupport && AllowDarkModeForApp != NULL && ExRtlGetNtVersionNumbers != NULL ) {
+		DWORD major = 0, minor = 0, build = 0;
+		ExRtlGetNtVersionNumbers(&major, &minor, &build); build &= 0x0FFFFFFF;
+		if ( major == 10 && minor == 0 && build >= 17763 )	// // Windows 10 1809 (10.0.17763)
+			bDarkModeSupport = TRUE;
+	}
+
+	if ( bDarkModeSupport ) {
+		AllowDarkModeForApp(bEnable ? 1 : 0);
+		bDarkModeEnable = bEnable;
+	}
 }
 
 #ifdef	USE_OLE
@@ -806,9 +982,28 @@ int ThreadMessageBox(LPCTSTR msg, ...)
 		tmp += _T("\n\n");
 		tmp += (LPTSTR)lpMessageBuffer;
 		LocalFree(lpMessageBuffer);
+
+	} else if ( errno != 0 ) {
+		tmp += _T("\n\n");
+		tmp += _tcserror(errno);
 	}
 
-	return ::AfxMessageBox(tmp);
+	return ::AfxMessageBox(tmp, MB_ICONERROR);
+}
+int DoitMessageBox(LPCTSTR lpszPrompt, UINT nType, CWnd *pParent)
+{
+	CMsgChkDlg dlg;
+
+	dlg.m_MsgText = lpszPrompt;
+	dlg.m_nType = nType;
+	dlg.m_pParent = pParent;
+	dlg.m_bNoChkEnable = FALSE;
+
+	// エラーステータスをリセット
+	::SetLastError(0);
+	_set_errno(0);
+
+	return (int)dlg.DoModal();
 }
 void DpiAwareSwitch(BOOL sw, int req)
 {
@@ -1274,14 +1469,14 @@ BOOL CRLoginApp::InitInstance()
 #ifdef	USE_OLE
 	//  OLEの初期化
 	if ( !AfxOleInit() ) {
-		AfxMessageBox(_T("OLE Init Error"));
+		::AfxMessageBox(_T("OLE Init Error"), MB_ICONERROR);
 		return FALSE;
 	}
 #endif
 
 	// COMライブラリ初期化
 	if ( FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)) ) {
-		AfxMessageBox(_T("Com Library Init Error"));
+		::AfxMessageBox(_T("Com Library Init Error"), MB_ICONERROR);
 		return FALSE;
 	}
 
@@ -1289,7 +1484,7 @@ BOOL CRLoginApp::InitInstance()
 	WORD wVersionRequested;
 	wVersionRequested = MAKEWORD( 2, 2 );
 	if ( WSAStartup( wVersionRequested, &wsaData ) != 0 ) {
-		AfxMessageBox(CStringLoad(IDS_SOCKETS_INIT_FAILED));
+		::AfxMessageBox(CStringLoad(IDS_SOCKETS_INIT_FAILED), MB_ICONERROR);
 		return FALSE;
 	}
 
@@ -1339,6 +1534,10 @@ BOOL CRLoginApp::InitInstance()
 	GetTempPath(MAX_PATH, PathTemp);
 	m_TempDirBase.Format(_T("%sRLogin%d\\"), PathTemp, GetCurrentThreadId());
 
+	// アプリカラーテーブルの初期化
+	InitAppColor();
+	LoadAppColor();
+
 #ifdef	USE_RCDLL
 	// リソースDLL読み込み
 	CString rcDllName;
@@ -1351,7 +1550,7 @@ BOOL CRLoginApp::InitInstance()
 	CString rcFileName;
 	if ( GetExtFilePath(NULL, _T("_rc.txt"), rcFileName) ) {
 		if ( !m_ResDataBase.LoadFile(rcFileName) )
-			::AfxMessageBox(_T("Can't Load Resources File"));
+			::AfxMessageBox(_T("Can't Load Resources File"), MB_ICONWARNING);
 	} else {
 		TCHAR locale[256];
 		LANGID id = GetUserDefaultUILanguage();
@@ -1362,7 +1561,7 @@ BOOL CRLoginApp::InitInstance()
 			ext.Format(_T("_%s.txt"), locale);
 			if ( GetExtFilePath(base, ext, rcFileName) ) {
 				if ( !m_ResDataBase.LoadFile(rcFileName) )
-					::AfxMessageBox(_T("Can't Load Locale Resources File"));
+					::AfxMessageBox(_T("Can't Load Locale Resources File"), MB_ICONWARNING);
 			}
 		}
 	}
@@ -1468,7 +1667,7 @@ BOOL CRLoginApp::InitInstance()
 		RUNTIME_CLASS(CRLoginView));
 
 	if ( !pDocTemplate ) {
-		AfxMessageBox(_T("DocTemplate Create Error"));
+		::AfxMessageBox(_T("DocTemplate Create Error"), MB_ICONERROR);
 		return FALSE;
 	}
 
@@ -1492,13 +1691,8 @@ BOOL CRLoginApp::InitInstance()
 			m_BaseDir = cmdInfo.m_Cwd;
 	}
 	
-	// メニューがダークモードになるが非公開関数
-	if ( AllowDarkModeForApp != NULL && ExRtlGetNtVersionNumbers != NULL ) {
-		DWORD major = 0, minor = 0, build = 0;
-		ExRtlGetNtVersionNumbers(&major, &minor, &build); build &= 0x0FFFFFFF;
-		if ( major == 10 && minor == 0 && build >= 17763 )	// // Windows 10 1809 (10.0.17763)
-			AllowDarkModeForApp(1);
-	}
+	// ダークモードのサポート
+	ExDarkModeEnable(cmdInfo.m_DarkOff ? FALSE : GetProfileInt(_T("RLoginApp"), _T("DarkMode"), TRUE));
 
 	// メイン MDI フレーム ウィンドウを作成します。
 	CMainFrame* pMainFrame = new CMainFrame;
@@ -1579,13 +1773,13 @@ BOOL CRLoginApp::InitInstance()
 		CompNameLenBugFix = TRUE;
 		if ( pMainFrame->m_ServerEntryTab.GetSize() > 0 ) {
 			pMainFrame->m_ServerEntryTab.Serialize(TRUE);
-			AfxMessageBox(IDS_COMPNAMELENBUGFIX, MB_ICONINFORMATION | MB_OK);
+			::AfxMessageBox(IDS_COMPNAMELENBUGFIX, MB_ICONINFORMATION | MB_OK);
 		}
 	}
 
 	// ユーザープロファイルの更新を確認
 	if ( m_pszRegistryKey == NULL && GetProfileInt(_T("RLoginApp"), _T("CompressPrivateProfile"), 0) == 0 ) {
-		if ( AfxMessageBox(IDS_COMPPRIVATEPROFILE, MB_ICONWARNING | MB_YESNO) != IDYES )
+		if ( ::AfxMessageBox(IDS_COMPPRIVATEPROFILE, MB_ICONWARNING | MB_YESNO) != IDYES )
 			return FALSE;
 		WriteProfileInt(_T("RLoginApp"), _T("CompressPrivateProfile"), 1);
 		pMainFrame->m_ServerEntryTab.Serialize(TRUE);
@@ -1726,6 +1920,8 @@ int CRLoginApp::ExitInstance()
 	CoUninitialize();
 
 	CSFtp::LocalDelete(m_TempDirBase);
+
+	SaveAppColor();
 
 	return CWinApp::ExitInstance();
 }
@@ -2320,7 +2516,7 @@ BOOL CRLoginApp::GetProfileBinary(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBYTE
 		BYTE *compBuff = new BYTE[compSize];
 
 		if ( uncompress(compBuff, &compSize, *ppData + sizeof(UINT), *pBytes - sizeof(UINT)) != Z_OK ) {
-			delete compBuff;
+			delete [] compBuff;
 			delete *ppData;
 			*ppData = NULL;
 			*pBytes = 0;
@@ -2363,7 +2559,7 @@ BOOL CRLoginApp::WriteProfileBinary(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBY
 			WritePrivateProfileString(lpszSection, lpszEntry, NULL, m_pszProfileName);
 		}
 
-		delete compBuff;
+		delete [] compBuff;
 		return bRet;
 	}
 }
@@ -2945,7 +3141,7 @@ BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file, BOOL bRLoginApp)
 					size = compSize + sizeof(UINT);
 					memcpy(pData, compBuff, size);
 				}
-				delete compBuff;
+				delete [] compBuff;
 			}
 			for ( len = 0 ; len < size ; len++ ) {
 				mbs += (CHAR)('A' + (pData[len] & 0x0F));
@@ -3397,8 +3593,12 @@ int CRLoginApp::DoMessageBox(LPCTSTR lpszPrompt, UINT nType, UINT nIDPrompt)
 		}
 	}
 
-	if ( m_nThreadID == GetCurrentThreadId() )
-		return ::AfxGetMainWnd()->MessageBox(lpszPrompt, NULL, nType);
+	if ( theApp.m_pMainWnd == NULL )
+		return CWinApp::DoMessageBox(lpszPrompt, nType, nIDPrompt);
+
+	else if ( m_nThreadID == GetCurrentThreadId() )
+		return ::DoitMessageBox(lpszPrompt, nType);
+
 	else {
 		DocMsg docMsg;
 		docMsg.doc = NULL;
@@ -3633,7 +3833,7 @@ void CRLoginApp::OnDialogfont()
 		WriteProfileString(_T("Dialog"), _T("FontName"), FontName);
 		WriteProfileInt(_T("Dialog"), _T("FontSize"), FontSize);
 
-	} else if ( !FontName.IsEmpty() && AfxMessageBox(CStringLoad(IDS_DLGFONTDELMSG), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+	} else if ( !FontName.IsEmpty() && ::AfxMessageBox(CStringLoad(IDS_DLGFONTDELMSG), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 		DelProfileEntry(_T("Dialog"), _T("FontName"));
 		DelProfileEntry(_T("Dialog"), _T("FontSize"));
 	}
@@ -3721,7 +3921,7 @@ void CRLoginApp::OnSaveresfile()
 void CRLoginApp::OnCreateprofile()
 {
 	if ( SavePrivateProfile() )
-		::AfxMessageBox(CStringLoad(IDS_CREATEPROFILE));
+		::AfxMessageBox(CStringLoad(IDS_CREATEPROFILE), MB_ICONERROR);
 }
 void CRLoginApp::OnUpdateCreateprofile(CCmdUI *pCmdUI)
 {
@@ -3737,10 +3937,10 @@ void CRLoginApp::OnSaveregfile()
 		::AfxMessageBox(_T("Successfully saved all registries to a file"), MB_ICONINFORMATION);
 		break;
 	case 2:
-		::AfxMessageBox(_T("Can't Save Registry File"));
+		::AfxMessageBox(_T("Can't Save Registry File"), MB_ICONWARNING);
 		break;
 	case 3:
-		::AfxMessageBox(_T("Cann't Create Registry file"));
+		::AfxMessageBox(_T("Cann't Create Registry file"), MB_ICONWARNING);
 		break;
 	}
 }

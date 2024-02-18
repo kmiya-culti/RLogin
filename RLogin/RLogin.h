@@ -43,6 +43,9 @@
 // CProgDlg
 #define	WM_PROGUPDATE		(WM_APP + 29)
 
+// CDockBarEx
+#define	WM_DOCKBARDRAG		(WM_APP + 30)
+
 #define	IDLEPROC_ENCRYPT	0
 #define	IDLEPROC_SCRIPT		1
 #define	IDLEPROC_VIEW		2
@@ -64,6 +67,31 @@
 #define	SYSTEMICONV			(LPCTSTR)SystemIconv
 
 #define	DARKMODE_BACKCOLOR	RGB(56, 56, 56)
+#define	DARKMODE_TEXTCOLOR	RGB(255, 255, 255)
+
+#define	APPCOL_SYSMAX		31
+
+#define	APPCOL_MENUFACE		31
+#define	APPCOL_MENUTEXT		32
+#define	APPCOL_MENUHIGH		33
+
+#define	APPCOL_DLGFACE		34
+#define	APPCOL_DLGTEXT		35
+#define	APPCOL_DLGOPTFACE	36
+
+#define	APPCOL_BARBACK		37
+#define	APPCOL_BARSHADOW	38
+#define	APPCOL_BARFACE		39
+#define	APPCOL_BARHIGH		40
+#define	APPCOL_BARBODER		41
+#define	APPCOL_BARTEXT		42
+
+#define	APPCOL_TABFACE		43
+#define	APPCOL_TABTEXT		44
+#define	APPCOL_TABHIGH		45
+#define	APPCOL_TABSHADOW	46
+
+#define	APPCOL_MAX			47
 
 //////////////////////////////////////////////////////////////////////
 // CCommandLineInfoEx
@@ -93,6 +121,7 @@ public:
 	CString m_Title;
 	CString m_Script;
 	BOOL m_ReqDlg;
+	BOOL m_DarkOff;
 
 	CCommandLineInfoEx();
 	virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
@@ -323,9 +352,22 @@ extern CRLoginApp theApp;
 extern BOOL CompNameLenBugFix;
 extern CString SystemIconv;
 
+extern BOOL bDarkModeSupport;
+extern BOOL bDarkModeEnable;
+extern BOOL bUserAppColor;
+extern int AppColorBase;
+extern COLORREF AppColorTable[2][APPCOL_MAX];
+
+extern void InitAppColor();
+extern void LoadAppColor();
+extern void SaveAppColor();
+extern inline COLORREF GetAppColor(int nIndex) { return AppColorTable[AppColorBase][nIndex]; };
+extern HBRUSH GetAppColorBrush(int nIndex);
+
 extern BOOL ExDwmEnable;
 extern void ExDwmEnableWindow(HWND hWnd, BOOL bEnable);
 extern BOOL ExDwmDarkMode(HWND hWnd);
+extern void ExDarkModeEnable(BOOL bEnable);
 
 extern BOOL (__stdcall *ExAddClipboardFormatListener)(HWND hwnd);
 extern BOOL (__stdcall *ExRemoveClipboardFormatListener)(HWND hwnd);
@@ -351,6 +393,7 @@ typedef enum _PROCESS_DPI_AWARENESS { PROCESS_DPI_UNAWARE, PROCESS_SYSTEM_DPI_AW
 extern HRESULT (__stdcall *ExSetProcessDpiAwareness)(PROCESS_DPI_AWARENESS value);
 
 extern int ThreadMessageBox(LPCTSTR msg, ...);
+extern int DoitMessageBox(LPCTSTR lpszPrompt, UINT nType = 0, CWnd *pParent = NULL);
 
 #define	REQDPICONTEXT_SCALED	015
 #define	REQDPICONTEXT_AWAREV2	016

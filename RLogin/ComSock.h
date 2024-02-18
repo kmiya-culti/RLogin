@@ -23,6 +23,7 @@ public:
 	volatile enum { THREAD_NONE = 0, THREAD_RUN, THREAD_ENDOF } m_ThreadMode;
 	CWinThread *m_pComThread;
 	CEvent m_AbortEvent;
+	CEvent m_ThreadEvent;
 
 	UINT m_SendWait[2];
 	int m_SendCrLf;

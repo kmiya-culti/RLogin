@@ -1,0 +1,234 @@
+<HTML lang="en">
+<HEAD>
+<META http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+<META http-equiv="Content-Style-Type" content="text/css">
+<TITLE>ISO646サンプル</TITLE>
+<STYLE type="text/css">
+<!--
+TD {
+				
+				
+		background-color : #ffffff;
+font-size : 90%;
+}
+.BOX{		
+				
+				
+ background-color : silver;
+}
+-->
+</STYLE>
+</HEAD>
+<BODY bgcolor="#000000" background="/image/bla6b.gif">
+<CENTER>
+<TABLE cellpadding="10" bgcolor="#ffffff" width="1300">
+  <TBODY>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><B>Win32アプリでのダークモード対応覚え書き</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>各ウィンドウのタイトルバーをライト・ダークモードの配色に変更する関数<BR>
+      <A href="https://learn.microsoft.com/ja-jp/windows/win32/api/dwmapi/nf-dwmapi-dwmsetwindowattribute">DwmSetWindowAttribute</A>
+      <PRE style="background-color : #e7e7e7;padding-top : 10px;padding-left : 10px;padding-right : 10px;padding-bottom : 10px;">        HMODULE ExDwmApi = NULL;
+        HRESULT (__stdcall *ExDwmSetWindowAttribute)(HWND hwnd, DWORD dwAttribute, __in_bcount(cbAttribute) LPCVOID pvAttribute, DWORD cbAttribute) = NULL;
+
+        ExDwmApi = LoadLibrary(_T(&quot;dwmapi.dll&quot;));
+        ExDwmSetWindowAttribute = (HRESULT (__stdcall *)(HWND hwnd, DWORD dwAttribute, __in_bcount(cbAttribute) LPCVOID pvAttribute, DWORD cbAttribute))GetProcAddress(ExDwmApi, &quot;DwmSetWindowAttribute&quot;);
+
+        #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+        DWORD dwAttribute = 1;
+        ExDwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &amp;dwAttribute, sizeof(dwAttribute));
+</PRE>
+      OSのバージョン、マイナー、ビルドを取得する非公開関数<BR>
+      <A href="https://www.geoffchappell.com/studies/windows/win32/ntdll/api/ldrinit/getntversionnumbers.htm">RtlGetNtVersionNumbers<BR>
+      </A>ポップアップメニューをダークモード対応にする非公開関数<BR>
+      <A href="https://www.google.com/search?q=AllowDarkModeForApp">AllowDarkModeForApp</A><BR>
+      各ウィンドウのテーマを設定する関数<BR>
+      <A href="https://learn.microsoft.com/ja-jp/windows/win32/api/uxtheme/nf-uxtheme-setwindowtheme">SetWindowTheme</A><BR>
+      <BR>
+      AllowDarkModeForApp関数は、便利で唯一ポップアップメニューの配色を変更出来るがOSのビルド番号に依存するのでチェックが必要で将来的に怪しいので注意<BR>
+      <PRE style="background-color : #e7e7e7;padding-top : 10px;padding-left : 10px;padding-right : 10px;padding-bottom : 10px;">        HMODULE ExNtDll = NULL;
+        VOID (__stdcall *ExRtlGetNtVersionNumbers)(LPDWORD major, LPDWORD minor, LPDWORD build) = NULL;
+
+        ExNtDll = LoadLibrary(_T(&quot;ntdll.dll&quot;));
+        ExRtlGetNtVersionNumbers = (VOID (__stdcall *)(LPDWORD major, LPDWORD minor, LPDWORD build))GetProcAddress(ExNtDll, &quot;RtlGetNtVersionNumbers&quot;);
+
+        HMODULE ExUxThemeDll = NULL;
+        BOOL (__stdcall *AllowDarkModeForApp)(int mode) = NULL;
+        HRESULT (__stdcall *ExSetWindowTheme)(HWND hwnd, LPCWSTR pszSubAppName, LPCWSTR pszSubIdList) = NULL;
+
+        ExUxThemeDll = LoadLibrary(_T(&quot;uxtheme.dll&quot;));
+        AllowDarkModeForApp = (BOOL (__stdcall *)(int mode))GetProcAddress(ExUxThemeDll, MAKEINTRESOURCEA(135));
+        ExSetWindowTheme = (HRESULT (__stdcall *)(HWND hwnd, LPCWSTR pszSubAppName, LPCWSTR pszSubIdList))GetProcAddress(ExUxThemeDll, &quot;SetWindowTheme&quot;);
+
+        DWORD major = 0, minor = 0, build = 0;
+        ExRtlGetNtVersionNumbers(&amp;major, &amp;minor, &amp;build); build &amp;= 0x0FFFFFFF;
+        if ( major == 10 &amp;&amp; minor == 0 &amp;&amp; build &gt;= 17763 ) {    // // Windows 10 1809 (10.0.17763)
+                AllowDarkModeForApp(1);
+                bDarkModeSupport = TRUE;
+        }</PRE>
+      ダークモードのチェックは、ダイレクトにレジストリを見るほうが非公開関数でチェックするよりマシ<BR>
+      <PRE style="background-color : #e7e7e7;padding-top : 10px;padding-left : 10px;padding-right : 10px;padding-bottom : 10px;">
+        HKEY_CURRENT_USER, &quot;Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme&quot;
+</PRE>
+      メニューバーの描画に関する非公開メッセージ<BR>
+      <A href="https://github.com/adzm/win32-custom-menubar-aero-theme">adzm / win32-custom-menubar-aero-theme</A><BR>
+      <BR>
+      これでメニューバーを自由に描画出来るようになるが非公開なのが怪しい・・・
+      <PRE style="background-color : #e7e7e7;padding-top : 10px;padding-left : 10px;padding-right : 10px;padding-bottom : 10px;">        #define WM_UAHDRAWMENU         0x0091   // lParam is UAHMENU
+        #define WM_UAHDRAWMENUITEM     0x0092   // lParam is UAHDRAWMENUITEM
+
+        ON_MESSAGE(WM_UAHDRAWMENU, OnUahDrawMenu)
+        ON_MESSAGE(WM_UAHDRAWMENUITEM, OnUahDrawMenuItem)
+
+LRESULT CMainFrame::OnUahDrawMenu(WPARAM wParam, LPARAM lParam)
+{
+        UAHMENU *pUahMenu = (UAHMENU *)lParam;
+        CDC *pDC = CDC::FromHandle(pUahMenu-&gt;hdc);
+        MENUBARINFO mbi;
+        CRect rect, rcWindow;
+
+        ASSERT(pUahMenu != NULL &amp;&amp; pDC != NULL);
+
+        ZeroMemory(&amp;mbi, sizeof(mbi));
+        mbi.cbSize = sizeof(mbi);
+        GetMenuBarInfo(OBJID_MENU, 0, &amp;mbi);
+
+        GetWindowRect(rcWindow);
+        rect = mbi.rcBar;
+        rect.OffsetRect(-rcWindow.left, -rcWindow.top);
+
+        pDC-&gt;FillSolidRect(rect, GetAppColor(APPCOL_MENUFACE));
+
+        return TRUE;
+}
+LRESULT CMainFrame::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
+{
+        UAHDRAWMENUITEM *pUahDrawMenuItem = (UAHDRAWMENUITEM *)lParam;
+        CMenu *pMenu = CMenu::FromHandle(pUahDrawMenuItem-&gt;um.hmenu);
+        int npos = pUahDrawMenuItem-&gt;umi.iPosition;
+        UINT state = pUahDrawMenuItem-&gt;dis.itemState;
+        CDC *pDC = CDC::FromHandle(pUahDrawMenuItem-&gt;dis.hDC);
+        CRect rect = pUahDrawMenuItem-&gt;dis.rcItem;
+        DWORD dwFlags = DT_SINGLELINE | DT_VCENTER | DT_CENTER;
+        CString title;
+        COLORREF TextColor = GetAppColor(APPCOL_MENUTEXT);
+        COLORREF BackColor = GetAppColor(APPCOL_MENUFACE);
+        int OldBkMode = pDC-&gt;SetBkMode(TRANSPARENT);
+
+        ASSERT(pUahDrawMenuItem != NULL &amp;&amp; pDC != NULL &amp;&amp; pMenu != NULL);
+        
+        pMenu-&gt;GetMenuString(npos, title, MF_BYPOSITION);
+
+        if ( (state &amp; ODS_NOACCEL) != 0 )
+                dwFlags |= DT_HIDEPREFIX;
+
+        if ( (state &amp; (ODS_INACTIVE | ODS_GRAYED | ODS_DISABLED)) != 0 )
+                TextColor = GetAppColor(COLOR_GRAYTEXT);
+
+        if ( (state &amp; (ODS_HOTLIGHT | ODS_SELECTED)) != 0 )
+                BackColor = GetAppColor(APPCOL_MENUHIGH);
+
+        TextColor = pDC-&gt;SetTextColor(TextColor);
+        pDC-&gt;FillSolidRect(rect, BackColor);
+        pDC-&gt;DrawText(title, rect, dwFlags);
+
+        pDC-&gt;SetTextColor(TextColor);
+        pDC-&gt;SetBkMode(OldBkMode);
+
+        return TRUE;
+}</PRE>
+      ダイアログの配色は、基本WM_CTLCOLORで処理出来るがコントールの色設定が出来ない<BR>
+      <PRE style="background-color : #e7e7e7;padding-top : 10px;padding-left : 10px;padding-right : 10px;padding-bottom : 10px;">        ON_WM_CTLCOLOR()
+
+HBRUSH CDialogExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+{
+        HBRUSH hbr = CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
+
+        switch(nCtlColor) {
+        case CTLCOLOR_MSGBOX:           // Message box
+        case CTLCOLOR_EDIT:             // Edit control
+        case CTLCOLOR_LISTBOX:          // List-box control
+        case CTLCOLOR_BTN:              // Button control
+                break;
+
+        case CTLCOLOR_DLG:              // Dialog box
+        case CTLCOLOR_SCROLLBAR:
+        case CTLCOLOR_STATIC:           // Static control
+                hbr = GetAppColorBrush(APPCOL_DLGFACE);
+                pDC-&gt;SetTextColor(GetAppColor(APPCOL_DLGTEXT));
+                pDC-&gt;SetBkMode(TRANSPARENT);
+                break;
+        }
+
+        return hbr;
+}</PRE>
+      各コントロール別にテーマの変更をWM_SETTINGCHANGEで行う事で対処<BR>
+      ボタンコントールは、スタイルにより以下のテーマを選択する必要あり<BR>
+      <TABLE cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD>SetWindowTheme(hWnd, L&quot;Explorer&quot;, NULL);</TD>
+            <TD>ライトモードに設定</TD>
+            <TD rowspan="2" valign="top">コントロールの種類によりかなり違うので注意<BR>
+            Button,Edit,ScrollBar,SysListView32,<BR>
+            SysTreeView32などは、変化するようです</TD>
+          </TR>
+          <TR>
+            <TD>SetWindowTheme(hWnd, L&quot;DarkMode_Explorer&quot;, NULL);</TD>
+            <TD>ダークモードに設定</TD>
+          </TR>
+          <TR>
+            <TD>SetWindowTheme(hWnd, NULL, NULL);</TD>
+            <TD>デフォルトに戻す</TD>
+            <TD></TD>
+          </TR>
+          <TR>
+            <TD>SetWindowTheme(hWnd, L&quot;&quot;, L&quot;&quot;);</TD>
+            <TD>テーマ設定を解除</TD>
+            <TD>デザインがかなり古いがWM_CTLCOLORの<BR>
+            設定が有効になるようです</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      <PRE style="background-color : #e7e7e7;padding-top : 10px;padding-left : 10px;padding-right : 10px;padding-bottom : 10px;">        ON_WM_SETTINGCHANGE()
+
+static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
+{
+        CWnd *pWnd = CWnd::FromHandle(hWnd);
+        TCHAR name[256];
+
+        GetClassName(hWnd, name, 256);
+
+        if ( _tcscmp(name, _T(&quot;Button&quot;)) == 0 ) {
+                if ( (pWnd-&gt;GetStyle() &amp; BS_TYPEMASK) &lt;= BS_DEFPUSHBUTTON )
+                        ExSetWindowTheme(hWnd, (bDarkMode ? L&quot;DarkMode_Explorer&quot; : L&quot;Explorer&quot;), NULL);
+                else if ( pParent-&gt;m_bDarkMode )
+                        ExSetWindowTheme(hWnd, L&quot;&quot;, L&quot;&quot;);
+                else
+                        ExSetWindowTheme(hWnd, NULL, NULL);
+                SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+        }
+
+        return TRUE;
+}
+void CDialogExt::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
+{
+        if ( lpszSection != NULL &amp;&amp; _tcscmp(lpszSection, _T(&quot;ImmersiveColorSet&quot;)) == 0 ) {
+                EnumChildWindows(GetSafeHwnd(), EnumSetThemeProc, (LPARAM)this);
+                RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_FRAME | RDW_ERASE);
+        }
+
+        CDialog::OnSettingChange(uFlags, lpszSection);
+}</PRE>
+      </TD>
+    </TR>
+  </TBODY>
+</TABLE>
+</CENTER>
+</BODY>
+</HTML>

@@ -205,7 +205,7 @@ void CIso646Dlg::OnOK()
 	}
 
 	if ( bError )
-		MessageBox(_T("Error in the code Definition"));
+		::AfxMessageBox(_T("Error in the code Definition"), MB_ICONERROR);
 
 	CDialogExt::OnOK();
 }
@@ -287,10 +287,10 @@ void CIso646Dlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 		pOldFont = pDC->SelectObject(&m_Font);
 		sz = pDC->GetTextExtent(str);
 
-		pDC->SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
-		pDC->SetBkColor(GetSysColor(COLOR_MENU));
+		pDC->SetTextColor(GetAppColor(COLOR_MENUTEXT));
+		pDC->SetBkColor(GetAppColor(COLOR_MENU));
 
-		pDC->FillSolidRect(rect, GetSysColor(COLOR_MENU));
+		pDC->FillSolidRect(rect, GetAppColor(COLOR_MENU));
 		pDC->TextOut(rect.left + (rect.Width() - sz.cx) / 2, rect.top + (rect.Height() - sz.cy) / 2, str);
 
 		if ( bMirror )

@@ -1935,27 +1935,25 @@ ENDOF:
 }
 int CScript::LexAdd(CScriptLex *lex)
 {
-	int c, n;
+	int c, n = 0;
 
 	lex->m_Left = lex->m_Right = (-1);
 
 	if ( m_LexData.GetSize() <= 0 )
 		return (int)m_LexData.Add(*lex);
 	else {
-		for ( n = 0 ; ; ) {
+		for ( ; ; ) {
 			if ( (c = m_LexData[n].Compare(*lex)) == 0 )
 				return n;
 			else if ( c < 0 ) {
-				if ( m_LexData[n].m_Left == (-1) ) {
-					m_LexData[n].m_Left = (int)m_LexData.Add(*lex);
-					return m_LexData[n].m_Left;
-				} else
+				if ( m_LexData[n].m_Left == (-1) )
+					return (m_LexData[n].m_Left = (int)m_LexData.Add(*lex));
+				else
 					n = m_LexData[n].m_Left;
 			} else {
-				if ( m_LexData[n].m_Right == (-1) ) {
-					m_LexData[n].m_Right = (int)m_LexData.Add(*lex);
-					return m_LexData[n].m_Right;
-				} else
+				if ( m_LexData[n].m_Right == (-1) )
+					return (m_LexData[n].m_Right = (int)m_LexData.Add(*lex));
+				else
 					n = m_LexData[n].m_Right;
 			}
 		}
@@ -5187,10 +5185,10 @@ int CScript::Func10(int cmd, CScriptValue &local)
 
 	switch(cmd) {
 	case 0:		// msgdlg(m)
-		AfxMessageBox((LPCTSTR)local[0]);
+		::AfxMessageBox((LPCTSTR)local[0], MB_ICONINFORMATION);
 		break;
 	case 1:		// yesnodlg(m)
-		if ( AfxMessageBox((LPCTSTR)local[0], MB_ICONQUESTION | MB_YESNO) == IDYES )
+		if ( ::AfxMessageBox((LPCTSTR)local[0], MB_ICONQUESTION | MB_YESNO) == IDYES )
 			(*acc) = (int)1;
 		else
 			(*acc) = (int)0;
@@ -7317,11 +7315,11 @@ BOOL CScript::OnIdle()
 		} catch(LPCTSTR pMsg) {
 			CString tmp;
 			tmp.Format(_T("Script Error '%s'"), pMsg);
-			AfxMessageBox(tmp);
+			::AfxMessageBox(tmp, MB_ICONERROR);
 			m_bOpenSock = FALSE;
 			Abort();
 		} catch(...) {
-			AfxMessageBox(_T("Script Unkown Error"));
+			::AfxMessageBox(_T("Script Unkown Error"), MB_ICONERROR);
 			m_bOpenSock = FALSE;
 			Abort();
 		}

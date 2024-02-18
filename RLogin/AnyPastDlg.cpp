@@ -236,7 +236,7 @@ BOOL CAnyPastDlg::SendBracketedPaste(LPCTSTR str)
 		return FALSE;
 
 	if ( !m_bDiffViewEnable && (m_DocSeqNumber == 0 || m_DocSeqNumber != pDoc->m_DocSeqNumber) ) {
-		if ( AfxMessageBox(IDS_ANYPASTVIEWMSG, MB_ICONWARNING | MB_YESNO) != IDYES )
+		if ( ::AfxMessageBox(IDS_ANYPASTVIEWMSG, MB_ICONWARNING | MB_YESNO) != IDYES )
 			return FALSE;
 		m_bDiffViewEnable = TRUE;
 	}

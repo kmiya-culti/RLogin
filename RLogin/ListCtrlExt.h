@@ -3,8 +3,12 @@
 /////////////////////////////////////////////////////////////////////////////
 // CListCtrlExt ウィンドウ
 
-#define	SORTMASK_REVS	0x8000
-#define	SORTMASK_ITEM	0x7FFF
+#define	SORTMASK_REVS		0x8000
+#define	SORTMASK_ITEM		0x7FFF
+
+#define	EDITFLAG_NONE		0
+#define	EDITFLAG_EDIT		1
+#define	EDITFLAG_NEXT		2
 
 class CListCtrlExt : public CListCtrl
 {

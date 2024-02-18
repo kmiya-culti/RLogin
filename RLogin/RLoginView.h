@@ -84,6 +84,7 @@ public:
 	BOOL m_ScrollOut;
 	BOOL m_ClipUpdateLine;
 	CBitmap m_TekBitmap;
+	BOOL m_bDarkMode;
 
 	clock_t m_RDownClock;
 	CPoint m_RDownPoint;
@@ -266,6 +267,7 @@ protected:
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnDropFiles(HDROP hDropInfo);
+	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
 
 	afx_msg LRESULT OnImeNotify(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnImeComposition(WPARAM wParam, LPARAM lParam);

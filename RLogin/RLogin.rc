@@ -239,6 +239,9 @@ BEGIN
         MENUITEM "タブバー(&B)",                    ID_VIEW_TABBAR
         MENUITEM "ダイアログバー(&D)",                 ID_VIEW_TABDLGBAR
         MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
+        MENUITEM SEPARATOR
+        MENUITEM "バー位置の固定(&F)",                 IDM_DOCKBARFIXED
+        MENUITEM "バー位置の初期化(&I)",                IDM_DOCKBARINIT
     END
     POPUP "ウィンドウ(&W)"
     BEGIN
@@ -258,6 +261,7 @@ BEGIN
         MENUITEM "既定のアプリへ登録を行う(&X)",            IDM_REGISTAPP
         MENUITEM "セキュリティポリシーの設定(&S)",           IDM_SECPORICY
         MENUITEM SEPARATOR
+        MENUITEM "各種ウィンドウの色設定(&C)",             IDM_APPCOLEDIT
         MENUITEM "ダイアログフォントの設定(&D)",            IDM_DIALOGFONT
         MENUITEM "ツールバーのカスタマイズ(&T)",            IDM_TOOLCUST
         MENUITEM "タブバーをマルチラインで表示(&M)",          IDM_TABMULTILINE
@@ -435,6 +439,7 @@ BEGIN
         MENUITEM "既定のアプリへ登録を行う(&X)",            IDM_REGISTAPP
         MENUITEM "セキュリティポリシーの設定(&S)",           IDM_SECPORICY
         MENUITEM SEPARATOR
+        MENUITEM "各種ウィンドウの色設定(&C)",             IDM_APPCOLEDIT
         MENUITEM "ダイアログフォントの設定(&D)",            IDM_DIALOGFONT
         MENUITEM "ツールバーのカスタマイズ(&T)",            IDM_TOOLCUST
         MENUITEM "タブバーをマルチラインで表示(&M)",          IDM_TABMULTILINE
@@ -729,10 +734,10 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,210,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.29.0 (2024/01/22)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.29.1 (2024/02/19)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2023 Culti",IDC_STATIC,44,17,189,8
-    LTEXT           "OpenSSL 3.2.0 23 Nov 2023",IDC_STATIC,44,50,189,8
-    LTEXT           "Copyright (c) 1998-2023 The OpenSSL Project",IDC_STATIC,44,60,189,8
+    LTEXT           "OpenSSL 3.2.1 30 Jan 2024",IDC_STATIC,44,50,189,8
+    LTEXT           "Copyright (c) 1998-2024 The OpenSSL Project",IDC_STATIC,44,60,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,80,189,8
     LTEXT           "zlib 1.3 (18 Aug 2023)",IDC_STATIC,44,94,189,8
@@ -889,7 +894,7 @@ STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Server Select"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "List1",IDC_SERVERLIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,67,20,160,86
+    CONTROL         "List1",IDC_SERVERLIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,67,19,160,87
     PUSHBUTTON      "OK",IDOK,233,7,50,14
     PUSHBUTTON      "キャンセル",IDCANCEL,233,24,50,14
     PUSHBUTTON      "新規(&N)",IDC_NEWENTRY,233,53,50,14
@@ -1131,13 +1136,14 @@ BEGIN
     CONTROL         "",IDC_BOX13,"Static",SS_OWNERDRAW | WS_BORDER,135,75,20,20
     CONTROL         "",IDC_BOX14,"Static",SS_OWNERDRAW | WS_BORDER,159,75,20,20
     CONTROL         "",IDC_BOX15,"Static",SS_OWNERDRAW | WS_BORDER,183,75,20,20
-    EDITTEXT        IDC_TEXTCOL,57,127,28,14,ES_AUTOHSCROLL,WS_EX_RIGHT
-    EDITTEXT        IDC_BACKCOL,57,156,28,14,ES_AUTOHSCROLL,WS_EX_RIGHT
-    CONTROL         "",IDC_BOXTEXT,"Static",SS_OWNERDRAW | WS_BORDER,94,124,20,20
-    CONTROL         "",IDC_BOXBACK,"Static",SS_OWNERDRAW | WS_BORDER,94,153,20,20
-    CONTROL         "Slider1",IDC_TRANSPARENT,"msctls_trackbar32",TBS_TOP,145,118,110,16
-    COMBOBOX        IDC_WAKEUPSLEEP,203,142,50,104,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "ガラス効果を有効にする",IDC_GLASSSTYLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,150,164,101,10
+    EDITTEXT        IDC_TEXTCOL,57,126,28,14,ES_AUTOHSCROLL,WS_EX_RIGHT
+    EDITTEXT        IDC_BACKCOL,57,155,28,14,ES_AUTOHSCROLL,WS_EX_RIGHT
+    CONTROL         "",IDC_BOXTEXT,"Static",SS_OWNERDRAW | WS_BORDER,94,123,20,20
+    CONTROL         "",IDC_BOXBACK,"Static",SS_OWNERDRAW | WS_BORDER,94,152,20,20
+    CONTROL         "Slider1",IDC_TRANSPARENT,"msctls_trackbar32",TBS_TOP,145,117,110,16
+    COMBOBOX        IDC_WAKEUPSLEEP,203,137,50,104,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "ガラス効果を有効にする",IDC_GLASSSTYLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,150,154,101,10
+    CONTROL         "ダークモードを有効にする",IDC_DARKMODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,150,169,101,10
     CONTROL         "",IDC_ATTR1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,23,199,46,10
     CONTROL         "",IDC_ATTR2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,82,199,46,10
     CONTROL         "",IDC_ATTR3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,141,199,46,10
@@ -1152,16 +1158,16 @@ BEGIN
     EDITTEXT        IDC_EMOJIIMAGEDIR,92,268,116,14,ES_AUTOHSCROLL
     PUSHBUTTON      "参照",IDC_EMOJIIMAGESEL,212,268,41,14
     GROUPBOX        "16色カラーテーブル",IDC_STATIC,7,7,256,97
-    GROUPBOX        "文字カラー",IDC_STATIC,7,109,124,74
-    GROUPBOX        "透明化（全エントリー共有）",IDC_STATIC,139,109,124,74
-    GROUPBOX        "文字装飾",IDC_STATIC,7,186,256,46
+    GROUPBOX        "文字カラー",IDC_STATIC,7,108,124,76
+    GROUPBOX        "透明化（全エントリー共有）",IDC_STATIC,139,108,124,76
+    GROUPBOX        "文字装飾",IDC_STATIC,7,187,256,45
     GROUPBOX        "カラー絵文字（フォント・フォルダ全エントリー共有）",IDC_STATIC,7,236,256,57
     CTEXT           "C",IDC_STATIC,213,22,8,8
     CTEXT           "B",IDC_STATIC,229,22,8,8
     CTEXT           "H",IDC_STATIC,245,22,8,8
-    CTEXT           "文字色",IDC_STATIC,20,130,27,8
-    CTEXT           "背景色",IDC_STATIC,20,159,27,8
-    LTEXT           "Sleep Time",IDC_STATIC,150,145,34,8
+    CTEXT           "文字色",IDC_STATIC,20,129,27,8
+    CTEXT           "背景色",IDC_STATIC,20,158,27,8
+    LTEXT           "Sleep Time",IDC_STATIC,150,140,34,8
 END
 
 IDD_ICONVDLG DIALOGEX 0, 0, 210, 135
@@ -1941,17 +1947,18 @@ BEGIN
     LTEXT           "インライン表示できない時に下記の拡張子ならShellで実行します",IDC_TITLE4,15,258,240,8
 END
 
-IDD_MSGDLG DIALOGEX 0, 0, 315, 114
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_MSGDLG DIALOGEX 0, 0, 238, 87
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Dialog"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "",IDC_STATIC,"Static",SS_WHITERECT,0,0,314,83
-    DEFPUSHBUTTON   "はい(&Y)",IDOK,176,91,60,16
-    PUSHBUTTON      "いいえ(&N)",IDCANCEL,248,91,60,16
-    CONTROL         "次回から、この確認を行わない",IDC_NOCHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,47,93,98,10
-    ICON            "",IDC_ICONBOX,20,20,20,20,0,WS_EX_TRANSPARENT
-    LTEXT           "",IDC_MSGTEXT,46,20,240,40,0,WS_EX_TRANSPARENT
+    DEFPUSHBUTTON   "はい(&Y)",IDC_BUTTON1,68,63,48,16
+    PUSHBUTTON      "いいえ(&N)",IDC_BUTTON2,123,63,48,16
+    PUSHBUTTON      "無視(&I)",IDC_BUTTON3,177,63,48,16
+    CONTROL         "次回から、この確認を行わない",IDC_NOCHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,65,111,10
+    CONTROL         "",IDC_BOX1,"Static",SS_OWNERDRAW,0,0,238,55
+    ICON            "",IDC_ICONBOX,14,17,20,20,0,WS_EX_TRANSPARENT
+    LTEXT           "Test\nTest",IDC_MSGTEXT,39,15,185,25,SS_NOPREFIX | 0x2000,WS_EX_TRANSPARENT
 END
 
 IDD_BACKPAGE DIALOGEX 0, 0, 270, 300
@@ -2300,8 +2307,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,29,0,0
- PRODUCTVERSION 2,29,0,0
+ FILEVERSION 2,29,1,0
+ PRODUCTVERSION 2,29,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2318,12 +2325,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.29.0.0"
+            VALUE "FileVersion", "2.29.1.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.29.0.0"
+            VALUE "ProductVersion", "2.29.1.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2750,9 +2757,8 @@ BEGIN
     IDD_MSGDLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 308
         TOPMARGIN, 7
-        BOTTOMMARGIN, 107
+        BOTTOMMARGIN, 80
     END
 
     IDD_BACKPAGE, DIALOG
@@ -4670,6 +4676,20 @@ BEGIN
     IDS_INITFONTSETTITLE    "フォントセットの設定を下記に従って変更します"
     IDS_INITTERMOPTTITLE    "制御コードのオプション設定を下記に従って変更します"
     IDS_INITEXTOPTTITLE     "拡張機能のオプション設定を下記に従って変更します"
+    IDS_APPCOLDELMSG        "各種ウィンドウの色設定をすべて削除して初期化しますか？"
+    IDS_MESSAGEBOX_OK       "OK"
+    IDS_MESSAGEBOX_CANCEL   "キャンセル"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_MESSAGEBOX_ABORT    "中止(&A)"
+    IDS_MESSAGEBOX_RETRY    "再試行(&R)"
+    IDS_MESSAGEBOX_IGNORE   "無視(&I)"
+    IDS_MESSAGEBOX_YES      "はい(&Y)"
+    IDS_MESSAGEBOX_NO       "いいえ(&N)"
+    IDS_MESSAGEBOX_TRYAGAIN "再試行(&T)"
+    IDS_MESSAGEBOX_CONTINUE "続行(&C)"
 END
 
 STRINGTABLE
@@ -5139,6 +5159,26 @@ BEGIN
     IDT_TERM_LIST66         "太字と高輝度を併用\t太字か高輝度を選択\t上記8403で太字を選択した場合に高輝度と併用することができます"
     IDT_TERM_LIST67         "Set legacy keyboard\tReset legacy keyboard\tlegacy keyboard emulation"
     IDT_TERM_LIST68         "￥をU+00A5で送信\t￥をU+005Cで送信\tUTF-8の場合に￥キーの文字コードを変更する"
+    IDT_APPCOL_TITLE1       "メニューバーの背景色"
+    IDT_APPCOL_TITLE2       "メニューバーの文字色"
+    IDT_APPCOL_TITLE3       "メニュー選択時の背景色"
+    IDT_APPCOL_TITLE4       "ダイアログの背景色"
+    IDT_APPCOL_TITLE5       "ダイアログの文字色"
+    IDT_APPCOL_TITLE6       "オプション設定の背景色"
+    IDT_APPCOL_TITLE7       "ドッキングバーの背景色"
+    IDT_APPCOL_TITLE8       "ドッキングバーの境界線"
+END
+
+STRINGTABLE
+BEGIN
+    IDT_APPCOL_TITLE9       "タブバーの背景色"
+    IDT_APPCOL_TITLE10      "タブバー選択時の背景色"
+    IDT_APPCOL_TITLE11      "タブバーの境界線"
+    IDT_APPCOL_TITLE12      "タブバーの文字色"
+    IDT_APPCOL_TITLE13      "タブの背景色"
+    IDT_APPCOL_TITLE14      "タブの文字色"
+    IDT_APPCOL_TITLE15      "タブ選択時の背景色"
+    IDT_APPCOL_TITLE16      "タブの境界線"
 END
 
 STRINGTABLE
@@ -5160,8 +5200,8 @@ BEGIN
     IDM_SPEAKALL            "表示されている画面を音声で読み上げます\n音声で読み上げ"
     IDM_KNOWNHOSTDEL        "登録されているホスト鍵の削除\nホスト鍵の削除"
     IDM_ALL_EXPORT          "すべてのエントリーをファイルに保存します\nすべて保存"
-    IDM_SPEAKBACK           "前行を読み上げ\n前行を読む"
-    IDM_SPEAKNEXT           "次行を読み上げ\n次行を読む"
+    IDM_SPEAKBACK           "前行を読み上げ"
+    IDM_SPEAKNEXT           "次行を読み上げ"
     IDM_CHARTOOLTIP         "コンソールの文字情報をツールチップで表示する\n文字情報"
     IDM_LINEEDITMODE        "端末で行編集してから文字を送ります\nローカルエディットモードの切替"
 END
@@ -5171,6 +5211,9 @@ BEGIN
     IDM_RIGHTCLOSE          "右側の接続をすべて閉じる\n右側を閉じる"
     IDM_OTHERCLOSE          "他の接続をすべて閉じる\n他を閉じる"
     IDM_VIEW_SUBTOOL        "サブツールバーの 表示/非表示\nサブツールバーの表示切り替え"
+    IDM_DOCKBARFIXED        "バー位置を固定"
+    IDM_DOCKBARINIT         "バー位置を初期化"
+    IDM_APPCOLEDIT          "各種ウィンドウの色設定"
 END
 
 #endif    // 日本語 (日本) resources

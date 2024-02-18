@@ -27,6 +27,7 @@ CListCtrlExt::CListCtrlExt()
 	m_Dpi.cx = SYSTEM_DPI_X;
 	m_Dpi.cy = SYSTEM_DPI_Y;
 	m_bSetLVCheck = FALSE;
+	m_EditFlag = EDITFLAG_NONE;
 }
 CListCtrlExt::~CListCtrlExt()
 {
@@ -128,16 +129,23 @@ void CListCtrlExt::InitColumn(LPCTSTR lpszSection, const LV_COLUMN *lpColumn, in
 	LV_COLUMN tmp;
 	CBuffer buf;
 	CDialogExt *pParent = (CDialogExt *)GetParent();
+	CSize dsz(7, 12);
+	CSize fsz(7, 12);
 
-	if ( CDialogExt::IsDialogExt(pParent) ) {
+	if ( pParent != NULL && CDialogExt::IsDialogExt(pParent) ) {
 		m_Dpi.cx = pParent->m_NowDpi.cx;
 		m_Dpi.cy = pParent->m_NowDpi.cy;
+		dsz = pParent->m_DefFsz;
+		fsz = pParent->m_NowFsz;
 	}
+
+	if ( nMax > 0 && AfxGetApp()->GetProfileInt(lpszSection, lpColumn[0].pszText, (-1)) != (-1) && AfxGetApp()->GetProfileInt(lpszSection, _T("ListCtrlFontSize"), 0) == 0 )
+		fsz = dsz;
 
 	for ( n = 0 ; n < nMax ; n++ ) {
 		tmp = lpColumn[n];
 		tmp.cx = AfxGetApp()->GetProfileInt(lpszSection, tmp.pszText, tmp.cx);
-		tmp.cx = MulDiv(tmp.cx, m_Dpi.cx, DEFAULT_DPI_X);
+		tmp.cx = MulDiv(tmp.cx, m_Dpi.cx * fsz.cx, DEFAULT_DPI_X * dsz.cx);
 		InsertColumn(n, &tmp);
 	}
 
@@ -184,6 +192,16 @@ void CListCtrlExt::SaveColumn(LPCTSTR lpszSection)
 	LV_COLUMN tmp;
 	TCHAR name[256];
 	CBuffer buf;
+	CDialogExt *pParent = (CDialogExt *)GetParent();
+	CSize dsz(7, 12);
+	CSize fsz(7, 12);
+
+	if ( pParent != NULL && CDialogExt::IsDialogExt(pParent) ) {
+		m_Dpi.cx = pParent->m_NowDpi.cx;
+		m_Dpi.cy = pParent->m_NowDpi.cy;
+		dsz = pParent->m_DefFsz;
+		fsz = pParent->m_NowFsz;
+	}
 
 	memset(&tmp, 0, sizeof(tmp));
 	tmp.pszText = name;
@@ -191,9 +209,11 @@ void CListCtrlExt::SaveColumn(LPCTSTR lpszSection)
 	tmp.mask = LVCF_WIDTH | LVCF_TEXT;
 
 	for ( n = 0 ; GetColumn(n, &tmp) ; n++ ) {
-		tmp.cx = MulDiv(tmp.cx, DEFAULT_DPI_Y, m_Dpi.cx);
+		tmp.cx = MulDiv(tmp.cx, DEFAULT_DPI_Y * dsz.cx, m_Dpi.cx * fsz.cx);
 		AfxGetApp()->WriteProfileInt(lpszSection, tmp.pszText, tmp.cx);
 	}
+
+	AfxGetApp()->WriteProfileInt(lpszSection, _T("ListCtrlFontSize"), fsz.cx);
 
 	for ( n = (int)m_SortItem.GetSize() - 1 ; n >= 0 ; n-- )
 		buf.Put16Bit(m_SortItem[n]);
@@ -313,7 +333,7 @@ void CListCtrlExt::OpenEditBox(int item, int num, int fmt, CRect &rect)
 	m_EditItem = item;
 	m_EditNum  = num;
 	m_EditOld  = tmp;
-	m_EditFlag = TRUE;
+	m_EditFlag = EDITFLAG_EDIT;
 }
 void CListCtrlExt::EditItem(int item, int num)
 {
@@ -342,6 +362,7 @@ BOOL CListCtrlExt::OnDblclk(NMHDR* pNMHDR, LRESULT* pResult)
 	CRect rect;
 	LVCOLUMN lvc;
 	NMLISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
+	BOOL bOpen = FALSE;
 
 	if ( m_EditSubItem == 0 )
 		return FALSE;
@@ -350,6 +371,7 @@ BOOL CListCtrlExt::OnDblclk(NMHDR* pNMHDR, LRESULT* pResult)
 		if ( !GetItemRect(n, rect, LVIR_LABEL) )
 			break;
 		if ( pNMListView->ptAction.y >= rect.top && pNMListView->ptAction.y < rect.bottom ) {
+			pNMListView->iItem = n;
 			lvc.mask = LVCF_WIDTH | LVCF_FMT ;
 			x = 0 - GetScrollPos(SB_HORZ);
 			for ( i = 0 ; GetColumn(i, &lvc) ; i++, x += a ) {
@@ -358,12 +380,16 @@ BOOL CListCtrlExt::OnDblclk(NMHDR* pNMHDR, LRESULT* pResult)
 					rect.left  = x;
 					rect.right = x + a;
 					OpenEditBox(n, i, lvc.fmt, rect);
+					bOpen = TRUE;
 					break;
 				}
 			}
 			break;
 		}
 	}
+
+	if ( !bOpen )
+		return FALSE;
 	
 	*pResult = 0;
 	return TRUE;
@@ -371,14 +397,22 @@ BOOL CListCtrlExt::OnDblclk(NMHDR* pNMHDR, LRESULT* pResult)
 void CListCtrlExt::OnKillfocusEditBox() 
 {
 	CString str;
+	int NextNum = 32;
 
-	if ( m_EditFlag == FALSE )
+	if ( m_EditFlag == EDITFLAG_NONE )
 		return;
 
 	m_EditWnd.GetWindowText(str);
 	SetItemText(m_EditItem, m_EditNum, str);
 	m_EditWnd.PostMessage(WM_CLOSE, 0, 0);
-	m_EditFlag = FALSE;
+
+	if ( m_EditFlag == EDITFLAG_NEXT ) {
+		for ( NextNum = m_EditNum + 1 ; NextNum < 32 ; NextNum++ ) {
+			if ( (m_EditSubItem & (1 << NextNum)) != 0 )
+				break;
+		}
+	}
+	m_EditFlag = EDITFLAG_NONE;
 
 	NMLISTVIEW nmHead;
 	CWnd *pWnd = GetOwner();
@@ -396,16 +430,23 @@ void CListCtrlExt::OnKillfocusEditBox()
 
 		pWnd->SendMessage(WM_NOTIFY, GetDlgCtrlID(), (LPARAM)(&nmHead));
 	}
+
+	if ( NextNum < 32 )
+		EditItem(m_EditItem, NextNum);
 }
 BOOL CListCtrlExt::PreTranslateMessage(MSG* pMsg) 
 {
 	if ( m_EditWnd.m_hWnd != NULL ) {
-		if ( pMsg->message == WM_CHAR && pMsg->wParam == 0x0D ) {
+		if ( pMsg->message == WM_CHAR && pMsg->wParam == VK_RETURN ) {
+			m_EditWnd.PostMessage(WM_KILLFOCUS, 0, 0);
+			return TRUE;
+		} else if ( pMsg->message == WM_CHAR && pMsg->wParam == VK_TAB ) {
+			m_EditFlag = EDITFLAG_NEXT;
 			m_EditWnd.PostMessage(WM_KILLFOCUS, 0, 0);
 			return TRUE;
 		} else if ( pMsg->message == WM_CHAR && pMsg->wParam == VK_ESCAPE ) {
+			m_EditFlag = EDITFLAG_NONE;
 			m_EditWnd.PostMessage(WM_CLOSE, 0, 0);
-			m_EditFlag = FALSE;
 			return TRUE;
 		} else if ( pMsg->message >= WM_KEYFIRST && pMsg->message <= WM_KEYLAST ) {
 			::TranslateMessage(pMsg);

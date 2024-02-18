@@ -10,9 +10,11 @@ class CSplitterWndExt : public CSplitterWnd
 {
 	DECLARE_DYNCREATE(CSplitterWndExt)
 
+public:
+	virtual void OnDrawSplitter(CDC* pDC, ESplitType nType, const CRect& rect);
+
 protected:
 	DECLARE_MESSAGE_MAP()
-public:
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 };

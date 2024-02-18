@@ -37,6 +37,7 @@ CCharSetPage::CCharSetPage() : CTreePage(CCharSetPage::IDD)
 	m_AltFont = 0;
 	m_ListIndex = (-1);
 	m_UrlOpt = _T("#CHAROPT");
+	ZeroMemory(m_BankTab, sizeof(m_BankTab));
 }
 
 CCharSetPage::~CCharSetPage()

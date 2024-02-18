@@ -289,19 +289,19 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 				if ( dlg.DoModal() != IDOK )
 					return FALSE;
 				if ( !IdKey.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
-					AfxMessageBox(CStringLoad(IDE_IDKEYLOADERROR));
+					::AfxMessageBox(CStringLoad(IDE_IDKEYLOADERROR), MB_ICONERROR);
 					return FALSE;
 				}
 			}
 			if ( IdKey.IsNotSupport() ) {
-				AfxMessageBox(CStringLoad(IDE_IDKEYNOTSUPPORT));
+				::AfxMessageBox(CStringLoad(IDE_IDKEYNOTSUPPORT), MB_ICONERROR);
 				return FALSE;
 			}
 			IdKey.SetPass(m_pDocument->m_ServerEntry.m_PassName);
 			m_IdKeyTab.Add(IdKey);
 		}
 
-		if ( pMain->AgeantInit() && !m_pDocument->m_ParamTab.m_bInitPageant && AfxMessageBox(CStringLoad(IDS_ADDPAGEANTENTRY), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+		if ( pMain->AgeantInit() && !m_pDocument->m_ParamTab.m_bInitPageant && ::AfxMessageBox(CStringLoad(IDS_ADDPAGEANTENTRY), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 			CIdkeySelDLg dlg;
 
 			dlg.m_pParamTab = &(m_pDocument->m_ParamTab);
@@ -722,7 +722,7 @@ void Cssh::OnRecvSocket(void* lpBuf, int nBufLen, int nFlags)
 		msg += _T("...");
 	msg += _T('\n');
 
-	AfxMessageBox(msg);
+	::AfxMessageBox(msg, MB_ICONINFORMATION);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -761,7 +761,7 @@ void Cssh::SendWindSize()
 			break;
 		}
 	} catch(...) {
-		AfxMessageBox(_T("ssh SendWindSize Error"));
+		::AfxMessageBox(_T("ssh SendWindSize Error"), MB_ICONERROR);
 	}
 }
 void Cssh::SendBreak(int opt)
@@ -783,7 +783,7 @@ void Cssh::SendBreak(int opt)
 			break;
 		}
 	} catch(...) {
-		AfxMessageBox(_T("ssh SendBreak Error"));
+		::AfxMessageBox(_T("ssh SendBreak Error"), MB_ICONERROR);
 	}
 }
 int Cssh::GetRecvSize()
@@ -936,7 +936,7 @@ void Cssh::ResetOption()
 	}
 
 	if ( m_bAuthAgentReqEnable != m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) || m_bx11pfdEnable != m_pDocument->m_TextRam.IsOptEnable(TO_SSHX11PF) ) {
-		AfxMessageBox(CStringLoad(IDS_SSHOPTIONCHECK), MB_ICONWARNING);
+		::AfxMessageBox(CStringLoad(IDS_SSHOPTIONCHECK), MB_ICONWARNING);
 		m_bAuthAgentReqEnable = m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT);
 		m_bx11pfdEnable = m_pDocument->m_TextRam.IsOptEnable(TO_SSHX11PF);
 	}
@@ -1558,7 +1558,7 @@ class CFifoChannel *Cssh::GetFifoChannel(int id)
 			m_pFifoMid->Unlock();
 
 			if ( ++m_OpenChanCount == CHAN_MAXCONNECT ) {
-				if ( AfxMessageBox(CStringLoad(IDE_MANYCHANNEL), MB_ICONQUESTION | MB_YESNO) != IDYES ) {
+				if ( ::AfxMessageBox(CStringLoad(IDE_MANYCHANNEL), MB_ICONQUESTION | MB_YESNO) != IDYES ) {
 					m_FifoCannel[id] = NULL;
 					delete pChan;
 					return NULL;
@@ -1831,7 +1831,7 @@ void Cssh::ChannelClose(int id, int nStat)
 	if ( id == FdToId(FIFO_EXTIN) && (m_SSH2Status & SSH2_STAT_HAVESTDIO) != 0 ) {
 		m_SSH2Status &= ~SSH2_STAT_HAVESTDIO;
 
-		if ( m_OpenChanCount > 0 && AfxMessageBox(CStringLoad(IDS_SSHCLOSEALL), MB_ICONQUESTION | MB_YESNO) == IDYES )
+		if ( m_OpenChanCount > 0 && ::AfxMessageBox(CStringLoad(IDS_SSHCLOSEALL), MB_ICONQUESTION | MB_YESNO) == IDYES )
 			PostClose(0);
 	}
 
@@ -2113,7 +2113,7 @@ void Cssh::PortForward(BOOL bReset)
 			pChan->m_TypeName = _T("tcpip-listen");
 			if ( !ChannelCreate(pChan->m_LocalID, tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
 				str.Format(_T("Port Forward Error %s:%s->%s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1], (LPCTSTR)tmp[2], (LPCTSTR)tmp[3]);
-				AfxMessageBox(str);
+				::AfxMessageBox(str, MB_ICONWARNING);
 				ChannelClose(pChan->m_LocalID);
 			} else {
 				LogIt(_T("Local Listen %s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
@@ -2128,7 +2128,7 @@ void Cssh::PortForward(BOOL bReset)
 			pChan->m_TypeName = _T("socks-listen");
 			if ( !ChannelCreate(pChan->m_LocalID, tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
 				str.Format(_T("Socks Listen Error %s:%s->%s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1], (LPCTSTR)tmp[2], (LPCTSTR)tmp[3]);
-				AfxMessageBox(str);
+				::AfxMessageBox(str, MB_ICONWARNING);
 				ChannelClose(pChan->m_LocalID);
 			} else {
 				LogIt(_T("Local Proxy %s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
@@ -2155,7 +2155,7 @@ void Cssh::PortForward(BOOL bReset)
 
 	if ( !bReset && m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
 		if ( a == 0 && !m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFTPORY) ) {
-			AfxMessageBox(CStringLoad(IDE_PORTFWORDERROR));
+			::AfxMessageBox(CStringLoad(IDE_PORTFWORDERROR), MB_ICONWARNING);
 			PostClose(0);
 		}
 
@@ -2742,7 +2742,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 	if ( m_bReqRsaSha1 )
 		wrk += CStringLoad(IDS_SSHRSASIGNMSG);
 
-	AfxMessageBox(wrk, MB_ICONSTOP);
+	::AfxMessageBox(wrk, MB_ICONERROR);
 	
 	return FALSE;
 }
@@ -4103,14 +4103,14 @@ int Cssh::SSH2MsgUserAuthGssapiProcess(CBuffer *bp, int type)
 	case SSH2_MSG_USERAUTH_GSSAPI_ERRTOK:
 		bp->GetBuf(&tmp);
 		str.Format(_T("SSH2 Gssapi Receive ErrToken(%dbyte)"), tmp.GetSize());
-		AfxMessageBox(str);
+		::AfxMessageBox(str, MB_ICONERROR);
 		goto RETRYAUTH;
 
 	case SSH2_MSG_USERAUTH_GSSAPI_ERROR:
 		bp->GetStr(msg);
 		bp->GetStr(lang);
 		str.Format(_T("SSH2 Gssapi Receive Error\n%s"), MbsToTstr(msg));
-		AfxMessageBox(str);
+		::AfxMessageBox(str, MB_ICONERROR);
 		goto RETRYAUTH;
 	}
 
@@ -4536,28 +4536,28 @@ int Cssh::SSH2MsgChannelRequestReply(CBuffer *bp, int type)
 		break;
 	case CHAN_REQ_SUBSYS:	// subsystem
 		if ( type == SSH2_MSG_CHANNEL_FAILURE ) {
-			AfxMessageBox(_T("Channel Request Subsystem Failure"));
+			::AfxMessageBox(_T("Channel Request Subsystem Failure"), MB_ICONERROR);
 			ChannelClose(id);
 		} else
 			ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
 		break;
 	case CHAN_REQ_EXEC:		// exec
 		if ( type == SSH2_MSG_CHANNEL_FAILURE ) {
-			AfxMessageBox(_T("Channel Request Exec Failure"));
+			::AfxMessageBox(_T("Channel Request Exec Failure"), MB_ICONERROR);
 			ChannelClose(id);
 		} else
 			ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
 		break;
 	case CHAN_REQ_X11:		// x11-req
 		if ( type == SSH2_MSG_CHANNEL_FAILURE ) {
-			AfxMessageBox(_T("Channel Request X11-req Failure"));
+			::AfxMessageBox(_T("Channel Request X11-req Failure"), MB_ICONERROR);
 			ChannelClose(id);
 		} else
 			ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
 		break;
 	case CHAN_REQ_ENV:		// env
 		if ( type == SSH2_MSG_CHANNEL_FAILURE ) {
-			AfxMessageBox(_T("Channel Request Environ Failure"));
+			::AfxMessageBox(_T("Channel Request Environ Failure"), MB_ICONERROR);
 			ChannelClose(id);
 		} else
 			ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
@@ -4646,7 +4646,7 @@ int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
 	if ( wrtFlag != 0 ) {
 		if ( wrtFlag == 3 ) {
 			dig.Format(CStringLoad(IDS_IDKEYHOSTKEYUPDATE), useEntry, newEntry, delEntry);
-			if ( AfxMessageBox(dig, MB_ICONQUESTION | MB_YESNO) != IDYES )
+			if ( ::AfxMessageBox(dig, MB_ICONQUESTION | MB_YESNO) != IDYES )
 				return TRUE;
 		}
 
@@ -4687,7 +4687,7 @@ int Cssh::SSH2MsgGlobalRequest(CBuffer *bp)
 #ifdef	DEBUG
 	} else if ( !str.IsEmpty() ) {
 		msg.Format(_T("Get Msg Global Request '%s'"), LocalStr(str));
-		AfxMessageBox(msg);
+		::AfxMessageBox(msg, MB_ICONINFORMATION);
 #endif
 	}
 
@@ -4703,7 +4703,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 	CString str;
 
 	if ( m_GlbReqMap.GetSize() <= 0 ) {
-		AfxMessageBox(CStringLoad(IDE_SSHGLOBALREQERROR));
+		::AfxMessageBox(CStringLoad(IDE_SSHGLOBALREQERROR), MB_ICONERROR);
 		return 0;
 	}
 	num = m_GlbReqMap.GetAt(0);
@@ -4733,7 +4733,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 	if ( type == SSH2_MSG_REQUEST_FAILURE && num < m_Permit.GetSize() ) {
 		str.Format(_T("Global Request Failure %s:%d->%s:%d"),
 			(LPCTSTR)m_Permit[num].m_lHost, m_Permit[num].m_lPort, (LPCTSTR)m_Permit[num].m_rHost, m_Permit[num].m_rPort);
-		AfxMessageBox(str);
+		::AfxMessageBox(str, MB_ICONERROR);
 		m_Permit.RemoveAt(num);
 	}
 
@@ -5016,7 +5016,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		bp->Get32Bit();
 		bp->GetStr(str);
 		tmp.Format("SSH2 Receive Disconnect Message\n%s", str);
-		AfxMessageBox(LocalStr(tmp));
+		::AfxMessageBox(LocalStr(tmp), MB_ICONERROR);
 		break;
 
 	case SSH2_MSG_DEBUG:
@@ -5056,7 +5056,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		str.Format("Packet Type %d Error", type);
 		SendDisconnect2(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, str);
 		str.Format("SSH2 Receive Packet Error Type=%d Status=%04o\nSend Disconnect Message...", type, m_SSH2Status);
-		AfxMessageBox(MbsToTstr(str), MB_ICONSTOP);
+		::AfxMessageBox(MbsToTstr(str), MB_ICONERROR);
 		break;
 	}
 }

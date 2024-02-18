@@ -62,7 +62,7 @@ BOOL CResTransDlg::TransErrMsg(CString *pMsg, LPCTSTR errMsg)
 
 	msg += _T("\nContinue Translating ?");
 
-	if ( MessageBox(msg, _T("Error"), MB_ICONERROR | MB_YESNO) == IDYES )
+	if ( ::AfxMessageBox(msg, MB_ICONERROR | MB_YESNO) == IDYES )
 		return TRUE;
 	else
 		return FALSE;
@@ -407,7 +407,7 @@ BOOL CResTransDlg::IsTranslateProcExec()
 	if ( m_ProcStat == TRANSPROC_ENDOF )
 		return FALSE;
 
-	if ( MessageBox(CStringLoad(IDS_TRANSLATEABORT), _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+	if ( ::AfxMessageBox(CStringLoad(IDS_TRANSLATEABORT), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 		m_bProcAbort = TRUE;
 
 		if ( m_ProcStat == TRANSPROC_WAIT ) {
