@@ -37,7 +37,7 @@ CColParaDlg::CColParaDlg() : CTreePage(CColParaDlg::IDD)
 	m_DarkMode = TRUE;
 	m_EmojiFontName = _T("");
 	m_EmojiImageDir = _T("");
-	m_EmojiColorEnable = FALSE;
+	m_EmojiColorMode = EMOJIMODE_MONO;
 	m_UrlOpt = _T("#COLOPT");
 	m_Constrast = 0.0;
 }
@@ -67,7 +67,7 @@ void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SLIDER_HUECOL, m_SliderHuecol);
 	DDX_CBStringExact(pDX, IDC_EMOJIFONTNAME, m_EmojiFontName);
 	DDX_Text(pDX, IDC_EMOJIIMAGEDIR, m_EmojiImageDir);
-	DDX_Check(pDX, IDC_EMOJICOLENABLE, m_EmojiColorEnable);
+	DDX_Radio(pDX, IDC_RADIO1, m_EmojiColorMode);
 }
 
 BEGIN_MESSAGE_MAP(CColParaDlg, CTreePage)
@@ -90,7 +90,7 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CTreePage)
 	ON_BN_CLICKED(IDC_EMOJIIMAGESEL, &CColParaDlg::OnBnClickedImageSel)
 	ON_CBN_SELCHANGE(IDC_EMOJIFONTNAME, &CColParaDlg::OnUpdateTextRam)
 	ON_EN_CHANGE(IDC_EMOJIIMAGEDIR, &CColParaDlg::OnUpdateTextRam)
-	ON_BN_CLICKED(IDC_EMOJICOLENABLE, &CColParaDlg::OnUpdateTextRam)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO4, &CColParaDlg::OnUpdateRadio)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -222,7 +222,9 @@ void CColParaDlg::DoInit()
 	m_GlassStyle = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("GlassStyle"), 255);
 	m_DarkMode = AfxGetApp()->GetProfileInt(_T("RLoginApp"), _T("DarkMode"), TRUE);
 
-	m_EmojiColorEnable = m_pSheet->m_pTextRam->IsOptEnable(TO_RLCOLEMOJI);
+	m_EmojiColorMode  = (m_pSheet->m_pTextRam->IsOptEnable(TO_RLCOLEMOJI)  ? 1 : 0);
+	m_EmojiColorMode |= (m_pSheet->m_pTextRam->IsOptEnable(TO_RLDELYEMOJI) ? 2 : 0);
+
 	m_EmojiFontName = AfxGetApp()->GetProfileString(_T("RLoginApp"), _T("EmojiFontName"), _T("Segoe UI emoji"));
 	m_EmojiImageDir = AfxGetApp()->GetProfileString(_T("RLoginApp"), _T("EmojiImageDir"), _T(""));
 
@@ -428,7 +430,8 @@ BOOL CColParaDlg::OnApply()
 	((CMainFrame *)AfxGetMainWnd())->SetWakeUpSleep(n);
 
 #ifdef	USE_DIRECTWRITE
-	m_pSheet->m_pTextRam->SetOption(TO_RLCOLEMOJI, m_EmojiColorEnable);
+	m_pSheet->m_pTextRam->SetOption(TO_RLCOLEMOJI,  (m_EmojiColorMode & 1) != 0 ? TRUE : FALSE);
+	m_pSheet->m_pTextRam->SetOption(TO_RLDELYEMOJI, (m_EmojiColorMode & 2) != 0 ? TRUE : FALSE);
 	pApp->EmojiImageInit(m_EmojiFontName, m_EmojiImageDir);
 #endif
 
@@ -689,6 +692,11 @@ void CColParaDlg::OnBnClickedImageSel()
 }
 
 void CColParaDlg::OnUpdateTextRam()
+{
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+void CColParaDlg::OnUpdateRadio(UINT nID)
 {
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;

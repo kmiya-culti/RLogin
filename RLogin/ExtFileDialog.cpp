@@ -138,6 +138,7 @@ BOOL CFileDownPage::OnInitDialog()
 	m_bFileAppend  = m_pUpDown->m_bFileAppend;
 
 	UpdateData(FALSE);
+	AddHelpButton(_T("#UPDOWNDLG"));
 
 	return TRUE;
 }
@@ -237,6 +238,7 @@ BOOL CFileUpConvPage::OnInitDialog()
 	m_UpCrLfMode = m_pUpDown->m_UpCrLfMode;
 
 	UpdateData(FALSE);
+	AddHelpButton(_T("#UPDOWNDLG"));
 
 	return TRUE;
 }
@@ -339,8 +341,8 @@ BOOL CFileUpSendPage::OnInitDialog()
 	m_RecvMsec  = m_pUpDown->m_RecvMsec;
 	m_CrLfMsec  = m_pUpDown->m_CrLfMsec;
 
-
 	UpdateData(FALSE);
+	AddHelpButton(_T("#UPDOWNDLG"));
 
 	return TRUE;
 }
@@ -528,6 +530,27 @@ void CExtFileDialog::WindowSizeCheck(int cx, int cy)
 	m_WindowSize.cy = cy;
 }
 
+LRESULT CALLBACK ContextHelpProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+{
+	if ( uMsg == WM_NCLBUTTONDOWN && wParam == HTHELP ) {
+		CExtFileDialog *pThis = (CExtFileDialog *)dwRefData;
+		switch(pThis->m_DialogMode) {
+		case EXTFILEDLG_DOWNLOAD:
+			pThis->m_pDownPage->PostMessage(WM_COMMAND, MAKEWPARAM(IDC_HELPBTN, BN_CLICKED));
+			break;
+		case EXTFILEDLG_UPLOAD:
+			if ( pThis->m_TabCtrl.GetCurSel() == 0 )
+				pThis->m_pUpConv->PostMessage(WM_COMMAND, MAKEWPARAM(IDC_HELPBTN, BN_CLICKED));
+			else
+				pThis->m_pUpSend->PostMessage(WM_COMMAND, MAKEWPARAM(IDC_HELPBTN, BN_CLICKED));
+			break;
+		}
+		return TRUE;
+	}
+
+	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+}
+
 BOOL CExtFileDialog::OnInitDialog()
 {
 	CString title;
@@ -566,7 +589,7 @@ BOOL CExtFileDialog::OnInitDialog()
 		ScreenToClient(frame);
 
 		m_pDownPage->MoveWindow(frame, FALSE);
-
+	
 		m_pDownPage->ShowWindow(SW_SHOW);
 
 		m_pDownPage->GetWindowText(title);
@@ -605,6 +628,9 @@ BOOL CExtFileDialog::OnInitDialog()
 		m_TabCtrl.InsertItem(1, title);
 		break;
 	}
+
+	GetParent()->ModifyStyleEx(0, WS_EX_CONTEXTHELP);
+	SetWindowSubclass(GetParent()->GetSafeHwnd(), ContextHelpProc, (UINT_PTR)NULL, (DWORD_PTR)this);
 
 	return TRUE;
 }

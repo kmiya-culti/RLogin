@@ -80,6 +80,7 @@ BOOL CUserFlowDlg::OnInitDialog()
 	UpdateData(FALSE);
 
 	SetSaveProfile(_T("UserFlowDlg"));
+	AddHelpButton(_T("#COMFLOW"));
 
 	return TRUE;
 }

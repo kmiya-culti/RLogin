@@ -164,6 +164,7 @@ BOOL CIso646Dlg::OnInitDialog()
 	}
 
 	SetSaveProfile(_T("Iso646Dlg"));
+	AddHelpButton(_T("#ISO646"));
 
 	return TRUE;
 }

@@ -6,10 +6,16 @@
 <STYLE type="text/css">
 <!--
 TD {
+				
+				
+				
 		background-color : #ffffff;
 font-size : 90%;
 }
 .BOX{
+				
+				
+				
 		background-color : silver;
 }
 -->
@@ -719,8 +725,7 @@ fi</PRE>
             <BR>
             右の表示では、MS ゴシックは、ARABICを別のフォントに置換して表示しBALTICは、MS ゴシックで表示できることを示しています。このWindowsの機能は、FontLinkと合わせてフォントを欧文フォントにして漢字を表示しようとした場合やMS
             ゴシックでハングルを表示しようとした場合にでも自動でフォントが置換されることになります。フォントを変更しても別のフォントで表示されますのでご注意ください。特に<B>デフォルトフォントを欧文フォントにした場合には、SHIFTJISのフォントがすべて違うフォントで表示</B>されることになります。<BR>
-            <BR>
-            ※2.23.5より拡張機能484「フォント置換しない」でWindowsのCSetによる置換を抑制するオプションを追加しました。<B>勝手にフォントを変更してほしくない場合など</B>に使用してください。</TD>
+            ※2.23.5より<S>拡張機能484</S>「フォント置換しない」でWindowsのCSetによる置換を抑制するオプションを追加しました。<B>勝手にフォントを変更してほしくない場合など</B>に使用してください。2.29.2より上記「フォント置換しない」を<A href="./#CHAROPT">フォント設定</A>フォントセット・デフォルトの下に移動しました</TD>
             <TD valign="top"><IMG src="image221.jpg" width="611" height="511" border="0"></TD>
           </TR>
           <TR>
@@ -945,7 +950,7 @@ fi</PRE>
                   <TD>罫線文字を線描画で表示し正しくつながるようにします</TD>
                 </TR>
                 <TR>
-                  <TD colspan="4">各種オプションでのフォント関連の設定</TD>
+                  <TD colspan="4"><A href="./#EXTOPT">各種オプション</A>でのフォント関連の設定</TD>
                 </TR>
                 <TR>
                   <TD align="center">462</TD>
@@ -954,12 +959,6 @@ fi</PRE>
                   <TD align="center">文字単位で調整する<BR>
                   <IMG src="image223.jpg" width="110" height="17" border="0"></TD>
                   <TD>プロポーショナルフォントの表示方法を選択します</TD>
-                </TR>
-                <TR>
-                  <TD align="center">484</TD>
-                  <TD align="center"><SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">フォント置換しない</SPAN></TD>
-                  <TD align="center"><SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">フォント置換する</SPAN></TD>
-                  <TD>デフォルトフォントのWindowsによるフォント置換を抑制します</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -2195,6 +2194,81 @@ Decode: zlib + chacha20-poly1305@openssh.com<BR>
             <BR>
             <BR>
             <IMG src="image290.jpg" width="567" height="146" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="FONTVIEW"></A>5.24 フォントの表示品質</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top" align="left">フォントの種類と大きさ、表示品質を比べてみました<BR>
+            上段の数値は、フォントの高さのピクセルサイズで２段目が96DPI時のポイント、３段目が144DPI時のポイントになります。通常使用するのは、10ポイント位になると思います。<BR>
+            <BR>
+            <B>ＭＳ ゴシック</B><BR>
+            一定のサイズ以下になるとドットマトリックスのフォントになるようでアンチエリアスもクリアタイプも効かないようですが、小さいサイズの認識度は、良いように思います。アンチエリアスやクリアタイプの設定は、それぞれの文字セットの文字バンク0の<A href="./#FONTPARA">フォントセットのフォントパラメータ</A>で設定できます。ちなみにDEFAULTは、クリアタイプのようです</TD>
+            <TD>
+            <TABLE cellspacing="1" bgcolor="#cccccc">
+              <TBODY>
+                <TR>
+                  <TD align="center" width="34"><FONT size="-1">8</FONT></TD>
+                  <TD align="center" width="50"><FONT size="-1">12</FONT></TD>
+                  <TD align="center" width="70"><FONT size="-1">16</FONT></TD>
+                  <TD align="center" width="90"><FONT size="-1">20</FONT></TD>
+                  <TD align="center" width="100"><FONT size="-1">24</FONT></TD>
+                  <TD align="center" width="120"><FONT size="-1">28</FONT></TD>
+                  <TD align="center"><FONT size="-1">Pixel dot</FONT></TD>
+                </TR>
+                <TR>
+                  <TD align="center"><FONT size="-1">6</FONT></TD>
+                  <TD align="center"><FONT size="-1">9</FONT></TD>
+                  <TD align="center"><FONT size="-1">12</FONT></TD>
+                  <TD align="center"><FONT size="-1">15</FONT></TD>
+                  <TD align="center"><FONT size="-1">18</FONT></TD>
+                  <TD align="center"><FONT size="-1">21</FONT></TD>
+                  <TD align="center"><FONT size="-1">96 DPI point</FONT></TD>
+                </TR>
+                <TR>
+                  <TD align="center"><FONT size="-1">4</FONT></TD>
+                  <TD align="center"><FONT size="-1">6</FONT></TD>
+                  <TD align="center"><FONT size="-1">8</FONT></TD>
+                  <TD align="center"><FONT size="-1">10</FONT></TD>
+                  <TD align="center"><FONT size="-1">12</FONT></TD>
+                  <TD align="center"><FONT size="-1">14</FONT></TD>
+                  <TD align="center"><FONT size="-1">144 DPI point</FONT></TD>
+                </TR>
+                <TR>
+                  <TD rowspan="3" colspan="6"><IMG src="image291.png" width="518" height="104" border="0"></TD>
+                  <TD><FONT size="-2" style="font-size : 67%;">NONANTIALIASED</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-2" style="font-size : 67%;">ANTIALIASED</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-2" style="font-size : 67%;">CLEARTYPE</FONT></TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="600" valign="top" align="left"><B>Cascadia Code</B><BR>
+            すべてのサイズでベクトルフォントのようで小さいサイズは、苦手のように感じます。高解像度のモニターなら8ポイント以上で認識できそうなのですが低解像度のモニターでは、アンチエリアスやクリアタイプでごまかすような感じです。基本欧文フォントなので文字セットがEUC/SJISの場合に注意が必要です。デフォルトフォントで指定する場合には、フォント置換しないように設定する必要があります</TD>
+            <TD><IMG src="image292.png" width="518" height="104" border="0"></TD>
+          </TR>
+          <TR>
+            <TD width="600" valign="top" align="left"><B>Consolas</B><BR>
+            これも上記と同じすべてベクトルフォントのようですがアンチエリアスで太目に感じます。こちらも欧文フォントなのでフォント置換しないように設定するがよいでしょうがUTF-8で使用する場合は、あまり関係しませんのでフォント置換しない設定にする必要は、ありません</TD>
+            <TD><IMG src="image293.png" width="518" height="104" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

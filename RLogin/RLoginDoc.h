@@ -156,6 +156,7 @@ public:
 
 	void InitOptFixCheck(int Uid);
 	BOOL SetOptFixEntry(LPCTSTR entryName);
+	void UpdateOption(class COptDlg *pOptDlg);
 
 	void SetSleepReq(int req);
 

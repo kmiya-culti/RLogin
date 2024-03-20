@@ -65,7 +65,7 @@ BOOL CFifoPipe::FlowCtrlCheck(int nFd)
 
 	return bRet;
 }
-BOOL CFifoPipe::WaitForEvent(int nFd, HANDLE hAbortEvent)
+BOOL CFifoPipe::WaitForFifo(int nFd, HANDLE hAbortEvent)
 {
 	DWORD n;
 	HANDLE HandleTab[2];
@@ -222,10 +222,10 @@ void CFifoPipe::Close()
 {
 	if ( m_proInfo.hProcess != NULL ) {
 		m_AbortEvent[0].SetEvent();
-		WaitForSingleObject(m_ThreadEvent[0], INFINITE);
+		WaitForEvent(m_ThreadEvent[0], _T("CFifoPipe ProcThread"));
 
 		TerminateProcess(m_proInfo.hProcess, 0);
-		WaitForSingleObject(m_proInfo.hProcess, INFINITE);
+		WaitForEvent(m_proInfo.hProcess, _T("CFifoPipe Process"));
 
 		CloseHandle(m_proInfo.hProcess);
 		CloseHandle(m_proInfo.hThread);
@@ -247,7 +247,7 @@ void CFifoPipe::Close()
 			ExCancelIoEx(m_hIn[0], NULL);
 		else
 			CancelIo(m_hIn[0]);
-		WaitForSingleObject(m_ThreadEvent[1], INFINITE);
+		WaitForEvent(m_ThreadEvent[1], _T("CFifoPipe InThread"));
 	}
 
 	if ( m_OutThreadMode != 0 ) {
@@ -257,7 +257,7 @@ void CFifoPipe::Close()
 			ExCancelIoEx(m_hOut[1], NULL);
 		else
 			CancelIo(m_hOut[1]);
-		WaitForSingleObject(m_ThreadEvent[2], INFINITE);
+		WaitForEvent(m_ThreadEvent[2], _T("CFifoPipe OutThread"));
 	}
 
 	if ( m_hIn[0] != NULL )
@@ -361,7 +361,7 @@ void CFifoPipe::OnReadProc()
 			continue;
 		else if ( Write(FIFO_STDOUT, buff, (int)n) < 0 )
 			break;
-		else if ( !WaitForEvent(FIFO_STDOUT, m_AbortEvent[1]) )
+		else if ( !WaitForFifo(FIFO_STDOUT, m_AbortEvent[1]) )
 			break;
 	}
 }
@@ -371,7 +371,7 @@ void CFifoPipe::OnWriteProc()
 	BYTE buf[1024];
 
 	while ( m_OutThreadMode == 1 ) {
-		if ( !WaitForEvent(FIFO_STDIN, m_AbortEvent[2]) )
+		if ( !WaitForFifo(FIFO_STDIN, m_AbortEvent[2]) )
 			break;
 		else if ( (len = Read(FIFO_STDIN, buf, 1024)) < 0 )
 			break;

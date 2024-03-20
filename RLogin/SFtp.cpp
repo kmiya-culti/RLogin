@@ -569,7 +569,7 @@ void CFileOverLap::EndOfThread()
 		} else
 			m_Stat = FOL_INIT;
 		m_WaitEvent.SetEvent();
-		WaitForSingleObject(m_pThread, INFINITE);
+		WaitForEvent(m_ThreadEvent, _T("CFileOverLap"));
 		m_pThread = NULL;
 	}
 }
@@ -651,6 +651,7 @@ static UINT WriteOverLapThread(LPVOID pParam)
 {
 	CFileOverLap *pThis = (CFileOverLap *)pParam;
 	pThis->WriteOverLapWork();
+	pThis->m_ThreadEvent.SetEvent();
 	return 0;
 }
 BOOL CFileOverLap::SeekWriteFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG SeekPos)
@@ -690,6 +691,7 @@ BOOL CFileOverLap::WriteOverLapInit()
 {
 	if ( m_Stat == FOL_INIT ) {
 		m_Stat = FOL_DONE;
+		m_ThreadEvent.ResetEvent();
 		if ( (m_pThread = AfxBeginThread(WriteOverLapThread, this, THREAD_PRIORITY_NORMAL)) == NULL ) {
 			m_Stat = FOL_INIT;
 			return FALSE;
@@ -731,6 +733,7 @@ static UINT ReadOverLapThread(LPVOID pParam)
 {
 	CFileOverLap *pThis = (CFileOverLap *)pParam;
 	pThis->ReadOverLapWork();
+	pThis->m_ThreadEvent.SetEvent();
 	return 0;
 }
 void CFileOverLap::ReadOverLapWork()
@@ -850,6 +853,7 @@ BOOL CFileOverLap::ReadOverLapInit()
 {
 	if ( m_Stat == FOL_INIT ) {
 		m_Stat = FOL_DONE;
+		m_ThreadEvent.ResetEvent();
 		if ( (m_pThread = AfxBeginThread(ReadOverLapThread, this, THREAD_PRIORITY_NORMAL)) == NULL ) {
 			m_Stat = FOL_INIT;
 			return FALSE;
@@ -980,7 +984,6 @@ int CSFtp::ReceiveBuffer(CBuffer *bp)
 			return FALSE;
 		}
 	} else {
-#ifdef	USE_READOVERLAP
 		m_CmdQueSema.Lock();
 		POSITION pos = m_CmdQue.GetHeadPosition();
 		while ( pos != NULL ) {
@@ -995,19 +998,6 @@ int CSFtp::ReceiveBuffer(CBuffer *bp)
 			m_CmdQue.GetNext(pos);
 		}
 		m_CmdQueSema.Unlock();
-#else
-		POSITION pos = m_CmdQue.GetHeadPosition();
-		while ( pos != NULL ) {
-			pQue = m_CmdQue.GetAt(pos);
-			if ( pQue->m_ExtId == id ) {
-				m_CmdQue.RemoveAt(pos);
-				if ( (this->*(pQue->m_Func))(type, bp, pQue) )
-					delete pQue;
-				goto ENDOF;
-			}
-			m_CmdQue.GetNext(pos);
-		}
-#endif
 		::DoitMessageBox(_T("Unkown sftp Message Received"), MB_ICONERROR, this);
 	}
 
@@ -1035,11 +1025,9 @@ void CSFtp::SendCommand(CCmdQue *pQue, int (CSFtp::*pFunc)(int type, CBuffer *bp
 	case SENDCMD_TAIL:
 		m_WaitQue.AddTail(pQue);
 		break;
-#ifdef	USE_READOVERLAP
 	case SENDCMD_READOVERLAP:
 		m_ReadOverLap.AddReadQue(pQue);
 		break;
-#endif
 	}
 }
 void CSFtp::SendWaitQue()
@@ -1047,10 +1035,8 @@ void CSFtp::SendWaitQue()
 	if ( m_VerId != SSH2_FILEXFER_VERSION || !m_CmdQue.IsEmpty() || m_WaitQue.IsEmpty() )
 		return;
 
-#ifdef	USE_READOVERLAP
 	if ( m_ReadOverLap.IsBuzy() )
 		return;
-#endif
 
 	CCmdQue *pQue = m_WaitQue.RemoveHead();
 
@@ -1157,12 +1143,9 @@ int CSFtp::RemoteMakePacket(class CCmdQue *pQue, int Type)
 {
 	CStringA tmp;
 	
-#ifdef	USE_READOVERLAP
 	pQue->m_Type = Type;
 	pQue->m_LastError = 0;
 	pQue->m_pSFtp = this;
-#endif
-
 	pQue->m_Msg.Clear();
 	pQue->m_Msg.Put32Bit(0);		// Packet Size
 	pQue->m_Msg.Put8Bit(Type);
@@ -1199,9 +1182,7 @@ int CSFtp::RemoteMakePacket(class CCmdQue *pQue, int Type)
 		pQue->m_Msg.PutBuf(pQue->m_Handle.GetPtr(), pQue->m_Handle.GetSize());
 		pQue->m_Msg.Put64Bit(pQue->m_Offset);
 		pQue->m_Msg.Put32Bit(pQue->m_Len);
-#ifdef	USE_READOVERLAP
 		pQue->m_BufPos = pQue->m_Msg.GetSize();
-#endif
 		break;
 	}
 
@@ -1757,15 +1738,10 @@ int CSFtp::RemoteDataReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	if ( (n = bp->Get32Bit()) != pQue->m_Len || pOwner->m_hFile == INVALID_HANDLE_VALUE )
 		goto WRITEERR;
 
-#ifdef	USE_WRITEOVERLAP
 	if ( !m_WriteOverLap.SeekWriteFile(pOwner->m_hFile, bp->GetPtr(), n, pQue->m_Offset) ) {
 		SetLastErrorMsg(m_WriteOverLap.m_LastError);
 		goto WRITEERR;
 	}
-#else
-	if ( !SeekWriteFile(pOwner->m_hFile, bp->GetPtr(), n, pQue->m_Offset) )
-		goto WRITEERR;
-#endif
 
 	if ( pOwner == pQue )
 		SetPosProg(pQue->m_Offset + n);
@@ -1824,11 +1800,7 @@ int CSFtp::RemoteOpenReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		return RemoteCloseReadRes((-1), bp, pQue);
 	bp->GetBuf(&pQue->m_Handle);
 
-#ifdef	USE_WRITEOVERLAP
 	if ( (pQue->m_hFile = CreateFile(pQue->m_CopyPath, GENERIC_WRITE, 0, NULL, (pQue->m_NextOfs != 0 ? OPEN_EXISTING : CREATE_ALWAYS), FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE || !m_WriteOverLap.WriteOverLapInit() ) {
-#else
-	if ( (pQue->m_hFile = CreateFile(pQue->m_CopyPath, GENERIC_WRITE, 0, NULL, (pQue->m_NextOfs != 0 ? OPEN_EXISTING : CREATE_ALWAYS), FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE ) {
-#endif
 		SetLastErrorMsg();
 		pQue->m_Len = (-2);
 		RemoteMakePacket(pQue, SSH2_FXP_CLOSE);
@@ -2063,12 +2035,10 @@ int CSFtp::RemoteCloseWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 			DispErrMsg(_T("Remote Write Error"), pQue->m_Path);
 		else if ( pQue->m_Len == (-3) )
 			DispErrMsg(_T("Set Attr Error"), pQue->m_Path);
-#ifdef	USE_READOVERLAP
 		else if ( pQue->m_Len == (-4) ) {
 			SetLastErrorMsg(pQue->m_LastError);
 			DispErrMsg(_T("Read Overlap Error"), pQue->m_Path);
 		}
-#endif
 		else
 			st = SSH2_FX_OK;
 	} else if ( type == (-1) )
@@ -2132,12 +2102,10 @@ int CSFtp::RemoteDataWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	if ( pOwner->m_hFile == INVALID_HANDLE_VALUE )
 		goto READERR;
 
-#ifdef	USE_READOVERLAP
 	if ( m_ReadOverLap.m_LastError != 0 ) {
 		SetLastErrorMsg(m_ReadOverLap.m_LastError);
 		goto READERR;
 	}
-#endif
 
 	if ( pQue == pOwner ) {
 		SetPosProg(pQue->m_Offset + pQue->m_Len);
@@ -2162,11 +2130,6 @@ int CSFtp::RemoteDataWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	RemoteMakePacket(pQue, SSH2_FXP_WRITE);
 	buf = pQue->m_Msg.PutSpc(pQue->m_Len);
 
-#ifndef	USE_READOVERLAP
-	if ( !SeekReadFile(pOwner->m_hFile, buf, pQue->m_Len, pQue->m_Offset) )
-		goto READERR;
-#endif
-
 	SendCommand(pQue, &CSFtp::RemoteDataWriteRes, SENDCMD_READOVERLAP);
 	pOwner->m_NextOfs += pQue->m_Len;
 
@@ -2181,13 +2144,6 @@ int CSFtp::RemoteDataWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 
 		RemoteMakePacket(pDmy, SSH2_FXP_WRITE);
 		buf = pDmy->m_Msg.PutSpc(pDmy->m_Len);
-
-#ifndef	USE_READOVERLAP
-		if ( !SeekReadFile(pOwner->m_hFile, buf, pDmy->m_Len, pDmy->m_Offset) ) {
-			delete pDmy;
-			goto READERR;
-		}
-#endif
 
 		SendCommand(pDmy, &CSFtp::RemoteDataWriteRes, SENDCMD_READOVERLAP);
 		pOwner->m_NextOfs += pDmy->m_Len;
@@ -2218,11 +2174,7 @@ int CSFtp::RemoteOpenWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		return RemoteCloseWriteRes((-3), bp, pQue);
 	bp->GetBuf(&pQue->m_Handle);
 
-#ifdef	USE_READOVERLAP
 	if ( (pQue->m_hFile = CreateFile(pQue->m_FileNode[0].m_path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE || !m_ReadOverLap.ReadOverLapInit() ) {
-#else
-	if ( (pQue->m_hFile = CreateFile(pQue->m_FileNode[0].m_path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE ) {
-#endif
 		SetLastErrorMsg();
 		goto CLOSEWRITE;
 	}
@@ -2237,11 +2189,6 @@ int CSFtp::RemoteOpenWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 
 	RemoteMakePacket(pQue, SSH2_FXP_WRITE);
 	buf = pQue->m_Msg.PutSpc(pQue->m_Len);
-
-#ifndef	USE_READOVERLAP
-	if ( !SeekReadFile(pQue->m_hFile, buf, pQue->m_Len, pQue->m_Offset) )
-		goto CLOSEWRITE;
-#endif
 
 	SendCommand(pQue, &CSFtp::RemoteDataWriteRes, SENDCMD_READOVERLAP);
 	pQue->m_NextOfs += pQue->m_Len;
@@ -3109,6 +3056,12 @@ static const INITDLGTAB ItemTab[] = {
 /////////////////////////////////////////////////////////////////////////////
 // CSFtp メッセージ ハンドラ
 
+void CSFtp::SetItemOffset(int cx, int cy)
+{
+	CDialogExt::SetItemOffset(cx, cy);
+	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
+}
+
 void CSFtp::OnCancel()
 {
 	if ( m_bTheadExec ) {
@@ -3147,7 +3100,6 @@ void CSFtp::OnOK()
 					if ( m_bShellExec[0] == 0 ) {
 						CMsgChkDlg dlg(this);
 						dlg.m_bNoChkEnable = TRUE;
-						dlg.m_pParent = this;
 						dlg.m_MsgText.Format(IDS_SFTPLOCALEXEC, m_LocalNode[n].m_file);
 						dlg.m_Title = _T("Local File Execute");
 						dlg.m_bNoCheck = FALSE;
@@ -3174,7 +3126,6 @@ void CSFtp::OnOK()
 					if ( m_bShellExec[1] == 0 ) {
 						CMsgChkDlg dlg(this);
 						dlg.m_bNoChkEnable = TRUE;
-						dlg.m_pParent = this;
 						dlg.m_MsgText.Format(IDS_SFTPREMOTEEXEC, m_RemoteNode[n].m_file);
 						dlg.m_Title = _T("Remote File Execute");
 						dlg.m_bNoCheck = FALSE;
@@ -4206,10 +4157,8 @@ LRESULT CSFtp::OnReceiveBuffer(WPARAM wParam, LPARAM lParam)
 			int n;
 			BYTE tmp[4];
 
-#ifdef	USE_WRITEOVERLAP
 			if ( m_WriteOverLap.IsBuzy(this) )
 				return TRUE;
-#endif
 
 			m_bBuzy = TRUE;
 			m_bPostMsg = FALSE;
@@ -4232,10 +4181,8 @@ LRESULT CSFtp::OnReceiveBuffer(WPARAM wParam, LPARAM lParam)
 				m_RecvBuf.Consume(4);
 				ReceiveBuffer(&m_RecvBuf);
 
-#ifdef	USE_WRITEOVERLAP
 				if ( m_WriteOverLap.IsBuzy(this) )
 					break;
-#endif
 			}
 
 			m_bBuzy = FALSE;

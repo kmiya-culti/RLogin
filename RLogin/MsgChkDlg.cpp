@@ -19,7 +19,6 @@ CMsgChkDlg::CMsgChkDlg(CWnd* pParent /*=NULL*/)	: CDialogExt(CMsgChkDlg::IDD, pP
 	m_BtnRes[0] = IDYES;
 	m_BtnRes[1] = IDNO;
 	m_BtnRes[2] = IDCLOSE;
-	m_pParent = NULL;
 }
 
 CMsgChkDlg::~CMsgChkDlg()
@@ -51,7 +50,7 @@ static const INITDLGTAB ItemTab[] = {
 
 	{ IDC_BUTTON1,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_BUTTON2,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
-	{ IDC_BUTTON2,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_BUTTON3,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
 
 	{ 0,	0 },
 };
@@ -243,7 +242,7 @@ BOOL CMsgChkDlg::OnInitDialog()
 	if ( !m_bNoChkEnable ) {
 		pButton[0]->GetWindowRect(txrt);
 		ScreenToClient(txrt);
-		mdx = txrt.left - MulDiv(12, m_NowDpi.cx, 96);
+		mdx = txrt.left - MulDiv(14, m_NowFsz.cx, 4);
 	}
 
 	txrt = rect;
@@ -277,11 +276,8 @@ BOOL CMsgChkDlg::OnInitDialog()
 	sz.cx = rect.Width();
 	sz.cy = rect.Height();
 
-	if ( m_pParent ==  NULL )
-		m_pParent = ::AfxGetMainWnd();
-
-	if ( m_pParent !=  NULL ) {
-		m_pParent->GetWindowRect(rect);
+	if ( m_pParentWnd !=  NULL && !m_pParentWnd->IsIconic() && m_pParentWnd->IsWindowVisible() ) {
+		m_pParentWnd->GetWindowRect(rect);
 		int sx = rect.left + (rect.Width()  - sz.cx) / 2;
 		int sy = rect.top  + (rect.Height() - sz.cy) / 2;
 		SetWindowPos(NULL, sx, sy, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);

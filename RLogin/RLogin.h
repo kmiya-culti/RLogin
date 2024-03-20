@@ -46,6 +46,9 @@
 // CDockBarEx
 #define	WM_DOCKBARDRAG		(WM_APP + 30)
 
+// CRloginApp
+#define	WM_DRAWEMOJI		(WM_APP + 31)
+
 #define	IDLEPROC_ENCRYPT	0
 #define	IDLEPROC_SCRIPT		1
 #define	IDLEPROC_VIEW		2
@@ -92,6 +95,10 @@
 #define	APPCOL_TABSHADOW	46
 
 #define	APPCOL_MAX			47
+
+#define	EMOJIPOSTSTAT_DONE	0
+#define	EMOJIPOSTSTAT_WAIT	1
+#define	EMOJIPOSTSTAT_POST	2
 
 //////////////////////////////////////////////////////////////////////
 // CCommandLineInfoEx
@@ -185,12 +192,20 @@ public:
 	CEmojiImage *m_pEmojiList[EMOJI_HASH];
 	CString m_EmojiFontName;
 	CString m_EmojiImageDir;
+	CEmojiImage *m_pEmojiThreadQue;
+	CEvent m_EmojiReqEvent;
+	CEvent m_EmojiThreadEvent;
+	int m_EmojiThreadMode;
+	int m_EmojiPostStat;
+	CEmojiDocPos *m_pEmojiPostDocPos;
+	CSemaphore m_EmojiThreadSemaphore;
 
 	HDC GetEmojiImage(CEmojiImage *pEmoji);
 	void SaveEmojiImage(CEmojiImage *pEmoji);
 	HDC GetEmojiDrawText(CEmojiImage *pEmoji, COLORREF fc, int fh);
-	BOOL DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLORREF bc, BOOL bEraBack, int fh, int zm);
+	BOOL DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLORREF bc, BOOL bEraBack, void *pParam);
 	void EmojiImageInit(LPCTSTR pFontName, LPCTSTR pImageDir);
+	void EmojiImageFinish();
 #endif
 
 #ifdef	USE_JUMPLIST
@@ -325,7 +340,6 @@ public:
 
 // ŽÀ‘•
 public:
-	DECLARE_MESSAGE_MAP()
 	afx_msg void OnFileNew();
 	afx_msg void OnFileOpen();
 	afx_msg void OnAppAbout();
@@ -346,6 +360,8 @@ public:
 	afx_msg void OnRegistapp();
 	afx_msg void OnUpdateRegistapp(CCmdUI *pCmdUI);
 	afx_msg void OnSecporicy();
+	afx_msg void OnUpdateEmoji(WPARAM wParam, LPARAM lParam);
+	DECLARE_MESSAGE_MAP()
 };
 
 extern CRLoginApp theApp;
@@ -392,8 +408,10 @@ extern HRESULT (__stdcall *ExGetDpiForMonitor)(HMONITOR hmonitor, MONITOR_DPI_TY
 typedef enum _PROCESS_DPI_AWARENESS { PROCESS_DPI_UNAWARE, PROCESS_SYSTEM_DPI_AWARE, PROCESS_PER_MONITOR_DPI_AWARE } PROCESS_DPI_AWARENESS;
 extern HRESULT (__stdcall *ExSetProcessDpiAwareness)(PROCESS_DPI_AWARENESS value);
 
+extern LPCTSTR FormatErrorMessage(CString &str, LPCTSTR msg, ...);
 extern int ThreadMessageBox(LPCTSTR msg, ...);
 extern int DoitMessageBox(LPCTSTR lpszPrompt, UINT nType = 0, CWnd *pParent = NULL);
+extern BOOL WaitForEvent(HANDLE hHandle, LPCTSTR pMsg = NULL);
 
 #define	REQDPICONTEXT_SCALED	015
 #define	REQDPICONTEXT_AWAREV2	016

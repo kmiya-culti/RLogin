@@ -38,7 +38,7 @@ public:
 	CImageList m_ImageList[8];
 	CRect m_InvRect;
 
-	BOOL m_EmojiColorEnable;
+	int m_EmojiColorMode;
 	CString m_EmojiFontName;
 	CString m_EmojiImageDir;
 
@@ -78,4 +78,5 @@ protected:
 	afx_msg void OnBnClickedColedit();
 	afx_msg void OnBnClickedImageSel();
 	afx_msg void OnUpdateTextRam();
+	afx_msg void OnUpdateRadio(UINT nID);
 };

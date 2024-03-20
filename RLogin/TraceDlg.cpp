@@ -1149,7 +1149,8 @@ BOOL CHistoryDlg::OnInitDialog()
 	int y  = ::AfxGetApp()->GetProfileInt(_T("HistoryDlg"), _T("y"),  frame.top);
 	int cx = ::AfxGetApp()->GetProfileInt(_T("HistoryDlg"), _T("cx"), frame.Width());
 	int cy = ::AfxGetApp()->GetProfileInt(_T("HistoryDlg"), _T("cy"), frame.Height());
-	SetWindowPos(NULL, x, y, cx, cy, SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE);
+//	SetWindowPos(NULL, x, y, cx, cy, SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE);
+	CheckMoveWindow(x, y, cx, cy, FALSE);
 
 	return FALSE;
 }

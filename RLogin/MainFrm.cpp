@@ -808,6 +808,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_GETMINMAXINFO()
 	ON_WM_INITMENU()
 	ON_WM_SETTINGCHANGE()
+	ON_WM_NCPAINT()
+	ON_WM_NCACTIVATE()
 
 	ON_MESSAGE(WM_ICONMSG, OnIConMsg)
 	ON_MESSAGE(WM_THREADCMD, OnThreadMsg)
@@ -914,8 +916,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_MESSAGE(WM_UAHDRAWMENU, OnUahDrawMenu)
 	ON_MESSAGE(WM_UAHDRAWMENUITEM, OnUahDrawMenuItem)
 
-	ON_WM_NCPAINT()
-	ON_WM_NCACTIVATE()
+	ON_MESSAGE(WM_DRAWEMOJI, OnUpdateEmoji)
 
 	END_MESSAGE_MAP()
 
@@ -1313,8 +1314,13 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	mi.cbSize = sizeof(MONITORINFOEX);
 	GetMonitorInfo(hMonitor, &mi);
 
-#if 1
 	// モニターを基準に調整
+	if ( (mi.dwFlags & MONITORINFOF_PRIMARY) != 0 ) {
+		CRect work;
+		SystemParametersInfo(SPI_GETWORKAREA, 0, work, 0);
+		mi.rcMonitor = work;
+	}
+
 	if ( cs.x < mi.rcMonitor.left )
 		cs.x = mi.rcMonitor.left;
 
@@ -1334,22 +1340,6 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 			cs.cy = mi.rcMonitor.bottom - mi.rcMonitor.top;
 		}
 	}
-#else
-	// 仮想画面サイズを基準に調整
-	if ( (cs.x + cs.cx) > mi.rcWork.right ) {
-		if ( (cs.x = mi.rcWork.right - cs.cx) < mi.rcWork.left ) {
-			cs.x  = mi.rcWork.left;
-			cs.cx = mi.rcWork.right - mi.rcWork.left;
-		}
-	}
-
-	if ( (cs.y + cs.cy) > mi.rcWork.bottom ) {
-		if ( (cs.y = mi.rcWork.bottom - cs.cy) < mi.rcWork.top ) {
-			cs.y  = mi.rcWork.top;
-			cs.cy = mi.rcWork.bottom - mi.rcWork.top;
-		}
-	}
-#endif
 
 	// モニターDPIを取得
 	if ( ExGetDpiForMonitor != NULL )
@@ -2912,6 +2902,8 @@ void CMainFrame::OnDestroy()
 	} else if ( ExRemoveClipboardFormatListener != NULL )
 		ExRemoveClipboardFormatListener(m_hWnd);
 
+	theApp.EmojiImageFinish();
+
 	CMDIFrameWnd::OnDestroy();
 }
 
@@ -4223,6 +4215,36 @@ void CMainFrame::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 
 	CMDIFrameWnd::OnSettingChange(uFlags, lpszSection);
 }
+void CMainFrame::DrawSystemBar()
+{
+	CRect window, client;
+	CDC *pDC = GetWindowDC();
+
+	GetWindowRect(window);
+	GetClientRect(client);
+	ClientToScreen(client);
+
+	// メニューバー下の線を背景と同じに塗る
+	pDC->FillSolidRect(0, client.top - window.top - 1, window.Width(), 1, GetAppColor(APPCOL_MENUFACE));
+
+	ReleaseDC(pDC);
+}
+void CMainFrame::OnNcPaint()
+{
+	Default();
+
+	if ( bDarkModeSupport )
+		DrawSystemBar();
+}
+BOOL CMainFrame::OnNcActivate(BOOL bActive)
+{
+	BOOL ret = CMDIFrameWnd::OnNcActivate(bActive);
+
+	if ( bDarkModeSupport )
+		DrawSystemBar();
+
+	return ret;
+}
 
 void CMainFrame::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 {
@@ -4729,7 +4751,7 @@ LRESULT CMainFrame::OnDocumentMsg(WPARAM wParam, LPARAM lParam)
 		break;
 
 	case DOCMSG_MESSAGE:
-		pDocMsg->type = ::DoitMessageBox((LPCTSTR)(pDocMsg->pIn), (UINT)(pDocMsg->type));
+		pDocMsg->type = ::DoitMessageBox((LPCTSTR)(pDocMsg->pIn), (UINT)(pDocMsg->type), this);
 		break;
 	}
 
@@ -4810,33 +4832,8 @@ LRESULT CMainFrame::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
-void CMainFrame::DrawSystemBar()
+LRESULT CMainFrame::OnUpdateEmoji(WPARAM wParam, LPARAM lParam)
 {
-	CRect window, client;
-	CDC *pDC = GetWindowDC();
-
-	GetWindowRect(window);
-	GetClientRect(client);
-	ClientToScreen(client);
-
-	// メニューバー下の線を背景と同じに塗る
-	pDC->FillSolidRect(0, client.top - window.top - 1, window.Width(), 1, GetAppColor(APPCOL_MENUFACE));
-
-	ReleaseDC(pDC);
-}
-void CMainFrame::OnNcPaint()
-{
-	Default();
-
-	if ( bDarkModeSupport )
-		DrawSystemBar();
-}
-BOOL CMainFrame::OnNcActivate(BOOL bActive)
-{
-	BOOL ret = CMDIFrameWnd::OnNcActivate(bActive);
-
-	if ( bDarkModeSupport )
-		DrawSystemBar();
-
-	return ret;
+	theApp.OnUpdateEmoji(wParam, lParam);
+	return TRUE;
 }

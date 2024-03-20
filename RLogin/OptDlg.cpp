@@ -225,11 +225,11 @@ void COptDlg::SetModified(BOOL bModified)
 /////////////////////////////////////////////////////////////////////////////
 
 BEGIN_MESSAGE_MAP(COptDlg, CDialogExt)
+	ON_WM_SIZE()
 	ON_NOTIFY(TVN_SELCHANGED, IDC_TABTREE, &COptDlg::OnSelchangedTree)
 	ON_BN_CLICKED(IDC_DOINIT, &COptDlg::OnDoInit)
 	ON_BN_CLICKED(ID_APPLY_NOW, &COptDlg::OnApplyNow)
 	ON_BN_CLICKED(IDC_HELPBTN, &COptDlg::OnBnClickedHelpbtn)
-	ON_WM_SIZE()
 	ON_MESSAGE(WM_DPICHANGED, &COptDlg::OnDpiChanged)
 END_MESSAGE_MAP()
 
@@ -254,7 +254,6 @@ static const INITDLGTAB InitItemTab[] = {
 	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ ID_APPLY_NOW,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
-	{ IDC_HELPBTN,		ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_TABTREE,		ITM_BTM_BTM },
 	{ IDC_FRAME,		ITM_RIGHT_RIGHT | ITM_BTM_BTM },
 	{ 0,				0 },
@@ -264,7 +263,6 @@ static const INITDLGTAB ItemTab[] = {
 	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ ID_APPLY_NOW,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
-	{ IDC_HELPBTN,		ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_TABTREE,		ITM_RIGHT_PER | ITM_BTM_BTM },
 	{ IDC_FRAME,		ITM_LEFT_PER | ITM_RIGHT_RIGHT | ITM_BTM_BTM },
 	{ 0,				0 },
@@ -395,11 +393,9 @@ BOOL COptDlg::OnInitDialog()
 	// CharSetPage‚Ì‰Šú‰»‚ª’x‚¢‚Ì‚Åæ‚Éì¬
 	CreatePage(10);
 
-	m_toolTip.Create(this, TTS_ALWAYSTIP | TTS_BALLOON);
-    m_toolTip.AddTool(GetDlgItem(IDC_HELPBTN), CStringLoad(IDS_OPTIONHELPMSG));
-
 	SetSaveProfile(_T("OptDlg"));
 	SetLoadPosition(LOADPOS_PARENT);
+	AddHelpButton(_T(""));
 
 	return FALSE;
 }
@@ -430,7 +426,7 @@ void COptDlg::OnApplyNow()
 	}
 
 	if ( m_pDocument != NULL )
-		m_pDocument->UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
+		m_pDocument->UpdateOption(this);
 }
 void COptDlg::OnDoInit()
 {
@@ -492,14 +488,6 @@ void COptDlg::OnBnClickedHelpbtn()
 		url += pPage->m_UrlOpt;
 
 	ShellExecute(AfxGetMainWnd()->GetSafeHwnd(), NULL, url, NULL, NULL, SW_NORMAL);
-}
-BOOL COptDlg::PreTranslateMessage(MSG* pMsg)
-{
-	if ( pMsg->message == WM_MOUSEMOVE && pMsg->hwnd == GetDlgItem(IDC_HELPBTN)->m_hWnd ) {
-		m_toolTip.RelayEvent(pMsg);
-        return TRUE;
-    }
-	return CDialogExt::PreTranslateMessage(pMsg);
 }
 void COptDlg::PageReSize()
 {

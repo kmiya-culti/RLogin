@@ -220,6 +220,7 @@ BOOL CAnyPastDlg::OnInitDialog()
 	SetLoadPosition(LOADPOS_MAINWND);
 
 	AddShortCutKey(0, VK_RETURN, MASK_CTRL, 0, IDOK);
+	AddHelpButton(_T("#PASTDLG"));
 
 	return TRUE;
 }

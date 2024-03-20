@@ -6,9 +6,6 @@
 #include "ToolBarEx.h"
 #include <Shobjidl.h>
 
-#define	USE_WRITEOVERLAP
-#define	USE_READOVERLAP
-
 /* version */
 #define SSH2_FILEXFER_VERSION           3
 
@@ -84,12 +81,7 @@
 #define	SENDCMD_NOWAIT					0
 #define	SENDCMD_HEAD					1
 #define	SENDCMD_TAIL					2
-
-#ifdef	USE_READOVERLAP
 #define	SENDCMD_READOVERLAP				3
-#else
-#define	SENDCMD_READOVERLAP				SENDCMD_NOWAIT
-#endif
 
 #define	THREADCMD_COPY					0
 #define	THREADCMD_MOVE					1
@@ -215,6 +207,7 @@ public:
 	class CSFtp *m_pPostWnd;
 	CSemaphore m_Lock;
 	CWinThread *m_pThread;
+	CEvent m_ThreadEvent;
 	DWORD m_LastError;
 	enum _FolStat { FOL_INIT, FOL_DONE, FOL_HAVEDATA, FOL_OVERLAP, FOL_OVERWAIT } m_Stat;
 	CList<class CCmdQue *, class CCmdQue *> m_ReadQue;
@@ -311,12 +304,8 @@ public:
 	CList<class CCmdQue *, class CCmdQue *> m_CmdQue;
 	CList<class CCmdQue *, class CCmdQue *> m_WaitQue;
 
-#ifdef	USE_READOVERLAP
 	CSemaphore m_CmdQueSema;
 	inline void AddCmdQue(CCmdQue *pQue) { pQue->m_SendTime = CTime::GetCurrentTime(); m_CmdQueSema.Lock(); m_CmdQue.AddTail(pQue); m_CmdQueSema.Unlock(); };
-#else
-	inline void AddCmdQue(CCmdQue *pQue) { pQue->m_SendTime = CTime::GetCurrentTime(); m_CmdQue.AddTail(pQue); };
-#endif
 
 	void SendBuffer(CBuffer *bp);
 	int ReceiveBuffer(CBuffer *bp);
@@ -429,6 +418,8 @@ public:
 	LPCTSTR JointPath(LPCTSTR dir, LPCTSTR file, CString &path);
 	inline void KanjiConvToLocal(LPCSTR in, CString &out) { m_IConv.RemoteToStr(m_HostKanjiSet, in, out); }
 	inline void KanjiConvToRemote(LPCTSTR in, CStringA &out) {	m_IConv.StrToRemote(m_HostKanjiSet, in, out); }
+
+	virtual void SetItemOffset(int cx, int cy);
 
 // オーバーライド
 protected:

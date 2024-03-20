@@ -235,38 +235,71 @@ void CTabCtrlExt::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 		switch(rotation) {
 		case TABSTYLE_TOP:
 			tv[0].x = rect.left;
-			tv[0].y = rect.top;
+			tv[0].y = rect.top + 2;
 			tv[1].x = rect.right;
 			tv[1].y = rect.bottom;
 			dwMode = GRADIENT_FILL_RECT_V;
+			pDC->FillSolidRect(CRect(rect.left + 2, rect.top, rect.right - 2, rect.top + 1), bc);
+			pDC->FillSolidRect(CRect(rect.left + 1, rect.top + 1, rect.right - 1, rect.top + 2), bc);
+			pDC->GradientFill(tv, 2, &gr, 1, dwMode);
 			break;
 		case TABSTYLE_BOTTOM:
 			tv[0].x = rect.right;
-			tv[0].y = rect.bottom;
+			tv[0].y = rect.bottom - 2;
 			tv[1].x = rect.left;
 			tv[1].y = rect.top;
 			dwMode = GRADIENT_FILL_RECT_V;
+			pDC->FillSolidRect(CRect(rect.left + 2, rect.bottom, rect.right - 2, rect.bottom - 1), bc);
+			pDC->FillSolidRect(CRect(rect.left + 1, rect.bottom - 1, rect.right - 1, rect.bottom - 2), bc);
+			pDC->GradientFill(tv, 2, &gr, 1, dwMode);
 			break;
 		case TABSTYLE_LEFT:
-			tv[0].x = rect.left;
+			tv[0].x = rect.left + 2;
 			tv[0].y = rect.top;
 			tv[1].x = rect.right;
 			tv[1].y = rect.bottom;
 			dwMode = GRADIENT_FILL_RECT_H;
+			pDC->FillSolidRect(CRect(rect.left, rect.top + 2, rect.left + 1, rect.bottom - 2), bc);
+			pDC->FillSolidRect(CRect(rect.left + 1, rect.top + 1, rect.left + 2, rect.bottom - 1), bc);
+			pDC->GradientFill(tv, 2, &gr, 1, dwMode);
 			break;
 		case TABSTYLE_RIGHT:
-			tv[0].x = rect.right;
+			tv[0].x = rect.right - 2;
 			tv[0].y = rect.bottom;
 			tv[1].x = rect.left;
 			tv[1].y = rect.top;
 			dwMode = GRADIENT_FILL_RECT_H;
+			pDC->FillSolidRect(CRect(rect.right, rect.top + 2, rect.right - 1, rect.bottom - 2), bc);
+			pDC->FillSolidRect(CRect(rect.right - 1, rect.top + 1, rect.right - 2, rect.bottom - 1), bc);
+			pDC->GradientFill(tv, 2, &gr, 1, dwMode);
 			break;
 		}
 
-		pDC->GradientFill(tv, 2, &gr, 1, dwMode);
 
-	} else
-		pDC->FillSolidRect(rect, bc);
+	} else {
+		switch(rotation) {
+		case TABSTYLE_TOP:
+			pDC->FillSolidRect(CRect(rect.left + 2, rect.top, rect.right - 2, rect.top + 1), bc);
+			pDC->FillSolidRect(CRect(rect.left + 1, rect.top + 1, rect.right - 1, rect.top + 2), bc);
+			pDC->FillSolidRect(CRect(rect.left, rect.top + 2, rect.right, rect.bottom), bc);
+			break;
+		case TABSTYLE_BOTTOM:
+			pDC->FillSolidRect(CRect(rect.left + 2, rect.bottom, rect.right - 2, rect.bottom - 1), bc);
+			pDC->FillSolidRect(CRect(rect.left + 1, rect.bottom - 1, rect.right - 1, rect.bottom - 2), bc);
+			pDC->FillSolidRect(CRect(rect.left, rect.top, rect.right, rect.bottom - 2), bc);
+			break;
+		case TABSTYLE_LEFT:
+			pDC->FillSolidRect(CRect(rect.left, rect.top + 2, rect.left + 1, rect.bottom - 2), bc);
+			pDC->FillSolidRect(CRect(rect.left + 1, rect.top + 1, rect.left + 2, rect.bottom - 1), bc);
+			pDC->FillSolidRect(CRect(rect.left + 2, rect.top, rect.right, rect.bottom), bc);
+			break;
+		case TABSTYLE_RIGHT:
+			pDC->FillSolidRect(CRect(rect.right, rect.top + 2, rect.right - 1, rect.bottom - 2), bc);
+			pDC->FillSolidRect(CRect(rect.right - 1, rect.top + 1, rect.right - 2, rect.bottom - 1), bc);
+			pDC->FillSolidRect(CRect(rect.left, rect.top, rect.right - 2, rect.bottom), bc);
+			break;
+		}
+	}
 
 	if ( pImageList != 0 && tci.iImage >= 0 ) {
 		IMAGEINFO info;
@@ -364,8 +397,10 @@ void CTabCtrlExt::OnPaint()
 
 				dc.MoveTo(last);
 				dc.LineTo(rect.left, frame.bottom - TABBTM_SIZE);
-				dc.LineTo(rect.left, rect.top);
-				dc.LineTo(rect.right, rect.top);
+				dc.LineTo(rect.left, rect.top + 2);
+				dc.LineTo(rect.left + 2, rect.top);
+				dc.LineTo(rect.right - 2, rect.top);
+				dc.LineTo(rect.right, rect.top + 2);
 				dc.LineTo(rect.right, frame.bottom - TABBTM_SIZE);
 
 				if ( n != nIndex )
@@ -405,8 +440,10 @@ void CTabCtrlExt::OnPaint()
 
 				dc.MoveTo(last);
 				dc.LineTo(rect.left, frame.top + TABBTM_SIZE);
-				dc.LineTo(rect.left, rect.bottom);
-				dc.LineTo(rect.right, rect.bottom);
+				dc.LineTo(rect.left, rect.bottom - 2);
+				dc.LineTo(rect.left + 2, rect.bottom);
+				dc.LineTo(rect.right - 2, rect.bottom);
+				dc.LineTo(rect.right, rect.bottom - 2);
 				dc.LineTo(rect.right, frame.top + TABBTM_SIZE);
 
 				if ( n != nIndex )
@@ -445,8 +482,10 @@ void CTabCtrlExt::OnPaint()
 
 				dc.MoveTo(last);
 				dc.LineTo(frame.right - TABBTM_SIZE, rect.top);
-				dc.LineTo(rect.left, rect.top);
-				dc.LineTo(rect.left, rect.bottom);
+				dc.LineTo(rect.left + 2, rect.top);
+				dc.LineTo(rect.left, rect.top + 2);
+				dc.LineTo(rect.left, rect.bottom - 2);
+				dc.LineTo(rect.left + 2, rect.bottom);
 				dc.LineTo(frame.right - TABBTM_SIZE, rect.bottom);
 
 				if ( n != nIndex )
@@ -486,8 +525,10 @@ void CTabCtrlExt::OnPaint()
 
 				dc.MoveTo(last);
 				dc.LineTo(frame.left + TABBTM_SIZE, rect.top);
-				dc.LineTo(rect.right, rect.top);
-				dc.LineTo(rect.right, rect.bottom);
+				dc.LineTo(rect.right - 2, rect.top);
+				dc.LineTo(rect.right, rect.top + 2);
+				dc.LineTo(rect.right, rect.bottom - 2);
+				dc.LineTo(rect.right - 2, rect.bottom);
 				dc.LineTo(frame.left + TABBTM_SIZE, rect.bottom);
 
 				if ( n != nIndex )
@@ -574,7 +615,7 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 	if ( _tcscmp(name, _T("Button")) == 0 ) {
 		if ( !pParent->m_bDarkMode && (GetAppColor(APPCOL_DLGTEXT) != GetSysColor(COLOR_MENUTEXT)) )
 			ExSetWindowTheme(hWnd, L"", L"");
-		else if ( (pWnd->GetStyle() & BS_TYPEMASK) <= BS_DEFPUSHBUTTON )
+		else if ( (pWnd->GetStyle() & BS_TYPEMASK) <= BS_DEFPUSHBUTTON || (pWnd->GetStyle() & BS_TYPEMASK) == BS_PUSHBOX )
 			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
 		else if ( pParent->m_bDarkMode )
 			ExSetWindowTheme(hWnd, L"", L"");
@@ -983,8 +1024,12 @@ void CDialogExt::CheckMoveWindow(CRect &rect, BOOL bRepaint)
 	mi.cbSize = sizeof(MONITORINFOEX);
 	GetMonitorInfo(hMonitor, &mi);
 
-#if 1
 	// モニターを基準に調整
+	if ( (mi.dwFlags & MONITORINFOF_PRIMARY) != 0 ) {
+		CRect work;
+		SystemParametersInfo(SPI_GETWORKAREA, 0, work, 0);
+		mi.rcMonitor = work;
+	}
 
 	if ( rect.left < mi.rcMonitor.left ) {
 		rect.right += (mi.rcMonitor.left - rect.left);
@@ -1013,70 +1058,56 @@ void CDialogExt::CheckMoveWindow(CRect &rect, BOOL bRepaint)
 			rect.bottom = mi.rcMonitor.bottom;
 		}
 	}
-#else
-	// 仮想画面サイズを基準に調整
-
-	if ( rect.left < mi.rcWork.left ) {
-		rect.right += (mi.rcWork.left - rect.left);
-		rect.left  += (mi.rcWork.left - rect.left);
-	}
-
-	if ( rect.top < mi.rcWork.top ) {
-		rect.bottom += (mi.rcWork.top - rect.top);
-		rect.top    += (mi.rcWork.top - rect.top);
-	}
-
-	if ( rect.right > mi.rcWork.right ) {
-		rect.left  -= (rect.right - mi.rcWork.right);
-		rect.right -= (rect.right - mi.rcWork.right);
-		if ( rect.left < mi.rcWork.left ) {
-			rect.left  = mi.rcWork.left;
-			rect.right = mi.rcWork.right;
-		}
-	}
-
-	if ( rect.bottom > mi.rcWork.bottom ) {
-		rect.top    -= (rect.bottom - mi.rcWork.bottom);
-		rect.bottom -= (rect.bottom - mi.rcWork.bottom);
-		if ( rect.top < mi.rcWork.top ) {
-			rect.top    = mi.rcWork.top;
-			rect.bottom = mi.rcWork.bottom;
-		}
-	}
-#endif
 
 	MoveWindow(rect, bRepaint);
 }
 void CDialogExt::LoadSaveDialogSize(BOOL bSave)
 {
-	CRect rect;
+	CRect rect, client;
 	int sx, sy;
 	int cx, cy;
+	int dx, dy;
 	CWnd *pWnd;
 	CSize fsz = m_NowFsz;
 
 	GetWindowRect(rect);
+	GetClientRect(client);
 
 	if ( bSave ) {
-		AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * m_NowFsz.cx));
-		AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * m_NowFsz.cy));
+		//AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * m_NowFsz.cx));
+		//AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * m_NowFsz.cy));
+		//AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("WithFontSize"), m_FontSize);
+
+		AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("clientX"), MulDiv(client.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * m_NowFsz.cx));
+		AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("clientY"), MulDiv(client.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * m_NowFsz.cy));
 
 		if ( m_LoadPosMode == LOADPOS_PROFILE ) {
 			AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("sx"), MulDiv(rect.left, DEFAULT_DPI_X, m_NowDpi.cx));
 			AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("sy"), MulDiv(rect.top,  DEFAULT_DPI_Y, m_NowDpi.cy));
 		}
 
-		AfxGetApp()->WriteProfileInt(m_SaveProfile, _T("WithFontSize"), m_FontSize);
-
 	} else {
-		if ( AfxGetApp()->GetProfileInt(m_SaveProfile, _T("cx"), (-1)) != (-1) && AfxGetApp()->GetProfileInt(m_SaveProfile, _T("WithFontSize"), 0) == 0 )
-			fsz = m_DefFsz;
+		if ( AfxGetApp()->GetProfileInt(m_SaveProfile, _T("clientX"), 0) > 0 ) {
+			dx = rect.Width()  - client.Width();
+			dy = rect.Height() - client.Height();
+			cx = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("clientX"), MulDiv(client.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * m_NowFsz.cx));
+			cy = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("clientY"), MulDiv(client.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * m_NowFsz.cy));
+			cx = MulDiv(cx, m_NowDpi.cx * m_NowFsz.cx, DEFAULT_DPI_X * m_DefFsz.cx) + dx;
+			cy = MulDiv(cy, m_NowDpi.cy * m_NowFsz.cy, DEFAULT_DPI_Y * m_DefFsz.cy) + dx;
 
-		cx = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * fsz.cx));
-		cy = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * fsz.cy));
-
-		cx = MulDiv(cx, m_NowDpi.cx * fsz.cx, DEFAULT_DPI_X * m_DefFsz.cx);
-		cy = MulDiv(cy, m_NowDpi.cy * fsz.cy, DEFAULT_DPI_Y * m_DefFsz.cy);
+			if ( AfxGetApp()->GetProfileInt(m_SaveProfile, _T("WithFontSize"), 0) != 0 ) {
+				((CRLoginApp *)AfxGetApp())->DelProfileEntry(m_SaveProfile, _T("cx"));
+				((CRLoginApp *)AfxGetApp())->DelProfileEntry(m_SaveProfile, _T("cy"));
+				((CRLoginApp *)AfxGetApp())->DelProfileEntry(m_SaveProfile, _T("WithFontSize"));
+			}
+		} else {
+			if ( AfxGetApp()->GetProfileInt(m_SaveProfile, _T("cx"), (-1)) != (-1) && AfxGetApp()->GetProfileInt(m_SaveProfile, _T("WithFontSize"), 0) == 0 )
+				fsz = m_DefFsz;
+			cx = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * fsz.cx));
+			cy = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * fsz.cy));
+			cx = MulDiv(cx, m_NowDpi.cx * fsz.cx, DEFAULT_DPI_X * m_DefFsz.cx);
+			cy = MulDiv(cy, m_NowDpi.cy * fsz.cy, DEFAULT_DPI_Y * m_DefFsz.cy);
+		}
 
 		if ( cx < rect.Width() )
 			cx = rect.Width();
@@ -1094,14 +1125,14 @@ void CDialogExt::LoadSaveDialogSize(BOOL bSave)
 			sy = MulDiv(sy, m_NowDpi.cy, DEFAULT_DPI_Y);
 			break;
 		case LOADPOS_PARENT:
-			if ( (pWnd = GetParent()) != NULL ) {
+			if ( (pWnd = GetParent()) != NULL && !pWnd->IsIconic() && pWnd->IsWindowVisible() ) {
 				pWnd->GetWindowRect(rect);
 				sx = rect.left + (rect.Width()  - cx) / 2;
 				sy = rect.top  + (rect.Height() - cy) / 2;
 			}
 			break;
 		case LOADPOS_MAINWND:
-			if ( (pWnd = ::AfxGetMainWnd()) != NULL ) {
+			if ( (pWnd = ::AfxGetMainWnd()) != NULL && !pWnd->IsIconic() && pWnd->IsWindowVisible() ) {
 				pWnd->GetWindowRect(rect);
 				sx = rect.left + (rect.Width()  - cx) / 2;
 				sy = rect.top  + (rect.Height() - cy) / 2;
@@ -1310,6 +1341,18 @@ void CDialogExt::AddShortCutKey(UINT MsgID, UINT KeyCode, UINT KeyWith, UINT Ctr
 
 	m_Data.Add(data);
 }
+void CDialogExt::AddHelpButton(LPCTSTR url)
+{
+	m_HelpUrl = url;
+	ModifyStyleEx(0, WS_EX_CONTEXTHELP);
+}
+void CDialogExt::AddToolTip(CWnd *pWnd, LPCTSTR msg)
+{
+	if ( m_toolTip.GetSafeHwnd() == NULL )
+		m_toolTip.Create(this, TTS_ALWAYSTIP | TTS_BALLOON);
+
+    m_toolTip.AddTool(pWnd, msg);
+}
 
 BEGIN_MESSAGE_MAP(CDialogExt, CDialog)
 	ON_WM_CREATE()
@@ -1320,11 +1363,14 @@ BEGIN_MESSAGE_MAP(CDialogExt, CDialog)
 	ON_WM_ERASEBKGND()
 	ON_WM_INITMENUPOPUP()
 	ON_WM_SETTINGCHANGE()
+	ON_WM_NCPAINT()
+	ON_WM_NCACTIVATE()
 	ON_MESSAGE(WM_KICKIDLE, OnKickIdle)
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 	ON_MESSAGE(WM_INITDIALOG, HandleInitDialog)
 	ON_MESSAGE(WM_UAHDRAWMENU, OnUahDrawMenu)
 	ON_MESSAGE(WM_UAHDRAWMENUITEM, OnUahDrawMenuItem)
+	ON_BN_CLICKED(IDC_HELPBTN, OnBnClickedHelpbtn)
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
@@ -1358,6 +1404,39 @@ BOOL CDialogExt::OnEraseBkgnd(CDC* pDC)
 	GetClientRect(rect);
 	pDC->FillSolidRect(rect, GetAppColor(m_bBackWindow ? APPCOL_DLGOPTFACE : APPCOL_DLGFACE));
 	return TRUE;
+}
+void CDialogExt::DrawSystemBar()
+{
+	if ( GetMenu() == NULL )
+		return;
+
+	CRect window, client;
+	CDC *pDC = GetWindowDC();
+
+	GetWindowRect(window);
+	GetClientRect(client);
+	ClientToScreen(client);
+
+	// メニューバー下の線をダークモード対応で塗る
+	pDC->FillSolidRect(0, client.top - window.top - 1, window.Width(), 1, GetAppColor(COLOR_BTNSHADOW));
+
+	ReleaseDC(pDC);
+}
+void CDialogExt::OnNcPaint()
+{
+	Default();
+
+	if ( bDarkModeSupport )
+		DrawSystemBar();
+}
+BOOL CDialogExt::OnNcActivate(BOOL bActive)
+{
+	BOOL ret = CDialog::OnNcActivate(bActive);
+
+	if ( bDarkModeSupport )
+		DrawSystemBar();
+
+	return ret;
 }
 
 afx_msg LRESULT CDialogExt::OnKickIdle(WPARAM wParam, LPARAM lParam)
@@ -1408,7 +1487,7 @@ LRESULT CDialogExt::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 	m_NowDpi.cy = HIWORD(wParam);
 
 	GetClientRect(OldRect);
-	MoveWindow(ReqRect, FALSE);
+	CheckMoveWindow(ReqRect, FALSE);
 	GetClientRect(NewRect);
 
 	m_ZoomMul.cx = NewRect.Width();
@@ -1467,6 +1546,13 @@ BOOL CDialogExt::PreTranslateMessage(MSG* pMsg)
 
 			return TRUE;
 		}
+
+	} else if ( pMsg->message >= WM_MOUSEFIRST && WM_MOUSELAST >= pMsg->message && m_toolTip.GetSafeHwnd() != NULL ) {
+		m_toolTip.RelayEvent(pMsg);
+
+	} else if ( pMsg->message == WM_NCLBUTTONDOWN && pMsg->wParam == HTHELP ) {
+		PostMessage(WM_COMMAND, MAKEWPARAM(IDC_HELPBTN, BN_CLICKED));
+		return TRUE;
 	}
 
 	return CDialog::PreTranslateMessage(pMsg);
@@ -1478,6 +1564,9 @@ LRESULT CDialogExt::HandleInitDialog(WPARAM wParam, LPARAM lParam)
 	CRect rect, client;
 	LRESULT result = CDialog::HandleInitDialog(wParam, lParam);
 
+	if ( !m_bReSizeDisable && (GetStyle() & WS_SIZEBOX) != 0 && m_InitDlgRect.GetSize() == 0 )
+		DefItemOffset();
+
 	GetActiveDpi(dpi, this, GetParent());
 
 	if ( m_NowDpi.cx != dpi.cx || m_NowDpi.cy != dpi.cy ) {
@@ -1488,22 +1577,11 @@ LRESULT CDialogExt::HandleInitDialog(WPARAM wParam, LPARAM lParam)
 		SendMessage(WM_DPICHANGED, MAKEWPARAM(dpi.cx, dpi.cy), (LPARAM)((RECT *)rect));
 	}
 
-	if ( !m_bReSizeDisable && (GetStyle() & WS_SIZEBOX) != 0 ) {
-		if ( m_InitDlgRect.GetSize() == 0 ) {
-			DefItemOffset();
-			//if ( m_SaveProfile.IsEmpty() ) {
-			//	CRuntimeClass *pClass = GetRuntimeClass();
-			//	if ( pClass != NULL && pClass->m_lpszClassName[0] == _T('C') )
-			//		m_SaveProfile = pClass->m_lpszClassName + 1;
-			//}
-		}
-
-		if ( !m_SaveProfile.IsEmpty() )
-			LoadSaveDialogSize(FALSE);
-	}
-
 	if ( bDarkModeSupport )
 		EnumChildWindows(GetSafeHwnd(), EnumSetThemeProc, (LPARAM)this);
+
+	if ( !m_SaveProfile.IsEmpty() )
+		LoadSaveDialogSize(FALSE);
 
 	return result;
 }
@@ -1636,13 +1714,15 @@ void CDialogExt::OnInitMenuPopup(CMenu *pPopupMenu, UINT nIndex,BOOL bSysMenu)
 
 void CDialogExt::OnSize(UINT nType, int cx, int cy)
 {
-	if ( m_InitDlgRect.GetSize() > 0 && nType != SIZE_MINIMIZED ) {
-		SetItemOffset(cx, cy);
-		Invalidate(TRUE);
-	}
+	if ( nType != SIZE_MINIMIZED ) {
+		if ( m_InitDlgRect.GetSize() > 0 ) {
+			SetItemOffset(cx, cy);
+			Invalidate(TRUE);
+		}
 
-	if ( m_SizeGrip.GetSafeHwnd() != NULL )
-		m_SizeGrip.ParentReSize(GRIP_SIZE_CX, GRIP_SIZE_CY);
+		if ( m_SizeGrip.GetSafeHwnd() != NULL )
+			m_SizeGrip.ParentReSize(GRIP_SIZE_CX, GRIP_SIZE_CY);
+	}
 
 	CDialog::OnSize(nType, cx, cy);
 }
@@ -1770,4 +1850,10 @@ LRESULT CDialogExt::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
 	pDC->SetBkMode(OldBkMode);
 
 	return TRUE;
+}
+void CDialogExt::OnBnClickedHelpbtn()
+{
+	CStringLoad url(IDS_OPTIONHELPURL);
+	url += m_HelpUrl;
+	ShellExecute(AfxGetMainWnd()->GetSafeHwnd(), NULL, url, NULL, NULL, SW_NORMAL);
 }

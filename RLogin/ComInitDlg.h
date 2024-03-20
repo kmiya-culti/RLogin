@@ -42,7 +42,7 @@ public:
 	static void CommPropCombo(int Type, CComboBox *pCombo, COMMPROP *pCommProp);
 
 	void CommPropCheck();
-	BOOL CComInitDlg::GetComDeviceList();
+	BOOL CComInitDlg::GetComDeviceList(LPCTSTR name);
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート

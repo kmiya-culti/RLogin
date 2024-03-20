@@ -38,6 +38,7 @@ CCharSetPage::CCharSetPage() : CTreePage(CCharSetPage::IDD)
 	m_ListIndex = (-1);
 	m_UrlOpt = _T("#CHAROPT");
 	ZeroMemory(m_BankTab, sizeof(m_BankTab));
+	m_bDisableCharSet = FALSE;
 }
 
 CCharSetPage::~CCharSetPage()
@@ -59,6 +60,7 @@ void CCharSetPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX, IDC_FONTNUM, m_AltFont);
 	DDX_CBStringExact(pDX, IDC_FONTNAME, m_DefFontName);
 	DDX_Control(pDX, IDC_FONTSAMPLE, m_FontSample);
+	DDX_Check(pDX, IDC_CHECK1, m_bDisableCharSet);
 }
 
 BEGIN_MESSAGE_MAP(CCharSetPage, CTreePage)
@@ -85,6 +87,7 @@ BEGIN_MESSAGE_MAP(CCharSetPage, CTreePage)
 	ON_CBN_SELCHANGE(IDC_FONTNAME, &CCharSetPage::OnCbnSelchangeFontName)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_FONTLIST, &CCharSetPage::OnLvnItemchangedFontlist)
 	ON_WM_DRAWITEM()
+	ON_BN_CLICKED(IDC_CHECK1, &CCharSetPage::OnBnClickedCheck1)
 END_MESSAGE_MAP()
 
 void CCharSetPage::InitList()
@@ -160,6 +163,7 @@ static const INITDLGTAB ItemTab[] = {
 
 	{ IDC_FONTNAME,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
 	{ IDC_FONTSAMPLE,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_CHECK1,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
 
 	{ IDC_FONTLIST,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_BTM },
 
@@ -202,6 +206,8 @@ void CCharSetPage::DoInit()
 	m_CharBank2  = m_FontTab[m_BankTab[m_KanjiCode][1]].GetEntryName();
 	m_CharBank3  = m_FontTab[m_BankTab[m_KanjiCode][2]].GetEntryName();
 	m_CharBank4  = m_FontTab[m_BankTab[m_KanjiCode][3]].GetEntryName();
+
+	m_bDisableCharSet = m_pSheet->m_pTextRam->IsOptEnable(TO_RLNOCHKFONT);
 
 	for ( int n = 0 ; n < 4 ; n++ )
 		m_SendCharSet[n] = m_pSheet->m_pTextRam->m_SendCharSet[n];
@@ -277,6 +283,8 @@ BOOL CCharSetPage::OnApply()
 	m_BankTab[m_KanjiCode][3] = m_FontTab.Find(m_CharBank4);
 
 	memcpy(m_pSheet->m_pTextRam->m_BankTab, m_BankTab, sizeof(m_BankTab));
+
+	m_pSheet->m_pTextRam->SetOption(TO_RLNOCHKFONT, m_bDisableCharSet);
 
 	for ( int n = 0 ; n < 4 ; n++ )
 		m_pSheet->m_pTextRam->m_SendCharSet[n] = m_SendCharSet[n];
@@ -664,4 +672,10 @@ void CCharSetPage::OnLvnItemchangedFontlist(NMHDR *pNMHDR, LRESULT *pResult)
 	}
 
 	*pResult = 0;
+}
+
+void CCharSetPage::OnBnClickedCheck1()
+{
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

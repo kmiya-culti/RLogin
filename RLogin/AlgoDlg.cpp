@@ -112,6 +112,7 @@ BOOL CAlgoDlg::OnInitDialog()
 	}
 
 	SetSaveProfile(_T("AlgoDlg"));
+	AddHelpButton(_T("#SSHPROTOCOL"));
 
 	return TRUE;
 }

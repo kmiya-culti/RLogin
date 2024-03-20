@@ -152,6 +152,7 @@ BOOL CTtyModeDlg::OnInitDialog()
 	InitList();
 
 	SetSaveProfile(_T("TtyModeDlg"));
+	AddHelpButton(_T("#TERMMODE"));
 
 	return TRUE;
 }
@@ -266,6 +267,8 @@ BOOL CColEditDlg::OnInitDialog()
 	InitList();
 
 	SetWindowText(_T("Color Table Edit"));
+
+	AddHelpButton(_T("faq.html#COLSET"));
 
 	return TRUE;
 }
@@ -762,6 +765,8 @@ BOOL CAppColDlg::OnInitDialog()
 	InitList();
 
 	SetWindowText(_T("App Color Edit"));
+
+	AddHelpButton(_T("faq.html#WINCOL"));
 
 	return TRUE;
 }

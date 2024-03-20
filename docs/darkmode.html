@@ -1,19 +1,14 @@
-<HTML lang="en">
+<HTML>
 <HEAD>
-<META http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <META http-equiv="Content-Style-Type" content="text/css">
-<TITLE>ISO646�T���v��</TITLE>
+<TITLE>ダークモード対応覚え書き</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
-				
-				
-		background-color : #ffffff;
+TD {background-color : #ffffff;
 font-size : 90%;
 }
-.BOX{		
-				
-				
+.BOX{
  background-color : silver;
 }
 -->
@@ -26,12 +21,12 @@ font-size : 90%;
     <TR>
       <TD>
       <HR noshade size="0">
-      <P><B>Win32�A�v���ł̃_�[�N���[�h�Ή��o������</B></P>
+      <P><B>Win32アプリでのダークモード対応覚え書き</B></P>
       <HR>
       </TD>
     </TR>
     <TR>
-      <TD>�e�E�B���h�E�̃^�C�g���o�[�����C�g�E�_�[�N���[�h�̔z�F�ɕύX����֐�<BR>
+      <TD>各ウィンドウのタイトルバーをライト・ダークモードの配色に変更する関数<BR>
       <A href="https://learn.microsoft.com/ja-jp/windows/win32/api/dwmapi/nf-dwmapi-dwmsetwindowattribute">DwmSetWindowAttribute</A>
       <PRE style="background-color : #e7e7e7;padding-top : 10px;padding-left : 10px;padding-right : 10px;padding-bottom : 10px;">        HMODULE ExDwmApi = NULL;
         HRESULT (__stdcall *ExDwmSetWindowAttribute)(HWND hwnd, DWORD dwAttribute, __in_bcount(cbAttribute) LPCVOID pvAttribute, DWORD cbAttribute) = NULL;
@@ -43,14 +38,14 @@ font-size : 90%;
         DWORD dwAttribute = 1;
         ExDwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &amp;dwAttribute, sizeof(dwAttribute));
 </PRE>
-      OS�̃o�[�W�����A�}�C�i�[�A�r���h���擾�������J�֐�<BR>
+      OSのバージョン、マイナー、ビルドを取得する非公開関数<BR>
       <A href="https://www.geoffchappell.com/studies/windows/win32/ntdll/api/ldrinit/getntversionnumbers.htm">RtlGetNtVersionNumbers<BR>
-      </A>�|�b�v�A�b�v���j���[���_�[�N���[�h�Ή��ɂ������J�֐�<BR>
+      </A>ポップアップメニューをダークモード対応にする非公開関数<BR>
       <A href="https://www.google.com/search?q=AllowDarkModeForApp">AllowDarkModeForApp</A><BR>
-      �e�E�B���h�E�̃e�[�}��ݒ肷��֐�<BR>
+      各ウィンドウのテーマを設定する関数<BR>
       <A href="https://learn.microsoft.com/ja-jp/windows/win32/api/uxtheme/nf-uxtheme-setwindowtheme">SetWindowTheme</A><BR>
       <BR>
-      AllowDarkModeForApp�֐��́A�֗��ŗB��|�b�v�A�b�v���j���[�̔z�F��ύX�o���邪OS�̃r���h�ԍ��Ɉˑ�����̂Ń`�F�b�N���K�v�ŏ����I�ɉ������̂Œ���<BR>
+      AllowDarkModeForApp関数は、便利で唯一ポップアップメニューの配色を変更出来るがOSのビルド番号に依存するのでチェックが必要で将来的に怪しいので注意<BR>
       <PRE style="background-color : #e7e7e7;padding-top : 10px;padding-left : 10px;padding-right : 10px;padding-bottom : 10px;">        HMODULE ExNtDll = NULL;
         VOID (__stdcall *ExRtlGetNtVersionNumbers)(LPDWORD major, LPDWORD minor, LPDWORD build) = NULL;
 
@@ -71,14 +66,14 @@ font-size : 90%;
                 AllowDarkModeForApp(1);
                 bDarkModeSupport = TRUE;
         }</PRE>
-      �_�[�N���[�h�̃`�F�b�N�́A�_�C���N�g�Ƀ��W�X�g��������ق�������J�֐��Ń`�F�b�N������}�V<BR>
+      ダークモードのチェックは、ダイレクトにレジストリを見るほうが非公開関数でチェックするよりマシ<BR>
       <PRE style="background-color : #e7e7e7;padding-top : 10px;padding-left : 10px;padding-right : 10px;padding-bottom : 10px;">
         HKEY_CURRENT_USER, &quot;Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme&quot;
 </PRE>
-      ���j���[�o�[�̕`��Ɋւ������J���b�Z�[�W<BR>
+      メニューバーの描画に関する非公開メッセージ<BR>
       <A href="https://github.com/adzm/win32-custom-menubar-aero-theme">adzm / win32-custom-menubar-aero-theme</A><BR>
       <BR>
-      ����Ń��j���[�o�[�����R�ɕ`��o����悤�ɂȂ邪����J�Ȃ̂��������E�E�E
+      これでメニューバーを自由に描画出来るようになるが非公開なのが怪しい・・・
       <PRE style="background-color : #e7e7e7;padding-top : 10px;padding-left : 10px;padding-right : 10px;padding-bottom : 10px;">        #define WM_UAHDRAWMENU         0x0091   // lParam is UAHMENU
         #define WM_UAHDRAWMENUITEM     0x0092   // lParam is UAHDRAWMENUITEM
 
@@ -142,7 +137,7 @@ LRESULT CMainFrame::OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam)
 
         return TRUE;
 }</PRE>
-      �_�C�A���O�̔z�F�́A��{WM_CTLCOLOR�ŏ����o���邪�R���g�[���̐F�ݒ肪�o���Ȃ�<BR>
+      ダイアログの配色は、基本WM_CTLCOLORで処理出来るがコントールの色設定が出来ない<BR>
       <PRE style="background-color : #e7e7e7;padding-top : 10px;padding-left : 10px;padding-right : 10px;padding-bottom : 10px;">        ON_WM_CTLCOLOR()
 
 HBRUSH CDialogExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
@@ -167,31 +162,31 @@ HBRUSH CDialogExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 
         return hbr;
 }</PRE>
-      �e�R���g���[���ʂɃe�[�}�̕ύX��WM_SETTINGCHANGE�ōs�����őΏ�<BR>
-      �{�^���R���g�[���́A�X�^�C���ɂ��ȉ��̃e�[�}��I������K�v����<BR>
+      各コントロール別にテーマの変更をWM_SETTINGCHANGEで行う事で対処<BR>
+      ボタンコントールは、スタイルにより以下のテーマを選択する必要あり<BR>
       <TABLE cellpadding="5">
         <TBODY>
           <TR>
             <TD>SetWindowTheme(hWnd, L&quot;Explorer&quot;, NULL);</TD>
-            <TD>���C�g���[�h�ɐݒ�</TD>
-            <TD rowspan="2" valign="top">�R���g���[���̎�ނɂ�肩�Ȃ�Ⴄ�̂Œ���<BR>
+            <TD>ライトモードに設定</TD>
+            <TD rowspan="2" valign="top">コントロールの種類によりかなり違うので注意<BR>
             Button,Edit,ScrollBar,SysListView32,<BR>
-            SysTreeView32�Ȃǂ́A�ω�����悤�ł�</TD>
+            SysTreeView32などは、変化するようです</TD>
           </TR>
           <TR>
             <TD>SetWindowTheme(hWnd, L&quot;DarkMode_Explorer&quot;, NULL);</TD>
-            <TD>�_�[�N���[�h�ɐݒ�</TD>
+            <TD>ダークモードに設定</TD>
           </TR>
           <TR>
             <TD>SetWindowTheme(hWnd, NULL, NULL);</TD>
-            <TD>�f�t�H���g�ɖ߂�</TD>
+            <TD>デフォルトに戻す</TD>
             <TD></TD>
           </TR>
           <TR>
             <TD>SetWindowTheme(hWnd, L&quot;&quot;, L&quot;&quot;);</TD>
-            <TD>�e�[�}�ݒ������</TD>
-            <TD>�f�U�C�������Ȃ�Â���WM_CTLCOLOR��<BR>
-            �ݒ肪�L���ɂȂ�悤�ł�</TD>
+            <TD>テーマ設定を解除</TD>
+            <TD>デザインがかなり古いがWM_CTLCOLORの<BR>
+            設定が有効になるようです</TD>
           </TR>
         </TBODY>
       </TABLE>

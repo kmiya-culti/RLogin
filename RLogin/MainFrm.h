@@ -395,6 +395,8 @@ protected:
 	afx_msg void OnMoving(UINT fwSide, LPRECT pRect);
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
+	afx_msg void OnNcPaint();
+	afx_msg BOOL OnNcActivate(BOOL bActive);
 
 	afx_msg void OnDrawClipboard();
 	afx_msg void OnChangeCbChain(HWND hWndRemove, HWND hWndAfter);
@@ -485,9 +487,7 @@ protected:
 
 	afx_msg LRESULT OnUahDrawMenu(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam);
-
-	afx_msg void OnNcPaint();
-	afx_msg BOOL OnNcActivate(BOOL bActive);
+	afx_msg LRESULT OnUpdateEmoji(WPARAM wParam, LPARAM lParam);
 };
 
 

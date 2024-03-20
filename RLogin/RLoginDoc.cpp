@@ -2283,6 +2283,17 @@ void CRLoginDoc::OnSaveDefault()
 {
 	SaveDefOption(m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
 }
+
+void CRLoginDoc::UpdateOption(COptDlg *pOptDlg)
+{
+	if ( (pOptDlg->m_ModFlag & UMOD_TABCOLOR) != 0 )
+		((CMainFrame *)::AfxGetMainWnd())->TabBarUpdate();
+
+	if ( (pOptDlg->m_ModFlag & (UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT | UMOD_CARET)) != 0 )
+		pOptDlg->m_ModFlag = m_TextRam.InitDefParam(TRUE, pOptDlg->m_ModFlag);
+
+	UpdateAllViews(NULL, (pOptDlg->m_ModFlag & UMOD_RESIZE) != 0 ? UPDATE_RESIZE : UPDATE_INITPARA, NULL);
+}
 void CRLoginDoc::OnSetOption() 
 {
 	int LogMode = m_TextRam.m_LogMode;
@@ -2298,11 +2309,7 @@ void CRLoginDoc::OnSetOption()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	if ( (dlg.m_ModFlag & UMOD_TABCOLOR) != 0 )
-		((CMainFrame *)::AfxGetMainWnd())->TabBarUpdate();
-
-	if ( (dlg.m_ModFlag & (UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT | UMOD_CARET)) != 0 )
-		dlg.m_ModFlag = m_TextRam.InitDefParam(TRUE, dlg.m_ModFlag);
+	UpdateOption(&dlg);
 
 	if ( dlg.m_ModFlag != 0 || dlg.m_bModified ) {
 		SetModifiedFlag(TRUE);
@@ -2319,8 +2326,6 @@ void CRLoginDoc::OnSetOption()
 		m_TextRam.m_LogMode = save;
 		LogOpen(FilePath);
 	}
-
-	UpdateAllViews(NULL, (dlg.m_ModFlag & UMOD_RESIZE) != 0 ? UPDATE_RESIZE : UPDATE_INITPARA, NULL);
 }
 
 void CRLoginDoc::OnSftp()

@@ -448,6 +448,7 @@ BOOL CResTransDlg::OnInitDialog()
 
 	SetSaveProfile(_T("ResTransDlg"));
 	SetLoadPosition(LOADPOS_MAINWND);
+	AddHelpButton(_T("#RESOURCE"));
 
 	return TRUE;
 }

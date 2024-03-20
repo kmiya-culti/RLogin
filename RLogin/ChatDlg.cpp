@@ -86,6 +86,7 @@ BOOL CChatDlg::OnInitDialog()
 	UpdateData(FALSE);
 
 	SetSaveProfile(_T("ChatDlg"));
+	AddHelpButton(_T("#CHATSCRIPT"));
 
 	return TRUE;
 }

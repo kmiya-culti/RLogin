@@ -72,7 +72,7 @@ void CFifoCom::Close()
 	if ( m_ThreadMode == THREAD_RUN && m_pComThread != NULL ) {
 		m_ThreadMode = THREAD_ENDOF;
 		m_AbortEvent.SetEvent();
-		WaitForSingleObject(m_ThreadEvent, INFINITE);
+		WaitForEvent(m_ThreadEvent, _T("CFifoCom Thread"));
 	}
 	m_pComThread = NULL;
 }
@@ -1090,7 +1090,8 @@ int CComSock::GetFlowCtrlMode(DCB *pDCB, CString &UserDef)
 void CComSock::AliveComPort(BYTE pComAliveBits[COMALIVEBYTE])
 {
 	int n;
-	TCHAR *p;
+	DWORD len;
+	TCHAR *p, *e;
 	int ReTry = 4;	// 64,128,256...
 	int nBufLen = (64 * 1024);
 	TCHAR *pDevBuf = new TCHAR[nBufLen];
@@ -1100,11 +1101,11 @@ void CComSock::AliveComPort(BYTE pComAliveBits[COMALIVEBYTE])
 	ZeroMemory(pComAliveBits, COMALIVEBYTE);
 
 RETRY:
-	if ( QueryDosDevice(NULL, pDevBuf, nBufLen) > 0 ) {
-		for ( p = pDevBuf ; *p != _T('\0') ; ) {
+	if ( (len = QueryDosDevice(NULL, pDevBuf, nBufLen)) > 0 ) {
+		for ( p = pDevBuf, e = pDevBuf + len ; p < e && *p != _T('\0') ; ) {
 			if ( _tcsnicmp(p, _T("COM"), 3) == 0 && (n = _tstoi(p + 3)) > 0 && n < COMALIVEBITS )
 				pComAliveBits[n / 8] |= (1 << (n % 8));
-			while ( *(p++) != _T('\0') );
+			while ( p < e && *(p++) != _T('\0') );
 		}
 
 	} else if ( --ReTry > 0 && ::GetLastError() == ERROR_INSUFFICIENT_BUFFER ) {

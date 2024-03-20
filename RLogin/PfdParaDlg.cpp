@@ -80,6 +80,7 @@ BOOL CPfdParaDlg::OnInitDialog()
 	SubclassComboBox(IDC_CONNECTPORT);
 
 	SetSaveProfile(_T("PfdParaDlg"));
+	AddHelpButton(_T("#PFWDLG"));
 
 	return TRUE;
 }

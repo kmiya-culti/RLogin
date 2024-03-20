@@ -87,6 +87,7 @@ BOOL CEnvDlg::OnInitDialog()
 	InitList();
 
 	SetSaveProfile(_T("EnvDlg"));
+	AddHelpButton(_T("#ENVSET"));
 
 	return TRUE;
 }

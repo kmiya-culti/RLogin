@@ -212,7 +212,7 @@ void CIdkeySelDLg::EndofKeyGenThead()
 	if ( m_KeyGenFlag == 0 )
 		return;
 	m_KeyGenFlag = 0;
-	WaitForSingleObject(m_pKeyGenEvent->m_hObject, INFINITE);
+	WaitForEvent(m_pKeyGenEvent->m_hObject, _T("KeyGen Thread"));
 	OnKeyGenEndof();
 }
 
@@ -324,6 +324,7 @@ BOOL CIdkeySelDLg::OnInitDialog()
 	SubclassComboBox(IDC_IDKEY_BITS);
 
 	SetSaveProfile(_T("IdkeySelDLg"));
+	AddHelpButton(_T("#SSHKEYSET"));
 
 	return TRUE;
 }

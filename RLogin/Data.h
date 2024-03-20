@@ -253,6 +253,7 @@ class CStringLoad : public CString
 public:
 	CStringLoad();
 	CStringLoad(int nID) { LoadString(nID); }
+	CStringLoad(int nID, BOOL bMenu);
 
 	inline void operator = (LPCWSTR str) { *((CString *)this) = str; }
 	inline void operator = (LPCSTR  str) { *((CString *)this) = str; }
@@ -512,6 +513,17 @@ public:
 	BOOL IsEmpty() { return (m_Data == PARA_NOT || m_Data == PARA_OPT ? TRUE : FALSE); }
 	BOOL IsOpt() { return (m_Data == PARA_OPT ? TRUE : FALSE); }
 	BOOL AddOpt(BYTE c, BOOL bAdd);
+};
+
+class CPtrIndex : CObject
+{
+public:
+	CPtrArray m_Data;
+
+	BOOL Find(void *pVal);
+	void Add(void *pVal);
+	void RemoveAt(void *pVal);
+	inline void RemoveAll() { m_Data.RemoveAll(); }
 };
 
 class CBmpFile : public CObject
@@ -1170,23 +1182,50 @@ public:
 	static void Request(LPCTSTR url, LPCTSTR head, LPCSTR body, CWnd *pWnd);
 };
 
+#define	EMOJIIMGSTAT_DONE	0
+#define	EMOJIIMGSTAT_LOAD	1
+#define	EMOJIIMGSTAT_WAIT	2
+
+class CEmojiDocPos : public CObject
+{
+public:
+	class CEmojiDocPos *m_pBack;
+	class CEmojiDocPos *m_pNext;
+	class CRLoginDoc *m_pDoc;
+	int m_Seq;
+	int m_Abs;
+	CRect m_Pos;
+
+public:
+	class CEmojiDocPos *AddList(class CEmojiDocPos *pTop);
+	class CEmojiDocPos *AddHead(class CEmojiDocPos *pTop);
+	class CEmojiDocPos *AddTail(class CEmojiDocPos *pTop);
+	class CEmojiDocPos *RemoveAt(class CEmojiDocPos *pTop);
+
+	static class CEmojiDocPos *RemoveHead(class CEmojiDocPos **ppTop);
+};
+
 class CEmojiImage : public CObject
 {
 public:
 	class CEmojiImage *m_pNext;
+	class CEmojiImage *m_pQueBack;
+	class CEmojiImage *m_pQueNext;
 	CString m_String;
 	CImage m_Image;
 	BOOL m_bFileImage;
-#ifdef	USE_SAVEBITMAP
-	int m_Width;
-	int m_Height;
-	int m_Bpp;
-	BYTE *m_pBits;
-	int m_BitsLen;
+	int m_Status;
+	CEmojiDocPos *m_pDocPos;
 
-	void SaveMap();
-	void LoadMap();
-#endif
+public:
+	void Add(class CRLoginDoc *pDoc, CRect pos);
+
+	class CEmojiImage *AddHead(class CEmojiImage *pTop);
+	class CEmojiImage *AddTail(class CEmojiImage *pTop);
+	class CEmojiImage *RemoveAt(class CEmojiImage *pTop);
+
+	static class CEmojiImage *RemoveHead(class CEmojiImage **ppTop);
+
 	CEmojiImage();
 	~CEmojiImage();
 };

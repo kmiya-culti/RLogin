@@ -1403,6 +1403,7 @@ BOOL CInfoCapDlg::OnInitDialog()
 	SetList(cap, m_CapIndex);
 
 	SetSaveProfile(_T("InfoCapDlg"));
+	AddHelpButton(_T("#ENVSET"));
 
 	return TRUE;
 }

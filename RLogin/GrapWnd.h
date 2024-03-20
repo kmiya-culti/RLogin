@@ -55,10 +55,15 @@ public:
 public:
 	BOOL m_bDarkMode;
 
+public:
+	void DrawSystemBar();
+
 protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
+	afx_msg void OnNcPaint();
+	afx_msg BOOL OnNcActivate(BOOL bActive);
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnUahDrawMenu(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam);
@@ -103,6 +108,9 @@ public:
 	int m_AspX;
 	int m_AspY;
 	int m_Maps;
+	int m_DspX;
+	int m_DspY;
+	BOOL m_DspA;
 	CDC m_TempDC;
 	CBitmap *m_pActMap;
 	CBitmap m_Bitmap[3];

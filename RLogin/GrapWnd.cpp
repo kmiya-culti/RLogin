@@ -24,6 +24,8 @@ CFrameWndExt::~CFrameWndExt()
 BEGIN_MESSAGE_MAP(CFrameWndExt, CFrameWnd)
 	ON_WM_CREATE()
 	ON_WM_SETTINGCHANGE()
+	ON_WM_NCPAINT()
+	ON_WM_NCACTIVATE()
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 	ON_MESSAGE(WM_UAHDRAWMENU, OnUahDrawMenu)
 	ON_MESSAGE(WM_UAHDRAWMENUITEM, OnUahDrawMenuItem)
@@ -50,13 +52,44 @@ LRESULT CFrameWndExt::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 
 	return TRUE;
 }
-
 void CFrameWndExt::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 {
 	if ( bDarkModeSupport && lpszSection != NULL && _tcscmp(lpszSection, _T("ImmersiveColorSet")) == 0 )
 		m_bDarkMode = ExDwmDarkMode(GetSafeHwnd());
 
 	CFrameWnd::OnSettingChange(uFlags, lpszSection);
+}
+
+void CFrameWndExt::DrawSystemBar()
+{
+	CRect window, client;
+	CDC *pDC = GetWindowDC();
+
+	GetWindowRect(window);
+	GetClientRect(client);
+	ClientToScreen(client);
+
+	// メニューバー下の線を背景と同じに塗る
+	pDC->FillSolidRect(0, client.top - window.top - 3, window.Width(), 2, GetAppColor(APPCOL_MENUFACE));
+	pDC->FillSolidRect(0, client.top - window.top - 1, window.Width(), 1, GetAppColor(COLOR_BTNSHADOW));
+
+	ReleaseDC(pDC);
+}
+void CFrameWndExt::OnNcPaint()
+{
+	Default();
+
+	if ( bDarkModeSupport )
+		DrawSystemBar();
+}
+BOOL CFrameWndExt::OnNcActivate(BOOL bActive)
+{
+	BOOL ret = CFrameWnd::OnNcActivate(bActive);
+
+	if ( bDarkModeSupport )
+		DrawSystemBar();
+
+	return ret;
 }
 
 LRESULT CFrameWndExt::OnUahDrawMenu(WPARAM wParam, LPARAM lParam)
@@ -135,6 +168,8 @@ CGrapWnd::CGrapWnd(class CTextRam *pTextRam)
 	m_AspX = ASP_DIV;
 	m_AspY = ASP_DIV;
 	m_Maps = 0;
+	m_DspX = m_DspY = 0;
+	m_DspA = TRUE;
 	m_pActMap = NULL;
 	m_Type = 0;
 	m_ImageIndex = (-1);
@@ -846,6 +881,16 @@ void CGrapWnd::SetMapCrc()
 	len = m_pActMap->GetBitmapBits(len, map);
 
 	for ( n = 0 ; n < len ; n++ )
+		m_Crc = crc32tab[(m_Crc ^ *(s++)) & 0xff] ^ ((m_Crc >> 8) & 0x00ffffff);
+
+	for ( n = 0, s = (BYTE *)(&m_AspX), len = sizeof(m_AspX) ; n < len ; n++ )
+		m_Crc = crc32tab[(m_Crc ^ *(s++)) & 0xff] ^ ((m_Crc >> 8) & 0x00ffffff);
+	for ( n = 0, s = (BYTE *)(&m_AspY), len = sizeof(m_AspY) ; n < len ; n++ )
+		m_Crc = crc32tab[(m_Crc ^ *(s++)) & 0xff] ^ ((m_Crc >> 8) & 0x00ffffff);
+
+	for ( n = 0, s = (BYTE *)(&m_BlockX), len = sizeof(m_BlockX) ; n < len ; n++ )
+		m_Crc = crc32tab[(m_Crc ^ *(s++)) & 0xff] ^ ((m_Crc >> 8) & 0x00ffffff);
+	for ( n = 0, s = (BYTE *)(&m_BlockY), len = sizeof(m_BlockY) ; n < len ; n++ )
 		m_Crc = crc32tab[(m_Crc ^ *(s++)) & 0xff] ^ ((m_Crc >> 8) & 0x00ffffff);
 
 	delete [] map;
@@ -2788,6 +2833,9 @@ void CGrapWnd::SixelStart(int aspect, int mode, int grid, COLORREF bc)
 	m_AspY = ASP_DIV;
 	m_MaxX = 1024;
 	m_MaxY = 1024;
+	m_DspX = 0;
+	m_DspY = 0;
+	m_DspA = TRUE;
 
 	m_Type = TYPE_SIXEL;
 	m_pActMap = NULL;
@@ -2966,6 +3014,9 @@ void CGrapWnd::SixelData(int ch)
 
 			} else if ( ch == '*' ) {		// RLGCIMAX									*Pu;Px;Py;Pz;Pa
 				m_SixelStat = 4;
+
+			} else if ( ch == '%' ) {		// RLGDSPSZ									%Pn:Px;Py;Pa
+				m_SixelStat = 5;
 
 			} else if ( ch == '$' ) {		// DECGCR Graphics Carriage Return			$
 				m_SixelPointX   = 0;
@@ -3153,6 +3204,30 @@ void CGrapWnd::SixelData(int ch)
 					// Max Value Check and Init
 					SixelMaxInit();
 					break;
+
+				case 5:		// RLGDSPSZ
+					if ( m_SixelParam.GetSize() < 1 )
+						break;
+
+					switch(m_SixelParam[0]) {
+					case 0:		// %0;cx;cy		文字単位で指定
+						if ( m_SixelParam.GetSize() >= 2 )
+							m_DspX = m_SixelParam[1];
+						if ( m_SixelParam.GetSize() >= 3 )
+							m_DspY = m_SixelParam[2];
+						break;
+					case 1:		// %1;x;y		画面サイズの割合で指定
+						if ( m_pTextRam != NULL ) {
+							if ( m_SixelParam.GetSize() >= 2 )
+								m_DspX = m_pTextRam->m_Cols  * m_SixelParam[1] / 100;
+							if ( m_SixelParam.GetSize() >= 3 )
+								m_DspY = m_pTextRam->m_Lines * m_SixelParam[2] / 100;
+						}
+						break;
+					}
+
+					if ( m_SixelParam.GetSize() >= 4 )
+						m_DspA = (m_SixelParam[3] == 0 ? FALSE : TRUE);
 				}
 
 				m_SixelStat = 0;
@@ -3251,8 +3326,6 @@ void CGrapWnd::SixelEndof(BOOL bAlpha)
 
 	if ( m_hWnd != NULL )
 		Invalidate(FALSE);
-
-	SetMapCrc();
 }
 void CGrapWnd::SetSixel(int aspect, int mode, int grid, LPCSTR str, COLORREF bc)
 {

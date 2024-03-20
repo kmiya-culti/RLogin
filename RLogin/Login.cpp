@@ -93,9 +93,13 @@ void CFifoLogin::OnCommand(int cmd, int param, int msg, int len, void *buf, CEve
 //////////////////////////////////////////////////////////////////////
 // CLogin
 
+static UINT LoginPortSeq = IPPORT_RESERVED;
+static CList<UINT, UINT> LoginPortList;
+
 CLogin::CLogin(class CRLoginDoc *pDoc) : CExtSocket(pDoc)
 {
 	m_Type = ESCT_RLOGIN;
+	m_PortNum = 0;
 }
 CFifoBase *CLogin::FifoLinkMid()
 {
@@ -103,7 +107,32 @@ CFifoBase *CLogin::FifoLinkMid()
 }
 int CLogin::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
 {
-	return CExtSocket::Open(lpszHostAddress, nHostPort, IPPORT_RESERVED - 1, nSocketType);
+	if ( !LoginPortList.IsEmpty() )
+		m_PortNum = LoginPortList.RemoveHead();
+	else
+		m_PortNum = --LoginPortSeq;
+
+	return CExtSocket::Open(lpszHostAddress, nHostPort, m_PortNum, nSocketType);
+}
+void CLogin::Close()
+{
+	CExtSocket::Close();
+
+	if ( m_PortNum != 0 ) {
+		LoginPortList.AddTail(m_PortNum);
+		m_PortNum = 0;
+	}
+}
+void CLogin::OnConnect()
+{
+	CExtSocket::OnConnect();
+
+	if ( m_Fd != (-1) ) {
+		CString name;
+		int port;
+		GetSockName(m_Fd, name, &port);
+		m_PortNum = (UINT)port;
+	}
 }
 void CLogin::SendWindSize()
 {

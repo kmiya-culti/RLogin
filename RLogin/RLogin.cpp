@@ -615,6 +615,7 @@ BOOL CSecPolicyDlg::OnInitDialog()
 	UpdateData(FALSE);
 
 	SetSaveProfile(_T("SecPolicyDlg"));
+	AddHelpButton(_T("#SECPOLICY"));
 
 	return TRUE;
 }
@@ -680,6 +681,9 @@ CRLoginApp::CRLoginApp()
 
 	for ( int n = 0 ; n < EMOJI_HASH ; n++ )
 		m_pEmojiList[n] = NULL;
+
+	m_pEmojiThreadQue = NULL;
+	m_EmojiThreadMode = 0;
 #endif
 
 	m_pVoice = NULL;
@@ -753,6 +757,11 @@ CRLoginApp::CRLoginApp()
 	int AppColorBase = 0;
 	COLORREF AppColorTable[2][APPCOL_MAX] = { { 0 }, { 0 } };
 	HBRUSH  AppColorBrush[2][APPCOL_MAX] = { { 0 }, { 0 } };
+
+#ifdef	USE_OLE
+	CLIPFORMAT CF_FILEDESCRIPTOR = RegisterClipboardFormat(CFSTR_FILEDESCRIPTOR);
+	CLIPFORMAT CF_FILECONTENTS = RegisterClipboardFormat(CFSTR_FILECONTENTS);
+#endif
 	
 void InitAppColor()
 {
@@ -962,41 +971,54 @@ void ExDarkModeEnable(BOOL bEnable)
 	}
 }
 
-#ifdef	USE_OLE
-	CLIPFORMAT CF_FILEDESCRIPTOR = RegisterClipboardFormat(CFSTR_FILEDESCRIPTOR);
-	CLIPFORMAT CF_FILECONTENTS = RegisterClipboardFormat(CFSTR_FILECONTENTS);
-#endif
-
-int ThreadMessageBox(LPCTSTR msg, ...)
+static void AddErrorMessage(CString &str)
 {
 	LPVOID lpMessageBuffer;
-	CString tmp;
-	va_list arg;
 	DWORD err = ::GetLastError();
+
+	if ( err != 0 ) {
+		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMessageBuffer, 0, NULL);
+		str += _T("\n\n");
+		str += (LPTSTR)lpMessageBuffer;
+		LocalFree(lpMessageBuffer);
+
+	} else if ( errno != 0 ) {
+		str += _T("\n\n");
+		str += _tcserror(errno);
+	}
+}
+LPCTSTR FormatErrorMessage(CString &str, LPCTSTR msg, ...)
+{
+	va_list arg;
+
+	va_start(arg, msg);
+	str.FormatV(msg, arg);
+
+	AddErrorMessage(str);
+
+	return str;
+}
+int ThreadMessageBox(LPCTSTR msg, ...)
+{
+	va_list arg;
+	CString tmp;
 
 	va_start(arg, msg);
 	tmp.FormatV(msg, arg);
 
-	if ( err != 0 ) {
-		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMessageBuffer, 0, NULL);
-		tmp += _T("\n\n");
-		tmp += (LPTSTR)lpMessageBuffer;
-		LocalFree(lpMessageBuffer);
-
-	} else if ( errno != 0 ) {
-		tmp += _T("\n\n");
-		tmp += _tcserror(errno);
-	}
+	AddErrorMessage(tmp);
 
 	return ::AfxMessageBox(tmp, MB_ICONERROR);
 }
 int DoitMessageBox(LPCTSTR lpszPrompt, UINT nType, CWnd *pParent)
 {
-	CMsgChkDlg dlg;
+	if ( pParent != NULL && (pParent->IsIconic() || !pParent->IsWindowVisible()) )
+		pParent->ShowWindow(SW_SHOWNORMAL);
+
+	CMsgChkDlg dlg(pParent);
 
 	dlg.m_MsgText = lpszPrompt;
 	dlg.m_nType = nType;
-	dlg.m_pParent = pParent;
 	dlg.m_bNoChkEnable = FALSE;
 
 	// エラーステータスをリセット
@@ -1005,6 +1027,25 @@ int DoitMessageBox(LPCTSTR lpszPrompt, UINT nType, CWnd *pParent)
 
 	return (int)dlg.DoModal();
 }
+
+BOOL WaitForEvent(HANDLE hHandle, LPCTSTR pMsg)
+{
+	DWORD rs = WaitForSingleObject(hHandle, 5000);
+
+	switch(rs) {
+	case WAIT_ABANDONED:
+		ThreadMessageBox(_T("WaitForEvent abandoned '%s'"), pMsg);
+		return FALSE;
+	case WAIT_TIMEOUT:
+		ThreadMessageBox(_T("WaitForEvent timeout '%s'"), pMsg);
+		return FALSE;
+	case WAIT_FAILED:
+		ThreadMessageBox(_T("WaitForEvent failed '%s'"), pMsg);
+		return FALSE;
+	}
+	return TRUE;
+}
+
 void DpiAwareSwitch(BOOL sw, int req)
 {
 	static BOOL bSwitch = FALSE;
@@ -1892,6 +1933,15 @@ int CRLoginApp::ExitInstance()
 #endif
 
 #ifdef	USE_DIRECTWRITE
+	EmojiImageFinish();
+
+	// WM_DRAWEMOJIが処理されずに終了する場合の処置
+	if ( m_EmojiPostStat == EMOJIPOSTSTAT_POST && m_pEmojiPostDocPos != NULL ) {
+		CEmojiDocPos *pDocPos;
+		while ( (pDocPos = CEmojiDocPos::RemoveHead(&m_pEmojiPostDocPos)) != NULL )
+			delete pDocPos;
+	}
+
 	if ( m_pDCRT != NULL )
 		m_pDCRT->Release();
 
@@ -1920,6 +1970,11 @@ int CRLoginApp::ExitInstance()
 	CoUninitialize();
 
 	CSFtp::LocalDelete(m_TempDirBase);
+
+	while ( !m_PostMsgQue.IsEmpty() ) {
+		PostMsgQue *pQue = m_PostMsgQue.RemoveHead();
+		delete pQue;
+	}
 
 	SaveAppColor();
 
@@ -3556,6 +3611,10 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 
 	//TRACE("OnIdle(%d) %d\n", lCount, rt);
 
+	// カラー絵文字メッセージ待ちをクリア
+	if ( m_EmojiPostStat == EMOJIPOSTSTAT_WAIT )
+		m_EmojiPostStat = EMOJIPOSTSTAT_DONE;
+
 	return rt;
 }
 BOOL CRLoginApp::IsIdleMessage(MSG* pMsg)
@@ -3565,7 +3624,7 @@ BOOL CRLoginApp::IsIdleMessage(MSG* pMsg)
 		return TRUE;
 	}
 
-	if ( pMsg->message == WM_PAINT )
+	if ( pMsg->message == WM_PAINT || pMsg->message == WM_DRAWEMOJI || pMsg->message == WM_FIFOMSG )
 		return TRUE;
 
 	if ( CWinApp::IsIdleMessage(pMsg) )
@@ -3597,7 +3656,7 @@ int CRLoginApp::DoMessageBox(LPCTSTR lpszPrompt, UINT nType, UINT nIDPrompt)
 		return CWinApp::DoMessageBox(lpszPrompt, nType, nIDPrompt);
 
 	else if ( m_nThreadID == GetCurrentThreadId() )
-		return ::DoitMessageBox(lpszPrompt, nType);
+		return ::DoitMessageBox(lpszPrompt, nType, ::AfxGetMainWnd());
 
 	else {
 		DocMsg docMsg;
@@ -3698,7 +3757,7 @@ void CRLoginApp::IdlePostMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPar
 
 	while ( pos != NULL ) {
 		PostMsgQue *pQue = m_PostMsgQue.GetNext(pos);
-		if ( pQue->hWnd == hWnd && pQue->Msg == Msg && pQue->wParam == wParam ) {
+		if ( pQue->hWnd == hWnd && pQue->Msg == Msg && pQue->wParam == wParam && pQue->lParam == lParam ) {
 			m_PostMsgLock.Unlock();
 			return;
 		}
@@ -3986,6 +4045,8 @@ HDC CRLoginApp::GetEmojiImage(class CEmojiImage *pEmoji)
 	if ( m_EmojiImageDir.IsEmpty() )
 		return NULL;
 
+	ASSERT(pEmoji != NULL);
+
 	int n;
 	CString path, base, name, fmt;
 	CStringD dstr = pEmoji->m_String;
@@ -3998,7 +4059,6 @@ HDC CRLoginApp::GetEmojiImage(class CEmojiImage *pEmoji)
 		name += fmt;
 	}
 	name.Delete(name.GetLength() - 1, 1);
-
 
 	for ( ; ; ) {
 		path.Format(_T("%s%s.png"), (LPCTSTR)base, (LPCTSTR)name);
@@ -4043,6 +4103,8 @@ HDC CRLoginApp::GetEmojiDrawText(class CEmojiImage *pEmoji, COLORREF fc, int fh)
 	if ( m_pD2DFactory == NULL || m_pDWriteFactory == NULL )
 		return NULL;
 
+	ASSERT(pEmoji != NULL);
+
 	BOOL rc = FALSE;
 	ID2D1SolidColorBrush *pBrush = NULL;
 	IDWriteTextFormat *pTextFormat = NULL;
@@ -4069,7 +4131,7 @@ HDC CRLoginApp::GetEmojiDrawText(class CEmojiImage *pEmoji, COLORREF fc, int fh)
 
 	if ( FAILED(m_pDWriteFactory->CreateTextFormat(m_EmojiFontName, NULL,
 			DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
-			(FLOAT)fh, _T(""), &pTextFormat)) )
+			(FLOAT)fh * 96 / SYSTEM_DPI_Y, _T(""), &pTextFormat)) )
 		goto ENDOF;
 
 	if ( FAILED(m_pDWriteFactory->CreateTextLayout(str, len, pTextFormat, 1024, 256, &pTextLayout)) )
@@ -4081,8 +4143,6 @@ HDC CRLoginApp::GetEmojiDrawText(class CEmojiImage *pEmoji, COLORREF fc, int fh)
 	frame.right  = (LONG)tTextMetrics.width;
 	frame.bottom = (LONG)tTextMetrics.height;
 
-	if ( pEmoji == NULL )
-		pEmoji = new CEmojiImage;
 	pEmoji->m_String = str;
 
 	if ( !pEmoji->m_Image.CreateEx(frame.Width(), frame.Height(), 32, BI_RGB, NULL, CImage::createAlphaChannel) )
@@ -4097,11 +4157,11 @@ HDC CRLoginApp::GetEmojiDrawText(class CEmojiImage *pEmoji, COLORREF fc, int fh)
 	m_pDCRT->SetTransform(D2D1::Matrix3x2F::Identity());
 	m_pDCRT->Clear(oBKColor);
 
-#define	D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT	0x00000004
+#define	D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT	((D2D1_DRAW_TEXT_OPTIONS)0x00000004)
 
 	m_pDCRT->DrawText(str, len, pTextFormat,
 		&D2D1::RectF((FLOAT)frame.left, (FLOAT)frame.top, (FLOAT)frame.right, (FLOAT)frame.bottom), 
-		pBrush, (D2D1_DRAW_TEXT_OPTIONS)D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
+		pBrush, D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
 
 	if ( FAILED(m_pDCRT->EndDraw()) ) {
 		m_pDCRT->Release();
@@ -4133,16 +4193,118 @@ ENDOF:
 	return hDC;
 }
 
-BOOL CRLoginApp::DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLORREF bc, BOOL bEraBack, int fh, int zm)
+void CRLoginApp::OnUpdateEmoji(WPARAM wParam, LPARAM lParam)
 {
-	BOOL rc = FALSE;
+	CEmojiDocPos *pDocPos, *pTop = (CEmojiDocPos *)lParam;
+
+	while ( (pDocPos = CEmojiDocPos::RemoveHead(&pTop)) != NULL ) {
+		POSITION pos = GetFirstDocTemplatePosition();
+		while ( pos != NULL ) {
+			CDocTemplate *pDocTemp = GetNextDocTemplate(pos);
+
+			POSITION dpos = pDocTemp->GetFirstDocPosition();
+			while ( dpos != NULL ) {
+				CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+
+				if ( pDocPos->m_pDoc == pDoc && pDocPos->m_Seq == pDoc->m_DocSeqNumber ) {
+					if ( pDoc->m_TextRam.m_HisAbs < pDocPos->m_Abs )
+						pDocPos->m_Abs -= pDoc->m_TextRam.m_HisMax;
+
+					POSITION vpos = pDoc->GetFirstViewPosition();
+					while ( vpos != NULL ) {
+						CRLoginView *pView = (CRLoginView *)pDoc->GetNextView(vpos);
+
+						CRect rect(pDocPos->m_Pos);
+						rect.top    = rect.top    + pDocPos->m_Abs - pDoc->m_TextRam.m_HisAbs;
+						rect.bottom = rect.bottom + pDocPos->m_Abs - pDoc->m_TextRam.m_HisAbs;
+						pView->InvalidateTextRect(rect);
+					}
+				}
+			}
+		}
+		delete pDocPos;
+	}
+
+	// OnIdleが呼ばれるまで次のポストを抑制
+	m_pEmojiPostDocPos = NULL;
+	m_EmojiPostStat = EMOJIPOSTSTAT_WAIT;
+}
+static UINT EmojiThreadProc(LPVOID pParam)
+{
+	HDC hDC;
+	CEmojiImage *pEmoji;
+	CRLoginApp *pApp = (CRLoginApp *)pParam;
+	CEmojiDocPos *pTop, *pDocPos;
+	int count;
+	clock_t limit;
+
+	while ( pApp->m_EmojiThreadMode == 1 ) {
+		count = 0;
+		limit = clock() + (300 * CLOCKS_PER_SEC / 1000);
+		pTop = NULL;
+
+		pApp->m_EmojiThreadSemaphore.Lock();
+		while ( pApp->m_EmojiThreadMode == 1 && (pEmoji = CEmojiImage::RemoveHead(&(pApp->m_pEmojiThreadQue))) != NULL ) {
+			pEmoji->m_Status = EMOJIIMGSTAT_LOAD;
+			pApp->m_EmojiThreadSemaphore.Unlock();
+
+			if ( (hDC = pApp->GetEmojiImage(pEmoji)) == NULL )
+				hDC = pApp->GetEmojiDrawText(pEmoji, RGB(255, 255, 255), MulDiv(48, SYSTEM_DPI_Y, DEFAULT_DPI_Y));
+
+			if ( hDC != NULL )
+				pEmoji->m_Image.ReleaseDC();
+
+			pApp->m_EmojiThreadSemaphore.Lock();
+			pEmoji->m_Status = EMOJIIMGSTAT_DONE;
+			if ( (pDocPos = pEmoji->m_pDocPos) != NULL )
+				pEmoji->m_pDocPos = NULL;
+			pApp->m_EmojiThreadSemaphore.Unlock();
+
+			if ( pDocPos != NULL )
+				pTop = pDocPos->AddList(pTop);
+
+			if ( pTop != NULL && (++count >= 8 || limit < clock()) && pApp->m_EmojiThreadMode == 1 && pApp->m_EmojiPostStat == EMOJIPOSTSTAT_DONE ) {
+				ASSERT(pApp->m_pMainWnd != NULL && pApp->m_pMainWnd->GetSafeHwnd() != NULL);
+				pApp->m_pEmojiPostDocPos = pTop;
+				pApp->m_EmojiPostStat = EMOJIPOSTSTAT_POST;
+				pApp->m_pMainWnd->PostMessage(WM_DRAWEMOJI, NULL, (LPARAM)pTop);
+				count = 0;
+				limit = clock() + (300 * CLOCKS_PER_SEC / 1000);
+				pTop = NULL;
+			}
+
+			pApp->m_EmojiThreadSemaphore.Lock();
+		}
+		pApp->m_EmojiThreadSemaphore.Unlock();
+
+		// すでにスレッド終了なら・・・
+		if ( pApp->m_EmojiThreadMode != 1 ) {
+			while ( (pDocPos = CEmojiDocPos::RemoveHead(&pTop)) != NULL )
+				delete pDocPos;
+		} else if ( pTop != NULL ) {
+			ASSERT(pApp->m_pMainWnd != NULL && pApp->m_pMainWnd->GetSafeHwnd() != NULL);
+			pApp->m_pEmojiPostDocPos = pTop;
+			pApp->m_EmojiPostStat = EMOJIPOSTSTAT_POST;
+			pApp->m_pMainWnd->PostMessage(WM_DRAWEMOJI, NULL, (LPARAM)pTop);
+		}
+
+		// 次のイベント待ち
+		WaitForSingleObject(pApp->m_EmojiReqEvent, INFINITE);
+	}
+
+	pApp->m_EmojiThreadEvent.SetEvent();
+	return 0;
+}
+
+BOOL CRLoginApp::DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLORREF bc, BOOL bEraBack, void *pParam)
+{
 	HDC hDC = NULL;
 	int hash = 0;
 	int count = 0;
-	BOOL bLast = FALSE;
-	CEmojiImage *pBack, *pMid, *pEmoji;
+	CEmojiImage *pBack, *pEmoji;
 	int width, height;
- 	static BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA};
+	CTextRam::DrawWork *pProp = (CTextRam::DrawWork *)pParam;
+ 	static BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
 
 	for ( int n = 0 ; str[n] != _T('\0') ; n++ )
 		hash = hash + (int)str[n];
@@ -4155,25 +4317,37 @@ BOOL CRLoginApp::DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLO
 			else
 				pBack->m_pNext = pEmoji->m_pNext;
 
-			if ( (HBITMAP)(pEmoji->m_Image) == NULL )
-				goto ENDOF;
+			pEmoji->m_pNext = m_pEmojiList[hash];
+			m_pEmojiList[hash] = pEmoji;
 
-			// キャッシュしているサイズが小さい場合は、再構築
-			if ( !pEmoji->m_bFileImage && pEmoji->m_Image.GetHeight() < fh )
-				pEmoji->m_Image.Destroy();
-			else
-				hDC = pEmoji->m_Image.GetDC();
+			m_EmojiThreadSemaphore.Lock();
+			if ( pEmoji->m_Status != EMOJIIMGSTAT_DONE ) {
+				pEmoji->Add(pProp->pDoc, pProp->pos);
+				if ( pEmoji->m_Status == EMOJIIMGSTAT_WAIT ) {
+					// 再表示なら優先順位を変更・・・ランダムな更新が微妙
+					m_pEmojiThreadQue = pEmoji->RemoveAt(m_pEmojiThreadQue);
+					m_pEmojiThreadQue = pEmoji->AddHead(m_pEmojiThreadQue);
+				}
+				m_EmojiThreadSemaphore.Unlock();
+
+				if ( pProp->emode == EMOJIMODE_COLALT )
+					return FALSE;
+				if ( bEraBack )
+					pDC->FillSolidRect(rect, bc);
+				return TRUE;
+			}
+			m_EmojiThreadSemaphore.Unlock();
+
+			if ( (HBITMAP)(pEmoji->m_Image) == NULL || (hDC = pEmoji->m_Image.GetDC()) == NULL )
+				return FALSE;
 			break;
 		}
 
-		if ( ++count > EMOJI_LISTMAX && pEmoji->m_pNext == NULL ) {
-			// 再利用時には、リストの中間に挿入。キャッシュミスが連続する場合には有効？(ARCのつもり)
-			bLast = TRUE;
+		if ( ++count > EMOJI_LISTMAX && pEmoji->m_pNext == NULL && pEmoji->m_Status == EMOJIIMGSTAT_DONE ) {
 			pBack->m_pNext = NULL;
 			pEmoji->m_Image.Destroy();
 			break;
-		} else if ( count == (EMOJI_LISTMAX / 2) )
-			pMid = pEmoji;
+		}
 
 		pBack = pEmoji;
 		pEmoji = pEmoji->m_pNext;
@@ -4182,11 +4356,42 @@ BOOL CRLoginApp::DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLO
 	if ( hDC == NULL ) {
 		if ( pEmoji == NULL )
 			pEmoji = new CEmojiImage;
-		pEmoji->m_String = str;
 
-		// ビットマップ取得できない情報もキャッシュに登録
-		if (  (hDC = GetEmojiImage(pEmoji)) == NULL && (hDC = GetEmojiDrawText(pEmoji, fc, fh * 2)) == NULL )
-			goto ENDOF;
+		pEmoji->m_String = str;
+		pEmoji->m_pNext = m_pEmojiList[hash];
+		m_pEmojiList[hash] = pEmoji;
+
+		switch(pProp->emode) {
+		case EMOJIMODE_COLFILL:
+		case EMOJIMODE_COLALT:
+			pEmoji->m_Status = EMOJIIMGSTAT_WAIT;
+			pEmoji->Add(pProp->pDoc, pProp->pos);
+
+			if ( m_EmojiThreadMode == 0 ) {
+				m_EmojiPostStat = 0;
+				m_pEmojiPostDocPos = NULL;
+				m_EmojiThreadMode = 1;
+				AfxBeginThread(EmojiThreadProc, this, THREAD_PRIORITY_NORMAL);
+			}
+
+			m_EmojiThreadSemaphore.Lock();
+			m_pEmojiThreadQue = pEmoji->AddHead(m_pEmojiThreadQue);
+			m_EmojiReqEvent.SetEvent();
+			m_EmojiThreadSemaphore.Unlock();
+
+			if ( pProp->emode == EMOJIMODE_COLALT )
+				return FALSE;
+			if ( bEraBack )
+				pDC->FillSolidRect(rect, bc);
+			return TRUE;
+
+		case EMOJIMODE_COLOLD:
+			pEmoji->m_Status = EMOJIIMGSTAT_DONE;
+
+			if ( (hDC = GetEmojiImage(pEmoji)) == NULL && (hDC = GetEmojiDrawText(pEmoji, fc, MulDiv(48, SYSTEM_DPI_Y, DEFAULT_DPI_Y))) == NULL )
+				return FALSE;
+			break;
+		}
 	}
 
 	width  = pEmoji->m_Image.GetWidth();
@@ -4196,24 +4401,11 @@ BOOL CRLoginApp::DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLO
 		pDC->FillSolidRect(rect, bc);
 
 	::AlphaBlend(pDC->GetSafeHdc(), rect.left, rect.top, rect.Width(), rect.Height(),
-		hDC, 0, zm == 3 ? (height / 2) : 0, width, zm >= 2 ? (height / 2) : height, bf);
+		hDC, 0, pProp->zoom == 3 ? (height / 2) : 0, width, pProp->zoom >= 2 ? (height / 2) : height, bf);
 
 	// CImage.GetDC()してあるので注意
 	pEmoji->m_Image.ReleaseDC();
-	rc = TRUE;
-
-ENDOF:
-	if ( bLast ) {
-		// Insert Middle
-		pEmoji->m_pNext = pMid->m_pNext;
-		pMid->m_pNext = pEmoji;
-	} else {
-		// Insert Top
-		pEmoji->m_pNext = m_pEmojiList[hash];
-		m_pEmojiList[hash] = pEmoji;
-	}
-
-	return rc;
+	return TRUE;
 }
 void CRLoginApp::EmojiImageInit(LPCTSTR pFontName, LPCTSTR pImageDir)
 {
@@ -4241,6 +4433,8 @@ void CRLoginApp::EmojiImageInit(LPCTSTR pFontName, LPCTSTR pImageDir)
 		}
 	}
 
+	EmojiImageFinish();
+
 	for ( n = 0 ; n < EMOJI_HASH ; n++ ) {
 		while ( (pEmoji = m_pEmojiList[n]) != NULL ) {
 			m_pEmojiList[n] = pEmoji->m_pNext;
@@ -4248,7 +4442,17 @@ void CRLoginApp::EmojiImageInit(LPCTSTR pFontName, LPCTSTR pImageDir)
 		}
 	}
 
-	::AfxGetMainWnd()->Invalidate(FALSE);
+	::AfxGetMainWnd()->RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE);
+}
+void CRLoginApp::EmojiImageFinish()
+{
+	if ( m_EmojiThreadMode != 0 ) {
+		m_EmojiThreadMode = 0;
+		m_EmojiReqEvent.SetEvent();
+		WaitForEvent(m_EmojiThreadEvent, _T("Emoji Thread"));
+	}
+
+	m_pEmojiThreadQue = NULL;
 }
 
 #endif

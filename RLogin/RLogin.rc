@@ -734,13 +734,13 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,210,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.29.1 (2024/02/19)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 1998-2023 Culti",IDC_STATIC,44,17,189,8
+    LTEXT           "RLogin (%s) Version 2.29.2 (2024/03/21)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1998-2024 Culti",IDC_STATIC,44,17,189,8
     LTEXT           "OpenSSL 3.2.1 30 Jan 2024",IDC_STATIC,44,50,189,8
     LTEXT           "Copyright (c) 1998-2024 The OpenSSL Project",IDC_STATIC,44,60,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,80,189,8
-    LTEXT           "zlib 1.3 (18 Aug 2023)",IDC_STATIC,44,94,189,8
+    LTEXT           "zlib 1.3.1 (22 Jan 2024)",IDC_STATIC,44,94,189,8
     LTEXT           "Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,104,189,8
     LTEXT           "iconv (GNU libiconv 1.17)",IDC_STATIC,44,118,189,8
     LTEXT           "Copyright (C) 2000-2017 Free Software Foundation, Inc.",IDC_STATIC,44,128,189,8
@@ -753,7 +753,7 @@ BEGIN
 END
 
 IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
-STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "SSHサポート"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
@@ -1078,36 +1078,38 @@ BEGIN
     CONTROL         "ASCII",IDC_CHARSET3,"Button",BS_AUTORADIOBUTTON,109,20,34,10
     CONTROL         "UTF-8",IDC_CHARSET4,"Button",BS_AUTORADIOBUTTON,159,20,34,10
     PUSHBUTTON      "iconv(&I)",IDC_ICONVSET,208,17,45,14,WS_GROUP
-    CONTROL         "",IDC_BANKGL1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,57,8,8
-    CONTROL         "",IDC_BANKGL2,"Button",BS_AUTORADIOBUTTON,14,75,8,8
-    CONTROL         "",IDC_BANKGL3,"Button",BS_AUTORADIOBUTTON,14,93,8,8
-    CONTROL         "",IDC_BANKGL4,"Button",BS_AUTORADIOBUTTON,14,111,8,8
-    CONTROL         "",IDC_BANKGR1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,47,57,8,8
-    CONTROL         "",IDC_BANKGR2,"Button",BS_AUTORADIOBUTTON,47,75,8,8
-    CONTROL         "",IDC_BANKGR3,"Button",BS_AUTORADIOBUTTON,47,93,8,8
-    CONTROL         "",IDC_BANKGR4,"Button",BS_AUTORADIOBUTTON,47,111,8,8
-    COMBOBOX        IDC_CHARBANK1,94,55,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_GROUP | WS_TABSTOP
-    COMBOBOX        IDC_CHARBANK2,94,73,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_CHARBANK3,94,91,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_CHARBANK4,94,109,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_FONTNAME,50,149,100,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "List1",IDC_FONTLIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,14,170,240,95
-    COMBOBOX        IDC_FONTNUM,48,272,21,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "新規(&N)",IDC_FONTLISTNEW,85,271,45,14
-    PUSHBUTTON      "編集(&E)",IDC_FONTLISTEDIT,141,271,45,14
-    PUSHBUTTON      "削除(&D)",IDC_FONTLISTDEL,197,271,45,14
-    CONTROL         "",IDC_FONTSAMPLE,"Static",SS_OWNERDRAW,154,145,100,20,WS_EX_STATICEDGE
-    CTEXT           "0",IDC_TITLE1,81,57,8,8
-    CTEXT           "1",IDC_TITLE2,81,75,8,8
-    CTEXT           "2",IDC_TITLE3,81,93,8,8
-    CTEXT           "3",IDC_TITLE4,81,111,8,8
+    CONTROL         "",IDC_BANKGL1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,53,8,8
+    CONTROL         "",IDC_BANKGL2,"Button",BS_AUTORADIOBUTTON,14,71,8,8
+    CONTROL         "",IDC_BANKGL3,"Button",BS_AUTORADIOBUTTON,14,89,8,8
+    CONTROL         "",IDC_BANKGL4,"Button",BS_AUTORADIOBUTTON,14,107,8,8
+    CONTROL         "",IDC_BANKGR1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,47,53,8,8
+    CONTROL         "",IDC_BANKGR2,"Button",BS_AUTORADIOBUTTON,47,71,8,8
+    CONTROL         "",IDC_BANKGR3,"Button",BS_AUTORADIOBUTTON,47,89,8,8
+    CONTROL         "",IDC_BANKGR4,"Button",BS_AUTORADIOBUTTON,47,107,8,8
+    COMBOBOX        IDC_CHARBANK1,94,51,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_GROUP | WS_TABSTOP
+    COMBOBOX        IDC_CHARBANK2,94,69,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARBANK3,94,87,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARBANK4,94,105,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_FONTNAME,50,140,100,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "デフォルトフォントの下記Windows Character Setによるフォント置換しない",IDC_CHECK1,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,160,241,10
+    CONTROL         "List1",IDC_FONTLIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,14,174,240,98
+    COMBOBOX        IDC_FONTNUM,48,276,21,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "新規(&N)",IDC_FONTLISTNEW,85,275,45,14
+    PUSHBUTTON      "編集(&E)",IDC_FONTLISTEDIT,141,275,45,14
+    PUSHBUTTON      "削除(&D)",IDC_FONTLISTDEL,197,275,45,14
+    CONTROL         "",IDC_FONTSAMPLE,"Static",SS_OWNERDRAW,154,137,100,20,WS_EX_STATICEDGE
+    CTEXT           "0",IDC_TITLE1,81,53,8,8
+    CTEXT           "1",IDC_TITLE2,81,71,8,8
+    CTEXT           "2",IDC_TITLE3,81,89,8,8
+    CTEXT           "3",IDC_TITLE4,81,107,8,8
     GROUPBOX        "文字セット",IDC_TITLE5,7,7,256,30
-    GROUPBOX        "GL",IDC_TITLE6,7,43,22,85
-    GROUPBOX        "GR",IDC_TITLE7,40,43,22,85
-    GROUPBOX        "文字バンク",IDC_TITLE8,73,43,190,85
-    GROUPBOX        "フォントセット",IDC_TITLE9,7,136,256,158
-    LTEXT           "Alt.Font",IDC_TITLE10,18,274,24,8
-    LTEXT           "デフォルト",IDC_TITLE11,17,151,26,8
+    GROUPBOX        "GL",IDC_TITLE6,7,39,22,85
+    GROUPBOX        "GR",IDC_TITLE7,40,39,22,85
+    GROUPBOX        "文字バンク",IDC_TITLE8,73,39,190,85
+    GROUPBOX        "フォントセット",IDC_TITLE9,7,127,256,166
+    LTEXT           "Alt.Font",IDC_TITLE10,18,278,24,8
+    LTEXT           "デフォルト",IDC_TITLE11,17,143,26,8
 END
 
 IDD_COLORPARADLG DIALOGEX 0, 0, 270, 300
@@ -1152,22 +1154,24 @@ BEGIN
     CONTROL         "",IDC_ATTR6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,82,215,46,10
     CONTROL         "",IDC_ATTR7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,141,215,46,10
     CONTROL         "",IDC_ATTR8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,200,215,46,10
-    CONTROL         "カラーで絵文字を表示（フォント指定より画像のフォルダ指定が優先）",IDC_EMOJICOLENABLE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,250,239,10
-    COMBOBOX        IDC_EMOJIFONTNAME,15,269,70,30,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_EMOJIIMAGEDIR,92,268,116,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "参照",IDC_EMOJIIMAGESEL,212,268,41,14
+    COMBOBOX        IDC_EMOJIFONTNAME,15,272,70,30,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EMOJIIMAGEDIR,92,271,116,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "参照",IDC_EMOJIIMAGESEL,212,271,41,14
     GROUPBOX        "16色カラーテーブル",IDC_STATIC,7,7,256,97
     GROUPBOX        "文字カラー",IDC_STATIC,7,108,124,76
     GROUPBOX        "透明化（全エントリー共有）",IDC_STATIC,139,108,124,76
     GROUPBOX        "文字装飾",IDC_STATIC,7,187,256,45
-    GROUPBOX        "カラー絵文字（フォント・フォルダ全エントリー共有）",IDC_STATIC,7,236,256,57
+    GROUPBOX        "カラー絵文字（フォント・フォルダ全エントリー共有　フォルダ指定優先）",IDC_STATIC,7,243,256,50
+    CONTROL         "モノクロ絵文字",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,10,256,60,10
+    CONTROL         "カラー絵文字",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,75,256,60,10
+    CONTROL         "モノクロ置換",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,140,256,60,10
+    CONTROL         "カラー従来型",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,200,256,60,10
     CTEXT           "C",IDC_STATIC,213,22,8,8
     CTEXT           "B",IDC_STATIC,229,22,8,8
     CTEXT           "H",IDC_STATIC,245,22,8,8
     CTEXT           "文字色",IDC_STATIC,20,129,27,8
     CTEXT           "背景色",IDC_STATIC,20,158,27,8
-    LTEXT           "Sleep Time",IDC_STATIC,150,140,34,8
+    LTEXT           "Sleep Time",IDC_STATIC,150,140,48,8
 END
 
 IDD_ICONVDLG DIALOGEX 0, 0, 210, 135
@@ -1556,7 +1560,7 @@ STYLE DS_SETFONT | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THIC
 CAPTION "Socket Status"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    EDITTEXT        IDC_EDIT1,0,0,300,196,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | ES_WANTRETURN | WS_VSCROLL
+    EDITTEXT        IDC_EDIT1,0,0,300,196,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | ES_WANTRETURN | NOT WS_BORDER | WS_VSCROLL
 END
 
 IDD_HISPAGE DIALOGEX 0, 0, 270, 300
@@ -1789,10 +1793,10 @@ STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "ペーストするテキストの編集・確認"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    DEFPUSHBUTTON   "すべて送信",IDOK,138,215,56,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,200,215,56,14
-    PUSHBUTTON      "Escape",IDC_SHELLESC,14,215,56,14
-    PUSHBUTTON      "１行送信",IDC_ONELINE,76,215,56,14
+    DEFPUSHBUTTON   "すべて送信",IDOK,137,215,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,192,215,50,14
+    PUSHBUTTON      "Escape",IDC_SHELLESC,27,215,50,14
+    PUSHBUTTON      "１行送信",IDC_ONELINE,82,215,50,14
     PUSHBUTTON      "HT",IDC_CTRLCONV1,109,7,32,14
     PUSHBUTTON      "CR",IDC_CTRLCONV2,109,22,32,14
     PUSHBUTTON      "ETC",IDC_CTRLCONV3,109,37,32,14
@@ -1856,7 +1860,6 @@ BEGIN
     PUSHBUTTON      "初期化",IDC_DOINIT,27,165,60,14
     CONTROL         "",IDC_TABTREE,"SysTreeView32",TVS_HASLINES | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,7,7,62,150
     CONTROL         "",IDC_FRAME,"Static",SS_BLACKFRAME,70,7,246,150
-    PUSHBUTTON      "?",IDC_HELPBTN,7,165,14,14,BS_CENTER | BS_VCENTER
 END
 
 IDD_BLOCKDLG DIALOGEX 0, 0, 407, 285
@@ -2036,7 +2039,7 @@ BEGIN
     LTEXT           "To",IDC_STATIC,93,82,8,8
 END
 
-IDD_COMMONIDLG DIALOGEX 0, 0, 238, 265
+IDD_COMMONIDLG DIALOGEX 0, 0, 238, 266
 STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "シリアルモニター"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
@@ -2064,7 +2067,7 @@ BEGIN
     CHECKBOX        "Receive Framing error",IDC_CHECK4,126,193,100,10,NOT WS_TABSTOP
     CHECKBOX        "Break Detected",IDC_CHECK5,126,207,100,10,NOT WS_TABSTOP
     CHECKBOX        "TX Queue is full",IDC_CHECK6,126,221,100,10,NOT WS_TABSTOP
-    PUSHBUTTON      "エラーをクリア(&E)",IDC_CLEARERROR,83,244,70,14
+    PUSHBUTTON      "エラーをクリア(&E)",IDC_CLEARERROR,81,238,70,14
     GROUPBOX        "ポートの設定",IDC_STATIC,7,7,223,91
     CONTROL         "",IDC_COM_DCD,"Static",SS_OWNERDRAW | WS_BORDER,18,132,7,7
     CONTROL         "",IDC_COM_RxD,"Static",SS_OWNERDRAW | WS_BORDER,39,132,7,7
@@ -2083,7 +2086,7 @@ BEGIN
     CONTROL         "",IDC_COM_CTS,"Static",SS_OWNERDRAW | WS_BORDER,72,145,7,7
     CONTROL         "",IDC_COM_RI,"Static",SS_OWNERDRAW | WS_BORDER,93,145,7,7
     GROUPBOX        "ポートの状態",IDC_STATIC,7,101,223,75
-    GROUPBOX        "通信エラーの履歴",IDC_STATIC,7,179,223,79
+    GROUPBOX        "通信エラーの履歴",IDC_STATIC,7,180,223,79
     CONTROL         "",IDC_COMGRAP,"Static",SS_OWNERDRAW,117,113,106,56
 END
 
@@ -2117,29 +2120,29 @@ BEGIN
     GROUPBOX        "XON/XOFF",IDC_STATIC,7,119,260,126
 END
 
-IDD_COMINITDLG DIALOGEX 0, 0, 199, 215
+IDD_COMINITDLG DIALOGEX 0, 0, 199, 213
 STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "ポートの設定"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    RTEXT           "ビット/秒(&B)",IDC_STATIC,22,40,70,8
-    COMBOBOX        IDC_BAUDRATE,105,38,70,150,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
-    RTEXT           "データ ビット(&D)",IDC_STATIC,22,62,70,8
-    COMBOBOX        IDC_DATABITS,105,59,70,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    RTEXT           "パリティ(&P)",IDC_STATIC,22,82,70,8
-    COMBOBOX        IDC_PARITYBIT,105,80,70,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    RTEXT           "ストップ ビット(&S)",IDC_STATIC,22,103,70,8
-    COMBOBOX        IDC_STOPBITS,105,101,70,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "フロー制御(&F)",IDC_USERFLOW,22,121,70,14,0,WS_EX_RIGHT
-    COMBOBOX        IDC_FLOWCTRL,105,122,70,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    RTEXT           "文字の送信遅延(&C)",IDC_STATIC,22,146,70,8
-    EDITTEXT        IDC_SENDWAITC,105,143,70,13,ES_AUTOHSCROLL
-    RTEXT           "改行の送信遅延(&L)",IDC_STATIC,22,167,70,8
-    EDITTEXT        IDC_SENDWAITL,105,165,70,13,ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,74,194,50,14
-    PUSHBUTTON      "既定値",IDC_DEFCONF,7,194,50,14,BS_CENTER
-    PUSHBUTTON      "キャンセル",IDCANCEL,142,194,50,14
-    COMBOBOX        IDC_COMDEVLIST,22,17,153,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "ビット/秒(&B)",IDC_STATIC,22,34,70,8
+    COMBOBOX        IDC_BAUDRATE,105,32,70,150,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "データ ビット(&D)",IDC_STATIC,22,56,70,8
+    COMBOBOX        IDC_DATABITS,105,53,70,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "パリティ(&P)",IDC_STATIC,22,76,70,8
+    COMBOBOX        IDC_PARITYBIT,105,74,70,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "ストップ ビット(&S)",IDC_STATIC,22,97,70,8
+    COMBOBOX        IDC_STOPBITS,105,95,70,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "フロー制御(&F)",IDC_USERFLOW,22,115,70,14,0,WS_EX_RIGHT
+    COMBOBOX        IDC_FLOWCTRL,105,116,70,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "文字の送信遅延(&C)",IDC_STATIC,22,140,70,8
+    EDITTEXT        IDC_SENDWAITC,105,137,70,13,ES_AUTOHSCROLL
+    RTEXT           "改行の送信遅延(&L)",IDC_STATIC,22,161,70,8
+    EDITTEXT        IDC_SENDWAITL,105,159,70,13,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,74,188,50,14
+    PUSHBUTTON      "既定値",IDC_DEFCONF,22,188,50,14,BS_CENTER
+    PUSHBUTTON      "キャンセル",IDCANCEL,125,188,50,14
+    COMBOBOX        IDC_COMDEVLIST,22,11,153,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
 IDD_PRNTEXTDLG DIALOGEX 0, 0, 239, 168
@@ -2307,8 +2310,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,29,1,0
- PRODUCTVERSION 2,29,1,0
+ FILEVERSION 2,29,2,0
+ PRODUCTVERSION 2,29,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2325,12 +2328,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.29.1.0"
+            VALUE "FileVersion", "2.29.2.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.29.1.0"
+            VALUE "ProductVersion", "2.29.2.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2790,7 +2793,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 231
         TOPMARGIN, 7
-        BOTTOMMARGIN, 258
+        BOTTOMMARGIN, 259
     END
 
     IDD_USERFLOWDLG, DIALOG
@@ -2806,7 +2809,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 192
         TOPMARGIN, 7
-        BOTTOMMARGIN, 208
+        BOTTOMMARGIN, 206
     END
 
     IDD_PRNTEXTDLG, DIALOG
@@ -4738,12 +4741,12 @@ END
 STRINGTABLE
 BEGIN
     IDM_SEQCANCELSTR        "%sシーケンスを実行中です\nキャンセルするには、ここをクリック"
-    IDM_SERV_PROTO          "プロトコルハンドラに登録\nハンドラに登録"
+    IDM_SERV_PROTO          "プロトコルハンドラに登録する\nハンドラに登録"
     IDM_SFTP                "ファイル転送を行う\nファイル転送"
     IDM_SFTP_ABORT          "ファイル転送の中止する\n中止"
     IDM_SFTP_ALLDOWNLOAD    "ファイルの更新日時を比較してダウンロードする\nミラーダウンロード"
     IDM_SFTP_ALLUPLOAD      "ファイルの更新日時を比較してアップロードする\nミラーアップロード"
-    IDM_SFTP_CHMOD          "ファイル属性の変更\n属性変更"
+    IDM_SFTP_CHMOD          "ファイル属性の変更します\n属性変更"
     IDM_SFTP_CLOSE          "このファイル転送ウィンドウを閉じる\n閉じる"
     IDM_SFTP_DELETE         "選択されたファイルを削除する\nファイル削除"
     IDM_SFTP_DOWNLOAD       "ファイルのダウンロード\nダウンロード"
@@ -4755,7 +4758,7 @@ END
 STRINGTABLE
 BEGIN
     IDM_ICONLOAD            "アイコンとして画像ファイルを読み込む\nアイコン設定"
-    IDM_TOOLCUST            "ツールバーを設定しす\nツールバー設定"
+    IDM_TOOLCUST            "ツールバーを設定します\nツールバー設定"
     IDM_CREATEPROFILE       "プライベートプロファイルを新規作成します\nプロファイル作成"
     IDM_SHORTCUT            "ディスクトップにショートカットを作成します\nショートカットを作成"
     IDM_EDIT_MARK           "範囲指定した文字列を検索結果としてマークします\n検索マーク"
@@ -4776,7 +4779,7 @@ BEGIN
     IDM_VERSIONCHECK        "定期的に新バージョンをチェックする\n新バージョンチェック"
     IDM_DIALOGFONT          "ダイアログフォントを設定します\nダイアログフォント"
     IDM_NONENCRYPTFILE      "空のパスフレーズで作成されています\n暗号化されない認証鍵ファイルを作成しますか？"
-    IDM_SFTP_UIDGID         "uid/gidを名称に変換\nuid/gid変換"
+    IDM_SFTP_UIDGID         "uid/gidを名称に変換します\nuid/gid変換"
     IDM_MOVEPANE_UP         "上のウィンドウに移動します\n上に移動"
     IDM_MOVEPANE_DOWN       "下のウィンドウに移動します\n下に移動"
     IDM_MOVEPANE_RIGHT      "右のウィンドウに移動します\n右に移動"
@@ -4800,7 +4803,7 @@ BEGIN
     IDM_PASSWORDLOCK        "パスワードで起動と接続を制限します\nパスワードロック"
     IDM_REOPENSOCK          "サーバーに再接続する\nサーバー再接続"
     IDM_OTHERCAST           "別のRLoginにも同時送信を行う\n別のRLoginにも同時送信"
-    IDM_SAVERESFILE         "リソースをファイルに保存\nリソースの保存"
+    IDM_SAVERESFILE         "リソースをファイルに保存する\nリソースの保存"
 END
 
 STRINGTABLE
@@ -4857,7 +4860,7 @@ BEGIN
     IDM_TREECTRLRENAME      "グループの名前を変更\n名前変更"
     IDM_TREECTRLDELETE      "空のグループを削除\nグループ削除"
     IDM_IMAGEGRAPHIST       "画像のヒストグラムを表示(&T)"
-    IDM_HISTOGRAM           "画像のヒストグラムを表示\nヒストグラム"
+    IDM_HISTOGRAM           "画像のヒストグラムを表示する\nヒストグラム"
 END
 
 STRINGTABLE
@@ -4886,7 +4889,7 @@ BEGIN
     ID_CHARSCRIPT_END       "実行中のChatScriptを中断します\nChatScript完了"
     ID_DISCONNECT           "サーバーとの接続を閉じます\n接続を閉じる"
     ID_EDIT_CHECK           "他の変更を確認して最新の情報に更新します\n更新"
-    ID_EDIT_COPY_ALL        "すべてクリップボードにコピー\nすべてコピー"
+    ID_EDIT_COPY_ALL        "すべてクリップボードにコピーする\nすべてコピー"
 END
 
 STRINGTABLE
@@ -5071,6 +5074,7 @@ BEGIN
     IDT_EXTOPT_LIST28       "DNSでチェックしない\tDNSでチェックする\tDNSによるSSHホスト鍵のチェックを行なわないようにします"
     IDT_EXTOPT_LIST29       "ペーストを確認する\tペーストを確認しない\tペースト時の確認を行わないようにします"
     IDT_EXTOPT_LIST30       "タブの背景をグラデーション\tタブの背景を単色\tタブバーの背景表示をグラデーションで描画します"
+    IDT_EXTOPT_LIST31       "カラー絵文字の遅延描画\tカラー絵文字の通常表示\tカラー絵文字の表示をスレッドで行い遅延して表示します"
 END
 
 STRINGTABLE
@@ -5189,7 +5193,7 @@ END
 STRINGTABLE
 BEGIN
     IDM_TABMULTILINE        "タブバーをボタンスタイルの複数行で表示する\nタブバーのマルチライン"
-    IDM_QUICKCONNECT        "クィックバーで接続"
+    IDM_QUICKCONNECT        "クィックバーでサーバー情報を上書きして接続\nクィックバーで接続"
     IDM_SECPORICY           "エントリー情報のパスワードの暗号化に関する設定を行う\nパスワード暗号化設定"
     IDM_CMDHIS              "コマンドウィンドウを表示・非表示\nコマンドウィンドウ"
     IDM_CMDHIS_CMDS         "コマンドラインを送信する\nコマンド送信"
@@ -5200,8 +5204,8 @@ BEGIN
     IDM_SPEAKALL            "表示されている画面を音声で読み上げます\n音声で読み上げ"
     IDM_KNOWNHOSTDEL        "登録されているホスト鍵の削除\nホスト鍵の削除"
     IDM_ALL_EXPORT          "すべてのエントリーをファイルに保存します\nすべて保存"
-    IDM_SPEAKBACK           "前行を読み上げ"
-    IDM_SPEAKNEXT           "次行を読み上げ"
+    IDM_SPEAKBACK           "音声で読み上げ中の前行に変更します\n前行を読み上げ"
+    IDM_SPEAKNEXT           "音声で読み上げ中の次行に変更します\n次行を読み上げ"
     IDM_CHARTOOLTIP         "コンソールの文字情報をツールチップで表示する\n文字情報"
     IDM_LINEEDITMODE        "端末で行編集してから文字を送ります\nローカルエディットモードの切替"
 END
@@ -5211,9 +5215,9 @@ BEGIN
     IDM_RIGHTCLOSE          "右側の接続をすべて閉じる\n右側を閉じる"
     IDM_OTHERCLOSE          "他の接続をすべて閉じる\n他を閉じる"
     IDM_VIEW_SUBTOOL        "サブツールバーの 表示/非表示\nサブツールバーの表示切り替え"
-    IDM_DOCKBARFIXED        "バー位置を固定"
-    IDM_DOCKBARINIT         "バー位置を初期化"
-    IDM_APPCOLEDIT          "各種ウィンドウの色設定"
+    IDM_DOCKBARFIXED        "ドッキングバーを移動出来ないようにします\nバー位置を固定"
+    IDM_DOCKBARINIT         "ドッキングバーをプログラム初期位置に戻します\nバー位置を初期化"
+    IDM_APPCOLEDIT          "メニューやドッキングバーの背景色などを編集します\n各種ウィンドウの色設定"
 END
 
 #endif    // 日本語 (日本) resources

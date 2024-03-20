@@ -33,7 +33,7 @@ public:
 	void SendBreak(int opt);
 
 	BOOL FlowCtrlCheck(int nFd);
-	BOOL WaitForEvent(int nFd, HANDLE hAbortEvent);
+	BOOL WaitForFifo(int nFd, HANDLE hAbortEvent);
 
 	void OnProcWait();
 	void OnReadProc();

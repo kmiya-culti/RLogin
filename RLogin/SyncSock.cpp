@@ -284,7 +284,7 @@ void CSyncSock::DoAbort(BOOL bClose)
 	if ( m_pDoc != NULL && m_pDoc->m_pSock != NULL )
 		m_pDoc->m_pSock->SyncAbort();
 
-	WaitForSingleObject(m_ThreadEvent, INFINITE);
+	WaitForEvent(m_ThreadEvent, _T("CSyncSock Thread"));
 	m_ThreadMode = THREAD_NONE;
 
 	if ( m_pDoc != NULL && m_pDoc->m_pSock != NULL )

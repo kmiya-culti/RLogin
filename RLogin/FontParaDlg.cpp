@@ -265,6 +265,7 @@ BOOL CFontParaDlg::OnInitDialog()
 	SubclassComboBox(IDC_OVERZERO);
 
 	SetSaveProfile(_T("FontParaDlg"));
+	AddHelpButton(_T("#FONTPARA"));
 
 	return TRUE;
 }
@@ -395,7 +396,7 @@ void CFontParaDlg::OnBnClickedIso646set()
 	UpdateData(TRUE);
 
 	dlg.m_FontName = (m_pTextRam != NULL && m_FontName.IsEmpty() ? m_pTextRam->m_DefFontName[m_FontNum] : m_FontName);
-	dlg.m_CharSet  = CharSetNo(m_CharSetTemp);
+	dlg.m_CharSet  = (m_pTextRam != NULL && m_pTextRam->IsOptEnable(TO_RLNOCHKFONT) ? DEFAULT_CHARSET : CharSetNo(m_CharSetTemp));
 	dlg.m_FontSetName = m_Iso646Name[0];
 	dlg.m_DispSetName = m_Iso646Name[1];
 	memcpy(dlg.m_Iso646Tab, m_Iso646Tab, sizeof(m_Iso646Tab));

@@ -177,6 +177,7 @@ BOOL CProxyDlg::OnInitDialog()
 	SubclassComboBox(IDC_SOCKNO);
 
 	SetSaveProfile(_T("ProxyDlg"));
+	AddHelpButton(_T("#PROXYSET"));
 
 	return TRUE;
 }

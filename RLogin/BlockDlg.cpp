@@ -233,6 +233,7 @@ BOOL CBlockDlg::OnInitDialog()
 	InitList();
 
 	SetSaveProfile(_T("BlockDlg"));
+	AddHelpButton(_T("#UNIBLOCK"));
 
 	return TRUE;
 }

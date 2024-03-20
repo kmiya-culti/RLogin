@@ -343,6 +343,7 @@ CRLoginView::CRLoginView()
 	m_bVramTipDisp = FALSE;
 
 	m_bDarkMode = FALSE;
+	m_bPostInvRect = FALSE;
 }
 
 CRLoginView::~CRLoginView()
@@ -552,7 +553,6 @@ void CRLoginView::OnDraw(CDC* pDC)
 	}
 
 	SetDelayInvalTimer();
-//	TRACE("CRLoginView::OnDraw\n");
 }
 void CRLoginView::CreateGrapImage(int type)
 {
@@ -1368,7 +1368,7 @@ void CRLoginView::OnDestroy()
 	if ( ((CMainFrame *)::AfxGetMainWnd())->SpeakViewCheck(this) )
 		((CMainFrame *)::AfxGetMainWnd())->SendMessage(WM_COMMAND, IDM_SPEAKALL);
 
-		DelayInvalThreadEndof();
+	DelayInvalThreadEndof();
 	((CRLoginApp *)AfxGetApp())->DelIdleProc(IDLEPROC_VIEW, this);
 
 	CView::OnDestroy();

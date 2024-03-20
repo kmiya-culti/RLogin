@@ -293,7 +293,7 @@
 #define	TO_DNSSSSHFP	1490		// DNSによるSSSHホスト鍵のチェックを行う
 #define	TO_RLENOEDPAST	1491		// ペーストを確認しない
 #define	TO_RLTABGRAD	1492		// タブの背景をグラデーション
-
+#define	TO_RLDELYEMOJI	1493		// 絵文字をスレッドで遅れて表示
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -494,6 +494,11 @@
 
 #define	UNIBLOCKTABMAX			308
 
+#define	EMOJIMODE_MONO			0
+#define	EMOJIMODE_COLFILL		1
+#define	EMOJIMODE_COLALT		2
+#define	EMOJIMODE_COLOLD		3
+	
 typedef struct _UNIBLOCKTAB {
 	DWORD	code;
 	LPCTSTR	name;
@@ -1280,7 +1285,7 @@ public:
 	int HisMarkCheck(int top, int line, class CRLoginView *pView);
 
 	// TextRam
-	struct DrawWork {
+	typedef struct _DrawWork {
 		int		attr, zoom;
 		int		fcol, bcol;
 		int		bank, font;
@@ -1295,8 +1300,11 @@ public:
 		COLORREF brgb;
 		clock_t	aclock;
 		BOOL	print;
-		int		descent;
-	};
+		CRect   pos;
+		int     emode;
+		class CRLoginDoc *pDoc;
+		class CRLoginView *pView;
+	} DrawWork;
 
 	int IsWord(DWORD ch);
 	int GetPos(int x, int y);
@@ -1318,12 +1326,12 @@ public:
 	BOOL SpeakCheck(CCurPos sPos, CCurPos ePos, LPCTSTR str);
 
 	void DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop);
-	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView);
-	void DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView);
-	void DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView);
-	void DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView);
-	void DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView);
-	void DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLoginView *pView);
+	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, DrawWork &prop);
+	void DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, DrawWork &prop);
+	void DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop);
+	void DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop);
+	void DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop);
+	void DrawString(CDC *pDC, CRect &rect, DrawWork &prop);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView, BOOL bPrint);
 
 	CWnd *GetAciveView();

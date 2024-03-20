@@ -25,6 +25,7 @@ CBackPage::CBackPage() : CTreePage(CBackPage::IDD)
 	m_TextFormat.Empty();
 	m_MapStyle = 0;
 	m_UrlOpt = _T("#BACKSET");
+	m_bTabColDark = FALSE;
 }
 CBackPage::~CBackPage()
 {
@@ -62,6 +63,7 @@ BEGIN_MESSAGE_MAP(CBackPage, CTreePage)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_BITMAPBLEND, &CBackPage::OnUpdateSlider)
 	ON_STN_CLICKED(IDC_TABTEXTCOL, &CBackPage::OnStnClickedTabTextColor)
 	ON_STN_CLICKED(IDC_TABBACKCOL, &CBackPage::OnStnClickedTabBackColor)
+	ON_WM_SETTINGCHANGE()
 END_MESSAGE_MAP()
 
 void CBackPage::DoInit()
@@ -95,8 +97,16 @@ void CBackPage::DoInit()
 	m_BitMapBlend.SetTicFreq(16);
 	m_BitMapBlend.SetPos(m_pSheet->m_pTextRam->m_BitMapBlend);
 
-	m_TabTextColor = m_pSheet->m_pTextRam->m_TabTextColor;
-	m_TabBackColor = m_pSheet->m_pTextRam->m_TabBackColor;
+	if ( m_bDarkMode ) {
+		m_TabBackColor = m_pSheet->m_pTextRam->m_TabTextColor;
+		m_TabTextColor = m_pSheet->m_pTextRam->m_TabBackColor;
+		m_bTabColDark = TRUE;
+	} else {
+		m_TabTextColor = m_pSheet->m_pTextRam->m_TabTextColor;
+		m_TabBackColor = m_pSheet->m_pTextRam->m_TabBackColor;
+		m_bTabColDark = FALSE;
+	}
+
 	m_TabBackGradient = m_pSheet->m_pTextRam->IsOptEnable(TO_RLTABGRAD);
 
 	UpdateData(FALSE);
@@ -147,8 +157,13 @@ BOOL CBackPage::OnApply()
 	m_pSheet->m_pTextRam->m_BitMapBlend = m_BitMapBlend.GetPos();
 	m_pSheet->m_pTextRam->m_BitMapStyle = m_MapStyle;
 
-	m_pSheet->m_pTextRam->m_TabTextColor = m_TabTextColor;
-	m_pSheet->m_pTextRam->m_TabBackColor = m_TabBackColor;
+	if ( m_bTabColDark ) {
+		m_pSheet->m_pTextRam->m_TabTextColor = m_TabBackColor;
+		m_pSheet->m_pTextRam->m_TabBackColor = m_TabTextColor;
+	} else {
+		m_pSheet->m_pTextRam->m_TabTextColor = m_TabTextColor;
+		m_pSheet->m_pTextRam->m_TabBackColor = m_TabBackColor;
+	}
 
 	if ( m_TabBackGradient != m_pSheet->m_pTextRam->IsOptEnable(TO_RLTABGRAD) ) {
 		m_pSheet->m_pTextRam->SetOption(TO_RLTABGRAD, m_TabBackGradient);
@@ -268,4 +283,17 @@ void CBackPage::OnStnClickedTabBackColor()
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_TABCOLOR);
+}
+void CBackPage::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
+{
+	CDialogExt::OnSettingChange(uFlags, lpszSection);
+
+	if ( m_bTabColDark != m_bDarkMode ) {
+		COLORREF col = m_TabTextColor;
+		m_TabTextColor = m_TabBackColor;
+		m_TabBackColor = col;
+		m_TabTextColorBox.Invalidate(FALSE);
+		m_TabBackColorBox.Invalidate(FALSE);
+		m_bTabColDark = m_bDarkMode;
+	}
 }

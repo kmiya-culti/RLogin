@@ -23,11 +23,12 @@ public:
 	BOOL m_bNoCheck;
 
 	UINT m_nType;
-	CWnd *m_pParent;
 	BOOL m_bNoChkEnable;
 	CString m_Title;
 	CString m_MsgText;
 	int m_BtnRes[3];
+
+	inline void SetParentWnd(CWnd *pWnd) { m_pParentWnd = pWnd; }
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート

@@ -322,6 +322,7 @@ BOOL CToolDlg::OnInitDialog()
 	m_ToolSize.SetCurSel((sz - 10) / 2);
 
 	SetSaveProfile(_T("ToolDlg"));
+	AddHelpButton(_T("#TOOLBAR"));
 
 	return TRUE;
 }

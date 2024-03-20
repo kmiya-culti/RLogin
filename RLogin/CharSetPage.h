@@ -32,6 +32,7 @@ public:
 	CStatic m_FontSample;
 	int		m_ListIndex;
 	CStringBinary m_FontSet;
+	BOOL m_bDisableCharSet;
 
 public:
 	class CFontTab m_FontTab;
@@ -70,4 +71,6 @@ protected:
 	afx_msg void OnCbnSelchangeFontName();
 	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg void OnLvnItemchangedFontlist(NMHDR *pNMHDR, LRESULT *pResult);
+public:
+	afx_msg void OnBnClickedCheck1();
 };

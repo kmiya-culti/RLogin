@@ -243,6 +243,7 @@ BOOL CEscDlg::OnInitDialog()
 	InitParaList();
 
 	SetSaveProfile(_T("EscDlg"));
+	AddHelpButton(_T("#ESCCSIDCS"));
 
 	return TRUE;
 }

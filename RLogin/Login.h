@@ -22,8 +22,14 @@ class CLogin : public CExtSocket
 public:
 	CLogin(class CRLoginDoc *pDoc);
 
+public:
+	UINT m_PortNum;
+
+public:
 	virtual CFifoBase *FifoLinkMid();
 	virtual BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
+	virtual void Close();
 
+	virtual void OnConnect();
 	virtual void SendWindSize();
 };

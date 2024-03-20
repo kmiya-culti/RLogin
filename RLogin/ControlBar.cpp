@@ -777,20 +777,20 @@ void CDialogBarEx::DpiChanged()
 		m_ZoomDiv.cy = client.Height();
 	}
 
-	m_NowDpi.cx = SCREEN_DPI_X;
-	m_NowDpi.cy = SCREEN_DPI_Y;
-	
 	if ( (pFont = GetFont()) != NULL ) {
 		pFont->GetLogFont(&LogFont);
 
 		if ( m_NewFont.GetSafeHandle() != NULL )
 			m_NewFont.DeleteObject();
 
-		LogFont.lfHeight = MulDiv(LogFont.lfHeight, SCREEN_DPI_Y, m_InitDpi.cy);
+		LogFont.lfHeight = MulDiv(LogFont.lfHeight, SCREEN_DPI_Y, m_NowDpi.cy);
 
 		m_NewFont.CreateFontIndirect(&LogFont);
 	}
 
+	m_NowDpi.cx = SCREEN_DPI_X;
+	m_NowDpi.cy = SCREEN_DPI_Y;
+	
 	EnumChildWindows(GetSafeHwnd(), DpiChangedProc, (LPARAM)this);
 }
 

@@ -210,6 +210,7 @@ BOOL CPfdListDlg::OnInitDialog()
 	UpdateData(FALSE);
 
 	SetSaveProfile(_T("PfdListDlg"));
+	AddHelpButton(_T("#PORTFORWARD"));
 
 	return TRUE;
 }

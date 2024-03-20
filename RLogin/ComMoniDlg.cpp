@@ -261,6 +261,7 @@ BOOL CComMoniDlg::OnInitDialog()
 	SubclassComboBox(IDC_BAUDRATE);
 
 	SetSaveProfile(_T("ComMoniDlg"));
+	AddHelpButton(_T("#MONITOR"));
 
 	return TRUE;
 }

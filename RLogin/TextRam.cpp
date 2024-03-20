@@ -4522,17 +4522,22 @@ BOOL CTextRam::LineEdit(CBuffer &buf)
 }
 int CTextRam::IsWord(DWORD ch)
 {
-	if ( ch < 0x20 )
+	if ( ch < 0x20 && ch != 0x08 )
 		return 0;
 	else if ( ch >= 0x3040 && ch <= 0x309F )		// 3040 - 309F ひらがな
 		return 2;
 	else if ( ch >= 0x30A0 && ch <= 0x30FF )		// 30A0 - 30FF カタカナ
 		return 3;
-	else if ( UnicodeWidth(ch) == 2 && iswalnum((TCHAR)ch) )
+	else if ( UnicodeWidth(ch) == 2 && iswalnum((WCHAR)ch) )
 		return 4;
-	else if ( iswalnum((TCHAR)ch) || m_WordStr.Find((WCHAR)ch) >= 0 )
+	else if ( iswalnum((WCHAR)ch) || m_WordStr.Find((TCHAR)ch) >= 0 )
 		return 1;
-	return 0;
+	else if ( ch == 0x20 || ch == 0x08 )			// Space char
+		return 5;
+	else if ( _tcschr(_T("()[]{}<>"), (TCHAR)ch) != NULL )	// ()[]{}<>
+		return 6;
+	else
+		return 7;									// Not Word char
 }
 int CTextRam::GetPos(int x, int y)
 {
@@ -4649,6 +4654,24 @@ void CTextRam::EditWordPos(CCurPos *sps, CCurPos *eps)
 		while ( IsWord(GetPos(ex + 1, ey)) == 4 )
 			IncPos(ex, ey);
 		while ( IsWord(GetPos(ex + 1, ey)) == 2 )
+			IncPos(ex, ey);
+		break;
+	case 5:	// space
+		while ( IsWord(GetPos(sx - 1, sy)) == 5 )
+			DecPos(sx, sy);
+		while ( IsWord(GetPos(ex + 1, ey)) == 5 )
+			IncPos(ex, ey);
+		break;
+	case 6:	// ()[]{}<>
+		while ( IsWord(GetPos(sx - 1, sy)) == 6 )
+			DecPos(sx, sy);
+		while ( IsWord(GetPos(ex + 1, ey)) == 6 )
+			IncPos(ex, ey);
+		break;
+	case 7:	// not word char 
+		while ( IsWord(GetPos(sx - 1, sy)) == 7 )
+			DecPos(sx, sy);
+		while ( IsWord(GetPos(ex + 1, ey)) == 7 )
 			IncPos(ex, ey);
 		break;
 	}
@@ -5381,7 +5404,7 @@ void CTextRam::DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int
 				(y + height) < rect.Height() ? height : rect.Height() - y, pSrcDC, 0, 0, dwRop);
 	}
 }
-void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView)
+void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, DrawWork &prop)
 {
 	int n, i, a;
 	int c, o;
@@ -5394,7 +5417,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 
 	cPen[0].CreatePen(PS_SOLID, BD_SIZE, fc);
 
-	if ( pView->m_CharHeight < BD_HALFSIZE )
+	if ( prop.pView->m_CharHeight < BD_HALFSIZE )
 		cPen[4].CreatePen(PS_SOLID, BD_SIZE, RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2));
 
 	oPen = pDC->SelectObject(&(cPen[0]));
@@ -5403,9 +5426,9 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	LogBrush.lbStyle = BS_SOLID;
 
 	if ( prop.zoom == 2 )
-		box.bottom += pView->m_CharHeight;
+		box.bottom += prop.pView->m_CharHeight;
 	else if ( prop.zoom ==  3 )
-		box.top -= pView->m_CharHeight;
+		box.top -= prop.pView->m_CharHeight;
 
 	if ( bEraBack )
 		pDC->FillSolidRect(rect, bc);
@@ -5469,7 +5492,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						break;
 					case BD_LINE2:
 						pDC->Polyline(point, 2);
-						if ( pView->m_CharHeight < BD_HALFSIZE )
+						if ( prop.pView->m_CharHeight < BD_HALFSIZE )
 							pDC->SelectObject(&(cPen[4]));
 					case BD_LINE3:
 						pDC->MoveTo(point[0].x, point[0].y - BD_SIZE);
@@ -5505,7 +5528,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						break;
 					case BD_LINE2:
 						pDC->Polyline(point, 2);
-						if ( pView->m_CharHeight < BD_HALFSIZE )
+						if ( prop.pView->m_CharHeight < BD_HALFSIZE )
 							pDC->SelectObject(&(cPen[4]));
 					case BD_LINE3:
 						o = (tab[2] == BD_LINE3 ? BD_SIZE : (tab[2] == BD_NONE && tab[3] >= BD_LINE2 ? -BD_SIZE : (tab[2] == BD_LINE1 ? 1 : 0)));
@@ -5542,7 +5565,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						break;
 					case BD_LINE2:
 						pDC->Polyline(point, 2);
-						if ( pView->m_CharHeight < BD_HALFSIZE )
+						if ( prop.pView->m_CharHeight < BD_HALFSIZE )
 							pDC->SelectObject(&(cPen[4]));
 					case BD_LINE3:
 						pDC->MoveTo(point[0].x - BD_SIZE, point[0].y);
@@ -5578,7 +5601,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						break;
 					case BD_LINE2:
 						pDC->Polyline(point, 2);
-						if ( pView->m_CharHeight < BD_HALFSIZE )
+						if ( prop.pView->m_CharHeight < BD_HALFSIZE )
 							pDC->SelectObject(&(cPen[4]));
 					case BD_LINE3:
 						o = (tab[0] >= BD_LINE2 ? BD_SIZE : (tab[0] == BD_NONE && tab[1] >= BD_LINE2 ? -BD_SIZE : (tab[0] == BD_LINE1 ? 1 : 0)));
@@ -5701,7 +5724,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 
 	pDC->SelectObject(oPen);
 }
-void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView)
+void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, DrawWork &prop)
 {
 	int n, i, a, c;
 	int x, y, nw, ow;
@@ -5715,13 +5738,14 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	CFontNode *pFontNode = &(m_FontTab[prop.bank]);
 	CDC workDC, mirDC, *pSaveDC;
 	CBitmap *pOldMap, *pOldMirMap, MirMap;
+ 	static BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
 
 	mode = ETO_CLIPPED;
 	if ( bEraBack )
 		mode |= ETO_OPAQUE;
 
-	width  = pView->m_CharWidth  * prop.csz * (prop.zoom == 0 ? 1 : 2);
-	height = pView->m_CharHeight * (prop.zoom <= 1 ? 1 : 2);
+	width  = prop.pView->m_CharWidth  * prop.csz * (prop.zoom == 0 ? 1 : 2);
+	height = prop.pView->m_CharHeight * (prop.zoom <= 1 ? 1 : 2);
 
 	if ( prop.csz > 1 )
 		style |= FONTSTYLE_FULLWIDTH;
@@ -5755,7 +5779,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	pDC->SetTextColor(fc);
 	pDC->SetBkColor(bc);
 
-	if ( (prop.attr & ATT_EMOJI) != 0 )
+	if ( (prop.attr & ATT_EMOJI) != 0 && prop.emode != 0 )
 		type = 3;
 	else if ( pFontCache->m_bFixed )
 		type = 1;
@@ -5782,18 +5806,18 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 					if ( pFontNode->m_pTransColor != NULL && pFontNode->m_pTransColor[c] != (-1) ) {
 						if ( bEraBack )
 							pDC->FillSolidRect(box, bc);
-						pDC->TransparentBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), box.Width(), box.Height(), pFontNode->m_pTransColor[c]);
+						pDC->TransparentBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), box.Width(), box.Height(), pFontNode->m_pTransColor[c]);
 					} else
-						pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), SRCCOPY);
+						pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), SRCCOPY);
 				} else if ( bEraBack ) {
-					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), SRCCOPY);
+					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), SRCCOPY);
 				} else {
 					pDC->SetTextColor(RGB(0, 0, 0));
 					pDC->SetBkColor(RGB(255, 255, 255));
-					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), SRCAND);
+					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), SRCAND);
 					pDC->SetTextColor(fc);
 					pDC->SetBkColor(RGB(0, 0, 0));
-					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), SRCPAINT);
+					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), SRCPAINT);
 					pDC->SetBkColor(bc);
 				}
 
@@ -5808,8 +5832,8 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 					sz = pDC->GetTextExtent(str);
 				}
 
-				x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
-				y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+				x = box.left + prop.pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
+				y = box.top - prop.pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? prop.pView->m_CharHeight : 0);
 
 				pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, str, NULL);
 
@@ -5828,8 +5852,8 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	} else if ( (prop.attr & ATT_RTOL) != 0 ) {
 		// Right to Left, Mc属性（Spacing Mark)を持つブロック
 		// 文字列単位で縮小・拡大、プロポーショナル
-		x = box.left + pView->m_CharWidth  * pFontNode->m_OffsetW / 100;
-		y = box.top  - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+		x = box.left + prop.pView->m_CharWidth  * pFontNode->m_OffsetW / 100;
+		y = box.top  - prop.pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? prop.pView->m_CharHeight : 0);
 
 		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
 		if ( sz.cx <= 0 ) sz.cx = 1;
@@ -5843,13 +5867,13 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, prop.pText, prop.tlen, NULL);
 		//pDC->SetTextCharacterExtra(0);
 
-		pView->m_ClipUpdateLine = TRUE;
+		prop.pView->m_ClipUpdateLine = TRUE;
 
 	} else if ( type == 1 ) {
 		// Fixed Draw
 		// オプションで縮小する必要があればCenter Drawに変更、固定幅
-		x = box.left + pView->m_CharWidth  * pFontNode->m_OffsetW / 100;
-		y = box.top  - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+		x = box.left + prop.pView->m_CharWidth  * pFontNode->m_OffsetW / 100;
+		y = box.top  - prop.pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? prop.pView->m_CharHeight : 0);
 
 		if ( !IsOptEnable(TO_RLUNIAHF) ) {
 			sz = pDC->GetTextExtent(prop.pText, prop.tlen);
@@ -5863,7 +5887,6 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 				}
 			}
 		}
-
 		pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, prop.pText, prop.tlen, prop.pSpace);
 
 	} else if ( type == 2 ) {
@@ -5905,14 +5928,14 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 			} else
 				box.right = box.left + sz.cx;						// 表示幅
 
-			x = box.left + pView->m_CharWidth  * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
-			y = box.top  - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+			x = box.left + prop.pView->m_CharWidth  * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
+			y = box.top  - prop.pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? prop.pView->m_CharHeight : 0);
 
 			pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, str, NULL);
 
 			for ( x = c = 0 ; x < prop.csz ; x++ ) {
 				y = box.Width() * (x + 1) / prop.csz;
-				pView->SetCellSize(prop.cols + (n * prop.csz) + x, prop.line, y - c);
+				prop.pView->SetCellSize(prop.cols + (n * prop.csz) + x, prop.line, y - c);
 				c = y;
 			}
 
@@ -5921,12 +5944,16 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 			i++;
 		}
 
-		pView->m_ClipUpdateLine = TRUE;
+		prop.pView->m_ClipUpdateLine = TRUE;
 
 	} else {
 		// Center Draw
 		// 文字単位で縮小、固定幅、センターリング
 		DRAWCHAR:
+
+		prop.pos.top    = prop.line - prop.pView->m_HisOfs + prop.pView->m_HisMin;
+		prop.pos.bottom = prop.pos.top + 1;
+
 		for ( n = i = a = 0 ; n < prop.size ; n++ ) { 
 			while ( prop.pSpace[i] == 0 )
 				i++;
@@ -5936,9 +5963,12 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 			while ( a <= i )
 				str += prop.pText[a++];
 
+			prop.pos.left   = prop.cols + n * prop.csz;
+			prop.pos.right  = prop.pos.left + prop.csz;
+
 #ifdef	USE_DIRECTWRITE
 			// Try DirectWrite Color Emoji Draw
-			if ( type != 3 || !((CRLoginApp *)::AfxGetApp())->DrawEmoji(pDC, box, str, fc, bc, bEraBack, height, prop.zoom == 3 ? TRUE : FALSE) ) {
+			if ( type != 3 || !((CRLoginApp *)::AfxGetApp())->DrawEmoji(pDC, box, str, fc, bc, bEraBack, (void *)&prop) ) {
 #endif
 				sz = pDC->GetTextExtent(str);
 				if ( (nw = (box.Width() < sz.cx ? (width * box.Width() / sz.cx) : width)) <= 0 )
@@ -5950,8 +5980,8 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 					sz = pDC->GetTextExtent(str);
 				}
 
-				x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
-				y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+				x = box.left + prop.pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
+				y = box.top - prop.pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? prop.pView->m_CharHeight : 0);
 
 				pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, str, NULL);
 
@@ -5962,7 +5992,6 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 #ifdef	USE_DIRECTWRITE
 			}
 #endif
-
 			box.left += prop.pSpace[i++];
 		}
 	}
@@ -5974,11 +6003,11 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		mirDC.DeleteDC();
 	}
 }
-void CTextRam::DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView)
+void CTextRam::DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop)
 {
 	COLORREF hc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
 	CPen fPen(PS_SOLID, 1, fc);
-	CPen cPen(PS_SOLID, 1, pView->m_CharHeight < BD_HALFSIZE ? hc : fc);
+	CPen cPen(PS_SOLID, 1, prop.pView->m_CharHeight < BD_HALFSIZE ? hc : fc);
 	CPen hPen(PS_SOLID, 1, hc);
 	CPen *oPen = pDC->SelectObject(&cPen);
 //	int OldRop2 = pDC->SetROP2(R2_MERGEPENNOT);
@@ -6043,12 +6072,12 @@ void CTextRam::DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, str
 //	pDC->SetROP2(OldRop2);
 	pDC->SelectObject(oPen);
 }
-void CTextRam::DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView)
+void CTextRam::DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop)
 {
 	int n, i;
 	int x, w, c;
 	COLORREF hc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
-	CPen cPen(PS_SOLID, 1, pView->m_CharHeight < BD_HALFSIZE ? hc : fc);
+	CPen cPen(PS_SOLID, 1, prop.pView->m_CharHeight < BD_HALFSIZE ? hc : fc);
 	CPen hPen(PS_SOLID, 1, hc);
 	CPen *oPen = pDC->SelectObject(&cPen);
 //	int OldRop2 = pDC->SetROP2(R2_MERGEPENNOT);
@@ -6125,15 +6154,15 @@ void CTextRam::DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, str
 //	pDC->SetROP2(OldRop2);
 	pDC->SelectObject(oPen);
 }
-void CTextRam::DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView)
+void CTextRam::DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop)
 {
 	int n, i, a, x, y, w;
 	CFontChacheNode *pFontCache;
 	CFontNode *pFontNode = &(m_FontTab[prop.bank]);
 	CString str;
 	LPCTSTR over;
-	int width  = pView->m_CharWidth  * (prop.zoom == 0 ? 1 : 2);
-	int height = pView->m_CharHeight * (prop.zoom <= 1 ? 1 : 2);
+	int width  = prop.pView->m_CharWidth  * (prop.zoom == 0 ? 1 : 2);
+	int height = prop.pView->m_CharHeight * (prop.zoom <= 1 ? 1 : 2);
 	int style  = (prop.attr & ATT_BOLD) != 0 && IsOptEnable(TO_RLBOLD) ? FONTSTYLE_BOLD : FONTSTYLE_NONE;
 	CSize sz;
 	CRect box;
@@ -6165,8 +6194,8 @@ void CTextRam::DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, str
 			sz = pDC->GetTextExtent(over);
 			box.right = box.left + w;
 
-			x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
-			y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+			x = box.left + prop.pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
+			y = box.top - prop.pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? prop.pView->m_CharHeight : 0);
 
 			pDC->ExtTextOutW(x, y, ETO_CLIPPED, box, over, (int)_tcslen(over), NULL);
 		}
@@ -6176,7 +6205,7 @@ void CTextRam::DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, str
 
 	pDC->SetBkMode(OldBkMode);
 }
-void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLoginView *pView)
+void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 {
 	BOOL bRevs = FALSE;
 	BOOL bEraBack = FALSE;
@@ -6210,7 +6239,7 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 
 	if ( (prop.attr & ATT_BLINK) != 0 ) {
 		if ( !prop.print )
-			pView->AddDeleyInval((prop.aclock / BLINK_TIME + 1) * BLINK_TIME, rect);
+			prop.pView->AddDeleyInval((prop.aclock / BLINK_TIME + 1) * BLINK_TIME, rect);
 
 		if ( ((prop.aclock / BLINK_TIME) & 1) != 0 ) {
 			tcol = fcol;
@@ -6221,7 +6250,7 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 
 	} else if ( (prop.attr & ATT_SBLINK) != 0 ) {
 		if ( !prop.print )
-			pView->AddDeleyInval((prop.aclock / SBLINK_TIME + 1) * SBLINK_TIME, rect);
+			prop.pView->AddDeleyInval((prop.aclock / SBLINK_TIME + 1) * SBLINK_TIME, rect);
 
 		if ( ((prop.aclock / SBLINK_TIME) & 1) != 0 ) {
 			tcol = fcol;
@@ -6256,13 +6285,13 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 		bRevs = TRUE;
 	}
 
-	if ( IsOptEnable(TO_RLBACKHALF) && pView->GetFocus()->GetSafeHwnd() != pView->GetSafeHwnd() )
+	if ( IsOptEnable(TO_RLBACKHALF) && prop.pView->GetFocus()->GetSafeHwnd() != prop.pView->GetSafeHwnd() )
 		fcol = RGB((GetRValue(fcol) * 2 + GetRValue(bcol)) / 3, (GetGValue(fcol) * 2 + GetGValue(bcol)) / 3, (GetBValue(fcol) * 2 + GetBValue(bcol)) / 3);
 
 	if ( bRevs || prop.bcol != m_DefAtt.std.bcol )
 		bEraBack = TRUE;
 
-	if ( pView->m_HaveBack ) {	// pView->m_pBitmap != NULL ) {
+	if ( prop.pView->m_HaveBack ) {	// pView->m_pBitmap != NULL ) {
 		if ( bEraBack ) {
 			CDC workDC;
 			CBitmap workMap, *pOldMap;
@@ -6288,9 +6317,9 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 		// Image Draw
 		if ( (pWnd = GetGrapWnd(prop.idx)) != NULL ) {
 			pWnd->DrawBlock(pDC, rect, bcol, bEraBack, prop.stx, prop.sty, prop.edx, prop.sty + 1,
-				pView->m_Width, pView->m_Height, pView->m_CharWidth, pView->m_CharHeight, pView->m_Cols, pView->m_Lines);
+				prop.pView->m_Width, prop.pView->m_Height, prop.pView->m_CharWidth, prop.pView->m_CharHeight, prop.pView->m_Cols, prop.pView->m_Lines);
 			if ( pWnd->IsGifAnime() && !prop.print )
-				pView->AddDeleyInval(pWnd->m_GifAnimeClock, rect);
+				prop.pView->AddDeleyInval(pWnd->m_GifAnimeClock, rect);
 		} else if ( bEraBack )
 			pDC->FillSolidRect(rect, bcol);
 
@@ -6304,25 +6333,25 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 
 	} else if ( (prop.attr & ATT_BORDER) != 0 ) {
 		// Line Draw
-		DrawLine(pDC, rect, fcol, bcol, bEraBack, prop, pView);
+		DrawLine(pDC, rect, fcol, bcol, bEraBack, prop);
 
 	} else {
 		// Text Draw
-		DrawChar(pDC, rect, fcol, bcol, bEraBack, prop, pView);
+		DrawChar(pDC, rect, fcol, bcol, bEraBack, prop);
 	}
 
 	if ( ATT_EXTYPE(prop.attr) == ATT_OVERCHAR )
-		DrawOverChar(pDC, rect, fcol, bcol, prop, pView);
+		DrawOverChar(pDC, rect, fcol, bcol, prop);
 
 	if ( (prop.attr & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_SUNDER | ATT_STRESS)) != 0 )
-		DrawHoriLine(pDC, rect, fcol, bcol, prop, pView);
+		DrawHoriLine(pDC, rect, fcol, bcol, prop);
 
 	if ( (prop.attr & (ATT_FRAME | ATT_CIRCLE | ATT_RSLINE | ATT_RDLINE | ATT_LSLINE | ATT_LDLINE)) != 0 )
-		DrawVertLine(pDC, rect, fcol, bcol, prop, pView);
+		DrawVertLine(pDC, rect, fcol, bcol, prop);
 
 	// リバースチェック
 	bRevs  = (IsOptEnable(TO_DECSCNM) ? 1 : 0);
-	bRevs ^= (pView->m_VisualBellFlag ? 1 : 0);
+	bRevs ^= (prop.pView->m_VisualBellFlag ? 1 : 0);
 
 	if ( bRevs )
 		pDC->InvertRect(rect);
@@ -6332,12 +6361,13 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 	int n;
 	int x, y, sx, ex;
 	int zoom, len;
+	TCHAR spc;
 	CCurPos cpos, spos, epos;
 	int csx, cex, csy, cey;
 	int isx, iex;
 	CRect rect;
 	CCharCell *top, *vp;
-	struct DrawWork prop, work;
+	DrawWork prop, work;
 	CStringW str;
 	CArray<WCHAR, const WCHAR &>text;
 	CArray<INT, const INT &> space;
@@ -6349,6 +6379,12 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 	ZeroMemory(&prop, sizeof(prop));
 	prop.aclock = clock();
 	prop.print  = bPrint;
+
+	prop.pDoc  = m_pDocument;
+	prop.pView = pView;
+
+	prop.emode  = (IsOptEnable(TO_RLCOLEMOJI)  ? 1 : 0);
+	prop.emode |= (IsOptEnable(TO_RLDELYEMOJI) ? 2 : 0);
 
 	if ( pView->m_ClipFlag > 1 ) {
 		if ( pView->m_ClipStaPos <= pView->m_ClipEndPos ) {
@@ -6421,6 +6457,12 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			while ( (ex + 1) < m_Cols && (top[ex + 1].m_Vram.attr & ATT_RTOL) != 0 )
 				ex++;
 		}
+
+		prop.cols = work.cols = sx;
+		prop.line = work.line = y;
+
+		rect.left = pView->CalcGrapX(sx * zoom);
+		rect.right = rect.left;
 
 		for ( x = sx ; x < ex ; x += work.csz ) {
 			work.idx = (-1);
@@ -6501,6 +6543,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 				} else if ( IS_ASCII(vp->m_Vram.mode) ) {
 					str = (LPCWSTR)*vp;
 					work.bank = vp->m_Vram.bank & CODE_MASK;
+					spc = _T(' ') + (m_FontTab[work.bank].m_UserFontMap.GetSafeHandle() != NULL ? 0 : 1);
 					if ( !str.IsEmpty() && str[0] > _T(' ') && str[1] == _T('\0') ) {
 						if ( (work.bank & SET_MASK) <= SET_96 && m_FontTab[work.bank].m_Shift == 0 ) {
 							switch(str[0]) {
@@ -6522,8 +6565,9 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 								work.attr |= ATT_MIRROR;
 							}
 						}
-					} else if ( str.IsEmpty() || (str[0] < ' ' && str[1] == _T('\0')) )
+					} else if ( str.IsEmpty() || (str[0] < spc && str[1] == _T('\0')) )
 						work.bank = (-1);
+
 					pView->SetCellSize(x, y, 0);
 				}
 
@@ -6621,7 +6665,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					prop.tlen   = (int)text.GetSize();
 					prop.pText  = text.GetData();
 					prop.pSpace = space.GetData();
-					DrawString(pDC, rect, prop, pView);
+					DrawString(pDC, rect, prop);
 				}
 				work.cols = x;
 				work.line = y;
@@ -6655,7 +6699,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			prop.tlen   = (int)text.GetSize();
 			prop.pText  = text.GetData();
 			prop.pSpace = space.GetData();
-			DrawString(pDC, rect, prop, pView);
+			DrawString(pDC, rect, prop);
 		}
 	}
 
@@ -7753,6 +7797,8 @@ void CTextRam::SizeGrapWnd(class CGrapWnd *pWnd, int cx, int cy, BOOL bAspect)
 
 	pWnd->m_CellX = fw;
 	pWnd->m_CellY = fh;
+
+	pWnd->SetMapCrc();
 }
 void CTextRam::DispGrapWnd(class CGrapWnd *pGrapWnd, BOOL bNextCols)
 {

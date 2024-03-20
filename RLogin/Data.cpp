@@ -3267,15 +3267,15 @@ BOOL CMenuLoad::GetPopUpMenu(UINT nId, CMenu &PopUpMenu)
 	PopUpMenu.InsertMenu(ID_FILE_CLOSE, MF_BYCOMMAND, IDM_REOPENSOCK, CStringLoad(IDS_REOPENSOCK));
 
 	// Add QuickConnect Menu
-	PopUpMenu.InsertMenu(ID_FILE_CLOSE, MF_BYCOMMAND, IDM_QUICKCONNECT, CStringLoad(IDM_QUICKCONNECT));
+	PopUpMenu.InsertMenu(ID_FILE_CLOSE, MF_BYCOMMAND, IDM_QUICKCONNECT, CStringLoad(IDM_QUICKCONNECT, TRUE));
 
 	// Add Speak Back/Next
-	PopUpMenu.InsertMenu(IDM_SPEAKALL, MF_BYCOMMAND, IDM_SPEAKBACK, CStringLoad(IDM_SPEAKBACK));
-	PopUpMenu.InsertMenu(IDM_SPEAKALL, MF_BYCOMMAND, IDM_SPEAKNEXT, CStringLoad(IDM_SPEAKNEXT));
+	PopUpMenu.InsertMenu(IDM_SPEAKALL, MF_BYCOMMAND, IDM_SPEAKBACK, CStringLoad(IDM_SPEAKBACK, TRUE));
+	PopUpMenu.InsertMenu(IDM_SPEAKALL, MF_BYCOMMAND, IDM_SPEAKNEXT, CStringLoad(IDM_SPEAKNEXT, TRUE));
 
 	// Add View Menu
-	PopUpMenu.InsertMenu(ID_VIEW_MENUBAR, MF_BYCOMMAND, IDM_DOCKBARFIXED, CStringLoad(IDM_DOCKBARFIXED));
-	PopUpMenu.InsertMenu(ID_VIEW_MENUBAR, MF_BYCOMMAND, IDM_DOCKBARINIT,  CStringLoad(IDM_DOCKBARINIT));
+	PopUpMenu.InsertMenu(ID_VIEW_MENUBAR, MF_BYCOMMAND, IDM_DOCKBARFIXED, CStringLoad(IDM_DOCKBARFIXED, TRUE));
+	PopUpMenu.InsertMenu(ID_VIEW_MENUBAR, MF_BYCOMMAND, IDM_DOCKBARINIT,  CStringLoad(IDM_DOCKBARINIT, TRUE));
 
 	// Create Key History Menu
 	if ( (pMenu = GetItemSubMenu(ID_MACRO_HIS1, &PopUpMenu)) != NULL ) {
@@ -3376,6 +3376,15 @@ BOOL CMenuLoad::GetDefMenuStr(UINT nIDResource, UINT nId, CString &str)
 
 CStringLoad::CStringLoad()
 {
+}
+CStringLoad::CStringLoad(int nID, BOOL bMenu)
+{
+	int n;
+
+	LoadString(nID);
+
+	if ( (n = Find(_T('\n'))) >= 0 )
+		Delete(0, n + 1);
 }
 
 BOOL CStringLoad::LoadString(UINT nID)
@@ -3509,6 +3518,32 @@ BOOL CParaIndex::AddOpt(BYTE c, BOOL bAdd)
 		m_Data = PARA_OPT;
 		return TRUE;
 	}
+}
+
+//////////////////////////////////////////////////////////////////////
+// CPtrIndex
+
+static int PtrCmp(const void *src, const void *dis)
+{
+	return (int)((INT_PTR)src - (INT_PTR)(*(void **)dis));
+}
+BOOL CPtrIndex::Find(void *pVal)
+{
+	return BinaryFind(pVal, m_Data.GetData(), sizeof(void *), (int)m_Data.GetSize(), PtrCmp, NULL);
+}
+void CPtrIndex::Add(void *pVal)
+{
+	int n;
+
+	if ( !BinaryFind(pVal, m_Data.GetData(), sizeof(void *), (int)m_Data.GetSize(), PtrCmp, &n) )
+		m_Data.InsertAt(n, pVal);
+}
+void CPtrIndex::RemoveAt(void *pVal)
+{
+	int n;
+
+	if ( BinaryFind(pVal, m_Data.GetData(), sizeof(void *), (int)m_Data.GetSize(), PtrCmp, &n) )
+		m_Data.RemoveAt(n);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -11561,75 +11596,169 @@ void CHttpThreadSession::Request(LPCTSTR url, LPCTSTR head, LPCSTR body, CWnd *p
 	AfxBeginThread(ThreadRequestProc, pSess, THREAD_PRIORITY_BELOW_NORMAL);
 }
 
+//////////////////////////////////////////////////////////////////////
+// CEmojiDocPos
+
+CEmojiDocPos *CEmojiDocPos::AddList(CEmojiDocPos *pTop)
+{
+	if ( pTop == NULL )
+		return this;
+	else if ( m_pNext == this )
+		return AddTail(pTop);
+
+#if 1
+	CEmojiDocPos *pDocPos, *pThis = this;
+	while ( (pDocPos = RemoveHead(&pThis)) != NULL )
+		pTop = pDocPos->AddTail(pTop);
+#else
+	// A->Next=Back<-This->Next--->A->Next
+	// B->Next=Back<-pTop->Next--->B->Next
+	// B->Next=Back<-This->Next--->A->Next=Back<-pTop->Next--->B->Next
+
+	pTop->m_pBack->m_pNext = this;	// B->Next
+	this->m_bBack->m_pNext = pTop;	// A->Next
+	CEmojiDocPos *pTmp = this->m_pBack;
+	this->m_pBack = pTop->m_pBack;
+	pTop->m_pBack = pTmp;
+#endif
+	return pTop;
+}
+CEmojiDocPos *CEmojiDocPos::AddTail(CEmojiDocPos *pTop)
+{
+	CEmojiDocPos *pDocPos = pTop;
+
+	while ( pDocPos != NULL ) {
+		if ( m_pDoc == pDocPos->m_pDoc && m_Seq == pDocPos->m_Seq && (m_Pos.top + m_Abs) == (pDocPos->m_Pos.top + pDocPos->m_Abs) ) {
+			if ( m_Pos.left >= pDocPos->m_Pos.left && m_Pos.right <= pDocPos->m_Pos.right ) {
+				break;
+			} else if ( m_Pos.left <= pDocPos->m_Pos.left && m_Pos.right >= pDocPos->m_Pos.right ) {
+				pDocPos->m_Pos.left = m_Pos.left;
+				pDocPos->m_Pos.right = m_Pos.right;
+				break;
+			} else if ( m_Pos.left >= pDocPos->m_Pos.left && m_Pos.left <= pDocPos->m_Pos.right ) {
+				pDocPos->m_Pos.right = m_Pos.right;
+				break;
+			} else if ( m_Pos.right >= pDocPos->m_Pos.left && m_Pos.right <= pDocPos->m_Pos.right ) {
+				pDocPos->m_Pos.left = m_Pos.left;
+				break;
+			}
+		}
+		if ( pDocPos->m_pNext == pTop )
+			pDocPos = NULL;
+		else
+			pDocPos = pDocPos->m_pNext;
+	}
+
+	if ( pDocPos != NULL ) {
+		delete this;
+	} else if ( pTop == NULL ) {
+		pTop = m_pBack = m_pNext = this;
+	} else {
+		m_pBack = pTop->m_pBack;
+		pTop->m_pBack->m_pNext = this;
+		pTop->m_pBack = this;
+		m_pNext = pTop;
+	}
+	return pTop;
+}
+CEmojiDocPos *CEmojiDocPos::AddHead(CEmojiDocPos *pTop)
+{
+	AddTail(pTop);
+	return this;
+}
+CEmojiDocPos *CEmojiDocPos::RemoveAt(CEmojiDocPos *pTop)
+{
+	if ( m_pNext == this )
+		return NULL;
+
+	m_pNext->m_pBack = m_pBack;
+	m_pBack->m_pNext = m_pNext;
+
+	if ( pTop == this )
+		pTop = m_pNext;
+
+	return pTop;
+}
+CEmojiDocPos *CEmojiDocPos::RemoveHead(CEmojiDocPos **ppTop)
+{
+	CEmojiDocPos *pDocPos = *ppTop;
+
+	if ( pDocPos != NULL )
+		*ppTop = pDocPos->RemoveAt(*ppTop);
+
+	return pDocPos;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CEmojiImage
+
 CEmojiImage::CEmojiImage()
 {
-	m_pNext = NULL;
+	m_pNext = m_pQueBack = m_pQueNext = NULL;
 	m_bFileImage = FALSE;
-#ifdef	USE_SAVEBITMAP
-	m_pBits = NULL;
-#endif
+	m_Status = EMOJIIMGSTAT_DONE;
+	m_pDocPos = NULL;
 }
 CEmojiImage::~CEmojiImage()
 {
 	if ( (HBITMAP)m_Image != NULL )
 		m_Image.Destroy();
 
-#ifdef	USE_SAVEBITMAP
-	if ( m_pBits != NULL )
-		delete [] m_pBits;
-#endif
+	CEmojiDocPos *pTmp;
+	while ( (pTmp = CEmojiDocPos::RemoveHead(&m_pDocPos)) != NULL )
+		delete pTmp;
 }
-#ifdef	USE_SAVEBITMAP
-void CEmojiImage::SaveMap()
+void CEmojiImage::Add(class CRLoginDoc *pDoc, CRect pos)
 {
-	if ( m_pBits != NULL || (HBITMAP)m_Image == NULL || !m_Image.IsDIBSection() )
-		return;
+	CEmojiDocPos *pDocPos = new CEmojiDocPos;
 
-	m_Width  = m_Image.GetWidth();
-	m_Height = m_Image.GetHeight();
-	m_Bpp    = m_Image.GetBPP();
+	pDocPos->m_pDoc  = pDoc;
+	pDocPos->m_Seq   = pDoc->m_DocSeqNumber;
+	pDocPos->m_Pos   = pos;
+	pDocPos->m_Abs   = pDoc->m_TextRam.m_HisAbs;
 
-	int Pitch = m_Image.GetPitch();
-	BYTE *pBits = (BYTE *)m_Image.GetBits();
-
-	if ( Pitch < 0 ) {
-		pBits = pBits + ((m_Height - 1) * Pitch);
-		Pitch = 0 - Pitch;
-	}
-
-	m_BitsLen = Pitch * m_Height;
-	m_pBits = new BYTE[m_BitsLen];
-	memcpy(m_pBits, pBits, m_BitsLen);
-
-	m_Image.Destroy();
+	m_pDocPos = pDocPos->AddTail(m_pDocPos);
 }
-void CEmojiImage::LoadMap()
+
+CEmojiImage *CEmojiImage::AddTail(CEmojiImage *pTop)
 {
-	if ( m_pBits == NULL || (HBITMAP)m_Image != NULL )
-		return;
-
-	if ( !m_Image.CreateEx(m_Width, m_Height, m_Bpp, BI_RGB, NULL, m_Bpp == 32 ? CImage::createAlphaChannel : 0) )
-		return;
-
-	int Pitch = m_Image.GetPitch();
-	BYTE *pBits = (BYTE *)m_Image.GetBits();
-
-	if ( Pitch < 0 ) {
-		pBits = pBits + ((m_Height - 1) * Pitch);
-		Pitch = 0 - Pitch;
+	if ( pTop == NULL ) {
+		pTop = m_pQueBack = m_pQueNext = this;
+	} else {
+		m_pQueBack = pTop->m_pQueBack;
+		pTop->m_pQueBack->m_pQueNext = this;
+		pTop->m_pQueBack = this;
+		m_pQueNext = pTop;
 	}
-
-	int len = Pitch * m_Height;
-
-	if ( len > m_BitsLen )
-		len = m_BitsLen;
-
-	memcpy(pBits, m_pBits, len);
-
-	delete [] m_pBits;
-	m_pBits = NULL;
+	return pTop;
 }
-#endif
+CEmojiImage *CEmojiImage::AddHead(CEmojiImage *pTop)
+{
+	AddTail(pTop);
+	return this;
+}
+CEmojiImage *CEmojiImage::RemoveAt(CEmojiImage *pTop)
+{
+	if ( m_pQueNext == this )
+		return NULL;
+
+	m_pQueNext->m_pQueBack = m_pQueBack;
+	m_pQueBack->m_pQueNext = m_pQueNext;
+
+	if ( pTop == this )
+		pTop = m_pQueNext;
+
+	return pTop;
+}
+CEmojiImage *CEmojiImage::RemoveHead(CEmojiImage **ppTop)
+{
+	CEmojiImage *pEmoji = *ppTop;
+
+	if ( pEmoji != NULL )
+		*ppTop = pEmoji->RemoveAt(*ppTop);
+
+	return pEmoji;
+}
 
 //////////////////////////////////////////////////////////////////////
 // CCurPos

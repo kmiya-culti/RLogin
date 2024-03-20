@@ -72,6 +72,7 @@ BOOL CInitAllDlg::OnInitDialog()
 		m_TitleWnd.SetWindowText(m_Title);
 
 	SetSaveProfile(_T("InitAllDlg"));
+	AddHelpButton(_T("#OPTDLG"));
 
 	return TRUE;
 }

@@ -142,6 +142,8 @@ public:
 	int m_LoadPosMode;
 	BOOL m_bDarkMode;
 	CSize m_DefFsz, m_NowFsz;
+	CString m_HelpUrl;
+	CToolTipCtrl m_toolTip;
 
 // クラスファンクション
 public:
@@ -152,6 +154,9 @@ public:
 	inline BOOL IsDefineFont() { return (m_FontName.IsEmpty() && m_FontSize == 9 ? FALSE : TRUE); }
 	BOOL GetSizeAndText(SIZE *pSize, CString &title, CWnd *pParent);
 	void AddShortCutKey(UINT MsgID, UINT KeyCode, UINT KeyWith, UINT CtrlID, WPARAM wParam);
+	void AddHelpButton(LPCTSTR url);
+	void AddToolTip(CWnd *pWnd, LPCTSTR msg);
+
 	void SubclassComboBox(int nID);
 	void CheckMoveWindow(CRect &rect, BOOL bRepaint);
 	inline void CheckMoveWindow(int sx, int sy, int cx, int cy, BOOL bRepaint) { CheckMoveWindow(CRect(sx, sy, sx + cx, sy + cy), bRepaint); }
@@ -166,6 +171,7 @@ public:
 	static void GetDlgFontBase(CDC *pDC, CFont *pFont, CSize &size);
 
 	void GetFontSize(CDialogTemplate *pDlgTemp, CSize &fsz);
+	void CDialogExt::DrawSystemBar();
 
 // オーバーライド
 public:
@@ -182,6 +188,8 @@ protected:
 	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	afx_msg void OnNcPaint();
+	afx_msg BOOL OnNcActivate(BOOL bActive);
 	afx_msg void OnInitMenuPopup(CMenu *pPopupMenu, UINT nIndex,BOOL bSysMenu);
 	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
 	afx_msg LRESULT OnKickIdle(WPARAM wParam, LPARAM lParam);
@@ -189,4 +197,5 @@ protected:
 	afx_msg LRESULT HandleInitDialog(WPARAM, LPARAM);
 	afx_msg LRESULT OnUahDrawMenu(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnUahDrawMenuItem(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnBnClickedHelpbtn();
 };

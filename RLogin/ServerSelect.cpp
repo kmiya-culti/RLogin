@@ -381,7 +381,7 @@ void CServerSelect::UpdateDefaultEntry(int num)
 	if ( pEntry->m_Uid != m_DefaultEntryUid )
 		return;
 
-	if ( ::AfxMessageBox(CStringLoad(IDS_DEFENTRYEDITMSG), MB_ICONQUESTION | MB_YESNO) != IDYES )
+	if ( ::DoitMessageBox(CStringLoad(IDS_DEFENTRYEDITMSG), MB_ICONQUESTION | MB_YESNO, this) != IDYES )
 		return;
 
 	CRLoginDoc::LoadOption(*pEntry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
@@ -418,8 +418,8 @@ BOOL CServerSelect::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
 
-	int cx, cy;
-	CRect rect;
+	int cx, cy, dx, dy;
+	CRect rect, client;
 	CBitmapEx BitMap;
 	CBuffer buf;
 	CSize fsz = m_NowFsz;
@@ -455,19 +455,37 @@ BOOL CServerSelect::OnInitDialog()
 	InitItemOffset(ItemTab);
 	m_TreeListPer = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("TreePer"), m_TreeListPer);
 
-	if ( AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("WithFontSize"), 0) == 0 )
-		fsz = m_DefFsz;
+	if ( AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("clientX"), 0) > 0 ) {
+		GetWindowRect(rect);
+		GetClientRect(client);
+		dx = rect.Width()  - client.Width();
+		dy = rect.Height() - client.Height();
 
-	GetWindowRect(rect);
-	cx = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * fsz.cx));
-	cy = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * fsz.cy));
-	cx = MulDiv(cx, m_NowDpi.cx * fsz.cx, DEFAULT_DPI_X * m_DefFsz.cx);
-	cy = MulDiv(cy, m_NowDpi.cy * fsz.cy, DEFAULT_DPI_Y * m_DefFsz.cy);
+		cx = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("clientX"), MulDiv(client.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * m_NowFsz.cx));
+		cy = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("clientY"), MulDiv(client.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * m_NowFsz.cy));
+		cx = MulDiv(cx, m_NowDpi.cx * m_NowFsz.cx, DEFAULT_DPI_X * m_DefFsz.cx) + dx;
+		cy = MulDiv(cy, m_NowDpi.cy * m_NowFsz.cy, DEFAULT_DPI_Y * m_DefFsz.cy) + dy;
+
+		if ( AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("WithFontSize"), 0) != 0 ) {
+			((CRLoginApp *)AfxGetApp())->DelProfileEntry(_T("ServerSelect"), _T("cx"));
+			((CRLoginApp *)AfxGetApp())->DelProfileEntry(_T("ServerSelect"), _T("cy"));
+			((CRLoginApp *)AfxGetApp())->DelProfileEntry(_T("ServerSelect"), _T("WithFontSize"));
+		}
+	} else {
+		if ( AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("WithFontSize"), 0) == 0 )
+			fsz = m_DefFsz;
+		GetWindowRect(rect);
+		cx = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * fsz.cx));
+		cy = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * fsz.cy));
+		cx = MulDiv(cx, m_NowDpi.cx * fsz.cx, DEFAULT_DPI_X * m_DefFsz.cx);
+		cy = MulDiv(cy, m_NowDpi.cy * fsz.cy, DEFAULT_DPI_Y * m_DefFsz.cy);
+	}
+
 	if ( cx < rect.Width() )
 		cx = rect.Width();
 	if ( cy < rect.Height() )
 		cy = rect.Height();
-	MoveWindow(rect.left, rect.top, cx, cy, FALSE);
+	CheckMoveWindow(rect.left, rect.top, cx, cy, FALSE);
 
 	((CRLoginApp *)::AfxGetApp())->GetProfileStringArray(_T("ServerSelect"), _T("AddGroup"), m_AddGroup);
 	((CRLoginApp *)::AfxGetApp())->GetProfileStringArray(_T("ServerSelect"), _T("TreeExpand"), m_TreeExpand);
@@ -494,11 +512,13 @@ BOOL CServerSelect::OnInitDialog()
 	InitEntry(INIT_CALL_NONE);
 
 	if ( m_pData->GetSize() == 0 && ((CRLoginApp *)::AfxGetApp())->GetExtFilePath(NULL, _T(".rlg"), m_InitPathName) ) {
-		if ( ::AfxMessageBox(CStringLoad(IDS_INITENTRYINPORT), MB_ICONQUESTION | MB_YESNO) == IDYES )
+		if ( ::DoitMessageBox(CStringLoad(IDS_INITENTRYINPORT), MB_ICONQUESTION | MB_YESNO, this) == IDYES )
 			PostMessage(WM_COMMAND, IDM_SERV_INPORT);
 		else
 			m_InitPathName.Empty();
 	}
+
+	AddHelpButton(_T("#SERVERSEL"));
 
 	return TRUE;
 }
@@ -507,12 +527,16 @@ void CServerSelect::SaveWindowStyle()
 {
 	CRect rect;
 
-	GetWindowRect(rect);
-	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * m_NowFsz.cx));
-	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * m_NowFsz.cy));
-	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("TreePer"), m_TreeListPer);
-	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("WithFontSize"), m_FontSize);
+	//GetWindowRect(rect);
+	//AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * m_NowFsz.cx));
+	//AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * m_NowFsz.cy));
+	//AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("WithFontSize"), m_FontSize);
 
+	GetClientRect(rect);
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("clientX"), MulDiv(rect.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * m_NowFsz.cx));
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("clientY"), MulDiv(rect.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * m_NowFsz.cy));
+
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("TreePer"), m_TreeListPer);
 	((CRLoginApp *)::AfxGetApp())->WriteProfileStringArray(_T("ServerSelect"), _T("TreeExpand"), m_TreeExpand);
 
 	m_List.SaveColumn(_T("ServerSelect"));
@@ -657,6 +681,7 @@ void CServerSelect::OnEditEntry()
 
 	Entry = m_pData->GetAt(m_EntryNum);
 	CRLoginDoc::LoadOption(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
+	m_pTextRam->m_KanjiMode = Entry.m_KanjiCode;
 
 	COptDlg dlg(_T("Server Edit Entry"), this);
 
@@ -683,7 +708,7 @@ void CServerSelect::OnEditEntry()
 		CStringLoad str(IDS_ENTRYMULTIEDIT);
 		index.MsgStr(str);
 
-		if ( ::AfxMessageBox(str, MB_ICONQUESTION | MB_YESNO) != IDYES )
+		if ( ::DoitMessageBox(str, MB_ICONQUESTION | MB_YESNO, this) != IDYES )
 			return;
 
 		for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
@@ -749,7 +774,7 @@ void CServerSelect::OnDelEntry()
 	msg.LoadString(IDS_SERVERENTRYDELETE);
 	msg += tmp;
 
-	if ( ::AfxMessageBox(msg, MB_YESNO | MB_ICONQUESTION ) != IDYES )
+	if ( ::DoitMessageBox(msg, MB_YESNO | MB_ICONQUESTION, this) != IDYES )
 		return;
 
 	for ( n = 0 ; n < tab.GetSize() ; n++ ) {
@@ -828,7 +853,7 @@ void CServerSelect::OnCheckEntry()
 	InitEntry(INIT_CALL_NONE);
 
 	if ( m_pOPtDlg != NULL ) {
-		::AfxMessageBox(CStringLoad(IDE_ENTRYUPDATEEERROR), MB_ICONWARNING);
+		::DoitMessageBox(CStringLoad(IDE_ENTRYUPDATEEERROR), MB_ICONWARNING, m_pOPtDlg);
 		m_pOPtDlg->PostMessage(WM_COMMAND, IDCANCEL);
 	}
 }
@@ -836,6 +861,7 @@ void CServerSelect::OnCheckEntry()
 void CServerSelect::OnServInport()
 {
 	CString PathName;
+	CString msg;
 	CFileDialog dlg(TRUE, _T("rlg"), _T(""), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
 
 	if ( m_InitPathName.IsEmpty() ) {
@@ -850,7 +876,7 @@ void CServerSelect::OnServInport()
 	CFile File;
 
 	if ( !File.Open(PathName, CFile::modeRead | CFile::shareDenyNone) ) {
-		::AfxMessageBox(_T("File Open Error"), MB_ICONERROR);
+		::DoitMessageBox(FormatErrorMessage(msg, _T("Inport File Open Error\n'%s'"), PathName), MB_ICONERROR, this);
 		return;
 	}
 
@@ -978,7 +1004,7 @@ void CServerSelect::OnServInport()
 			AfxThrowArchiveException(CArchiveException::badIndex, Archive.GetFile()->GetFileTitle());
 
 	} CATCH_ALL(e) {
-		::AfxMessageBox(_T("File Read Error"), MB_ICONERROR);
+		::DoitMessageBox(FormatErrorMessage(msg, _T("Inport File Read Error\n'%s'"), PathName), MB_ICONERROR, this);
 	} END_CATCH_ALL
 
 	Archive.Close();
@@ -993,6 +1019,7 @@ void CServerSelect::OnServExport()
 	CFile File;
 	CStringIndex index;
 	CServerEntry Entry;
+	CString msg;
 
 	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
 		return;
@@ -1003,7 +1030,7 @@ void CServerSelect::OnServExport()
 		return;
 
 	if ( !File.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeReadWrite | CFile::shareExclusive) ) {
-		::AfxMessageBox(_T("File Crate Error"), MB_ICONERROR);
+		::DoitMessageBox(FormatErrorMessage(msg, _T("Export File Crate Error\n'%s'"), dlg.GetPathName()), MB_ICONERROR, this);
 		return;
 	}
 
@@ -1033,7 +1060,7 @@ void CServerSelect::OnServExport()
 		}
 
 	} CATCH_ALL(e) {
-		::AfxMessageBox(_T("File Write Error"), MB_ICONERROR);
+		::DoitMessageBox(FormatErrorMessage(msg, _T("Export File Write Error\n'%s'"), File.GetFilePath()), MB_ICONERROR, this);
 	} END_CATCH_ALL
 
 	Archive.Close();
@@ -1047,12 +1074,13 @@ void CServerSelect::OnAllExport()
 	CStringIndex index;
 	CServerEntry Entry;
 	CFileDialog dlg(FALSE, _T("rlg"), _T(""), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
+	CString msg;
 
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	if ( !File.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeReadWrite | CFile::shareExclusive) ) {
-		::AfxMessageBox(_T("File Crate Error"), MB_ICONERROR);
+		::DoitMessageBox(FormatErrorMessage(msg, _T("All Export File Crate Error\n'%s'"), dlg.GetPathName()), MB_ICONERROR, this);
 		return;
 	}
 
@@ -1076,7 +1104,7 @@ void CServerSelect::OnAllExport()
 		}
 
 	} CATCH_ALL(e) {
-		::AfxMessageBox(_T("File Write Error"), MB_ICONERROR);
+		::DoitMessageBox(FormatErrorMessage(msg, _T("All Export File Write Error\n'%s'"), File.GetFilePath()), MB_ICONERROR, this);
 	} END_CATCH_ALL
 
 	Archive.Close();
@@ -1091,9 +1119,10 @@ void CServerSelect::OnServExchng()
 		return;
 
 	CFile File;
+	CString msg;
 
 	if ( !File.Open(dlg.GetPathName(), CFile::modeRead | CFile::shareDenyNone) ) {
-		::AfxMessageBox(_T("File Open Error"), MB_ICONERROR);
+		::DoitMessageBox(FormatErrorMessage(msg, _T("Exchng File Open Error\n'%s'"), dlg.GetPathName()), MB_ICONERROR, this);
 		return;
 	}
 
@@ -1110,7 +1139,7 @@ void CServerSelect::OnServExchng()
 	TRY {
 		index.Serialize(Archive, NULL);
 	} CATCH_ALL(e) {
-		::AfxMessageBox(_T("File Read Error"), MB_ICONERROR);
+		::DoitMessageBox(FormatErrorMessage(msg, _T("Exchng File Read Error\n'%s'"), File.GetFilePath()), MB_ICONERROR, this);
 	} END_CATCH_ALL
 
 	Archive.Close();
@@ -1162,12 +1191,12 @@ void CServerSelect::OnServProto()
 		proto = _T("ssh");
 		break;
 	default:
-		::AfxMessageBox(CStringLoad(IDE_PROTOCOLENTRY), MB_ICONWARNING);
+		::DoitMessageBox(CStringLoad(IDE_PROTOCOLENTRY), MB_ICONWARNING, this);
 		return;
 	}
 
 	if ( pEntry->m_EntryName.IsEmpty() ) {
-		::AfxMessageBox(CStringLoad(IDE_USESERVERENTRY), MB_ICONERROR);
+		::DoitMessageBox(CStringLoad(IDE_USESERVERENTRY), MB_ICONERROR, this);
 		return;
 	}
 	option.Format(_T("/entry \"%s\" /inuse"), (LPCTSTR)pEntry->m_EntryName);
@@ -1269,6 +1298,7 @@ void CServerSelect::OnLoaddefault()
 void CServerSelect::OnShortcut()
 {
 	int n, i;
+	CString msg;
 
 	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
 		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
@@ -1281,7 +1311,7 @@ void CServerSelect::OnShortcut()
 			continue;
 
 		if ( !((CRLoginApp *)AfxGetApp())->CreateDesktopShortcut(m_pData->GetAt(i).m_EntryName) ) {
-			::AfxMessageBox(_T("Can't Create Desktop Shortcut"), MB_ICONERROR);
+			::DoitMessageBox(FormatErrorMessage(msg, _T("Can't Create Desktop Shortcut\n'%s'"), m_pData->GetAt(i).m_EntryName), MB_ICONERROR, this);
 			break;
 		}
 	}

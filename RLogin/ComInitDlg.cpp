@@ -54,7 +54,7 @@ void CComInitDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_SENDWAITC, m_SendWait[0]);
 	DDX_Text(pDX, IDC_SENDWAITL, m_SendWait[1]);
 }
-BOOL CComInitDlg::GetComDeviceList()
+BOOL CComInitDlg::GetComDeviceList(LPCTSTR name)
 {
 	SP_DEVINFO_DATA DeviceInfoData;
 	HDEVINFO DeviceInfoSet;
@@ -68,9 +68,7 @@ BOOL CComInitDlg::GetComDeviceList()
 	HKEY hKey;
 	CString portIndex;
 
-	m_ComDevList.RemoveAll();
-
-	if ( !SetupDiClassGuidsFromName(_T("PORTS"), ClassGuid, 1, &dwReqSize) )
+	if ( !SetupDiClassGuidsFromName(name, ClassGuid, 1, &dwReqSize) )
 		return FALSE;
 
 	if ( (DeviceInfoSet = SetupDiGetClassDevs(ClassGuid, NULL, NULL, DIGCF_PRESENT | DIGCF_PROFILE)) == NULL )
@@ -80,6 +78,11 @@ BOOL CComInitDlg::GetComDeviceList()
 	DeviceInfoData.cbSize = sizeof(DeviceInfoData);
 
 	while ( SetupDiEnumDeviceInfo(DeviceInfoSet, dwIndex++, &DeviceInfoData) ) {
+
+		// #include <cfgmgr32.h>
+		// #pragma comment(lib, "CfgMgr32.dll");
+		// if ( CM_Get_DevNode_Status(&stat, &prob, DeviceInfoData.DevInst, 0) == CR_SUCCESS && (stat & DN_HAS_PROBLEM) != 0 && prob == CM_PROB_DISABLED )
+		//		continue;
 
 		szFriendlyName[0] = _T('\0');
 		dwReqSize = 0;
@@ -248,7 +251,9 @@ BOOL CComInitDlg::OnInitDialog()
 
 	ASSERT(m_pSock != NULL && m_pSock->m_pComConf != NULL);
 
-	GetComDeviceList();
+	m_ComDevList.RemoveAll();
+	GetComDeviceList(_T("PORTS"));
+	GetComDeviceList(_T("MODEM"));
 
 	portIndex.Format(_T("%03d"), m_pSock->m_ComPort);
 	if ( (m_ComIndex = m_ComDevList.Find(portIndex)) < 0 ) {
@@ -281,6 +286,7 @@ BOOL CComInitDlg::OnInitDialog()
 	SubclassComboBox(IDC_BAUDRATE);
 
 	SetSaveProfile(_T("ComInitDlg"));
+	AddHelpButton(_T("#COMSET"));
 
 	return TRUE;
 }

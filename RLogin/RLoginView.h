@@ -85,6 +85,8 @@ public:
 	BOOL m_ClipUpdateLine;
 	CBitmap m_TekBitmap;
 	BOOL m_bDarkMode;
+	CRect m_InvRect;
+	BOOL m_bPostInvRect;
 
 	clock_t m_RDownClock;
 	CPoint m_RDownPoint;

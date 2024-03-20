@@ -113,7 +113,6 @@ public:
 	CString m_Title;
 	CMsgWnd m_MsgWnd;
 	BOOL m_bOptFixed;
-	CToolTipCtrl m_toolTip;
 
 	struct _OptTab {
 		DWORD	dwFlags;
@@ -136,15 +135,14 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 // インプリメンテーション
 protected:
 	DECLARE_MESSAGE_MAP()
+	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnDoInit();
 	afx_msg void OnApplyNow();
-	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnSelchangedTree(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnBnClickedHelpbtn();
+	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 };

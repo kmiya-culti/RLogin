@@ -2596,7 +2596,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 		// U+2600`U+27BF
 		// U+1F300(D83C DF00)`U+1F6FF(D83D DEFF) 
 		// U+1F900(D83E DD00)`U+1F9FF(D83E DDFF)
-		if ( (cf & UNI_EMOJI) != 0 && IsOptEnable(TO_RLCOLEMOJI) )
+		if ( (cf & UNI_EMOJI) != 0 )
 			ea |= ATT_EMOJI;
 #endif
 
@@ -3839,7 +3839,7 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 				pGrapWnd->DestroyWindow();
 				pGrapWnd = NULL;
 			} else {
-				SizeGrapWnd(pGrapWnd, 0, 0, TRUE);
+				SizeGrapWnd(pGrapWnd, pGrapWnd->m_DspX, pGrapWnd->m_DspY, pGrapWnd->m_DspA);
 				if ( idx == (-1) && (pTempWnd = CmpGrapWnd(pGrapWnd)) != NULL && pTempWnd->m_BlockX == pGrapWnd->m_BlockX && pTempWnd->m_BlockY == pGrapWnd->m_BlockY ) {
 					pGrapWnd->DestroyWindow();
 					pGrapWnd = pTempWnd;

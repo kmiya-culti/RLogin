@@ -49,6 +49,7 @@ BOOL CIConvDlg::OnInitDialog()
 	}
 
 	SetSaveProfile(_T("IConvDlg"));
+	AddHelpButton(_T("#ICONVSET"));
 
 	return TRUE;
 }
