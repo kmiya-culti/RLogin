@@ -171,7 +171,7 @@ void CProgressWnd::OnPaint()
 	CPen PenLine[4];
 	CPen *pOldPen;
 
-	PenLine[0].CreatePen(PS_SOLID, 0, RGB(255, 255, 255));
+	PenLine[0].CreatePen(PS_SOLID, 0, GetAppColor(COLOR_WINDOW));	// RGB(255, 255, 255));
 	PenLine[1].CreatePen(PS_SOLID, 0, RGB(  0, 172,  64));
 	PenLine[2].CreatePen(PS_SOLID, 0, RGB(215, 215, 215));
 	PenLine[3].CreatePen(PS_SOLID, 0, RGB(138, 255, 172));
@@ -180,6 +180,9 @@ void CProgressWnd::OnPaint()
 
 	InitDataTab(FALSE);
 	GetClientRect(rect);
+
+	rect.right  -= 1;
+	rect.bottom -= 1;
 
 	if ( (sx = dc.m_ps.rcPaint.left - rect.left) < 0 )
 		sx = 0;
@@ -198,7 +201,7 @@ void CProgressWnd::OnPaint()
 	}
 
 	dc.SelectObject(&PenLine[2]);
-	for ( n = 1 ; n < 4 ; n++ ) {
+	for ( n = 0 ; n <= 4 ; n++ ) {
 		y = rect.Height() * n / 4;
 		dc.MoveTo(rect.left + sx, rect.bottom - y);
 		dc.LineTo(rect.left + ex, rect.bottom - y);

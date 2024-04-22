@@ -5,11 +5,11 @@
 <TITLE>スクリプト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
+TD {		
 		background-color : #ffffff;
 		font-size : 90%;
 }
-.BOX{
+.BOX{		
 		background-color : silver;
 }
 -->
@@ -1912,13 +1912,21 @@ sclose();</PRE>
             <TD valign="top">int64</TD>
           </TR>
           <TR>
-            <TD valign="top">file ( <I>filename</I> )</TD>
-            <TD valign="top">ファイルを配列に読み込み行数を返します。</TD>
+            <TD valign="top">file ( <I>filename, [iconv]</I> )</TD>
+            <TD valign="top">ファイルを配列に読み込み行数を返します<BR>
+            ※iconvは,2.29.3から有効です</TD>
             <TD valign="top">int<BR>
             array</TD>
             <TD valign="top">len = file(&quot;test.txt&quot;);<BR>
             echo(,len,&quot; lines\n&quot;);</TD>
             <TD valign="top">0 lines</TD>
+          </TR>
+          <TR>
+            <TD valign="top">savefile ( <I>filename</I>, <I>val, [iconv]</I>, <I>[crlf]</I> )</TD>
+            <TD valign="top"><FONT color="#c0c0c0">配列をファイルに書き込みます</FONT></TD>
+            <TD valign="top"></TD>
+            <TD valign="top">savefile(&quot;Text.txt&quot;, data, &quot;UTF-8&quot;, 2);</TD>
+            <TD valign="top"></TD>
           </TR>
           <TR>
             <TD valign="top">loadjson ( <I>filename</I> , <I>[iconv]</I> )</TD>

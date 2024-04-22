@@ -144,6 +144,15 @@ BEGIN_MESSAGE_MAP(CTabCtrlExt, CTabCtrl)
 	ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
+void CTabCtrlExt::AdjustRect(BOOL bLarger, LPRECT lpRect)
+{
+	CTabCtrl::AdjustRect(bLarger, lpRect);
+
+	lpRect->top    -= 1;
+	lpRect->bottom -= 1;
+	lpRect->left   -= 1;
+	lpRect->right  += 1;
+}
 COLORREF CTabCtrlExt::GetColor(int num)
 {
 	if ( (m_ColTab[num] & TABCOL_COLREF) != 0 )
@@ -202,6 +211,9 @@ void CTabCtrlExt::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 
 	switch(rotation) {
 	case TABSTYLE_TOP:
+		base.x = rect.left + TABGAP_SIZE;
+		base.y = rect.bottom - (rect.Height() - sz.cy) / 2;
+		break;
 	case TABSTYLE_BOTTOM:
 		base.x = rect.left + TABGAP_SIZE;
 		base.y = rect.bottom - (rect.Height() - sz.cy) / 2;
@@ -349,7 +361,8 @@ void CTabCtrlExt::OnPaint()
 	if ( (GetStyle() & (TCS_MULTILINE | TCS_BUTTONS)) != 0 ) {
 		Default();
 		return;
-	}
+	} else 	if ( GetItemCount() <= 0 )
+		return;
 
 	int n;
 	CPoint last;
@@ -373,9 +386,15 @@ void CTabCtrlExt::OnPaint()
 	dis.itemAction = ODA_DRAWENTIRE;
 
 	GetClientRect(frame);
+	GetItemRect(0, rect);
 
 	if ( (dwStyle & (TCS_BOTTOM | TCS_VERTICAL)) == 0 ) {
 		// TOP Style (default)
+
+		if ( frame.bottom > (rect.bottom + TABBTM_SIZE) )
+			dc.FillSolidRect(frame.left, rect.bottom + TABBTM_SIZE, frame.Width(), frame.bottom - (rect.bottom + TABBTM_SIZE), bkCol);
+		frame.bottom = rect.bottom + TABBTM_SIZE;
+
 		last.SetPoint(0, frame.bottom - TABBTM_SIZE);
 
 		for ( n = 0 ; n < GetItemCount() ; n++ ) {
@@ -418,7 +437,12 @@ void CTabCtrlExt::OnPaint()
 
 	} else if ( (dwStyle & (TCS_BOTTOM | TCS_VERTICAL)) == TCS_BOTTOM ) {
 		// BOTTOM Style
+
+		if ( (rect.top - TABBTM_SIZE) > frame.top )
+			dc.FillSolidRect(frame.left, frame.top, frame.Width(), (rect.top - TABBTM_SIZE) - frame.top, bkCol);
+		frame.top = rect.top - TABBTM_SIZE;
 		frame.bottom -= 1;
+
 		last.SetPoint(0, frame.top + TABBTM_SIZE);
 
 		for ( n = 0 ; n < GetItemCount() ; n++ ) {
@@ -461,6 +485,11 @@ void CTabCtrlExt::OnPaint()
 
 	} else if ( (dwStyle & (TCS_BOTTOM | TCS_VERTICAL)) == TCS_VERTICAL ) {
 		// LEFT Style
+
+		if ( frame.right > (rect.right + TABBTM_SIZE) )
+			dc.FillSolidRect(rect.right + TABBTM_SIZE, frame.top, frame.right - (rect.right + TABBTM_SIZE), frame.Height(), bkCol);
+		frame.right = rect.right + TABBTM_SIZE;
+
 		last.SetPoint(frame.right - TABBTM_SIZE, 0);
 
 		for ( n = 0 ; n < GetItemCount() ; n++ ) {
@@ -503,7 +532,12 @@ void CTabCtrlExt::OnPaint()
 
 	} else if ( (dwStyle & (TCS_RIGHT | TCS_VERTICAL)) == (TCS_RIGHT | TCS_VERTICAL) ) {	// TCS_RIGHT == TCS_BOTTOM
 		// RIGHT Style
+
+		if ( (rect.left - TABBTM_SIZE) > frame.left )
+			dc.FillSolidRect(frame.left, frame.top, (rect.left - TABBTM_SIZE) - frame.left, frame.Height(), bkCol);
+		frame.left = rect.left - TABBTM_SIZE;
 		frame.right -= 1;
+
 		last.SetPoint(frame.left + TABBTM_SIZE, 0);
 
 		for ( n = 0 ; n < GetItemCount() ; n++ ) {
@@ -598,6 +632,46 @@ CDialogExt::~CDialogExt()
 	}
 }
 
+LRESULT CALLBACK OwnerGroupBoxProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+{
+	if ( uMsg == WM_PAINT ) {
+		CWnd *pWnd = CWnd::FromHandle(hWnd);
+		CPaintDC dc(pWnd);
+		CRect rect, box;
+		CString title;
+		CSize sz;
+		CFont *pOldFont;
+		HBRUSH hbr;
+
+		pWnd->GetClientRect(rect);
+		pOldFont = dc.SelectObject(pWnd->GetFont());
+		pWnd->GetWindowText(title);
+		sz = dc.GetTextExtent(title);
+
+		dc.Draw3dRect(rect.left, rect.top + sz.cy / 2, rect.Width() - 1, rect.Height() - sz.cy / 2 - 1, GetAppColor(COLOR_BTNSHADOW), GetAppColor(COLOR_BTNSHADOW));
+
+		hbr = (HBRUSH)::SendMessage(pWnd->GetParent()->GetSafeHwnd(), WM_CTLCOLORBTN, (WPARAM)dc.GetSafeHdc(), (LPARAM)hWnd);
+
+		box.left   = rect.left + MulDiv(6, SCREEN_DPI_X, DEFAULT_DPI_X) - 2;
+		box.right  = rect.left + MulDiv(6, SCREEN_DPI_X, DEFAULT_DPI_X) + sz.cx + 2;
+		box.top    = rect.top;
+		box.bottom = rect.top + sz.cy;
+
+		if ( box.right >= rect.right )
+			box.right = rect.right -= 3;
+
+		dc.FillRect(box, CBrush::FromHandle(hbr));
+
+		box.left  += 2;
+		box.right -= 2;
+
+		dc.DrawText(title, box, DT_SINGLELINE | DT_WORD_ELLIPSIS | DT_VCENTER | DT_LEFT);
+
+		dc.SelectObject(pOldFont);
+		return TRUE;
+	}
+	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+}
 static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 {
 	CWnd *pWnd = CWnd::FromHandle(hWnd);
@@ -612,11 +686,26 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 
 	GetClassName(hWnd, name, 256);
 
+	// TRACE("ClassName %s\n", TstrToMbs(name));
+
 	if ( _tcscmp(name, _T("Button")) == 0 ) {
 		if ( !pParent->m_bDarkMode && (GetAppColor(APPCOL_DLGTEXT) != GetSysColor(COLOR_MENUTEXT)) )
 			ExSetWindowTheme(hWnd, L"", L"");
 		else if ( (pWnd->GetStyle() & BS_TYPEMASK) <= BS_DEFPUSHBUTTON || (pWnd->GetStyle() & BS_TYPEMASK) == BS_PUSHBOX )
 			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+		else if ( (pWnd->GetStyle() & BS_TYPEMASK) == BS_CHECKBOX && (pWnd->GetStyle() & BS_PUSHLIKE) != 0 )
+			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+#ifdef	USE_DARKMODE
+		else if ( (pWnd->GetStyle() & BS_TYPEMASK) == BS_GROUPBOX ) {
+			if ( pParent->m_bDarkMode ) {
+				SetWindowSubclass(hWnd, OwnerGroupBoxProc, (UINT_PTR)hWnd, (DWORD_PTR)pParent);
+				ExSetWindowTheme(hWnd, L"", L"");
+			} else {
+				RemoveWindowSubclass(hWnd, OwnerGroupBoxProc, (UINT_PTR)hWnd);
+				ExSetWindowTheme(hWnd, NULL, NULL);
+			}
+		}
+#endif
 		else if ( pParent->m_bDarkMode )
 			ExSetWindowTheme(hWnd, L"", L"");
 		else
@@ -627,12 +716,87 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
 		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 
+#ifdef	USE_DARKMODE
+	//} else if ( _tcscmp(name, _T("Static")) == 0 ) {
+	//	ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+	//	SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+
+	} else if ( _tcscmp(name, _T("Edit")) == 0 ) {
+		// DarkMode_CFDが良いがスクロールバーがdarkにならない
+		// DarkMode_ExplorerではWS_EX_CLIENTEDGEが気になる
+		if ( (pWnd->GetStyle() & ES_MULTILINE) != 0 ) {
+			if ( pParent->m_bDarkMode ) {
+				if ( (pWnd->GetStyle() & WS_BORDER) == 0 && (pWnd->GetExStyle() & WS_EX_CLIENTEDGE) != 0 ) {
+					pWnd->ModifyStyleEx(WS_EX_CLIENTEDGE, 0, 0);
+					pWnd->ModifyStyle(0, WS_BORDER, SWP_DRAWFRAME);
+				}
+			} else {
+				if ( (pWnd->GetStyle() & WS_BORDER) != 0 && (pWnd->GetExStyle() & WS_EX_CLIENTEDGE) == 0 ) {
+					pWnd->ModifyStyleEx(0, WS_EX_CLIENTEDGE, 0);
+					pWnd->ModifyStyle(WS_BORDER, 0, SWP_DRAWFRAME);
+				}
+			}
+			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+		} else
+			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_CFD" : L"Explorer"), NULL);
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+
+	} else if ( _tcscmp(name, _T("ComboBox")) == 0 ) {
+		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_CFD" : L"Explorer"), NULL);
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		DWORD pos = ((CComboBox *)pWnd)->GetEditSel();
+		if ( pos != CB_ERR )
+			((CComboBox *)pWnd)->SetEditSel(LOWORD(pos), LOWORD(pos));
+
+	} else if ( _tcscmp(name, _T("SysListView32")) == 0 ) {
+		CListCtrl *pList = (CListCtrl *)pWnd;
+
+		pList->SetTextColor(GetAppColor(APPCOL_CTRLTEXT));
+		pList->SetTextBkColor(GetAppColor(APPCOL_CTRLFACE));
+		pList->SetBkColor(GetAppColor(APPCOL_CTRLFACE));
+
+		//ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_ItemsView" : L"ItemsView"), NULL);
+		//ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : NULL), NULL);
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+
+	} else if ( _tcscmp(name, _T("SysTreeView32")) == 0 ) {
+		CTreeCtrl *pTree = (CTreeCtrl *)pWnd;
+
+		pTree->SetTextColor(GetAppColor(APPCOL_CTRLTEXT));
+		pTree->SetBkColor(GetAppColor(APPCOL_CTRLFACE));
+
+		//ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : NULL), NULL);
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+
+	} else if ( _tcscmp(name, _T("msctls_progress32")) == 0 ) {
+		CProgressCtrl *pProg = (CProgressCtrl *)pWnd;
+
+		if ( pParent->m_bDarkMode ) {
+			pProg->ModifyStyle(0, WS_BORDER, SWP_DRAWFRAME);
+			pProg->SetBkColor(GetAppColor(APPCOL_CTRLFACE));
+			ExSetWindowTheme(hWnd, L"", L"");
+		} else {
+			pProg->ModifyStyle(WS_BORDER, 0, SWP_DRAWFRAME);
+			pProg->SetBkColor(GetAppColor(APPCOL_CTRLFACE));
+			ExSetWindowTheme(hWnd, NULL, NULL);
+		}
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+
+	} else if ( _tcscmp(name, _T("msctls_trackbar32")) == 0 ) {
+		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+
+	}
+#else
 	} else if ( _tcscmp(name, _T("Edit")) == 0 ) {
 		if ( (pWnd->GetStyle() & ES_MULTILINE) != 0 ) {
 			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
 			SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 		}
 	}
+#endif
 
 	return TRUE;
 }
@@ -1380,12 +1544,15 @@ afx_msg HBRUSH CDialogExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
 	HBRUSH hbr = CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
 
+#ifdef	USE_DARKMODE
 	switch(nCtlColor) {
 	case CTLCOLOR_MSGBOX:		// Message box
 	case CTLCOLOR_EDIT:			// Edit control
 	case CTLCOLOR_LISTBOX:		// List-box control
+		hbr = GetAppColorBrush(APPCOL_CTRLFACE);
+		pDC->SetTextColor(GetAppColor(APPCOL_CTRLTEXT));
+		pDC->SetBkMode(TRANSPARENT);
 		break;
-
 	case CTLCOLOR_BTN:			// Button control
 	case CTLCOLOR_DLG:			// Dialog box
 	case CTLCOLOR_SCROLLBAR:
@@ -1395,6 +1562,22 @@ afx_msg HBRUSH CDialogExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 		pDC->SetBkMode(TRANSPARENT);
 		break;
 	}
+#else
+	switch(nCtlColor) {
+	case CTLCOLOR_MSGBOX:		// Message box
+	case CTLCOLOR_EDIT:			// Edit control
+	case CTLCOLOR_LISTBOX:		// List-box control
+		break;
+	case CTLCOLOR_BTN:			// Button control
+	case CTLCOLOR_DLG:			// Dialog box
+	case CTLCOLOR_SCROLLBAR:
+	case CTLCOLOR_STATIC:		// Static control
+		hbr = GetAppColorBrush(m_bBackWindow ? APPCOL_DLGOPTFACE : APPCOL_DLGFACE);
+		pDC->SetTextColor(GetAppColor(APPCOL_DLGTEXT));
+		pDC->SetBkMode(TRANSPARENT);
+		break;
+	}
+#endif
 
 	return hbr;
 }

@@ -228,6 +228,17 @@ BOOL CRLoginDoc::OnNewDocument()
 		m_TextRam.SetOption(TO_PROXPASS, ProxyPass);
 	}
 
+	if ( ((CRLoginApp *)AfxGetApp())->m_pCmdInfo != NULL && !((CRLoginApp *)AfxGetApp())->m_pCmdInfo->m_Opt.IsEmpty() ) {
+		CStringIndex index;
+		index.SetNoCase(TRUE);
+		index.SetNoSort(TRUE);
+
+		index.GetDefineStr(((CRLoginApp *)AfxGetApp())->m_pCmdInfo->m_Opt);
+
+		if ( index.GetSize() > 0 )
+			LoadIndex(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab, index);
+	}
+
 	m_TextRam.m_bOpen = TRUE;
 	m_TextRam.m_pServerEntry = &m_ServerEntry;
 

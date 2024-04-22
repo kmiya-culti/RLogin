@@ -167,6 +167,7 @@ public:
 	int Add(CScriptValue &data);
 	int Add(LPCTSTR str);
 	int GetSize() { return (int)m_Array.GetSize(); }
+	CScriptValue & GetIndent() { if ( m_Type == VALTYPE_IDENT ) return ((CScriptValue *)(m_Value.m_Ptr))->GetIndent(); return *this; }
 	void ArrayCopy(CScriptValue &data);
 	void RemoveAll();
 

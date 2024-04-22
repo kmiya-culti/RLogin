@@ -4371,7 +4371,7 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 			(*acc)[_T("Size")][_T("sy")] = (int)(local[1].GetAt(1));
 			(*acc)[_T("Size")][_T("cx")] = (int)(local[1].GetAt(2));
 			(*acc)[_T("Size")][_T("cy")] = (int)(local[1].GetAt(3));
-			for ( n = 0 ; n < local[2].GetSize() ; n++ ) {
+			for ( n = 0 ; n < local[2].GetIndent().GetSize() ; n++ ) {
 				(*acc)[_T("Child")][n][_T("pWnd")]       = (void *)NULL;
 				(*acc)[_T("Child")][n][_T("Type")]       = (LPCSTR)(local[2].GetAt(n).GetAt(0));
 				(*acc)[_T("Child")][n][_T("Size")][_T("sx")] = (int)(local[2].GetAt(n).GetAt(1).GetAt(0));
@@ -4555,13 +4555,13 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 			base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("Value")) = (int)local[1];
 		}
 		break;
-	case 15:	// setlistt(id, list)
+	case 15:	// setlist(id, list)
 		if ( base != NULL ) {
 			CComboBox *pWnd = (CComboBox *)(void *)base->GetAt(_T("Child")).GetAt((int)local[0]).GetAt(_T("pWnd"));
 			if ( pWnd == NULL )
 				break;
-			for ( int n = 0 ; n < local[1].GetSize() ; n++ )
-				pWnd->AddString((LPCTSTR)(local[1][n]));
+			for ( int n = 0 ; n < local[1].GetIndent().GetSize() ; n++ )
+				pWnd->AddString((LPCTSTR)(local[1].GetAt(n)));
 		}
 		break;
 
@@ -6404,19 +6404,22 @@ int CScript::Func03(int cmd, CScriptValue &local)
 			throw _T("fseek not (f|p)open ptr");
 		break;
 
-	case 13:	// file(f)
+	case 13:	// file(f, i)
+		if ( !text.LoadFile((LPCTSTR)local[0]) ) {
+			(*acc).Empty();
+			(*acc) = (int)0;
+			break;
+		}
+		if ( local.GetSize() > 1 )
+			text.StrConvert((LPCTSTR)local[1]);
+		else
+			text.KanjiConvert(text.KanjiCheck(KANJI_SJIS));
 		{
-			int n;
-			FILE *fp;
-			char tmp[4096];
-			acc->RemoveAll();
-			if ( (fp = _tfopen((LPCTSTR)local[0], _T("r"))) != NULL ) {
-				for ( n = 0 ; fgets(tmp, 4096, fp) != NULL; n++ )
-					(*acc)[(LPCTSTR)NULL] = (LPCSTR)tmp;
-				(*acc) = (int)n;
-				fclose(fp);
-			} else
-				(*acc) = (int)0;
+			int line;
+			CString tmp;
+			for ( line = 0 ; text.ReadString(tmp) ; line++ )
+				(*acc)[(LPCTSTR)NULL] = (LPCTSTR)tmp;
+			(*acc) = (int)line;
 		}
 		break;
 	case 14:	// stat(f)
@@ -6557,6 +6560,19 @@ int CScript::Func03(int cmd, CScriptValue &local)
 	case 30:	// savexml(filename, data, iconv, crlf)
 		local[1].SetIndex(index);
 		index.SetXmlFormat(text);
+		if ( local.GetSize() <= 2 ) local[2] = _T("DEFAULT");
+		if ( local.GetSize() <= 3 ) local[3] = 0;
+		text.WstrConvert((LPCTSTR)local[2], (int)local[3]);
+		(*acc) = (int)text.SaveFile((LPCTSTR)local[0]);
+		break;
+
+	case 31:	// savefile(filename, data, iconv, crlf)
+		for ( int n = 0 ; n < local[1].GetIndent().GetSize() ; n++ ) {
+			CString str = (LPCTSTR)(local[1].GetAt(n));
+			str.TrimRight(_T("\r\n"));
+			text += str;
+			text += _T("\r\n");
+		}
 		if ( local.GetSize() <= 2 ) local[2] = _T("DEFAULT");
 		if ( local.GetSize() <= 3 ) local[3] = 0;
 		text.WstrConvert((LPCTSTR)local[2], (int)local[3]);
@@ -7083,7 +7099,7 @@ void CScript::FuncInit()
 		{ _T("popen"),		24,	&CScript::Func03 },	{ _T("pclose"),		25, &CScript::Func03 },
 		{ _T("fprintf"),	26,	&CScript::Func03 },	{ _T("loadjson"),	27, &CScript::Func03 },
 		{ _T("savejson"),	28, &CScript::Func03 },	{ _T("loadxml"),	29, &CScript::Func03 },
-		{ _T("savexml"),	30, &CScript::Func03 },
+		{ _T("savexml"),	30, &CScript::Func03 },	{ _T("savefile"),	31, &CScript::Func03 },
 
 		{ _T("rand"),		0,	&CScript::Func04 },	{ _T("srand"),		1,	&CScript::Func04 },
 		{ _T("floor"),		2,	&CScript::Func04 },	{ _T("asin"),		3,	&CScript::Func04 },

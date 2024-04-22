@@ -429,7 +429,7 @@ BOOL CServerSelect::OnInitDialog()
 	m_TabEntry.SetNoCase(FALSE);
 	m_TabEntry.SetNoSort(FALSE);
 
-	BitMap.LoadResBitmap(IDB_BITMAP4, m_NowDpi.cx, m_NowDpi.cy, RGB(192, 192, 192));
+	BitMap.LoadResBitmap(IDB_BITMAP4, m_NowDpi.cx * 16 / 48, m_NowDpi.cy * 16 / 48, RGB(192, 192, 192));
 	m_ImageList.Create(MulDiv(16, m_NowDpi.cx, DEFAULT_DPI_X), MulDiv(16, m_NowDpi.cy, DEFAULT_DPI_Y), ILC_COLOR24 | ILC_MASK, 0, 4);
 	m_ImageList.Add(&BitMap, RGB(192, 192, 192));
 	BitMap.DeleteObject();

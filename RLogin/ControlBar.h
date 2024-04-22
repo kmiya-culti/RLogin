@@ -203,7 +203,7 @@ public:
 	virtual ~CTabDlgBar();
 
 public:
-	CTabCtrl m_TabCtrl;
+	CTabCtrlExt m_TabCtrl;
 	CString m_FontName;
 	int m_FontSize;
 	CFont m_TabFont;

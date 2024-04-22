@@ -148,11 +148,6 @@ int CExtSocket::GetFamily()
 }
 BOOL CExtSocket::ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR ProxyUser, LPCTSTR ProxyPass, LPCTSTR RealHost, UINT RealPort)
 {
-	PunyCodeAdress(ProxyHost, m_RealHostAddr);
-	m_RealHostPort   = ProxyPort;
-	m_RealRemotePort = 0;
-	m_RealSocketType = SOCK_STREAM;
-
 	switch(mode & 7) {
 	case 0: m_ProxyStatus = PRST_NONE;				break;	// Non
 	case 1: m_ProxyStatus = PRST_HTTP_START;		break;	// HTTP
@@ -173,17 +168,19 @@ BOOL CExtSocket::ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPor
 	m_ProxyLastError = 0;
 	m_SSL_alpn.Empty();
 
+	m_ProxyHostAddr = RealHost;
 	PunyCodeAdress(RealHost, m_ProxyHost);
+
 	m_ProxyPort = RealPort;
 	m_ProxyUser = ProxyUser;
 	m_ProxyPass = ProxyPass;
 
 	if ( m_ProxyStatus == PRST_NONE ) {
-		m_RealHostAddr   = m_ProxyHost;
-		m_RealHostPort   = m_ProxyPort;
+		ProxyHost = RealHost;
+		ProxyPort = RealPort;
 	}
 
-	return Open(m_RealHostAddr, m_RealHostPort, m_RealRemotePort, m_RealSocketType);
+	return Open(ProxyHost, ProxyPort, 0, SOCK_STREAM);
 }
 BOOL CExtSocket::ProxyCommand(LPCTSTR pCommand)
 {
@@ -203,6 +200,11 @@ BOOL CExtSocket::ProxyCommand(LPCTSTR pCommand)
 BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
 {
 	CString host;
+
+	m_RealHostAddr   = lpszHostAddress;
+	m_RealHostPort   = nHostPort;
+	m_RealRemotePort = nSocketPort;
+	m_RealSocketType = nSocketType;
 
 	FifoLink();
 
@@ -232,8 +234,8 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 	switch(m_pFifoLeft->m_Type) {
 	case FIFO_TYPE_SOCKET:
 		m_pFifoLeft->m_nLimitSize = m_pDocument->m_TextRam.IsOptEnable(TO_RLTRSLIMIT) ? (m_pDocument->m_ParamTab.m_TransmitLimit * 1024) : 0;
-		PunyCodeAdress(lpszHostAddress, host);
-		return ((CFifoSocket *)m_pFifoLeft)->Open(host, nHostPort, nSocketPort, GetFamily(), nSocketType);
+		PunyCodeAdress(m_RealHostAddr, host);
+		return ((CFifoSocket *)m_pFifoLeft)->Open(host, m_RealHostPort, m_RealRemotePort, GetFamily(), m_RealSocketType);
 
 	case FIFO_TYPE_PIPE:
 		return ((CFifoPipe *)m_pFifoLeft)->Open(lpszHostAddress);
@@ -1344,6 +1346,8 @@ BOOL CExtSocket::ProxyFunc()
 		case PRST_HTTP_CODECHECK:
 			switch(m_ProxyCode) {
 			case 200:
+				m_RealHostAddr = m_ProxyHostAddr;
+				m_RealHostPort = m_ProxyPort;
 				m_ProxyLastError = 0;
 				m_ProxyStatus = PRST_NONE;
 				break;
@@ -1461,6 +1465,8 @@ BOOL CExtSocket::ProxyFunc()
 			break;
 		case PRST_SOCKS4_CHECKMSG:
 			if ( *(m_ProxyBuff.GetPos(1)) == 90 ) {
+				m_RealHostAddr = m_ProxyHostAddr;
+				m_RealHostPort = m_ProxyPort;
 				m_ProxyLastError = 0;
 				m_ProxyStatus = PRST_NONE;
 			} else
@@ -1568,6 +1574,8 @@ BOOL CExtSocket::ProxyFunc()
 		case PRST_SOCKS5_CONNECT:
 			if ( !ProxyReadBuff(m_ProxyLength) )
 				return (m_ProxyStatus != PRST_NONE ? TRUE : FALSE);
+			m_RealHostAddr = m_ProxyHostAddr;
+			m_RealHostPort = m_ProxyPort;
 			m_ProxyLastError = 0;
 			m_ProxyStatus = PRST_NONE;
 			break;
@@ -1781,6 +1789,8 @@ BOOL CExtSocket::ProxyFunc()
 
 					switch(m_ProxyCode) {
 					case 200:	// OK
+						m_RealHostAddr = m_ProxyHostAddr;
+						m_RealHostPort = m_ProxyPort;
 						m_ProxyStatus = PRST_HTTP2_TUNNEL;
 						m_pFifoProxy->SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
 						break;
@@ -1966,6 +1976,8 @@ BOOL CExtSocket::ProxyFunc()
 
 					switch(m_ProxyCode) {
 					case 200:	// OK
+						m_RealHostAddr = m_ProxyHostAddr;
+						m_RealHostPort = m_ProxyPort;
 						m_ProxyStatus = PRST_HTTP3_TUNNEL;
 						m_pFifoProxy->SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
 						break;

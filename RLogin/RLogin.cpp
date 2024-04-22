@@ -33,6 +33,7 @@
 #include "openssl/engine.h"
 #include "openssl/conf.h"
 #include "internal/cryptlib.h"
+#include <openssl/crypto.h>
 
 #include <afxcmn.h>
 #include <sphelper.h>
@@ -73,6 +74,7 @@ CCommandLineInfoEx::CCommandLineInfoEx()
 	m_ReqDlg = FALSE;
 	m_Cwd.Empty();
 	m_DarkOff = FALSE;
+	m_Opt.Empty();
 }
 void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast)
 {
@@ -137,6 +139,8 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 			m_PasStat = 17;
 		else if ( _tcsicmp(_T("darkoff"), pszParam) == 0 )
 			m_DarkOff = TRUE;
+		else if ( _tcsicmp(_T("opt"), pszParam) == 0 )
+			m_PasStat = 18;
 		else
 			break;
 		ParseLast(bLast);
@@ -261,6 +265,13 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 		if ( bFlag )
 			break;
 		m_Cwd = pszParam;
+		ParseLast(bLast);
+		return;
+	case 18:		// opt
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_Opt = pszParam;
 		ParseLast(bLast);
 		return;
 	}
@@ -462,6 +473,11 @@ void CCommandLineInfoEx::GetString(CString &str)
 
 	if ( m_DarkOff == FALSE )
 		str += _T(" /darkoff");
+
+	if ( !m_Opt.IsEmpty() ) {
+		tmp.Format(_T(" /opt %s"), ShellEscape(m_Opt));
+		str += tmp;
+	}
 }
 void CCommandLineInfoEx::SetString(LPCTSTR str)
 {
@@ -742,7 +758,8 @@ CRLoginApp::CRLoginApp()
 	BOOL (WINAPI *ExCancelIoEx)(HANDLE hFile, LPOVERLAPPED lpOverlapped) = NULL;
 
 	HMODULE ExUxThemeDll = NULL;
-	BOOL (__stdcall *AllowDarkModeForApp)(int mode) = NULL;						// #135
+	BOOL (_stdcall *AllowDarkModeForWindow)(HWND hwnd, BOOL allow) = NULL;	// #133;
+	BOOL (__stdcall *AllowDarkModeForApp)(int mode) = NULL;					// #135
 	HRESULT (__stdcall *ExSetWindowTheme)(HWND hwnd, LPCWSTR pszSubAppName, LPCWSTR pszSubIdList) = NULL;
 	HTHEME (__stdcall *ExOpenThemeData)(HWND hwnd, LPCWSTR pszClassList);
 	HRESULT (__stdcall *ExCloseThemeData)(HTHEME hTheme);
@@ -789,6 +806,9 @@ void InitAppColor()
 	AppColorTable[0][APPCOL_TABHIGH]		= AppColorTable[0][COLOR_WINDOW];
 	AppColorTable[0][APPCOL_TABSHADOW]		= AppColorTable[0][COLOR_BTNSHADOW];
 
+	AppColorTable[0][APPCOL_CTRLFACE]		= AppColorTable[0][COLOR_WINDOW];
+	AppColorTable[0][APPCOL_CTRLTEXT]		= AppColorTable[0][COLOR_WINDOWTEXT];
+
 	// ダークモードの色設定
 	memcpy(AppColorTable[1], AppColorTable[0], sizeof(AppColorTable[1]));
 
@@ -806,6 +826,11 @@ void InitAppColor()
 	AppColorTable[1][COLOR_BTNSHADOW]		= AppColorTable[0][COLOR_WINDOWFRAME];
 	AppColorTable[1][COLOR_BTNHIGHLIGHT]	= AppColorTable[0][COLOR_BTNSHADOW];
 
+	AppColorTable[1][COLOR_3DDKSHADOW]	    = AppColorTable[0][COLOR_3DLIGHT];
+	AppColorTable[1][COLOR_3DLIGHT]	        = AppColorTable[0][COLOR_3DDKSHADOW];
+
+	AppColorTable[1][COLOR_GRADIENTINACTIVECAPTION] = RGB(56, 96, 124);
+
 	// 追加のダークモードの色設定
 	AppColorTable[1][APPCOL_MENUFACE]		= DARKMODE_BACKCOLOR;
 	AppColorTable[1][APPCOL_MENUTEXT]		= DARKMODE_TEXTCOLOR;
@@ -822,10 +847,20 @@ void InitAppColor()
 	AppColorTable[1][APPCOL_BARBODER]		= AppColorTable[0][COLOR_BTNSHADOW];
 	AppColorTable[1][APPCOL_BARTEXT]		= DARKMODE_TEXTCOLOR;
 
+#ifdef	USE_DARKMODE
+	AppColorTable[1][APPCOL_TABFACE]		= AppColorTable[1][COLOR_MENU];
+	AppColorTable[1][APPCOL_TABTEXT]		= AppColorTable[1][COLOR_MENUTEXT];
+	AppColorTable[1][APPCOL_TABHIGH]		= AppColorTable[1][COLOR_BACKGROUND];
+	AppColorTable[1][APPCOL_TABSHADOW]		= AppColorTable[1][COLOR_BTNSHADOW];
+#else
 	AppColorTable[1][APPCOL_TABFACE]		= AppColorTable[0][COLOR_MENU];
 	AppColorTable[1][APPCOL_TABTEXT]		= AppColorTable[0][COLOR_MENUTEXT];
 	AppColorTable[1][APPCOL_TABHIGH]		= AppColorTable[0][COLOR_WINDOW];
 	AppColorTable[1][APPCOL_TABSHADOW]		= AppColorTable[0][COLOR_BTNSHADOW];
+#endif
+
+	AppColorTable[1][APPCOL_CTRLFACE]		= AppColorTable[1][COLOR_WINDOW];
+	AppColorTable[1][APPCOL_CTRLTEXT]		= AppColorTable[1][COLOR_WINDOWTEXT];
 
 	// ブラシの初期化
 	if ( !bAppColBrushInit ) {
@@ -1472,6 +1507,23 @@ ENDOF:
 
 //////////////////////////////////////////////////////////////////////
 
+#ifdef	OPENSSL_DEBUG
+void *Debug_Malloc(size_t num, const char *file, int line)
+{
+	void *adr = _malloc_dbg(num, _NORMAL_BLOCK, file, line); // malloc(num);
+	return adr;
+}
+void OpenSSL_Memory_Test()
+{
+	CRYPTO_malloc_fn malloc_fn;
+	CRYPTO_realloc_fn realloc_fn;
+	CRYPTO_free_fn free_fn;
+
+	CRYPTO_get_mem_functions(&malloc_fn, &realloc_fn, &free_fn);
+	CRYPTO_set_mem_functions(Debug_Malloc, realloc_fn, free_fn);
+}
+#endif
+
 BOOL CRLoginApp::InitInstance()
 {
 	// LoadLibrary Search Path
@@ -1660,6 +1712,7 @@ BOOL CRLoginApp::InitInstance()
 
 	// ダークモード関連の関数
 	if ( (ExUxThemeDll = LoadLibrary(_T("uxtheme.dll"))) != NULL ) {
+		AllowDarkModeForWindow = (BOOL (__stdcall *)(HWND hwnd, BOOL allow))GetProcAddress(ExUxThemeDll, MAKEINTRESOURCEA(133));
 		AllowDarkModeForApp	= (BOOL (__stdcall *)(int mode))GetProcAddress(ExUxThemeDll, MAKEINTRESOURCEA(135));
 		ExSetWindowTheme = (HRESULT (__stdcall *)(HWND hwnd, LPCWSTR pszSubAppName, LPCWSTR pszSubIdList))GetProcAddress(ExUxThemeDll, "SetWindowTheme");
 		ExOpenThemeData = (HTHEME (__stdcall *)(HWND hwnd, LPCWSTR pszClassList))GetProcAddress(ExUxThemeDll, "OpenThemeData");

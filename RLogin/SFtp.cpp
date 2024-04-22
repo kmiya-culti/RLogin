@@ -3198,8 +3198,8 @@ BOOL CSFtp::OnInitDialog()
 	m_ToolBarOfs = rect.top;
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 
-	//BitMap.LoadBitmap(IDB_BITMAP4);
-	BitMap.LoadResBitmap(IDB_BITMAP4, m_NowDpi.cx, m_NowDpi.cy, RGB(192, 192, 192));
+	// 16pixÇ©ÇÁ48pixÇ…ïœçX
+	BitMap.LoadResBitmap(IDB_BITMAP4, m_NowDpi.cx * 16 / 48, m_NowDpi.cy * 16 / 48, RGB(192, 192, 192));
 	m_ImageList.Create(MulDiv(16, m_NowDpi.cx, DEFAULT_DPI_X), MulDiv(16, m_NowDpi.cy, DEFAULT_DPI_Y), ILC_COLOR24 | ILC_MASK, 0, 4);
 	m_ImageList.Add(&BitMap, RGB(192, 192, 192));
 	BitMap.DeleteObject();

@@ -92,6 +92,8 @@ public:
 	DWORD m_ColTab[7];
 	BOOL m_bGradient;
 
+	void AdjustRect(BOOL bLarger, LPRECT lpRect);
+
 public:
 	COLORREF GetColor(int num);
 	virtual void DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);

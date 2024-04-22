@@ -625,7 +625,30 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 	} else if ( _tcscmp(name, _T("ScrollBar")) == 0 ) {
 		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
 		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+
+#ifdef	USE_DARKMODE
+	} else if ( _tcscmp(name, _T("Edit")) == 0 ) {
+		if ( (pWnd->GetStyle() & ES_MULTILINE) != 0 )
+			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+		else
+			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_CFD" : L"Explorer"), NULL);
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+
+	} else if ( _tcscmp(name, _T("ComboBox")) == 0 ) {
+		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_CFD" : L"Explorer"), NULL);
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		DWORD pos = ((CComboBox *)pWnd)->GetEditSel();
+		if ( pos != CB_ERR )
+			((CComboBox *)pWnd)->SetEditSel(LOWORD(pos), LOWORD(pos));
+
+	} else if ( _tcscmp(name, _T("msctls_trackbar32")) == 0 ) {
+		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+
 	}
+#else
+	}
+#endif
 
 	return TRUE;
 }
@@ -882,12 +905,15 @@ afx_msg HBRUSH CDialogBarEx::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
 	HBRUSH hbr = CDialogBar::OnCtlColor(pDC, pWnd, nCtlColor);
 
+#ifdef	USE_DARKMODE
 	switch(nCtlColor) {
 	case CTLCOLOR_MSGBOX:		// Message box
 	case CTLCOLOR_EDIT:			// Edit control
 	case CTLCOLOR_LISTBOX:		// List-box control
+		hbr = GetAppColorBrush(APPCOL_CTRLFACE);
+		pDC->SetTextColor(GetAppColor(APPCOL_CTRLTEXT));
+		pDC->SetBkMode(TRANSPARENT);
 		break;
-
 	case CTLCOLOR_BTN:			// Button control
 	case CTLCOLOR_DLG:			// Dialog box
 	case CTLCOLOR_SCROLLBAR:
@@ -897,6 +923,22 @@ afx_msg HBRUSH CDialogBarEx::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 		pDC->SetBkMode(TRANSPARENT);
 		break;
 	}
+#else
+	switch(nCtlColor) {
+	case CTLCOLOR_MSGBOX:		// Message box
+	case CTLCOLOR_EDIT:			// Edit control
+	case CTLCOLOR_LISTBOX:		// List-box control
+		break;
+	case CTLCOLOR_BTN:			// Button control
+	case CTLCOLOR_DLG:			// Dialog box
+	case CTLCOLOR_SCROLLBAR:
+	case CTLCOLOR_STATIC:		// Static control
+		hbr = GetAppColorBrush(APPCOL_BARBACK);
+		pDC->SetTextColor(GetAppColor(APPCOL_BARTEXT));
+		pDC->SetBkMode(TRANSPARENT);
+		break;
+	}
+#endif
 
 	return hbr;
 }
@@ -1250,7 +1292,7 @@ void CTabDlgBar::Add(CWnd *pWnd, int nImage)
 	m_Data.Add(pData);
 
 	pWnd->SetParent(&m_TabCtrl);
-	pWnd->ModifyStyle(WS_CAPTION | WS_THICKFRAME | WS_POPUP, WS_CHILD);
+	pWnd->ModifyStyle(WS_CAPTION | WS_THICKFRAME | WS_POPUP, WS_CHILD | WS_BORDER);
 	pWnd->SetMenu(NULL);
 
 	if ( m_pShowWnd != NULL )
@@ -1361,7 +1403,7 @@ void *CTabDlgBar::RemoveAt(int idx, CPoint point)
 		point.y -= GetSystemMetrics(SM_CYCAPTION) / 2;
 
 		pData->pWnd->SetParent(pData->pParent);
-		pData->pWnd->ModifyStyle(WS_CHILD, WS_CAPTION | WS_THICKFRAME | WS_POPUP, SWP_HIDEWINDOW);
+		pData->pWnd->ModifyStyle(WS_CHILD | WS_BORDER, WS_CAPTION | WS_THICKFRAME | WS_POPUP, SWP_HIDEWINDOW);
 		pData->pWnd->SetMenu(CMenu::FromHandle(pData->hMenu));
 		ExDwmDarkMode(pData->pWnd->GetSafeHwnd());
 		pData->pWnd->SetWindowPos(NULL, point.x, point.y, pData->WinRect.Width(), pData->WinRect.Height(),
@@ -1398,7 +1440,7 @@ void CTabDlgBar::RemoveAll()
 		struct _DlgWndData *pData = (struct _DlgWndData *)m_Data[n];
 
 		pData->pWnd->SetParent(pData->pParent);
-		pData->pWnd->ModifyStyle(WS_CHILD, WS_CAPTION | WS_THICKFRAME | WS_POPUP, SWP_HIDEWINDOW);
+		pData->pWnd->ModifyStyle(WS_CHILD | WS_BORDER, WS_CAPTION | WS_THICKFRAME | WS_POPUP, SWP_HIDEWINDOW);
 		pData->pWnd->SetMenu(CMenu::FromHandle(pData->hMenu));
 		ExDwmDarkMode(pData->pWnd->GetSafeHwnd());
 		pData->pWnd->SetWindowPos(NULL, pData->WinRect.left, pData->WinRect.top, pData->WinRect.Width(), pData->WinRect.Height(),
@@ -1480,7 +1522,7 @@ int CTabDlgBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	SetBorders(2, 5, 2, 4);
 
 	CBitmapEx BitMap;
-	BitMap.LoadResBitmap(IDB_BITMAP4, SCREEN_DPI_X, SCREEN_DPI_Y, RGB(192, 192, 192));
+	BitMap.LoadResBitmap(IDB_BITMAP4, SCREEN_DPI_X * 16 / 48, SCREEN_DPI_Y * 16 / 48, RGB(192, 192, 192));
 	m_ImageList.Create(MulDiv(16, SCREEN_DPI_X, DEFAULT_DPI_X), MulDiv(16, SCREEN_DPI_Y, DEFAULT_DPI_Y), ILC_COLOR24 | ILC_MASK, 0, 4);
 	m_ImageList.Add(&BitMap, RGB(192, 192, 192));
 	BitMap.DeleteObject();

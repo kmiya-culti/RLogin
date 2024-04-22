@@ -726,7 +726,7 @@ STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "About RLogin"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,91,229,60,14,WS_GROUP
+    DEFPUSHBUTTON   "OK",IDOK,91,226,60,14,WS_GROUP
     CONTROL         "<a href=""https://kmiya-culti.github.io/RLogin/"">https://kmiya-culti.github.io/RLogin/</a>",IDC_SYSLINK3,
                     "SysLink",WS_TABSTOP,44,27,189,8
     CONTROL         "<a href=""http://nanno.bf1.jp/softlib/man/rlogin/"">http://nanno.bf1.jp/softlib/man/rlogin/</a>",IDC_SYSLINK2,
@@ -734,9 +734,9 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,210,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.29.2 (2024/03/21)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.29.3 (2024/04/22)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2024 Culti",IDC_STATIC,44,17,189,8
-    LTEXT           "OpenSSL 3.2.1 30 Jan 2024",IDC_STATIC,44,50,189,8
+    LTEXT           "OpenSSL 3.3.0 9 Apr 2024",IDC_STATIC,44,50,189,8
     LTEXT           "Copyright (c) 1998-2024 The OpenSSL Project",IDC_STATIC,44,60,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,80,189,8
@@ -1020,7 +1020,7 @@ BEGIN
     GROUPBOX        "TELNET",IDC_STATIC,7,7,256,79
     GROUPBOX        "SSH",IDC_STATIC,7,91,256,202
     LTEXT           "標準入出力のバッファサイズを指定する",IDC_STATIC,15,192,180,10
-    LTEXT           "追加のバージョン情報",IDC_STATIC,15,258,240,8
+    LTEXT           "keyboard-interactiveで実行するプラグインコマンド",IDC_STATIC,15,258,240,8
 END
 
 IDD_PFDPARADLG DIALOGEX 0, 0, 206, 175
@@ -1603,7 +1603,7 @@ BEGIN
     CONTROL         "正規表現を利用して文字列検索を行う",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,15,65,180,10
     CONTROL         "正規表現のエスケープ文字(\\)を使用する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,83,180,9
     CONTROL         "英字の大文字小文字を区別せずに検索する",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,100,180,9
-    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,7,120,197,12
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",0x0,7,120,197,12
     DEFPUSHBUTTON   "検索",IDOK,39,141,60,14
     PUSHBUTTON      "キャンセル",IDCANCEL,112,141,60,14
 END
@@ -2310,8 +2310,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,29,2,0
- PRODUCTVERSION 2,29,2,0
+ FILEVERSION 2,29,3,0
+ PRODUCTVERSION 2,29,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2328,12 +2328,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.29.2.0"
+            VALUE "FileVersion", "2.29.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.29.2.0"
+            VALUE "ProductVersion", "2.29.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2356,7 +2356,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 236
         TOPMARGIN, 7
-        BOTTOMMARGIN, 243
+        BOTTOMMARGIN, 240
     END
 
     IDD_ALGOPARADLG, DIALOG
@@ -5183,6 +5183,8 @@ BEGIN
     IDT_APPCOL_TITLE14      "タブの文字色"
     IDT_APPCOL_TITLE15      "タブ選択時の背景色"
     IDT_APPCOL_TITLE16      "タブの境界線"
+    IDT_APPCOL_TITLE17      "コントロールの背景色"
+    IDT_APPCOL_TITLE18      "コントロールの文字色"
 END
 
 STRINGTABLE

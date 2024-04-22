@@ -106,6 +106,7 @@ public:
 
 	int m_ProxyStatus;
 	int m_ProxyLastError;
+	CString m_ProxyHostAddr;
 	CString m_ProxyHost;
 	int m_ProxyPort;
 	CString m_ProxyUser;

@@ -96,6 +96,9 @@ void CComboBoxHis::AddHis(LPCTSTR str)
 {
 	int n;
 
+	if ( str == NULL || *str == _T('\0') )
+		return;
+
 	if ( (n = FindStringExact(0, str)) != CB_ERR )
 		DeleteString(n);
 

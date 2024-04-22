@@ -6,7 +6,8 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
+TD {		
+				
 				
 				
 				
@@ -14,7 +15,8 @@ TD {
 		background-color : #ffffff;
 font-size : 90%;
 }
-.BOX{
+.BOX{		
+				
 				
 				
 				
@@ -34,8 +36,8 @@ font-size : 90%;
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.29.2)</TD>
-            <TD width="20%" align="right">2024/03/21</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.29.3)</TD>
+            <TD width="20%" align="right">2024/04/22</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -445,6 +447,14 @@ font-size : 90%;
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2024/04/22</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.3/">2.29.3</A></TD>
+            <TD>keyboard-interactiveで実行するプラグインコマンドを追加<BR>
+            スクリプトのfile関数に文字種のオプションを追加<BR>
+            各種コントロールをダークモードに対応<BR>
+            openssl-3.3.0に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2024/03/21</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.2/">2.29.2</A></TD>
             <TD>SFTPのメッセージ表示でフォーカスを失うのを修正<BR>
@@ -500,13 +510,6 @@ font-size : 90%;
             openssh-9.6p1のstrict key exchangeに対応</TD>
           </TR>
           <TR>
-            <TD align="center">2023/12/04</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.28.8/">2.28.8</A></TD>
-            <TD>試験的にQUICに対応<BR>
-            zlib-1.3に更新<BR>
-            openssl-3.2.0に更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -530,13 +533,13 @@ font-size : 90%;
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.2.1.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.3.0.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.2.1 openssl-3.2.1-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.3.0 openssl-3.3.0-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -621,7 +624,7 @@ font-size : 90%;
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.2.1 30 Jan 2024<BR>
+            <P>OpenSSL 3.3.0 9 Apr 2024<BR>
             Copyright (c) 1998-2024 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -2895,7 +2898,7 @@ fi</PRE>
                       <TR>
                         <TD>SSL/TLS</TD>
                         <TD>接続先によりSSL/TLSを自動で選択して接続します。上記のProxy ProtocolによりALPNでプロトコルネゴシエーションを行います<BR>
-                        ※コネクション確率後のチェックは、通常オンだと思いますが一部の古いサーバーでSSL/TLSを維持しない場合があるのでオプションにしています。ご注意ください</TD>
+                        ※コネクション確立後のチェックは、通常オンだと思いますが一部の古いサーバーでSSL/TLSを維持しない場合があるのでオプションにしています。ご注意ください</TD>
                       </TR>
                       <TR>
                         <TD>QUIC</TD>
@@ -3206,13 +3209,14 @@ fi</PRE>
                   <A href="#TERMMODE">端末モードの設定</A></TD>
                 </TR>
                 <TR>
-                  <TD align="center">追加のバージョン…</TD>
-                  <TD>sshのクライアントバージョン情報に任意の文字列を追加します。（通常は、使用しません）</TD>
+                  <TD align="center">keyboad-inter…</TD>
+                  <TD>keyboard-interactiveをプラグインコマンドで処理します。プラグインの仕様は、<A href="https://the.earth.li/~sgtatham/putty/0.81/htmldoc/AppendixH.html#authplugin">PuTTYのプラグイン</A>に合わせています</TD>
                 </TR>
               </TBODY>
             </TABLE>
-            ※このページのほとんどの設定(KeepAliveを省く）は、次回接続時から有効になります（接続中の変更は、反映されませんのでご注意ください）</TD>
-            <TD valign="top"><IMG src="image014.jpg" width="609" height="531" border="0"></TD>
+            ※このページのほとんどの設定(KeepAliveを省く）は、次回接続時から有効になります（接続中の変更は、反映されませんのでご注意ください）<BR>
+            ※2.29.3からsshの追加のバージョン情報の設定自体は、残しています(Protocol.VerIdent)</TD>
+            <TD valign="top"><IMG src="image014.jpg" width="609" height="536" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

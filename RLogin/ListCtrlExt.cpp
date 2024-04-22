@@ -13,6 +13,128 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
+// CHeaderCtrlExt
+
+CHeaderCtrlExt::CHeaderCtrlExt()
+{
+	m_HitItem = (-1);
+}
+
+BEGIN_MESSAGE_MAP(CHeaderCtrlExt, CHeaderCtrl)
+	ON_WM_PAINT()
+	ON_WM_ERASEBKGND()
+	ON_WM_MOUSEMOVE()
+	ON_WM_MOUSELEAVE()
+END_MESSAGE_MAP()
+
+void CHeaderCtrlExt::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
+{
+	HDITEM hdi;
+	CDC *pDC = CDC::FromHandle(lpDrawItemStruct->hDC);
+	int nSavedDC = pDC->SaveDC();
+	CRect rect = lpDrawItemStruct->rcItem;
+	TCHAR title[256];
+	UINT fmt = DT_SINGLELINE | DT_WORD_ELLIPSIS | DT_VCENTER;
+
+	ZeroMemory(&hdi, sizeof(hdi));
+	hdi.mask = HDI_TEXT | HDI_FORMAT;
+	hdi.pszText = title;
+	hdi.cchTextMax = 256;
+	GetItem(lpDrawItemStruct->itemID, &hdi);
+
+	//TRACE("DrawItem %d %x %x\n", lpDrawItemStruct->itemID, lpDrawItemStruct->itemState, hdi.fmt);
+
+	if ( (lpDrawItemStruct->itemState & ODS_FOCUS) != 0 )
+		pDC->FillSolidRect(rect, GetAppColor(COLOR_GRADIENTINACTIVECAPTION));
+	else
+		pDC->FillSolidRect(rect, GetAppColor(APPCOL_CTRLFACE));
+
+	pDC->FillSolidRect(rect.right - 1, rect.top, 1, rect.Height(), GetAppColor(COLOR_3DLIGHT));
+
+	pDC->SelectObject(GetFont());
+	pDC->SetTextColor(GetAppColor(APPCOL_CTRLTEXT));
+	pDC->SetBkMode(TRANSPARENT);
+
+	switch(hdi.fmt & (HDF_LEFT | HDF_RIGHT | HDF_CENTER)) {
+	case HDF_LEFT:		fmt |= DT_LEFT;		break;
+	case HDF_RIGHT:		fmt |= DT_RIGHT;	break;
+	case HDF_CENTER:	fmt |= DT_CENTER;	break;
+	}
+
+	rect.left  += 4;
+	rect.right -= 4;
+
+	pDC->DrawText(title, rect, fmt);
+
+	pDC->RestoreDC(nSavedDC);
+}
+void CHeaderCtrlExt::OnPaint()
+{
+	int n;
+	CRect rect;
+	CPaintDC dc(this);
+	DRAWITEMSTRUCT dis;
+	CRect clip = dc.m_ps.rcPaint;
+
+	ZeroMemory(&dis, sizeof(dis));
+	dis.hDC = dc.GetSafeHdc();
+	dis.CtlType = ODT_HEADER;
+	dis.itemAction = ODA_DRAWENTIRE;
+
+	for ( n = 0 ; n < GetItemCount() ; n++ ) {
+		GetItemRect(n, rect);
+		
+		dis.itemState = n == m_HitItem ? ODS_FOCUS : 0;
+
+		if ( rect.left < clip.right && rect.right > clip.left ) {
+			dis.itemID = n;
+			dis.rcItem = rect;
+			DrawItem(&dis);
+		}
+	}
+}
+BOOL CHeaderCtrlExt::OnEraseBkgnd(CDC* pDC)
+{
+	CRect rect;
+	GetClientRect(rect);
+	pDC->FillSolidRect(rect, GetAppColor(APPCOL_CTRLFACE));
+	return TRUE;
+}
+
+void CHeaderCtrlExt::OnMouseMove(UINT nFlags, CPoint point)
+{
+	int item;
+	CRect rect;
+	HDHITTESTINFO hdhit;
+
+	ZeroMemory(&hdhit, sizeof(hdhit));
+	hdhit.pt = point;
+
+	if ( (item = HitTest(&hdhit)) != m_HitItem ) {
+		if ( m_HitItem != (-1) ) {
+			GetItemRect(m_HitItem, rect);
+			InvalidateRect(rect, FALSE);
+		}
+		if ( (m_HitItem = item) != (-1) ) {
+			GetItemRect(m_HitItem, rect);
+			InvalidateRect(rect, FALSE);
+		}
+	}
+
+	CHeaderCtrl::OnMouseMove(nFlags, point);
+}
+void CHeaderCtrlExt::OnMouseLeave()
+{
+	if ( m_HitItem != (-1) ) {
+		CRect rect;
+		GetItemRect(m_HitItem, rect);
+		InvalidateRect(rect, FALSE);
+		m_HitItem = (-1);
+	}
+	CHeaderCtrl::OnMouseLeave();
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // CListCtrlExt
 
 CListCtrlExt::CListCtrlExt()
@@ -42,6 +164,8 @@ BEGIN_MESSAGE_MAP(CListCtrlExt, CListCtrl)
 	ON_NOTIFY_REFLECT_EX(NM_RCLICK, OnRclick)
 	ON_NOTIFY_REFLECT_EX(NM_DBLCLK, OnDblclk)
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
+	ON_WM_ERASEBKGND()
+	ON_WM_CTLCOLOR()
 END_MESSAGE_MAP()
 
 static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort)
@@ -132,6 +256,12 @@ void CListCtrlExt::InitColumn(LPCTSTR lpszSection, const LV_COLUMN *lpColumn, in
 	CSize dsz(7, 12);
 	CSize fsz(7, 12);
 
+#ifdef	USE_DARKMODE
+	CHeaderCtrl *pWnd = GetHeaderCtrl();
+	if ( pWnd != NULL )
+		m_HeadCtrl.SubclassWindow(pWnd->GetSafeHwnd());
+#endif
+
 	if ( pParent != NULL && CDialogExt::IsDialogExt(pParent) ) {
 		m_Dpi.cx = pParent->m_NowDpi.cx;
 		m_Dpi.cy = pParent->m_NowDpi.cy;
@@ -219,6 +349,11 @@ void CListCtrlExt::SaveColumn(LPCTSTR lpszSection)
 		buf.Put16Bit(m_SortItem[n]);
 
 	((CRLoginApp *)AfxGetApp())->WriteProfileBinary(lpszSection, _T("SortItemTab"), buf.GetPtr(), buf.GetSize());
+
+#ifdef	USE_DARKMODE
+	if ( m_HeadCtrl.GetSafeHwnd() != NULL )
+			m_HeadCtrl.UnsubclassWindow();
+#endif
 }
 void CListCtrlExt::SetLVCheck(WPARAM ItemIndex, BOOL bCheck)
 {
@@ -759,12 +894,40 @@ LRESULT CListCtrlExt::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 	return FALSE;
 }
 
-BOOL CListCtrlExt::OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pLResult)
+BOOL CListCtrlExt::OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pResult)
 {
 	NMHDR *pHdr = (NMHDR *)lParam;
 
-	if ( message == WM_NOTIFY && !m_bSort && pHdr->code == LVN_COLUMNCLICK )
+	if ( message == WM_NOTIFY && pHdr->code == LVN_COLUMNCLICK && !m_bSort )
 		return FALSE;
 
-	return CListCtrl::OnChildNotify(message, wParam, lParam, pLResult);
+	return CListCtrl::OnChildNotify(message, wParam, lParam, pResult);
+}
+
+BOOL CListCtrlExt::OnEraseBkgnd(CDC* pDC)
+{
+#ifdef	USE_DARKMODE
+	CRect rect;
+	GetClientRect(rect);
+	pDC->FillSolidRect(rect, GetAppColor(APPCOL_CTRLFACE));
+	return TRUE;
+#else
+	return CListCtrl::OnEraseBkgnd(pDC);
+#endif
+}
+HBRUSH CListCtrlExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+{
+	HBRUSH hbr = CListCtrl::OnCtlColor(pDC, pWnd, nCtlColor);
+
+#ifdef	USE_DARKMODE
+	switch(nCtlColor) {
+	case CTLCOLOR_EDIT:			// Edit control
+		hbr = GetAppColorBrush(APPCOL_CTRLFACE);
+		pDC->SetTextColor(GetAppColor(APPCOL_CTRLTEXT));
+		pDC->SetBkMode(TRANSPARENT);
+		break;
+	}
+#endif
+
+	return hbr;
 }

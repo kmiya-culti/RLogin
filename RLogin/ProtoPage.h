@@ -28,6 +28,7 @@ public:
 	CString m_x11AuthData;
 	int m_RsaExt;
 	CString m_VerIdent;
+	CString m_PluginAuth;
 	int m_StdIoBufSize;
 
 public:

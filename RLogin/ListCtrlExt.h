@@ -10,6 +10,22 @@
 #define	EDITFLAG_EDIT		1
 #define	EDITFLAG_NEXT		2
 
+class CHeaderCtrlExt : public CHeaderCtrl
+{
+public:
+	CHeaderCtrlExt();
+
+	int m_HitItem;
+
+public:
+	DECLARE_MESSAGE_MAP()
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	virtual void DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);
+	afx_msg void OnPaint();
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnMouseLeave();
+};
+
 class CListCtrlExt : public CListCtrl
 {
 // コンストラクション
@@ -33,6 +49,9 @@ public:
 	BOOL m_bMove;
 	CSize m_Dpi;
 	BOOL m_bSetLVCheck;
+#ifdef	USE_DARKMODE
+	CHeaderCtrlExt m_HeadCtrl;
+#endif
 
 	void SetSelectMarkItem(int item);
 	int GetParamItem(int para);
@@ -55,7 +74,7 @@ public:
 // オーバーライド
 protected:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
-	virtual BOOL OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pLResult);
+	virtual BOOL OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pResult);
 
 // インプリメンテーション
 protected:
@@ -68,4 +87,6 @@ protected:
 	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg BOOL OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
 };

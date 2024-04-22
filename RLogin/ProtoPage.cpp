@@ -56,8 +56,9 @@ void CProtoPage::DoDataExchange(CDataExchange* pDX)
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_CHECKFAST + n, m_Check[n]);
 	DDX_CBIndex(pDX, IDC_RSAEXTSEL, m_RsaExt);
-	DDX_Text(pDX, IDC_VERINDENT, m_VerIdent);
 	DDX_CBIndex(pDX, IDC_STDBUFSIZE, m_StdIoBufSize);
+//	DDX_Text(pDX, IDC_VERINDENT, m_VerIdent);
+	DDX_Text(pDX, IDC_VERINDENT, m_PluginAuth);
 }
 
 BEGIN_MESSAGE_MAP(CProtoPage, CTreePage)
@@ -87,11 +88,12 @@ void CProtoPage::DoInit()
 	for ( int n = 0 ; n < 12 ; n++ )
 		m_AlgoTab[n] = m_pSheet->m_pParamTab->m_AlgoTab[n];
 
-	m_IdKeyList = m_pSheet->m_pParamTab->m_IdKeyList;
-	m_PortFwd   = m_pSheet->m_pParamTab->m_PortFwd;
-	m_XDisplay  = m_pSheet->m_pParamTab->m_XDisplay;
-	m_RsaExt    = m_pSheet->m_pParamTab->m_RsaExt;
-	m_VerIdent  = m_pSheet->m_pParamTab->m_VerIdent;
+	m_IdKeyList   = m_pSheet->m_pParamTab->m_IdKeyList;
+	m_PortFwd     = m_pSheet->m_pParamTab->m_PortFwd;
+	m_XDisplay    = m_pSheet->m_pParamTab->m_XDisplay;
+	m_RsaExt      = m_pSheet->m_pParamTab->m_RsaExt;
+	m_VerIdent    = m_pSheet->m_pParamTab->m_VerIdent;
+	m_PluginAuth  = m_pSheet->m_pParamTab->m_PluginAuth;
 
 	m_x11AuthFlag = m_pSheet->m_pParamTab->m_x11AuthFlag;
 	m_x11AuthName = m_pSheet->m_pParamTab->m_x11AuthName;
@@ -133,11 +135,12 @@ BOOL CProtoPage::OnApply()
 	for ( int n = 0 ; n < 12 ; n++ )
 		m_pSheet->m_pParamTab->m_AlgoTab[n] = m_AlgoTab[n];
 
-	m_pSheet->m_pParamTab->m_IdKeyList = m_IdKeyList;
-	m_pSheet->m_pParamTab->m_PortFwd   = m_PortFwd;
-	m_pSheet->m_pParamTab->m_XDisplay  = m_XDisplay;
-	m_pSheet->m_pParamTab->m_RsaExt    = m_RsaExt;
-	m_pSheet->m_pParamTab->m_VerIdent  = m_VerIdent;
+	m_pSheet->m_pParamTab->m_IdKeyList   = m_IdKeyList;
+	m_pSheet->m_pParamTab->m_PortFwd     = m_PortFwd;
+	m_pSheet->m_pParamTab->m_XDisplay    = m_XDisplay;
+	m_pSheet->m_pParamTab->m_RsaExt      = m_RsaExt;
+	m_pSheet->m_pParamTab->m_VerIdent    = m_VerIdent;
+	m_pSheet->m_pParamTab->m_PluginAuth  = m_PluginAuth;
 
 	m_pSheet->m_pParamTab->m_x11AuthFlag = m_x11AuthFlag;
 	m_pSheet->m_pParamTab->m_x11AuthName = m_x11AuthName;

@@ -406,6 +406,7 @@ public:
 
 	void SetPackStr(CStringA &mbs);
 	LPCTSTR GetPackStr(LPCTSTR str);
+	LPCTSTR GetDefineStr(LPCTSTR str);
 	BOOL ReadString(CArchive& ar, CString &str);
 	void Serialize(CArchive& ar, LPCSTR base = NULL, int version = 3);
 	BOOL MsgStr(CString &str,  LPCSTR base = NULL);
@@ -1032,6 +1033,7 @@ public:
 	BOOL m_bInitPageant;
 	int m_StdIoBufSize;
 	int m_TransmitLimit;
+	CString m_PluginAuth;
 
 	CParamTab();
 	void Init();

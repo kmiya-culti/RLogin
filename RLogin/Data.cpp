@@ -8120,6 +8120,7 @@ void CParamTab::Init()
 	m_StdIoBufSize = 32;
 
 	m_TransmitLimit = 1000;
+	m_PluginAuth.Empty();
 }
 void CParamTab::SetArray(CStringArrayExt &stra)
 {
@@ -8168,6 +8169,7 @@ void CParamTab::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_bInitPageant);
 	stra.AddVal(m_StdIoBufSize);
 	stra.AddVal(m_TransmitLimit);
+	stra.Add(m_PluginAuth);
 }
 void CParamTab::GetArray(CStringArrayExt &stra)
 {
@@ -8298,6 +8300,9 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > i )
 		m_TransmitLimit = stra.GetVal(i++);
 
+	if ( stra.GetSize() > i )
+		m_PluginAuth = stra.GetAt(i++);
+
 	// Fix IdKeyList
 	if ( m_IdKeyStr[0].Compare(_T("IdKeyList Entry")) == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
@@ -8377,6 +8382,7 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 		index[_T("StdIoBufSize")] = m_StdIoBufSize;
 
 		index[_T("TransmitLimit")] = m_TransmitLimit;
+		index[_T("PluginAuth")]    = m_PluginAuth;
 
 	} else {			// Read
 		if ( (n = index.Find(_T("Algo"))) >= 0 ) {
@@ -8484,6 +8490,9 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("TransmitLimit"))) >= 0 )
 			m_TransmitLimit = index[n];
+
+		if ( (n = index.Find(_T("PluginAuth"))) >= 0 )
+			m_PluginAuth = index[n];
 	}
 }
 void CParamTab::DiffIndex(CParamTab &orig, CStringIndex &index)
@@ -8592,6 +8601,9 @@ void CParamTab::DiffIndex(CParamTab &orig, CStringIndex &index)
 
 	if ( m_TransmitLimit != orig.m_TransmitLimit )
 		index[_T("TransmitLimit")] = m_TransmitLimit;
+
+	if ( m_PluginAuth != orig.m_PluginAuth )
+		index[_T("PluginAuth")] = m_PluginAuth;
 }
 
 static const ScriptCmdsDefs DocSsh[] = {
@@ -8602,6 +8614,7 @@ static const ScriptCmdsDefs DocSsh[] = {
 	{	_T("TtyMode"),		17	},
 	{	_T("RsaExt"),		18	},
 	{	_T("VerIdent"),		19	},
+	{	_T("PluginAuth"),	20	},
 	{	NULL,				0	},
 }, DocSshProtocol[] = {
 	{	_T("ssh1Cip"),		5	},
@@ -8745,6 +8758,9 @@ void CParamTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 	case 19:				// Document.ssh.VerIdent
 		value.SetStr(m_VerIdent, mode);
 		break;
+	case 20:				// Document.ssh.PluginAuth
+		value.SetStr(m_PluginAuth, mode);
+		break;
 	}
 }
 void CParamTab::GetProp(int num, CString &str, int shuffle)
@@ -8814,7 +8830,15 @@ const CParamTab & CParamTab::operator = (CParamTab &data)
 	for ( n = 0 ; n < data.m_TtyMode.GetSize() ; n++ )
 		m_TtyMode[n] = data.m_TtyMode[n];
 	m_RsaExt = data.m_RsaExt;
+	m_VerIdent = data.m_VerIdent;
+	m_x11AuthFlag = data.m_x11AuthFlag;
+	m_x11AuthName = data.m_x11AuthName;
+	m_x11AuthData = data.m_x11AuthData;
 	m_bInitPageant = data.m_bInitPageant;
+	m_StdIoBufSize = data.m_StdIoBufSize;
+	m_TransmitLimit = data.m_TransmitLimit;
+	m_PluginAuth = data.m_PluginAuth;
+
 	return *this;
 }
 
@@ -9270,7 +9294,7 @@ LPCTSTR CStringIndex::GetPackStr(LPCTSTR str)
 
 	while ( *str != _T('\0') ) {
 
-		while ( *str <= _T(' ') )
+		while ( *str != _T('\0') && *str <= _T(' ') )
 			str++;
 
 		if ( *str == _T('[') ) {
@@ -9379,6 +9403,58 @@ LPCTSTR CStringIndex::GetPackStr(LPCTSTR str)
 			break;
 
 		} else
+			break;
+	}
+
+	return str;
+}
+LPCTSTR CStringIndex::GetDefineStr(LPCTSTR str)
+{
+	CString base, index;
+	LPCTSTR p;
+	CStringIndex *ip;
+
+	while ( *str != _T('\0') ) {
+
+		while ( *str != _T('\0') && (*str <= _T(' ') || *str == _T(';')) )
+			str++;
+
+		base.Empty();
+		while ( *str != _T('\0') ) {
+			if ( _tcschr(_T("#; \t\r\n"), *str) != NULL )
+				break;
+			else if ( *str == _T('=') )
+				break;
+			base += *(str++);
+		}
+
+		if ( base.IsEmpty() )
+			break;
+
+		ip = this;
+		p = base;
+		index.Empty();
+		while ( *p != _T('\0') ) {
+			if ( *p == _T('.') ) {
+				ip = &((*ip)[index]);
+				index.Empty();
+				p++;
+			} else
+				index += *(p++);
+		}
+		if ( !index.IsEmpty() )
+			ip = &((*ip)[index]);
+
+		while ( *str != _T('\0') && *str <= _T(' ') )
+			str++;
+
+		if ( *str == _T('=') )
+			str = ip->GetPackStr(++str);
+
+		while ( *str != _T('\0') && *str <= _T(' ') )
+			str++;
+
+		if ( *str != _T(';') )
 			break;
 	}
 
@@ -9498,50 +9574,11 @@ void CStringIndex::Serialize(CArchive& ar, LPCSTR base, int version)
 
 		} else {
 			CString str;
-			CString base, data, index;
-			LPCTSTR p;
-			CStringIndex *ip;
 
 			while ( ReadString(ar, str) ) {
 				if ( str.Compare(_T("ENDOF")) == 0 )
 					break;
-
-				p = str;
-				base.Empty();
-				data.Empty();
-
-				while ( *p != _T('\0') ) {
-					if ( *p == _T('#') )
-						break;
-					else if ( *p == _T('=') )
-						break;
-					base += *(p++);
-				}
-				base.Trim(_T(" \t\r\n"));
-
-				if ( *p == _T('=') ) {
-					data = ++p;
-					data.Trim(_T(" \t\r\n"));
-				}
-
-				if ( base.IsEmpty() )
-					continue;
-
-				ip = this;
-				p = base;
-				index.Empty();
-				while ( *p != _T('\0') ) {
-					if ( *p == _T('.') ) {
-						ip = &((*ip)[index]);
-						index.Empty();
-						p++;
-					} else
-						index += *(p++);
-				}
-				if ( !index.IsEmpty() )
-					ip = &((*ip)[index]);
-
-				ip->GetPackStr(data);
+				GetDefineStr(str);
 			}
 		}
 	}

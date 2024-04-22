@@ -616,6 +616,20 @@ public:
 	void ReceiveBuffer(CBuffer *bp);
 };
 
+class CFifoPlugin : public CFifoThread
+{
+public:
+	CBuffer m_RecvBuffer;
+
+public:
+	CFifoPlugin(class CRLoginDoc *pDoc, class CExtSocket *pSock);
+
+	virtual void OnRead(int nFd);
+	virtual void OnWrite(int nFd);
+	virtual void OnConnect(int nFd);
+	virtual void OnClose(int nFd, int nLastError);
+};
+
 class CFifoX11 : public CFifoWnd
 {
 public:
@@ -755,6 +769,33 @@ public:
 #define	EXTINFOSTAT_SEND				1
 #define	EXTINFOSTAT_DONE				2
 
+#define PLUGIN_INIT						1
+#define PLUGIN_INIT_RESPONSE			2
+#define PLUGIN_PROTOCOL					3
+#define PLUGIN_PROTOCOL_ACCEPT			4
+#define PLUGIN_PROTOCOL_REJECT			5
+#define PLUGIN_AUTH_SUCCESS				6
+#define PLUGIN_AUTH_FAILURE				7
+#define PLUGIN_INIT_FAILURE				8
+
+#define PLUGIN_KI_SERVER_REQUEST		20
+#define PLUGIN_KI_SERVER_RESPONSE		21
+#define PLUGIN_KI_USER_REQUEST			22
+#define PLUGIN_KI_USER_RESPONSE			23
+
+enum PluginState {
+	STATE_NONE,
+	STATE_PROTOCOL,
+	STATE_PROTRES,
+	STATE_REQUEST,
+	STATE_RESPONSE,
+	STATE_SUCCESS,
+	STATE_FAILURE,
+	STATE_ERROR,
+	STATE_ABORT,
+	STATE_CLOSE,
+};
+
 enum EAuthStat {
 	AST_START = 0,
 	AST_PUBKEY_TRY,
@@ -816,7 +857,7 @@ public:
 	CIdKey m_HostKey;
 	CIdKey *m_pIdKey;
 	int m_IdKeyPos;
-	int m_AuthReqTab[10];
+	int m_AuthReqTab[16];
 	BOOL m_bKeybIntrReq;
 	BOOL m_bReqRsaSha1;
 
@@ -967,6 +1008,12 @@ public:
 	void OpenSFtpChannel();
 	void OpenRcpUpload(LPCTSTR file);
 	void OpenRcpDownload(LPCTSTR file);
+
+	enum PluginState m_PluginStat;
+	class CFifoPipe *m_pFifoPipe;
+	CFifoPlugin *m_pFifoPlugin;
+
+	void PluginProc(int type, CBuffer *bp);
 
 // SSH ver2 SendMsg...
 	void SendMsgKexInit();

@@ -94,7 +94,10 @@
 #define	APPCOL_TABHIGH		45
 #define	APPCOL_TABSHADOW	46
 
-#define	APPCOL_MAX			47
+#define	APPCOL_CTRLFACE		47
+#define	APPCOL_CTRLTEXT		48
+
+#define	APPCOL_MAX			49
 
 #define	EMOJIPOSTSTAT_DONE	0
 #define	EMOJIPOSTSTAT_WAIT	1
@@ -117,6 +120,7 @@ public:
 	CString m_Idkey;
 	CString m_Path;
 	CString m_Cwd;
+	CString m_Opt;
 	int m_InUse;
 	BOOL m_InPane;
 	int m_AfterId;
@@ -379,6 +383,7 @@ extern void LoadAppColor();
 extern void SaveAppColor();
 extern inline COLORREF GetAppColor(int nIndex) { return AppColorTable[AppColorBase][nIndex]; };
 extern HBRUSH GetAppColorBrush(int nIndex);
+extern BOOL (_stdcall *AllowDarkModeForWindow)(HWND hwnd, BOOL allow);
 
 extern BOOL ExDwmEnable;
 extern void ExDwmEnableWindow(HWND hWnd, BOOL bEnable);

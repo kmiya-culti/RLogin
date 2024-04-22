@@ -302,7 +302,7 @@ void CMsgChkDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 
 	if ( nIDCtl >= IDC_BOX1 ) {
 		m_BackWnd.GetClientRect(rect);
-		pDC->FillSolidRect(rect, GetAppColor(COLOR_WINDOW));
+		pDC->FillSolidRect(rect, GetAppColor(APPCOL_CTRLFACE));
 	} else
 		CDialogExt::OnDrawItem(nIDCtl, lpDrawItemStruct);
 }
@@ -312,10 +312,10 @@ HBRUSH CMsgChkDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 
 	switch(pWnd->GetDlgCtrlID()) {
 	case IDC_MSGTEXT:
-		pDC->SetTextColor(GetAppColor(COLOR_WINDOWTEXT));
-		pDC->SetBkColor(GetAppColor(COLOR_WINDOW));
+		pDC->SetTextColor(GetAppColor(APPCOL_CTRLTEXT));
+		pDC->SetBkColor(GetAppColor(APPCOL_CTRLFACE));
 	case IDC_ICONBOX:
-		hbr = GetAppColorBrush(COLOR_WINDOW);
+		hbr = GetAppColorBrush(APPCOL_CTRLFACE);
 		break;
 	}
 

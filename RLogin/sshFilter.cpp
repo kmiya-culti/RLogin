@@ -775,6 +775,65 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CFifoPlugin
+
+CFifoPlugin::CFifoPlugin(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoThread(pDoc, pSock)
+{
+}
+void CFifoPlugin::OnRead(int nFd)
+{
+	int len;
+
+	for ( ; ; ) {
+		if ( (len = MoveBuffer(FIFO_STDIN, &m_RecvBuffer)) < 0 ) {
+			// End of Data
+			ResetFdEvents(nFd, FD_READ);
+			SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)m_nLastError);
+			break;
+		} else if ( len == 0 ) {
+			// No Data
+			break;
+		} else {
+			while ( m_RecvBuffer.GetSize() >= 4 ) {
+				len = m_RecvBuffer.PTR32BIT(m_RecvBuffer.GetPtr());
+				if ( len > (256 * 1024) || len < 0 ) {
+					// Packet Size error
+					ResetFdEvents(nFd, FD_READ);
+					SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)WSAEFAULT);
+					break;
+				}
+				if ( m_RecvBuffer.GetSize() < (len + 4) )
+					break;
+				m_RecvBuffer.Consume(4);
+				if ( len > 0 ) {
+					CBuffer *pBuf = new CBuffer(len);
+					pBuf->Apend(m_RecvBuffer.GetPtr(), len);
+					m_RecvBuffer.Consume(len);
+					int type = pBuf->Get8Bit();
+					((Cssh *)m_pSock)->m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_PLUGIN, type, 0, (void *)pBuf);
+				} 
+			}
+		}
+	}
+}
+void CFifoPlugin::OnWrite(int nFd)
+{
+	ResetFdEvents(nFd, FD_WRITE);
+}
+void CFifoPlugin::OnConnect(int nFd)
+{
+}
+void CFifoPlugin::OnClose(int nFd, int nLastError)
+{
+	if ( nFd == FIFO_STDIN ) {
+		m_nLastError = nLastError;
+	} else if ( nFd == FIFO_STDOUT ) {
+		SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)nLastError);
+		Write(FIFO_STDOUT, NULL, 0);
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
 // CFifoX11
 
 CFifoX11::CFifoX11(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CFifoChannel *pChan) : CFifoWnd(pDoc, pSock)

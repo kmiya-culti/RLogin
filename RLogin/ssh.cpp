@@ -12,6 +12,7 @@
 #include "EditDlg.h"
 #include "IdkeySelDLg.h"
 #include "IdKeyFileDlg.h"
+#include "PipeSock.h"
 #include "ssh.h"
 
 #include "ssh1.h"
@@ -140,6 +141,10 @@ void CFifoSsh::OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent
 	case FIFO_QCMD_CANCELPFD:
 		((Cssh *)m_pSock)->CancelPortForward();
 		break;
+	case FIFO_QCMD_PLUGIN:
+		((Cssh *)m_pSock)->PluginProc(msg, (CBuffer *)buf);
+		delete (CBuffer *)buf;
+		break;
 	}
 }
 
@@ -170,6 +175,9 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 		m_VKey[n] = NULL;
 
 	m_pAgentMutex = NULL;
+
+	m_pFifoPipe = NULL;
+	m_pFifoPlugin = NULL;
 }
 Cssh::~Cssh()
 {
@@ -231,8 +239,8 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_bKeybIntrReq = FALSE;
 		m_AuthMeta.Empty();
 		m_AuthLog.Empty();
-		m_HostName = m_pDocument->m_ServerEntry.m_HostName;
-		m_HostPort = nHostPort;
+		m_HostName = (m_ProxyStatus == PRST_NONE ? lpszHostAddress : m_ProxyHostAddr);
+		m_HostPort = (m_ProxyStatus == PRST_NONE ? nHostPort       : m_ProxyPort);
 		m_DhMode = DHMODE_GROUP_1;
 		m_GlbReqMap.RemoveAll();
 		m_ChnReqMap.RemoveAll();
@@ -256,6 +264,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_bKnownHostUpdate = TRUE;
 		m_bReqRsaSha1 = FALSE;
 		m_KexStrictStat = KEXSTRICT_CHECK;
+		m_PluginStat = STATE_NONE;
 
 		m_KeepAliveSendCount = m_KeepAliveReplyCount = 0;
 		m_KeepAliveRecvGlobalCount = m_KeepAliveRecvChannelCount = 0;
@@ -2325,6 +2334,286 @@ void Cssh::OpenRcpDownload(LPCTSTR file)
 	PostSendMsgChannelOpen(pChan->m_LocalID, "session");
 }
 
+void Cssh::PluginProc(int type, CBuffer *bp)
+{
+	int n;
+	CBuffer tmp;
+	CStringA mbs;
+	CString file, errMsg;
+
+	try { for ( ; ; ) {
+		TRACE("PluginProc %d %d\n", m_PluginStat, type);
+		switch(m_PluginStat) {
+		case STATE_NONE:
+			switch(type) {	// from clinet
+			case PLUGIN_INIT:
+				ASSERT(m_pFifoPipe == NULL && m_pFifoPlugin == NULL && m_pDocument != NULL);
+				m_pFifoPipe   = new CFifoPipe(m_pDocument, this);
+				m_pFifoPlugin = new CFifoPlugin(m_pDocument, this);
+				CFifoBase::Link(m_pFifoPipe, FIFO_STDIN, m_pFifoPlugin, FIFO_STDIN);
+
+				file = m_pDocument->m_ParamTab.m_PluginAuth;
+				m_pDocument->EntryText(file);
+
+				if ( !m_pFifoPipe->Open(file) ) {
+					errMsg.Format(_T("State None, command exec error '%s'"), file);
+					m_PluginStat = STATE_ERROR;
+					break;
+				}
+				
+				ASSERT(bp != NULL);
+				// 		uint32		version
+				//		string		host name
+				//		uint32		tcp port
+				//		string		user name
+				tmp.Put32Bit(bp->GetSize() + 1);
+				tmp.Put8Bit(PLUGIN_INIT);
+				tmp.Apend(bp->GetPtr(), bp->GetSize());
+				m_pFifoPlugin->Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
+
+				m_PluginStat = STATE_PROTOCOL;
+				return;	// next plugin
+
+			default:
+				errMsg.Format(_T("State None unkown type %d"), type);
+				m_PluginStat = STATE_ERROR;
+				break;
+			}
+			break;
+
+		case STATE_PROTOCOL:
+			switch(type) {	// from plugin
+			case PLUGIN_INIT_RESPONSE:
+				ASSERT(bp != NULL);
+				//		uint32		version
+				//		string		user name
+				n = bp->Get32Bit();
+				bp->GetStr(mbs);
+
+				if ( n < 2 ) {
+					errMsg.Format(_T("State Protocol, version error %d < 2 ?"), n);
+					m_PluginStat = STATE_ERROR;
+					break;
+				}
+				if ( !mbs.IsEmpty() ) {
+					CString name = LocalStr(mbs);
+					if ( m_pDocument->m_ServerEntry.m_UserName.Compare(name) != 0 )
+						m_pDocument->m_ServerEntry.m_UserName = name;
+				}
+
+				tmp.Put8Bit(PLUGIN_PROTOCOL);
+				tmp.PutStr("keyboard-interactive");
+				bp->Clear();
+				bp->Put32Bit(tmp.GetSize());
+				bp->Apend(tmp.GetPtr(), tmp.GetSize());
+				m_pFifoPlugin->Write(FIFO_STDOUT, bp->GetPtr(), bp->GetSize());
+
+				m_PluginStat = STATE_PROTRES;
+				return;	// next client
+
+			case PLUGIN_INIT_FAILURE:
+				ASSERT(bp != NULL);
+				//		string		error msg
+				bp->GetStr(mbs);
+				errMsg.Format(_T("State Protocol, init failure '%s'"), LocalStr(mbs));
+				m_PluginStat = STATE_ERROR;
+				break;
+			default:
+				errMsg.Format(_T("State Protocol, unkown type %d"), type);
+				m_PluginStat = STATE_ERROR;
+				break;
+			}
+			break;
+
+		case STATE_PROTRES:
+			switch(type) {	// from plugin
+			case PLUGIN_PROTOCOL_ACCEPT:
+				tmp.Put8Bit(SSH2_MSG_USERAUTH_REQUEST);
+				tmp.PutStr(RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
+				tmp.PutStr("ssh-connection");
+				tmp.PutStr("keyboard-interactive");
+				tmp.PutStr("");		// LANG
+				tmp.PutStr("");		// DEV
+				SendPacket2(&tmp);
+
+				m_PluginStat = STATE_RESPONSE;
+				return;	// next client
+
+			case PLUGIN_PROTOCOL_REJECT:
+				ASSERT(bp != NULL);
+				//		string		error msg
+				bp->GetStr(mbs);
+				errMsg.Format(_T("State Protres, reject '%s'"), LocalStr(mbs));
+				m_PluginStat = STATE_ERROR;
+				break;
+			default:
+				errMsg.Format(_T("State Protres, unkown type %d"), type);
+				m_PluginStat = STATE_ERROR;
+				break;
+			}
+			break;
+
+		case STATE_RESPONSE:
+			switch(type) {	// from client
+			case PLUGIN_KI_SERVER_REQUEST:	// 	SSH2_MSG_USERAUTH_INFO_REQUEST
+				ASSERT(bp != NULL);
+				//		string		title
+				//		string		prompt
+				//		string		lang
+				//		uint32		msg count
+				//			string		msg
+				//			boolean		echo flag
+				tmp.Put32Bit(bp->GetSize() + 1);
+				tmp.Put8Bit(PLUGIN_KI_SERVER_REQUEST);
+				tmp.Apend(bp->GetPtr(), bp->GetSize());
+				m_pFifoPlugin->Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
+
+				m_PluginStat = STATE_REQUEST;
+				return;	// next plugin
+
+			case PLUGIN_AUTH_SUCCESS:		// SSH2_MSG_USERAUTH_SUCCESS
+				m_PluginStat = STATE_SUCCESS;
+				break;
+			case PLUGIN_AUTH_FAILURE:		// SSH2_MSG_USERAUTH_FAILURE
+				m_PluginStat = STATE_FAILURE;
+				break;
+			default:
+				errMsg.Format(_T("State Response, unkown type %d"), type);
+				m_PluginStat = STATE_ERROR;
+				break;
+			}
+			break;
+
+		case STATE_REQUEST:
+			switch(type) {	// from plugin
+			case PLUGIN_KI_USER_REQUEST:
+				{
+					int echo, max;
+					CStringA name, inst, lang, prom;
+					CEditDlg dlg;
+
+					ASSERT(bp != NULL);
+					//		string		name
+					//		string		inst
+					//		string		lang
+					//		uint32		msg count
+					bp->GetStr(name);
+					bp->GetStr(inst);
+					bp->GetStr(lang);
+					max = bp->Get32Bit();
+
+					tmp.Put8Bit(PLUGIN_KI_USER_RESPONSE);
+					tmp.Put32Bit(max);
+
+					for ( n = 0 ; n < max ; n++ ) {
+						//		string		prom
+						//		boolean		echo flag
+						bp->GetStr(prom);
+						echo = bp->Get8Bit();
+
+						dlg.m_WinText.Format(_T("Plugin Auth(%s@%s)"), (LPCTSTR)m_pDocument->m_ServerEntry.m_UserName, (LPCTSTR)m_HostName);
+						dlg.m_Title.Empty();
+						if ( !name.IsEmpty() ) {
+							dlg.m_Title += LocalStr(name);
+							dlg.m_Title += _T("\r\n");
+						}
+						if ( !inst.IsEmpty() ) {
+							dlg.m_Title += LocalStr(inst);
+							dlg.m_Title += _T("\r\n");
+						}
+						dlg.m_Title += LocalStr(prom);
+						dlg.m_bPassword = (echo == 0 ? TRUE : FALSE);
+
+						if ( dlg.DoModal() != IDOK ) {
+							m_PluginStat = STATE_ABORT;
+							break;
+						}
+
+						tmp.PutStr(RemoteStr(dlg.m_Edit));
+					}
+				}
+				if ( m_PluginStat == STATE_ABORT )
+					break;
+
+				//		uint8		PLUGIN_KI_USER_RESPONSE
+				//		uint32		size
+				//		uint32		msg count
+				//			string		msg response
+				bp->Clear();
+				bp->Put32Bit(tmp.GetSize());
+				bp->Apend(tmp.GetPtr(), tmp.GetSize());
+				m_pFifoPlugin->Write(FIFO_STDOUT, bp->GetPtr(), bp->GetSize());
+
+				m_PluginStat = STATE_REQUEST;
+				return;	// next plugin
+
+			case PLUGIN_KI_SERVER_RESPONSE:
+				// send SSH2_MSG_USERAUTH_INFO_RESPONSE
+				tmp.Put8Bit(SSH2_MSG_USERAUTH_INFO_RESPONSE);
+				ASSERT(bp != NULL);
+				//		uint32		msg count
+				//			string		msg response
+				tmp.Apend(bp->GetPtr(), bp->GetSize());
+				SendPacket2(&tmp);
+
+				if ( bp->Get32Bit() > 0 )
+					AddAuthLog(_T("keyboard-interactive(%s:plugin)"), m_pDocument->m_ServerEntry.m_UserName);
+
+				m_PluginStat = STATE_RESPONSE;
+				return;	// next client
+
+			default:
+				errMsg.Format(_T("State Request, unkown type %d"), type);
+				m_PluginStat = STATE_ERROR;
+				break;
+			}
+			break;
+
+		case STATE_SUCCESS:
+			tmp.Put32Bit(1);
+			tmp.Put8Bit(PLUGIN_AUTH_SUCCESS);
+			m_pFifoPlugin->Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
+
+			m_PluginStat = STATE_CLOSE;
+			break;
+
+		case STATE_FAILURE:
+			tmp.Put32Bit(1);
+			tmp.Put8Bit(PLUGIN_AUTH_FAILURE);
+			m_pFifoPlugin->Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
+
+			m_PluginStat = STATE_CLOSE;
+			break;
+
+		case STATE_ERROR:
+			::ThreadMessageBox(_T("PluginProc have error\n%s"), errMsg);
+
+			m_PluginStat = STATE_ABORT;
+			break;
+
+		case STATE_ABORT:
+			UserAuthNextState();
+			SendMsgUserAuthRequest(NULL);
+
+			m_PluginStat = STATE_CLOSE;
+			break;
+
+		case STATE_CLOSE:
+			ASSERT(m_pFifoPipe != NULL && m_pFifoPlugin != NULL);
+			m_pFifoPipe->Close();
+			CFifoBase::UnLink(m_pFifoPipe, FIFO_STDIN, FALSE);
+			delete m_pFifoPipe; m_pFifoPipe = NULL;
+			delete m_pFifoPlugin; m_pFifoPlugin = NULL;
+
+			m_PluginStat = STATE_NONE;
+			return;	// next none
+		}
+
+	} } catch(LPCTSTR msg) {
+		::ThreadMessageBox(_T("PluginProc ctach error\n%s"), msg);
+	}
+}
+
 //////////////////////////////////////////////////////////////////////
 
 void Cssh::SendMsgKexInit()
@@ -2659,8 +2948,9 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 			// ２度目以降のパスワードなら
 			if ( m_IdKeyPos > 0 ) {
-				dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
-				dlg.m_PortName = m_pDocument->m_ServerEntry.m_PortName;
+				dlg.m_Title    = _T("");
+				dlg.m_HostAddr = m_HostName;
+				dlg.m_PortName.Format(_T("%d"), m_HostPort);
 				dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
 				dlg.m_PassName = m_pDocument->m_ServerEntry.m_PassName;
 				dlg.m_Prompt   = _T("ssh Password");
@@ -2689,13 +2979,31 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				continue;
 			}
 
-			tmp.PutStr("keyboard-interactive");
-			tmp.PutStr("");		// LANG
-			tmp.PutStr("");		// DEV
+			if ( m_pDocument->m_ParamTab.m_PluginAuth.IsEmpty() ) {
+				tmp.PutStr("keyboard-interactive");
+				tmp.PutStr("");		// LANG
+				tmp.PutStr("");		// DEV
 
-			m_AuthMode = AUTH_MODE_KEYBOARD;
-			// SSH2_MSG_USERAUTH_INFO_REQUESTでクリア
-			m_bKeybIntrReq = TRUE;
+				m_AuthMode = AUTH_MODE_KEYBOARD;
+				m_bKeybIntrReq = TRUE;	// SSH2_MSG_USERAUTH_INFO_REQUESTでクリア
+
+			} else {
+				tmp.Clear();
+				tmp.Put32Bit(2);
+				tmp.PutStr(RemoteStr(m_HostName));
+				tmp.Put32Bit(m_HostPort);
+				tmp.PutStr(RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
+				PluginProc(PLUGIN_INIT, &tmp);
+
+				if ( m_PluginStat == STATE_NONE ) {
+					UserAuthNextState();
+					continue;
+				}
+
+				m_AuthMode = AUTH_MODE_KEYBOARD;
+				m_bKeybIntrReq = TRUE;	// SSH2_MSG_USERAUTH_INFO_REQUESTでクリア
+				return TRUE;
+			}
 
 		} else if ( m_AuthStat == AST_GSSAPI_TRY ) {
 			UserAuthNextState();
@@ -3959,7 +4267,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 	tmp.PutStr("password");
 	tmp.Put8Bit(1);
 
-	dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
+	dlg.m_HostAddr = m_HostName;
 	dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
 	dlg.m_Enable   = PASSDLG_PASS;
 	dlg.m_Prompt   = "Enter Old Password";
@@ -3972,7 +4280,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 
 	info = "Enter New Password";
 	while ( pass.IsEmpty() ) {
-		dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
+		dlg.m_HostAddr = m_HostName;
 		dlg.m_PortName = m_pDocument->m_ServerEntry.m_PortName;
 		dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
 		dlg.m_Enable   = PASSDLG_PASS;
@@ -3984,7 +4292,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 
 		pass = dlg.m_PassName;
 
-		dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
+		dlg.m_HostAddr = m_HostName;
 		dlg.m_PortName = m_pDocument->m_ServerEntry.m_PortName;
 		dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
 		dlg.m_Enable   = PASSDLG_PASS;
@@ -4017,6 +4325,20 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 	CEditDlg dlg;
 	BOOL bAutoPass = FALSE;
 
+	if ( m_PluginStat != STATE_NONE ) {
+		m_IdKeyPos++;
+		m_bKeybIntrReq = FALSE;
+
+		PluginProc(PLUGIN_KI_SERVER_REQUEST, bp);
+
+		if ( m_PluginStat == STATE_NONE ) {
+			UserAuthNextState();
+			SendMsgUserAuthRequest(NULL);
+		}
+
+		return 0;
+	}
+
 	bp->GetStr(name);
 	bp->GetStr(inst);
 	bp->GetStr(lang);
@@ -4035,7 +4357,7 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 			bAutoPass = TRUE;
 
 		} else {
-			dlg.m_WinText.Format(_T("keyboard-interactive(%s@%s)"), (LPCTSTR)m_pDocument->m_ServerEntry.m_UserName, (LPCTSTR)m_pDocument->m_ServerEntry.m_HostName);
+			dlg.m_WinText.Format(_T("keyboard-interactive(%s@%s)"), (LPCTSTR)m_pDocument->m_ServerEntry.m_UserName, (LPCTSTR)m_HostName);
 			dlg.m_Title.Empty();
 			if ( !name.IsEmpty() ) {
 				dlg.m_Title += LocalStr(name);
@@ -4895,6 +5217,8 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 	case SSH2_MSG_USERAUTH_SUCCESS:
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
 			goto DISCONNECT;
+		if ( m_AuthMode == AUTH_MODE_KEYBOARD && m_PluginStat != STATE_NONE )
+			PluginProc(PLUGIN_AUTH_SUCCESS, NULL);
 		if ( m_EncCmp.m_Mode == 4 )
 			m_EncCmp.Init(NULL, MODE_ENC, COMPLEVEL);
 		if ( m_DecCmp.m_Mode == 4 )
@@ -4922,6 +5246,8 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 	case SSH2_MSG_USERAUTH_FAILURE:
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
 			goto DISCONNECT;
+		if ( m_AuthMode == AUTH_MODE_KEYBOARD && m_PluginStat != STATE_NONE )
+			PluginProc(PLUGIN_AUTH_FAILURE, NULL);
 		bp->GetStr(str);
 		if ( !SendMsgUserAuthRequest(str) )
 			break;

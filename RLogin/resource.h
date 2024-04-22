@@ -455,6 +455,8 @@
 #define IDT_APPCOL_TITLE14              981
 #define IDT_APPCOL_TITLE15              982
 #define IDT_APPCOL_TITLE16              983
+#define IDT_APPCOL_TITLE17              984
+#define IDT_APPCOL_TITLE18              985
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002

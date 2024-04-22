@@ -19,6 +19,7 @@
 //#define	USE_CLEFIA			// CLEFIA暗号を有効にする
 //#define	USE_MACCTX			// EVP_MAC_CTXの動作が微妙(init(key=NULLに非対応)
 //#define	USE_X509			// opensslのx509公開鍵証明を有効
+#define	USE_DARKMODE			// 追加のダークモード
 
 // Windows バージョン
 

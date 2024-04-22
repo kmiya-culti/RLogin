@@ -56,6 +56,7 @@ enum FifoMsgQueInCmd {
 	FIFO_QCMD_SENDPACKET,		// CFifoSsh
 	FIFO_QCMD_KEEPALIVE,		// CFifoSsh
 	FIFO_QCMD_CANCELPFD,		// CFifoSsh
+	FIFO_QCMD_PLUGIN,			// CFifoSsh
 };
 
 class CFifoBuffer : public CObject
