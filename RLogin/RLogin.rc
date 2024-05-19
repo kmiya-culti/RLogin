@@ -734,7 +734,7 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,210,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.29.3 (2024/04/22)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.29.4 (2024/05/20)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2024 Culti",IDC_STATIC,44,17,189,8
     LTEXT           "OpenSSL 3.3.0 9 Apr 2024",IDC_STATIC,44,50,189,8
     LTEXT           "Copyright (c) 1998-2024 The OpenSSL Project",IDC_STATIC,44,60,189,8
@@ -2310,8 +2310,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,29,3,0
- PRODUCTVERSION 2,29,3,0
+ FILEVERSION 2,29,4,0
+ PRODUCTVERSION 2,29,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2328,12 +2328,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.29.3.0"
+            VALUE "FileVersion", "2.29.4.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.29.3.0"
+            VALUE "ProductVersion", "2.29.4.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -5183,8 +5183,11 @@ BEGIN
     IDT_APPCOL_TITLE14      "タブの文字色"
     IDT_APPCOL_TITLE15      "タブ選択時の背景色"
     IDT_APPCOL_TITLE16      "タブの境界線"
-    IDT_APPCOL_TITLE17      "コントロールの背景色"
-    IDT_APPCOL_TITLE18      "コントロールの文字色"
+    IDT_APPCOL_TITLE17      "CTRLの背景色"
+    IDT_APPCOL_TITLE18      "CTRLの文字色"
+    IDT_APPCOL_TITLE19      "CTRL選択時の背景色"
+    IDT_APPCOL_TITLE20      "CTRL選択時の文字色"
+    IDT_APPCOL_TITLE21      "CTRL選択済の背景色"
 END
 
 STRINGTABLE

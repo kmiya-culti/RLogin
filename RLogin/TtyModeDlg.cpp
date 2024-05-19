@@ -529,24 +529,8 @@ BOOL CKnownHostsDlg::OnInitDialog()
 
 	pApp->GetProfileKeys(_T("KnownHosts"), list);
 	for ( n = 0 ; n < list.GetSize() ; n++ ) {
-
-		// 古い形式(KnownHosts\host-xxx)
-		if ( (p = _tcsrchr(list[n], _T('-'))) != NULL && (key.GetTypeFromName(p + 1) & IDKEY_TYPE_MASK) != IDKEY_NONE ) {
-			pData = new KNOWNHOSTDATA;
-			pData->key = list[n];
-			pData->del = FALSE;
-			pData->type = 0;
-
-			pData->host.Empty();
-			for ( LPCTSTR s = list[n] ; s < p ; )
-				pData->host += *(s++);
-			pData->port = _T("");
-			pData->digest = pApp->GetProfileString(_T("KnownHosts"), list[n], _T(""));
-
-			m_Data.Add(pData);
-
 		// 新しい形式(KnownHosts\host:nnn)
-		} else if ( (p = _tcsrchr(list[n], _T(':'))) != NULL && IsDigits(p + 1) ) {
+		if ( (p = _tcsrchr(list[n], _T(':'))) != NULL && IsDigits(p + 1) ) {
 			pApp->GetProfileStringArray(_T("KnownHosts"), list[n], entry);
 			for ( i = 0 ; i < entry.GetSize() ; i++ ) {
 				pData = new KNOWNHOSTDATA;
@@ -561,6 +545,21 @@ BOOL CKnownHostsDlg::OnInitDialog()
 
 				m_Data.Add(pData);
 			}
+
+		// 古い形式(KnownHosts\host-xxx)
+		} else if ( (p = _tcsrchr(list[n], _T('-'))) != NULL && ((i = (key.GetTypeFromName(p + 1) & IDKEY_TYPE_MASK)) != IDKEY_NONE && i != IDKEY_UNKNOWN) ) {
+			pData = new KNOWNHOSTDATA;
+			pData->key = list[n];
+			pData->del = FALSE;
+			pData->type = 0;
+
+			pData->host.Empty();
+			for ( LPCTSTR s = list[n] ; s < p ; )
+				pData->host += *(s++);
+			pData->port = _T("");
+			pData->digest = pApp->GetProfileString(_T("KnownHosts"), list[n], _T(""));
+
+			m_Data.Add(pData);
 
 		// 古い形式(KnownHosts\host)
 		} else {
@@ -703,7 +702,8 @@ static const int AppColList[] = {
 	APPCOL_BARFACE, APPCOL_BARHIGH, APPCOL_BARBODER, APPCOL_BARTEXT,
 	APPCOL_TABFACE, APPCOL_TABTEXT, APPCOL_TABHIGH, APPCOL_TABSHADOW,
 #ifdef	USE_DARKMODE
-	APPCOL_CTRLFACE, APPCOL_CTRLTEXT,
+	APPCOL_CTRLFACE, APPCOL_CTRLTEXT, 
+	APPCOL_CTRLHIGH, APPCOL_CTRLHTEXT, APPCOL_CTRLSHADOW, 
 #endif
 	(-1)
 };
@@ -778,6 +778,9 @@ BOOL CAppColDlg::OnInitDialog()
 
 	SetWindowText(_T("App Color Edit"));
 
+	SetSaveProfile(_T("AppColDlg"));
+	SetLoadPosition(LOADPOS_MAINWND);
+
 	AddHelpButton(_T("faq.html#WINCOL"));
 
 	return TRUE;
@@ -797,6 +800,8 @@ void CAppColDlg::OnOK()
 	SaveAppColor();
 	::AfxGetMainWnd()->RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_FRAME | RDW_ERASE);
 
+	m_List.SaveColumn(_T("AppColDlg"));
+
 	CDialogExt::OnOK();
 }
 void CAppColDlg::OnCancel()
@@ -806,6 +811,8 @@ void CAppColDlg::OnCancel()
 		InitAppColor();
 		::AfxGetMainWnd()->RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_FRAME | RDW_ERASE);
 	}
+
+	m_List.SaveColumn(_T("AppColDlg"));
 
 	CTtyModeDlg::OnCancel();
 }
@@ -1001,7 +1008,7 @@ void CAppColDlg::OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult)
 			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 6)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 7)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 8)));
 		else
 			pLVCD->clrTextBk = GetAppColor(APPCOL_CTRLFACE);
-		pLVCD->clrText = GetAppColor(APPCOL_CTRLTEXT);
+        *pResult = CDRF_NEWFONT;
 #else
 		if ( pLVCD->iSubItem == 1 )
 			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 2)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 3)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 4)));
@@ -1009,8 +1016,8 @@ void CAppColDlg::OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult)
 			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 6)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 7)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 8)));
 		else
 			pLVCD->clrTextBk = GetSysColor(COLOR_WINDOW);
-#endif
         *pResult = CDRF_NEWFONT;
+#endif
 		break;
 	default:
         *pResult = 0;

@@ -21,7 +21,7 @@ public:
 	enum { IDD = IDD_CHATDLG };
 
 public:
-	CTreeCtrl m_NodeTree;
+	CTreeCtrlExt m_NodeTree;
 	CString m_RecvStr;
 	CString m_SendStr;
 	CButton m_UpdNode;

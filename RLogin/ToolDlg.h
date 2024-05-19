@@ -20,7 +20,7 @@ public:
 	enum { IDD = IDD_TOOLDLG };
 
 public:
-	CTreeCtrl m_MenuTree;
+	CTreeCtrlExt m_MenuTree;
 	CComboBox m_ToolSize;
 	CListCtrlExt m_ToolList;
 	int m_BarIdx;

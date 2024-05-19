@@ -82,6 +82,7 @@ BEGIN_MESSAGE_MAP(CChildFrame, CMDIChildWnd)
 	ON_COMMAND(ID_WINDOW_CLOSE, OnWindowClose)
 	ON_WM_MDIACTIVATE()
 	ON_WM_MOVE()
+	ON_WM_SYSCOMMAND()
 END_MESSAGE_MAP()
 
 // CChildFrame コンストラクション/デストラクション
@@ -252,4 +253,16 @@ BOOL CChildFrame::PreTranslateMessage(MSG* pMsg)
 	}
 
 	return CMDIChildWnd::PreTranslateMessage(pMsg);
+}
+
+void CChildFrame::OnSysCommand(UINT nID, LPARAM lParam)
+{
+	switch(nID) {
+	case SC_KEYMENU:
+		TRACE("SysCommand KeyMenu %x\n", lParam);
+		break;
+	default:
+		CMDIChildWnd::OnSysCommand(nID, lParam);
+		break;
+	}
 }

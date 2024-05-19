@@ -185,6 +185,7 @@ BOOL COptDlg::CreatePage(int nPage)
 	m_Frame.GetClientRect(frame);
 	m_Frame.ClientToScreen(frame);
 	ScreenToClient(frame);
+	frame.InflateRect(-1, -1);
 	pPage->MoveWindow(frame, FALSE);
 
 	return TRUE;
@@ -340,6 +341,9 @@ BOOL COptDlg::OnInitDialog()
 	// アイテムオフセット取得
 	InitItemOffset(InitItemTab);
 
+	size.cx += 2;
+	size.cy += 2;
+
 	// ウィンドウサイズ設定
 	GetWindowRect(frame);
 	m_Frame.GetClientRect(rect);
@@ -359,6 +363,7 @@ BOOL COptDlg::OnInitDialog()
 		m_Frame.ClientToScreen(ItemOfs[0]);
 		ScreenToClient(ItemOfs[0]);
 	}
+	ItemOfs[0].InflateRect(-1, -1);
 
 	for ( n = 0 ; n < GetPageCount() ; n++ ) {
 		if ( (pPage = GetPage(n)) == NULL || pPage->m_hWnd == NULL )
@@ -502,6 +507,7 @@ void COptDlg::PageReSize()
 	m_Frame.GetClientRect(frame);
 	m_Frame.ClientToScreen(frame);
 	ScreenToClient(frame);
+	frame.InflateRect(-1, -1);
 
 	for ( n = 0 ; n < GetPageCount() ; n++ ) {
 		if ( (pPage = GetPage(n)) == NULL || pPage->m_hWnd == NULL )

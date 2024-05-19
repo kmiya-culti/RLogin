@@ -2499,20 +2499,20 @@ BOOL CIdKey::KnownHostsCheck(LPCTSTR dig)
 
 	pApp->GetProfileKeys(_T("KnownHosts"), list);
 	for ( n = 0 ; n < list.GetSize() ; n++ ) {
-
-		// 古い形式(KnownHosts\host-xxx)
-		if ( (p = _tcsrchr(list[n], _T('-'))) != NULL && (key.GetTypeFromName(p + 1) & IDKEY_TYPE_MASK) != IDKEY_NONE ) {
-			digest = pApp->GetProfileString(_T("KnownHosts"), list[n], _T(""));
-			if ( digest.Compare(dig) == 0 )
-				return TRUE;
-
 		// 新しい形式(KnownHosts\host:nnn)
-		} else if ( (p = _tcsrchr(list[n], _T(':'))) != NULL && IsDigits(p + 1) ) {
+		if ( (p = _tcsrchr(list[n], _T(':'))) != NULL && IsDigits(p + 1) ) {
 			pApp->GetProfileStringArray(_T("KnownHosts"), list[n], entry);
 			for ( i = 0 ; i < entry.GetSize() ; i++ ) {
 				if ( entry[i].Compare(dig) == 0 )
 					return TRUE;
 			}
+
+		// 古い形式(KnownHosts\host-xxx)
+		} else if ( (p = _tcsrchr(list[n], _T('-'))) != NULL && ((i = (key.GetTypeFromName(p + 1) & IDKEY_TYPE_MASK)) != IDKEY_NONE && i != IDKEY_UNKNOWN) ) {
+			digest = pApp->GetProfileString(_T("KnownHosts"), list[n], _T(""));
+			if ( digest.Compare(dig) == 0 )
+				return TRUE;
+
 
 		// 古い形式(KnownHosts\host)
 		} else {

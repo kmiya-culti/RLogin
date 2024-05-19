@@ -26,7 +26,7 @@ class CServerSelect : public CDialogExt
 public:
 	CListCtrlExt m_List;
 	CTabCtrlExt m_Tab;
-	CTreeCtrl m_Tree;
+	CTreeCtrlExt m_Tree;
 
 // クラスデータ
 public:

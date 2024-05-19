@@ -302,48 +302,69 @@ static int ssh_ctr_final(void *cctx, unsigned char *out, size_t *outl, size_t ou
 static int rlg_get_params(OSSL_PARAM params[], unsigned int mode, size_t blklen, size_t keylen, size_t ivlen, int flag)
 {
 	OSSL_PARAM *p;
+	int rc = 1;
 
 	for ( p = params ; p->data_type != 0 ; p++ ) {
 		switch((p->data_type << 6) | p->key[0]) {
 		case (OSSL_PARAM_INTEGER << 6) | 'a':
 			if ( strcmp(p->key, OSSL_CIPHER_PARAM_AEAD) == 0 )
 				OSSL_PARAM_set_int(p, (flag & PARAM_AEAD_FLAG) != 0);
+			else
+				rc = 0;
 			break;
 		case (OSSL_PARAM_INTEGER << 6) | 'c':
 			if ( strcmp(p->key, OSSL_CIPHER_PARAM_CUSTOM_IV) == 0 )
 				OSSL_PARAM_set_int(p, (flag & PARAM_CUSTOM_IV_FLAG) != 0);
 			else if ( strcmp(p->key, OSSL_CIPHER_PARAM_CTS) == 0 )
 				OSSL_PARAM_set_int(p, (flag & PARAM_CTS_FLAG) != 0);
+			else
+				rc = 0;
 			break;
 		case (OSSL_PARAM_INTEGER << 6) | 'h':
 			if ( strcmp(p->key, OSSL_CIPHER_PARAM_HAS_RAND_KEY) == 0 )
 				OSSL_PARAM_set_int(p, (flag & PARAM_HAS_RAND_KEY_FLAG) != 0);
+			else
+				rc = 0;
 			break;
 		case (OSSL_PARAM_INTEGER << 6) | 't':
 			if ( strcmp(p->key, OSSL_CIPHER_PARAM_TLS1_MULTIBLOCK) == 0 )
 				OSSL_PARAM_set_int(p, (flag & PARAM_TLS1_MULTIBLOCK_FLAG) != 0);
+			else
+				rc = 0;
 			break;
 
 		case (OSSL_PARAM_UNSIGNED_INTEGER << 6) | 'b':
 			if ( strcmp(p->key, OSSL_CIPHER_PARAM_BLOCK_SIZE) == 0 )
 				OSSL_PARAM_set_size_t(p, blklen);
+			else
+				rc = 0;
 			break;
 		case (OSSL_PARAM_UNSIGNED_INTEGER << 6) | 'i':
 			if ( strcmp(p->key, OSSL_CIPHER_PARAM_IVLEN) == 0 )
 				OSSL_PARAM_set_size_t(p, ivlen);
+			else
+				rc = 0;
 			break;
 		case (OSSL_PARAM_UNSIGNED_INTEGER << 6) | 'k':
 			if ( strcmp(p->key, OSSL_CIPHER_PARAM_KEYLEN) == 0 )
 				OSSL_PARAM_set_size_t(p, keylen);
+			else
+				rc = 0;
 			break;
 		case (OSSL_PARAM_UNSIGNED_INTEGER << 6) | 'm':
 			if ( strcmp(p->key, OSSL_CIPHER_PARAM_MODE) == 0 )
 				OSSL_PARAM_set_uint(p, mode);
+			else
+				rc = 0;
+			break;
+		default:
+			rc = 0;
 			break;
 		}
 	}
 
-	return 1;
+	ASSERT(rc == 1);
+	return rc;
 }
 static const OSSL_PARAM *ssh_gettable_params(struct prov_ctx_st *prov_ctx)
 {
@@ -365,7 +386,7 @@ static const OSSL_PARAM *ssh_gettable_params(struct prov_ctx_st *prov_ctx)
 static int ssh_get_ctx_params(struct ssh_cipher_ctx *ssh_ctx, OSSL_PARAM params[])
 {
 	OSSL_PARAM *p;
-	u_char *pIv;
+	int rc = 1;
 
 	for ( p = params ; p->data_type != 0 ; p++ ) {
 		switch(p->data_type) {
@@ -374,19 +395,27 @@ static int ssh_get_ctx_params(struct ssh_cipher_ctx *ssh_ctx, OSSL_PARAM params[
 				OSSL_PARAM_set_size_t(p, ssh_ctx->keylen);
 			else if ( strcmp(p->key, OSSL_CIPHER_PARAM_IVLEN) == 0 )
 				OSSL_PARAM_set_size_t(p, ssh_ctx->ivlen);
+			else
+				rc = 0;
 			break;
 
 		case OSSL_PARAM_OCTET_STRING:
 			if ( strcmp(p->key, OSSL_CIPHER_PARAM_IV) == 0 ) {
+				u_char *pIv;
 				if ( ssh_ctx->mt_ctx == NULL || (pIv = mt_get_iv(ssh_ctx->mt_ctx)) == NULL )
 					pIv = ssh_ctx->iv;
 				OSSL_PARAM_set_octet_string(p, pIv, ssh_ctx->ivlen);
-			}
+			} else
+				rc = 0;
+			break;
+		default:
+			rc = 0;
 			break;
 		}
 	}
 
-	return 1;
+	ASSERT(rc == 1);
+	return rc;
 }
 static const OSSL_PARAM *ssh_gettable_ctx_params(struct ssh_cipher_ctx *ssh_ctx, struct prov_ctx_st *prov_ctx)
 {
@@ -402,8 +431,7 @@ static const OSSL_PARAM *ssh_gettable_ctx_params(struct ssh_cipher_ctx *ssh_ctx,
 static int ssh_set_ctx_params(struct ssh_cipher_ctx *ssh_ctx, const OSSL_PARAM params[])
 {
 	const OSSL_PARAM *p;
-	const void *ptr = NULL;
-	size_t len = 0;
+	int rc = 1;
 
 	for ( p = params ; p->data_type != 0 ; p++ ) {
 		switch(p->data_type) {
@@ -412,11 +440,17 @@ static int ssh_set_ctx_params(struct ssh_cipher_ctx *ssh_ctx, const OSSL_PARAM p
 				OSSL_PARAM_get_size_t(p, &ssh_ctx->keylen);
 			else if ( strcmp(p->key, OSSL_CIPHER_PARAM_IVLEN) == 0 )
 				OSSL_PARAM_get_size_t(p, &ssh_ctx->ivlen);
+			else
+				rc = 0;
+			break;
+		default:
+			rc = 0;
 			break;
 		}
 	}
 
-	return 1;
+	ASSERT(rc == 1);
+	return rc;
 }
 static const OSSL_PARAM *ssh_settable_ctx_params(struct ssh_cipher_ctx *ssh_ctx, struct prov_ctx_st *prov_ctx)
 {
@@ -2288,6 +2322,7 @@ static int chachapoly_init(struct chachapoly_ctx_st *chachapoly_ctx, const unsig
 static int chachapoly_get_ctx_params(struct chachapoly_ctx_st *chachapoly_ctx, OSSL_PARAM params[])
 {
 	OSSL_PARAM *p;
+	int rc = 1;
 
 	for ( p = params ; p->data_type != 0 ; p++ ) {
 		switch(p->data_type) {
@@ -2296,6 +2331,8 @@ static int chachapoly_get_ctx_params(struct chachapoly_ctx_st *chachapoly_ctx, O
 				OSSL_PARAM_set_size_t(p, chachapoly_ctx->keylen);
 			else if ( strcmp(p->key, OSSL_CIPHER_PARAM_IVLEN) == 0 )
 				OSSL_PARAM_set_size_t(p, chachapoly_ctx->ivlen);
+			else
+				rc = 0;
 			break;
 
 		case OSSL_PARAM_OCTET_STRING:
@@ -2303,11 +2340,17 @@ static int chachapoly_get_ctx_params(struct chachapoly_ctx_st *chachapoly_ctx, O
 				OSSL_PARAM_set_octet_string(p, chachapoly_ctx->expected_tag, POLY1305_DIGEST_SIZE);
 			else if ( strcmp(p->key, OSSL_CIPHER_PARAM_IV) == 0 )
 				OSSL_PARAM_set_octet_string(p, chachapoly_ctx->iv, CHACHAPOLY_IVSIZE);
+			else
+				rc = 0;
+			break;
+		default:
+			rc = 0;
 			break;
 		}
 	}
 
-	return 1;
+	ASSERT(rc == 1);
+	return rc;
 }
 static const OSSL_PARAM *chachapol_gettable_ctx_params(struct ssh_cipher_ctx *ssh_ctx, struct prov_ctx_st *prov_ctx)
 {
@@ -2326,6 +2369,7 @@ static int chachapoly_set_ctx_params(struct chachapoly_ctx_st *chachapoly_ctx, c
 	const OSSL_PARAM *p;
 	const void *ptr = NULL;
 	size_t len = 0;
+	int rc = 1;
 
 	for ( p = params ; p->data_type != 0 ; p++ ) {
 		switch(p->data_type) {
@@ -2334,6 +2378,8 @@ static int chachapoly_set_ctx_params(struct chachapoly_ctx_st *chachapoly_ctx, c
 				OSSL_PARAM_get_size_t(p, &chachapoly_ctx->keylen);
 			else if ( strcmp(p->key, OSSL_CIPHER_PARAM_IVLEN) == 0 )
 				OSSL_PARAM_get_size_t(p, &chachapoly_ctx->ivlen);
+			else
+				rc = 0;
 			break;
 
 		case OSSL_PARAM_OCTET_STRING:
@@ -2352,12 +2398,17 @@ static int chachapoly_set_ctx_params(struct chachapoly_ctx_st *chachapoly_ctx, c
 					Poly1305_Update(chachapoly_ctx->poly_ctx, (const unsigned char *)ptr, len);
 					Poly1305_Final(chachapoly_ctx->poly_ctx, chachapoly_ctx->expected_tag);
 				}
-			}
+			} else
+				rc = 0;
+			break;
+		default:
+			rc = 0;
 			break;
 		}
 	}
 
-	return 1;
+	ASSERT(rc == 1);
+	return rc;
 }
 static const OSSL_PARAM *chachapol_settable_ctx_params(struct ssh_cipher_ctx *ssh_ctx, struct prov_ctx_st *prov_ctx)
 {

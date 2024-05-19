@@ -82,7 +82,7 @@ public:
 
 // クラスデータ
 public:
-	CTreeCtrl m_Tree;
+	CTreeCtrlExt m_Tree;
 	CStatic m_Frame;
 	CButton m_Button[4];
 

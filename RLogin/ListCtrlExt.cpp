@@ -45,7 +45,7 @@ void CHeaderCtrlExt::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	//TRACE("DrawItem %d %x %x\n", lpDrawItemStruct->itemID, lpDrawItemStruct->itemState, hdi.fmt);
 
 	if ( (lpDrawItemStruct->itemState & ODS_FOCUS) != 0 )
-		pDC->FillSolidRect(rect, GetAppColor(COLOR_GRADIENTINACTIVECAPTION));
+		pDC->FillSolidRect(rect, GetAppColor(APPCOL_CTRLSHADOW));
 	else
 		pDC->FillSolidRect(rect, GetAppColor(APPCOL_CTRLFACE));
 
@@ -164,8 +164,13 @@ BEGIN_MESSAGE_MAP(CListCtrlExt, CListCtrl)
 	ON_NOTIFY_REFLECT_EX(NM_RCLICK, OnRclick)
 	ON_NOTIFY_REFLECT_EX(NM_DBLCLK, OnDblclk)
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
+#ifdef	USE_DARKMODE
 	ON_WM_ERASEBKGND()
 	ON_WM_CTLCOLOR()
+	ON_WM_PAINT()
+	ON_WM_MOUSEMOVE()
+	ON_WM_MOUSELEAVE()
+#endif
 END_MESSAGE_MAP()
 
 static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort)
@@ -904,22 +909,18 @@ BOOL CListCtrlExt::OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRE
 	return CListCtrl::OnChildNotify(message, wParam, lParam, pResult);
 }
 
+#ifdef	USE_DARKMODE
 BOOL CListCtrlExt::OnEraseBkgnd(CDC* pDC)
 {
-#ifdef	USE_DARKMODE
 	CRect rect;
 	GetClientRect(rect);
 	pDC->FillSolidRect(rect, GetAppColor(APPCOL_CTRLFACE));
 	return TRUE;
-#else
-	return CListCtrl::OnEraseBkgnd(pDC);
-#endif
 }
 HBRUSH CListCtrlExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
 	HBRUSH hbr = CListCtrl::OnCtlColor(pDC, pWnd, nCtlColor);
 
-#ifdef	USE_DARKMODE
 	switch(nCtlColor) {
 	case CTLCOLOR_EDIT:			// Edit control
 		hbr = GetAppColorBrush(APPCOL_CTRLFACE);
@@ -927,7 +928,216 @@ HBRUSH CListCtrlExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 		pDC->SetBkMode(TRANSPARENT);
 		break;
 	}
-#endif
 
 	return hbr;
+}
+
+void CListCtrlExt::OnPaint()
+{
+	int item, subItem;
+	CWnd *pWnd;
+	CRect rect, irct, mrct, srct, trct;
+	CPaintDC dc(this);
+	int nSavedDC = dc.SaveDC();
+	CRect clip = dc.m_ps.rcPaint;
+	CImageList *pImage = GetImageList(LVSIL_SMALL);
+	BOOL bCheck = (GetExtendedStyle() & LVS_EX_CHECKBOXES) != 0 ? TRUE : FALSE;
+	BOOL bFull = (GetExtendedStyle() & LVS_EX_FULLROWSELECT) != 0 ? TRUE : FALSE;
+	BOOL bSel = FALSE;
+	int markItem = GetSelectionMark();
+	BOOL bFourcs = FALSE;
+	LVCOLUMN lvc;
+	LVITEM lvi;
+	NMLVCUSTOMDRAW hdr;
+	LRESULT result = CDRF_DODEFAULT;
+	AFX_NOTIFY notify;
+	int flag = 0;
+	COLORREF tcol, bcol;
+
+	if ( (pWnd = GetFocus()) != NULL && pWnd->GetSafeHwnd() == GetSafeHwnd() )
+		bFourcs = TRUE;
+
+	ZeroMemory(&lvc, sizeof(lvc));
+	ZeroMemory(&lvi, sizeof(lvi));
+
+	ZeroMemory(&hdr, sizeof(hdr));
+	notify.pNMHDR = (NMHDR *)&hdr;
+	notify.pResult = &result;
+
+	hdr.nmcd.hdr.hwndFrom = GetSafeHwnd();
+	hdr.nmcd.hdr.idFrom = GetDlgCtrlID();
+	hdr.nmcd.hdr.code = NM_CUSTOMDRAW;
+	hdr.nmcd.hdc = dc.GetSafeHdc();
+
+	hdr.dwItemType = LVCDI_ITEM;
+	hdr.clrText = GetAppColor(APPCOL_CTRLTEXT);
+	hdr.clrTextBk = hdr.clrFace = GetAppColor(APPCOL_CTRLFACE);
+
+	hdr.nmcd.dwDrawStage = CDDS_PREPAINT;
+	result = CDRF_DODEFAULT;
+	GetParent()->OnCmdMsg((UINT)GetDlgCtrlID(), MAKELONG(NM_CUSTOMDRAW, WM_NOTIFY), &notify, NULL);
+	if ( (result & CDRF_NOTIFYITEMDRAW) != 0 )
+		flag |= 001;
+	
+	if ( bCheck && m_ImageList.GetSafeHandle() == NULL ) {
+		CBitmapEx bitmap;
+		m_ImageList.Create(MulDiv(14, SCREEN_DPI_X, DEFAULT_DPI_X), MulDiv(14, SCREEN_DPI_Y, DEFAULT_DPI_Y), ILC_COLOR24 | ILC_MASK, 2, 2);
+		for ( int n = 0 ; n < 3 ; n++ ) {
+			bitmap.LoadResBitmap(IDB_CHECKBOX1 + n, SCREEN_DPI_X, SCREEN_DPI_Y, RGB(255, 0, 0));
+			m_ImageList.Add(&bitmap, RGB(255, 0, 0));
+			bitmap.DeleteObject();
+		}
+	}
+
+	for ( item = GetTopIndex() ; item < GetItemCount() ; item++ ) {
+		if ( !GetItemRect(item, rect, LVIR_BOUNDS) || !GetItemRect(item, irct, LVIR_ICON) )
+			break;
+
+		srct = rect;
+		srct.left = irct.right;
+
+		bSel = (GetItemState(item, LVIS_SELECTED) != 0 ? TRUE : FALSE);
+
+		if ( rect.top < clip.bottom && rect.bottom > clip.top ) {
+
+			lvc.mask = LVCF_WIDTH | LVCF_FMT;
+
+			mrct.left = mrct.right = 0 - GetScrollPos(SB_HORZ);
+			mrct.top = rect.top;
+			mrct.bottom = rect.bottom;
+
+			dc.SelectObject(GetFont());
+			dc.SetBkMode(TRANSPARENT);
+
+			if ( (flag & 001) != 0 ) {
+				hdr.nmcd.dwItemSpec = item;
+				hdr.nmcd.rc = mrct;
+				hdr.nmcd.dwDrawStage = CDDS_ITEMPREPAINT;
+
+				GetParent()->OnCmdMsg((UINT)GetDlgCtrlID(), MAKELONG(NM_CUSTOMDRAW, WM_NOTIFY), &notify, NULL);
+				if ( (result & CDRF_NOTIFYSUBITEMDRAW) != 0 )
+					flag |= 002;
+			}
+
+			for ( subItem = 0 ; GetColumn(subItem, &lvc) ; subItem++ ) {
+				mrct.left  = mrct.right;
+				mrct.right += lvc.cx;
+
+				if ( mrct.left < clip.right && mrct.right > clip.left ) {
+					UINT fmt = DT_SINGLELINE | DT_WORD_ELLIPSIS | DT_VCENTER;
+					CString text = GetItemText(item, subItem);
+					trct = mrct;
+
+					if ( (flag & 002) != 0 ) {
+						hdr.iSubItem = subItem;
+						hdr.nmcd.rc = mrct;
+
+						hdr.nmcd.dwDrawStage = CDDS_ITEMPREPAINT | CDDS_SUBITEM;
+						GetParent()->OnCmdMsg((UINT)GetDlgCtrlID(), MAKELONG(NM_CUSTOMDRAW, WM_NOTIFY), &notify, NULL);
+					}
+
+					tcol = hdr.clrText;
+					bcol = hdr.clrTextBk;
+
+					switch(lvc.fmt & LVCFMT_JUSTIFYMASK) {
+					case LVCFMT_LEFT:	fmt |= DT_LEFT;		break;
+					case LVCFMT_RIGHT:	fmt |= DT_RIGHT;	break;
+					case LVCFMT_CENTER:	fmt |= DT_CENTER;	break;
+					}
+
+					if ( bSel && (bFull || subItem == 0) ) {
+						tcol = GetAppColor(bFourcs ? APPCOL_CTRLHTEXT : APPCOL_CTRLTEXT);
+						bcol = GetAppColor(bFourcs ? APPCOL_CTRLHIGH : APPCOL_CTRLSHADOW);
+					}
+
+					if ( subItem == 0 ) {
+						trct.left = irct.right;
+						if ( !bFull )
+							srct = trct;
+						if ( irct.left < irct.right ) {
+							lvi.mask = LVIF_IMAGE;
+							lvi.iItem = item;
+							if ( pImage != NULL && GetItem(&lvi) && lvi.iItem >= 0 )
+								pImage->Draw(&dc, lvi.iImage, CPoint(irct.left, irct.top), ILD_TRANSPARENT);
+							trct.left  += 4;
+						} else if ( bCheck && m_ImageList.GetSafeHandle() != NULL ) {
+							m_ImageList.Draw(&dc, (GetLVCheck(item) ? 1 : 0), CPoint(mrct.left, mrct.top + (mrct.Height() - MulDiv(14, SCREEN_DPI_Y, DEFAULT_DPI_Y)) / 2), ILD_TRANSPARENT);
+						}
+						mrct.left = irct.right;
+					} else
+						trct.left  += 4;
+
+					trct.right -= 4;
+
+					dc.SetTextColor(tcol);
+					dc.FillSolidRect(mrct, bcol);
+					dc.DrawText(text, trct, fmt);
+				}
+			}
+
+			if ( !bFourcs && bSel && markItem == item )
+				dc.DrawFocusRect(srct);
+
+			flag &= ~002;
+		}
+	}
+
+	dc.RestoreDC(nSavedDC);
+}
+void CListCtrlExt::OnMouseMove(UINT nFlags, CPoint point)
+{
+	//チラつくのでデフォルト動作をスキップ
+	//CListCtrl::OnMouseMove(nFlags, point);
+}
+void CListCtrlExt::OnMouseLeave()
+{
+	//CListCtrl::OnMouseLeave();
+}
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+// CTreeCtrlExt
+
+BEGIN_MESSAGE_MAP(CTreeCtrlExt, CTreeCtrl)
+#ifdef	USE_DARKMODE
+	ON_WM_PAINT()
+#endif
+END_MESSAGE_MAP()
+
+void CTreeCtrlExt::OnPaint()
+{
+	CRect rect;
+	BOOL bFocus = (::GetFocus() == GetSafeHwnd() ? TRUE : FALSE);
+	HTREEITEM hItem = GetSelectedItem();
+	TVITEM tv;
+	TCHAR text[256];
+	CDC *pDC;
+
+	if ( hItem != NULL ) {
+		ZeroMemory(&tv, sizeof(tv));
+		tv.mask = TVIF_HANDLE | TVIF_TEXT;
+		tv.hItem = hItem;
+		tv.cchTextMax = 256;
+		tv.pszText = text;
+		if ( !GetItem(&tv) || !GetItemRect(hItem, rect, TRUE) )
+			hItem = NULL;
+	}
+
+	CTreeCtrl::OnPaint();
+
+	if ( hItem != NULL && (pDC = GetDC()) != NULL ) {
+		UINT fmt = DT_SINGLELINE | DT_WORD_ELLIPSIS | DT_VCENTER | DT_LEFT;
+
+		pDC->SelectObject(GetFont());
+		pDC->SetTextColor(GetAppColor(bFocus ? APPCOL_CTRLHTEXT : APPCOL_CTRLTEXT));
+		pDC->SetBkMode(TRANSPARENT);
+
+		pDC->FillSolidRect(rect, GetAppColor(bFocus ? APPCOL_CTRLHIGH : APPCOL_CTRLSHADOW));
+
+		rect.left  += 2;
+		rect.right -= 2;
+		pDC->DrawText(text, rect, fmt);
+
+		ReleaseDC(pDC);
+	}
 }

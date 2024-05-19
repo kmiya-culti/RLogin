@@ -25,8 +25,8 @@ winget install Git.Git
 
 # OpenSSLのコンパイルに必要なプログラムをインストールする
 # Perlのインストール https://strawberryperl.com/ や https://www.activestate.com/products/perl/
-Invoke-WebRequest -Uri https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_5380_5361/strawberry-perl-5.38.0.1-64bit.msi -OutFile strawberry-perl-5.38.0.1-64bit.msi
-strawberry-perl-5.38.0.1-64bit.msi
+Invoke-WebRequest -Uri https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_53822_64bit/strawberry-perl-5.38.2.2-64bit.msi -OutFile strawberry-perl-5.38.2.2-64bit.msi
+.\strawberry-perl-5.38.2.2-64bit.msi
 # nasmのインストール
 winget install nasm
 

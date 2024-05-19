@@ -7373,6 +7373,7 @@ void CKeyNodeTab::CmdsInit()
 	int n, i, id;
 	CKeyCmds tmp;
 	CString str;
+	LPCTSTR p, s;
 
 	if ( m_CmdsInit )
 		return;
@@ -7384,7 +7385,11 @@ void CKeyNodeTab::CmdsInit()
 		str = GetAt(n).GetMask();
 		if ( !str.IsEmpty() )
 			str += "+";
-		str += GetAt(n).GetCode();
+		p = GetAt(n).GetCode();
+		if ( p[0] == _T('$') && (s = _tcschr(p, _T('('))) != NULL )
+			str += s[1];
+		else
+			str += p;
 		if ( (i = m_Cmds.Find(id)) >= 0 ) {
 			m_Cmds[i].m_Menu += _T(",");
 			m_Cmds[i].m_Menu += str;

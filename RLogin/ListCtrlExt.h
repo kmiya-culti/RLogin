@@ -15,12 +15,15 @@ class CHeaderCtrlExt : public CHeaderCtrl
 public:
 	CHeaderCtrlExt();
 
+public:
 	int m_HitItem;
+
+public:
+	virtual void DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);
 
 public:
 	DECLARE_MESSAGE_MAP()
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
-	virtual void DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg void OnPaint();
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnMouseLeave();
@@ -51,6 +54,7 @@ public:
 	BOOL m_bSetLVCheck;
 #ifdef	USE_DARKMODE
 	CHeaderCtrlExt m_HeadCtrl;
+	CImageList m_ImageList;
 #endif
 
 	void SetSelectMarkItem(int item);
@@ -87,6 +91,18 @@ protected:
 	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg BOOL OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
+#ifdef	USE_DARKMODE
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+	afx_msg void OnPaint();
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnMouseLeave();
+#endif
+};
+
+class CTreeCtrlExt : public CTreeCtrl
+{
+protected:
+	DECLARE_MESSAGE_MAP()
+	afx_msg void OnPaint();
 };

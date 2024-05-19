@@ -808,6 +808,9 @@ void InitAppColor()
 
 	AppColorTable[0][APPCOL_CTRLFACE]		= AppColorTable[0][COLOR_WINDOW];
 	AppColorTable[0][APPCOL_CTRLTEXT]		= AppColorTable[0][COLOR_WINDOWTEXT];
+	AppColorTable[0][APPCOL_CTRLHIGH]		= RGB(0, 120, 215);
+	AppColorTable[0][APPCOL_CTRLHTEXT]		= RGB(255, 255, 255);
+	AppColorTable[0][APPCOL_CTRLSHADOW]		= RGB(185, 209, 234);
 
 	// ダークモードの色設定
 	memcpy(AppColorTable[1], AppColorTable[0], sizeof(AppColorTable[1]));
@@ -828,8 +831,6 @@ void InitAppColor()
 
 	AppColorTable[1][COLOR_3DDKSHADOW]	    = AppColorTable[0][COLOR_3DLIGHT];
 	AppColorTable[1][COLOR_3DLIGHT]	        = AppColorTable[0][COLOR_3DDKSHADOW];
-
-	AppColorTable[1][COLOR_GRADIENTINACTIVECAPTION] = RGB(56, 96, 124);
 
 	// 追加のダークモードの色設定
 	AppColorTable[1][APPCOL_MENUFACE]		= DARKMODE_BACKCOLOR;
@@ -861,6 +862,9 @@ void InitAppColor()
 
 	AppColorTable[1][APPCOL_CTRLFACE]		= AppColorTable[1][COLOR_WINDOW];
 	AppColorTable[1][APPCOL_CTRLTEXT]		= AppColorTable[1][COLOR_WINDOWTEXT];
+	AppColorTable[1][APPCOL_CTRLHIGH]		= RGB(0, 100, 190);
+	AppColorTable[1][APPCOL_CTRLHTEXT]		= RGB(255, 255, 255);
+	AppColorTable[1][APPCOL_CTRLSHADOW]		= RGB(56, 96, 124);
 
 	// ブラシの初期化
 	if ( !bAppColBrushInit ) {

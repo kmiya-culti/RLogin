@@ -361,8 +361,7 @@ void CTabCtrlExt::OnPaint()
 	if ( (GetStyle() & (TCS_MULTILINE | TCS_BUTTONS)) != 0 ) {
 		Default();
 		return;
-	} else 	if ( GetItemCount() <= 0 )
-		return;
+	}
 
 	int n;
 	CPoint last;
@@ -384,6 +383,9 @@ void CTabCtrlExt::OnPaint()
 	dis.hDC = dc.GetSafeHdc();
 	dis.CtlType = ODT_TAB;
 	dis.itemAction = ODA_DRAWENTIRE;
+
+	if ( GetItemCount() <= 0 )
+		return;
 
 	GetClientRect(frame);
 	GetItemRect(0, rect);
@@ -632,6 +634,16 @@ CDialogExt::~CDialogExt()
 	}
 }
 
+LRESULT CALLBACK OwnerCheckBoxProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+{
+	if ( uMsg == WM_ENABLE ) {
+		if ( wParam )
+			ExSetWindowTheme(hWnd, L"", L"");
+		else
+			ExSetWindowTheme(hWnd, NULL, NULL);
+	}
+	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+}
 LRESULT CALLBACK OwnerGroupBoxProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
 	if ( uMsg == WM_PAINT ) {
@@ -691,30 +703,59 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 	if ( _tcscmp(name, _T("Button")) == 0 ) {
 		if ( !pParent->m_bDarkMode && (GetAppColor(APPCOL_DLGTEXT) != GetSysColor(COLOR_MENUTEXT)) )
 			ExSetWindowTheme(hWnd, L"", L"");
-		else if ( (pWnd->GetStyle() & BS_TYPEMASK) <= BS_DEFPUSHBUTTON || (pWnd->GetStyle() & BS_TYPEMASK) == BS_PUSHBOX )
-			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
-		else if ( (pWnd->GetStyle() & BS_TYPEMASK) == BS_CHECKBOX && (pWnd->GetStyle() & BS_PUSHLIKE) != 0 )
-			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+		else {
+			switch(pWnd->GetStyle() & BS_TYPEMASK) {
+			case BS_PUSHBUTTON:
+			case BS_DEFPUSHBUTTON:
+			case BS_PUSHBOX:
+				ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+				break;
+			case BS_CHECKBOX:
+				if ( (pWnd->GetStyle() & BS_PUSHLIKE) != 0 )
+					ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
+				else if ( pParent->m_bDarkMode )
+					ExSetWindowTheme(hWnd, L"", L"");
+				else
+					ExSetWindowTheme(hWnd, NULL, NULL);
+				break;
 #ifdef	USE_DARKMODE
-		else if ( (pWnd->GetStyle() & BS_TYPEMASK) == BS_GROUPBOX ) {
-			if ( pParent->m_bDarkMode ) {
-				SetWindowSubclass(hWnd, OwnerGroupBoxProc, (UINT_PTR)hWnd, (DWORD_PTR)pParent);
-				ExSetWindowTheme(hWnd, L"", L"");
-			} else {
-				RemoveWindowSubclass(hWnd, OwnerGroupBoxProc, (UINT_PTR)hWnd);
-				ExSetWindowTheme(hWnd, NULL, NULL);
+			case BS_AUTOCHECKBOX:
+			case BS_RADIOBUTTON:
+			case BS_AUTORADIOBUTTON:
+				if ( pParent->m_bDarkMode ) {
+					SetWindowSubclass(hWnd, OwnerCheckBoxProc, (UINT_PTR)hWnd, (DWORD_PTR)pParent);
+					if ( pWnd->IsWindowEnabled() )
+						ExSetWindowTheme(hWnd, L"", L"");
+					else
+						ExSetWindowTheme(hWnd, NULL, NULL);
+				} else {
+					RemoveWindowSubclass(hWnd, OwnerCheckBoxProc, (UINT_PTR)hWnd);
+					ExSetWindowTheme(hWnd, NULL, NULL);
+				}
+				break;
+			case BS_GROUPBOX:
+				if ( pParent->m_bDarkMode ) {
+					SetWindowSubclass(hWnd, OwnerGroupBoxProc, (UINT_PTR)hWnd, (DWORD_PTR)pParent);
+					ExSetWindowTheme(hWnd, L"", L"");
+				} else {
+					RemoveWindowSubclass(hWnd, OwnerGroupBoxProc, (UINT_PTR)hWnd);
+					ExSetWindowTheme(hWnd, NULL, NULL);
+				}
+				break;
+#endif
+			default:
+				if ( pParent->m_bDarkMode )
+					ExSetWindowTheme(hWnd, L"", L"");
+				else
+					ExSetWindowTheme(hWnd, NULL, NULL);
+				break;
 			}
 		}
-#endif
-		else if ( pParent->m_bDarkMode )
-			ExSetWindowTheme(hWnd, L"", L"");
-		else
-			ExSetWindowTheme(hWnd, NULL, NULL);
-		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 
 	} else if ( _tcscmp(name, _T("ScrollBar")) == 0 ) {
 		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
-		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 
 #ifdef	USE_DARKMODE
 	//} else if ( _tcscmp(name, _T("Static")) == 0 ) {
@@ -739,11 +780,11 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
 		} else
 			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_CFD" : L"Explorer"), NULL);
-		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 
 	} else if ( _tcscmp(name, _T("ComboBox")) == 0 ) {
 		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_CFD" : L"Explorer"), NULL);
-		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 		DWORD pos = ((CComboBox *)pWnd)->GetEditSel();
 		if ( pos != CB_ERR )
 			((CComboBox *)pWnd)->SetEditSel(LOWORD(pos), LOWORD(pos));
@@ -758,17 +799,18 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 		//ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_ItemsView" : L"ItemsView"), NULL);
 		//ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
 		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : NULL), NULL);
-		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 
 	} else if ( _tcscmp(name, _T("SysTreeView32")) == 0 ) {
 		CTreeCtrl *pTree = (CTreeCtrl *)pWnd;
 
 		pTree->SetTextColor(GetAppColor(APPCOL_CTRLTEXT));
 		pTree->SetBkColor(GetAppColor(APPCOL_CTRLFACE));
+		//pTree->SetInsertMarkColor(GetAppColor(APPCOL_CTRLFACE));
 
 		//ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
 		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : NULL), NULL);
-		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 
 	} else if ( _tcscmp(name, _T("msctls_progress32")) == 0 ) {
 		CProgressCtrl *pProg = (CProgressCtrl *)pWnd;
@@ -782,18 +824,18 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 			pProg->SetBkColor(GetAppColor(APPCOL_CTRLFACE));
 			ExSetWindowTheme(hWnd, NULL, NULL);
 		}
-		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 
 	} else if ( _tcscmp(name, _T("msctls_trackbar32")) == 0 ) {
 		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
-		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 
 	}
 #else
 	} else if ( _tcscmp(name, _T("Edit")) == 0 ) {
 		if ( (pWnd->GetStyle() & ES_MULTILINE) != 0 ) {
 			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
-			SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+			//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 		}
 	}
 #endif
@@ -1257,7 +1299,7 @@ void CDialogExt::LoadSaveDialogSize(BOOL bSave)
 			cx = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("clientX"), MulDiv(client.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * m_NowFsz.cx));
 			cy = AfxGetApp()->GetProfileInt(m_SaveProfile, _T("clientY"), MulDiv(client.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * m_NowFsz.cy));
 			cx = MulDiv(cx, m_NowDpi.cx * m_NowFsz.cx, DEFAULT_DPI_X * m_DefFsz.cx) + dx;
-			cy = MulDiv(cy, m_NowDpi.cy * m_NowFsz.cy, DEFAULT_DPI_Y * m_DefFsz.cy) + dx;
+			cy = MulDiv(cy, m_NowDpi.cy * m_NowFsz.cy, DEFAULT_DPI_Y * m_DefFsz.cy) + dy;
 
 			if ( AfxGetApp()->GetProfileInt(m_SaveProfile, _T("WithFontSize"), 0) != 0 ) {
 				((CRLoginApp *)AfxGetApp())->DelProfileEntry(m_SaveProfile, _T("cx"));
