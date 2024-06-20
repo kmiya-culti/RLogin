@@ -1048,6 +1048,8 @@ public:
 	int GetPropNode(int num, int node, CString &str);
 
 	const CParamTab & operator = (CParamTab &data);
+
+	BOOL IsPfdEnable();
 };
 
 #define	FEXT_BUF_MAX	(16 * 1024)

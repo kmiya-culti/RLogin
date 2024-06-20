@@ -52,10 +52,8 @@ public:
 	BOOL m_bMove;
 	CSize m_Dpi;
 	BOOL m_bSetLVCheck;
-#ifdef	USE_DARKMODE
 	CHeaderCtrlExt m_HeadCtrl;
 	CImageList m_ImageList;
-#endif
 
 	void SetSelectMarkItem(int item);
 	int GetParamItem(int para);
@@ -91,13 +89,11 @@ protected:
 	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg BOOL OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
-#ifdef	USE_DARKMODE
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
 	afx_msg void OnPaint();
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnMouseLeave();
-#endif
 };
 
 class CTreeCtrlExt : public CTreeCtrl

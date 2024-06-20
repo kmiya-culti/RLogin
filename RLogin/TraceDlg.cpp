@@ -348,7 +348,6 @@ void CTraceDlg::OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult)
         *pResult = CDRF_NOTIFYSUBITEMDRAW;
 		break;
 	case CDDS_ITEMPREPAINT | CDDS_SUBITEM:
-#ifdef	USE_DARKMODE
 		if ( pLVCD->iSubItem == 0 && (np = (CTraceNode *)(m_List.GetItemData((int)pLVCD->nmcd.dwItemSpec))) != NULL ) {
 			if ( np->m_Flag == TRACE_OUT )
 				pLVCD->clrText = GetAppColor(APPCOL_CTRLTEXT);
@@ -358,17 +357,6 @@ void CTraceDlg::OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult)
 				pLVCD->clrText = RGB(127,   0,   0);
 		} else
 			pLVCD->clrText = GetAppColor(APPCOL_CTRLTEXT);
-#else
-		if ( pLVCD->iSubItem == 0 && (np = (CTraceNode *)(m_List.GetItemData((int)pLVCD->nmcd.dwItemSpec))) != NULL ) {
-			if ( np->m_Flag == TRACE_OUT )
-				pLVCD->clrText = GetSysColor(COLOR_WINDOWTEXT);
-			else if ( np->m_Flag == TRACE_NON )
-				pLVCD->clrText = RGB(127, 127, 127);
-			else if ( np->m_Flag == TRACE_UNGET )
-				pLVCD->clrText = RGB(127,   0,   0);
-		} else
-			pLVCD->clrText = GetSysColor(COLOR_WINDOWTEXT);
-#endif
         *pResult = CDRF_NEWFONT;
 		break;
 	default:
@@ -842,7 +830,6 @@ void CCmdHisDlg::OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult)
         *pResult = CDRF_NOTIFYSUBITEMDRAW;
 		break;
 	case CDDS_ITEMPREPAINT | CDDS_SUBITEM:
-#ifdef	USE_DARKMODE
 		if ( (pCmdHis = (CMDHIS *)(m_List.GetItemData((int)pLVCD->nmcd.dwItemSpec))) != NULL ) {
 			if ( (m_pDocument->m_TextRam.m_HisAbs - pCmdHis->habs) <= (m_pDocument->m_TextRam.m_HisLen - m_pDocument->m_TextRam.m_Lines) )
 				pLVCD->clrText = GetAppColor(APPCOL_CTRLTEXT);
@@ -850,15 +837,6 @@ void CCmdHisDlg::OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult)
 				pLVCD->clrText = RGB(127, 127, 127);
 		} else
 			pLVCD->clrText = GetAppColor(APPCOL_CTRLTEXT);
-#else
-		if ( (pCmdHis = (CMDHIS *)(m_List.GetItemData((int)pLVCD->nmcd.dwItemSpec))) != NULL ) {
-			if ( (m_pDocument->m_TextRam.m_HisAbs - pCmdHis->habs) <= (m_pDocument->m_TextRam.m_HisLen - m_pDocument->m_TextRam.m_Lines) )
-				pLVCD->clrText = GetSysColor(COLOR_WINDOWTEXT);
-			else
-				pLVCD->clrText = RGB(127, 127, 127);
-		} else
-			pLVCD->clrText = GetSysColor(COLOR_WINDOWTEXT);
-#endif
         *pResult = CDRF_NEWFONT;
 		break;
 	default:

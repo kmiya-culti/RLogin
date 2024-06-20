@@ -92,6 +92,7 @@ public:
 	CFifoDocument *m_pFifoRight;
 
 	CFifoProxy *m_pFifoProxy;
+	CFifoSSL *m_pFifoSSL;
 	CFifoSync *m_pFifoSync;
 
 	SOCKET m_Fd;
@@ -188,13 +189,15 @@ public:
 	int SyncExtSend(const void *lpBuf, int nBufLen, int mSec, BOOL *pAbort);
 	void SyncAbort();
 
-	int SSLConnect();
-	void SSLClose();
+	BOOL SSLInit();
+	int SSLCheck();
+	void SSLClose(BOOL bUnLink = FALSE);
 
 	BOOL ProxyCheck();
 	BOOL ProxyReadLine();
 	BOOL ProxyReadBuff(int len);
 	BOOL ProxyMakeDigest(CString &digest);
+	BOOL ProxyReOpen();
 	BOOL ProxyFunc();
 
 	BOOL IOCtl(long lCommand, DWORD* lpArgument );

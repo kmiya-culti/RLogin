@@ -9,6 +9,7 @@
 #include "RLoginView.h"
 #include "ExtSocket.h"
 #include "PipeSock.h"
+#include "ComSock.h"
 #include "PassDlg.h"
 #include "ssh.h"
 #include "HttpCtx.h"
@@ -47,6 +48,7 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_pFifoRight  = NULL;
 	m_pFifoSync   = NULL;
 	m_pFifoProxy  = NULL;
+	m_pFifoSSL    = NULL;
 
 	m_pHttp2Ctx = NULL;
 	m_pHttp3Ctx = NULL;
@@ -102,6 +104,12 @@ void CExtSocket::FifoUnlink()
 		CFifoBase::UnLink(m_pFifoProxy, FIFO_STDIN, TRUE);
 		m_pFifoProxy->Destroy();
 		m_pFifoProxy = NULL;
+	}
+
+	if ( m_pFifoSSL != NULL ) {
+		CFifoBase::UnLink(m_pFifoSSL, FIFO_STDIN, TRUE);
+		m_pFifoSSL->Destroy();
+		m_pFifoSSL = NULL;
 	}
 
 	if ( m_pFifoLeft != NULL && m_pFifoMid != NULL && m_pFifoRight != NULL )
@@ -208,11 +216,13 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 
 	FifoLink();
 
-	if ( m_ProxyStatus != PRST_NONE || m_SSL_mode != 0 ) {
-		ASSERT(m_pFifoProxy == NULL);
-
+	if ( m_ProxyStatus != PRST_NONE ) {
 		m_pFifoProxy = new CFifoProxy(m_pDocument, this);
 		CFifoBase::Link(m_pFifoProxy, FIFO_STDIN, m_pFifoMid, FIFO_STDIN);
+	}
+	if ( m_SSL_mode != 0 ) {
+		m_pFifoSSL = new CFifoSSL(m_pDocument, this);
+		CFifoBase::Link(m_pFifoSSL, FIFO_STDIN, (m_pFifoProxy != NULL ? m_pFifoProxy : m_pFifoMid), FIFO_STDIN);
 	}
 
 	m_pFifoLeft->m_nBufSize = m_pFifoMid->m_nBufSize = m_RecvBufSize;
@@ -904,62 +914,36 @@ LPCTSTR CExtSocket::GetFormatErrorMessage(LPCTSTR entry, LPCTSTR host, int port,
 
 //////////////////////////////////////////////////////////////////////
 
-int CExtSocket::SSLConnect()
+BOOL CExtSocket::SSLInit()
 {
-	int n;
-	DWORD val;
 	const SSL_METHOD *method = NULL;
-	long result = 0;
-	X509 *pX509, *cert = NULL;
-	const char *errstr;
-	CString tmp, subject, finger, dig;
-	CIdKey key;
-	BOOL rf = FALSE;
 	X509_STORE *pStore;
-	X509_NAME *pName;
-	char name_buf[1024];
-	STACK_OF(X509) *pStack;
-	EVP_PKEY *pkey;
-	CEvent waitEvent;
+	X509 *pX509;
 	int alpn_len;
 	CBuffer alpn;
 
-	m_PauseParam[0] = (void *)(HANDLE)waitEvent;
-	m_PauseParam[1] = NULL;
-
-	if ( m_pFifoLeft == NULL || m_pFifoLeft->m_Type != FIFO_TYPE_SOCKET || !m_pFifoLeft->IsOpen() )
-		return FALSE;
-
-	if ( !m_pFifoLeft->SendCmdWait(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SSLCONNECT, 0, 0, (void *)m_PauseParam) )
-		return FALSE;
-
-	GetApp()->SSL_Init();
+	theApp.SSL_Init();
 
 	switch(m_SSL_mode) {
 	case 1:
-		val = 0;
 		method = TLS_client_method();
 		break;
 	case 2:
-		val = 1;
 		method = OSSL_QUIC_client_method();
 		break;
 	}
 
-	::ioctlsocket(((CFifoSocket *)m_pFifoLeft)->m_hSocket, FIONBIO, &val);
-
 	if ( (m_SSL_pCtx = SSL_CTX_new((SSL_METHOD *)method)) == NULL )
-		goto ERRENDOF;
+		return FALSE;
 
 	if ( (m_SSL_pSock = SSL_new(m_SSL_pCtx)) == NULL )
-		goto ERRENDOF;
+		return FALSE;
 
 	SSL_CTX_set_mode(m_SSL_pCtx, SSL_MODE_AUTO_RETRY);
-	SSL_set_fd(m_SSL_pSock, (int)((CFifoSocket *)m_pFifoLeft)->m_hSocket);
 
 	if ( (pStore = X509_STORE_new()) != NULL ) {
 		// Windows Certificate Store ‚©‚çROOTØ–¾‘‚ðOpenSSL‚É“o˜^
-	    HCERTSTORE hStore;
+		HCERTSTORE hStore;
 		PCCERT_CONTEXT pContext = NULL;
 
 		if ( (hStore = CertOpenSystemStore(0, _T("ROOT"))) != NULL ) {
@@ -994,7 +978,7 @@ int CExtSocket::SSLConnect()
 
 	if ( m_SSL_mode == 2 ) {
 		if ( !SSL_set_default_stream_mode(m_SSL_pSock, SSL_DEFAULT_STREAM_MODE_NONE) )
-			goto ERRENDOF;
+			return FALSE;
 	}
 
 	if ( (alpn_len = m_SSL_alpn.GetLength()) > 0 ) {
@@ -1002,11 +986,27 @@ int CExtSocket::SSLConnect()
 		alpn.Apend((BYTE *)(LPCSTR)m_SSL_alpn, alpn_len);
 
 		if ( SSL_set_alpn_protos(m_SSL_pSock, alpn.GetPtr(), alpn.GetSize()) != 0 )
-			goto ERRENDOF;
+			return FALSE;
 	}
 
-	if ( (n = SSL_connect(m_SSL_pSock)) < 0 && SSL_get_error(m_SSL_pSock, n) != SSL_ERROR_NONE )
-		goto ERRENDOF;
+	return TRUE;
+}
+int CExtSocket::SSLCheck()
+{
+	int n;
+	long result = 0;
+	X509 *pX509, *cert = NULL;
+	STACK_OF(X509) *pStack;
+	X509_NAME *pName;
+	char name_buf[1024];
+	CString tmp, subject, finger, dig;
+	EVP_PKEY *pkey;
+	CIdKey key;
+	BOOL rf = FALSE;
+	const char *errstr;
+
+	if ( (n = SSL_connect(m_SSL_pSock)) < 0 )
+		return SSL_get_error(m_SSL_pSock, n);
 
 	cert   = SSL_get_peer_certificate(m_SSL_pSock);
 	result = SSL_get_verify_result(m_SSL_pSock);
@@ -1093,43 +1093,31 @@ int CExtSocket::SSLConnect()
 		}
 	}
 
-	val = 1;
-	::ioctlsocket(((CFifoSocket *)m_pFifoLeft)->m_hSocket, FIONBIO, &val);
-
-	if ( m_SSL_mode == 2 ) {
-		if ( (m_PauseParam[1] = (void *)SSL_new_stream(m_SSL_pSock, SSL_STREAM_FLAG_NO_BLOCK | SSL_STREAM_FLAG_ADVANCE)) == NULL )
+	if ( m_SSL_mode == 2 && m_pFifoSSL != NULL ) {
+		if ( (m_pFifoSSL->m_ssl = SSL_new_stream(m_SSL_pSock, SSL_STREAM_FLAG_NO_BLOCK | SSL_STREAM_FLAG_ADVANCE)) == NULL )
 			goto ERRENDOF;
 
 		if ( !SSL_set_blocking_mode(m_SSL_pSock, 0) )
 			goto ERRENDOF;
-	} else
-		m_PauseParam[1] = (void *)m_SSL_pSock;
+	}
 
-	waitEvent.SetEvent();
-
-	return TRUE;
+	return SSL_ERROR_NONE;
 
 ERRENDOF:
-	m_PauseParam[1] = NULL;
-	waitEvent.SetEvent();
-
 	if ( cert != NULL )
 		X509_free(cert);
 
 	SSLClose();
-	return FALSE;
+	return SSL_ERROR_SSL;
 }
-void CExtSocket::SSLClose()
+void CExtSocket::SSLClose(BOOL bUnLink)
 {
 	if ( m_SSL_pSock != NULL ) {
 		SSL *stram = NULL;
 
-		m_PauseParam[0] = NULL;
-		m_PauseParam[1] = NULL;
-
-		if ( m_pFifoLeft != NULL && m_pFifoLeft->m_Type == FIFO_TYPE_SOCKET ) {
-			stram = ((CFifoSocket *)m_pFifoLeft)->m_SSL_pSock;
-			m_pFifoLeft->SendCmdWait(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SSLCONNECT, 0, 0, m_PauseParam);
+		if ( m_pFifoSSL != NULL ) {
+			stram = m_pFifoSSL->m_ssl;
+			m_pFifoSSL->Close();
 		}
 
 		if ( stram != NULL && stram != m_SSL_pSock ) {
@@ -1147,7 +1135,11 @@ void CExtSocket::SSLClose()
 		m_SSL_pCtx  = NULL;
 	}
 
-	m_SSL_mode  = 0;
+	if ( bUnLink && m_pFifoSSL != NULL ) {
+		CFifoBase::UnLink(m_pFifoSSL, FIFO_STDIN, TRUE);
+		m_pFifoSSL->Destroy();
+		m_pFifoSSL = NULL;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1273,6 +1265,37 @@ BOOL CExtSocket::ProxyMakeDigest(CString &digest)
 
 	return TRUE;
 }
+BOOL CExtSocket::ProxyReOpen()
+{
+	BOOL rt = FALSE;
+
+	ASSERT(m_pFifoLeft != NULL);
+
+	SSLClose();
+
+	switch(m_pFifoLeft->m_Type) {
+	case FIFO_TYPE_SOCKET:
+		((CFifoSocket *)m_pFifoLeft)->Close();
+		((CFifoSocket *)m_pFifoLeft)->Reset(FIFO_STDIN);
+		((CFifoSocket *)m_pFifoLeft)->Reset(FIFO_STDOUT);
+		rt = ((CFifoSocket *)m_pFifoLeft)->Open();
+		break;
+	case FIFO_TYPE_PIPE:
+		((CFifoPipe *)m_pFifoLeft)->Close();
+		((CFifoPipe *)m_pFifoLeft)->Reset(FIFO_STDIN);
+		((CFifoPipe *)m_pFifoLeft)->Reset(FIFO_STDOUT);
+		rt = ((CFifoPipe *)m_pFifoLeft)->Open();
+		break;
+	case FIFO_TYPE_COM:
+		((CFifoCom *)m_pFifoLeft)->Close();
+		((CFifoCom *)m_pFifoLeft)->Reset(FIFO_STDIN);
+		((CFifoCom *)m_pFifoLeft)->Reset(FIFO_STDOUT);
+		rt = ((CFifoCom *)m_pFifoLeft)->Open();
+		break;
+	}
+
+	return rt;
+}
 BOOL CExtSocket::ProxyFunc()
 {
 	int n, i;
@@ -1363,16 +1386,8 @@ BOOL CExtSocket::ProxyFunc()
 				}
 				if ( m_ProxyConnect )
 					break;
-				else if ( ((CFifoSocket *)m_pFifoLeft)->m_Type == FIFO_TYPE_SOCKET ) {
-					// Connection: closed ReOpen
-					n = m_SSL_mode;
-					SSLClose();
-					ASSERT(m_pFifoLeft != NULL && m_pFifoLeft->m_Type == FIFO_TYPE_SOCKET);
-					if ( !((CFifoSocket *)m_pFifoLeft)->ReOpen() )
-						return FALSE;
-					m_SSL_mode = n;
+				else if ( ProxyReOpen() )
 					return TRUE;
-				}
 				// no break;
 			default:
 				m_ProxyStatus = PRST_HTTP_ERROR;
@@ -1412,7 +1427,7 @@ BOOL CExtSocket::ProxyFunc()
 			m_ProxyStr.Empty();
 			m_ProxyResult.RemoveAll();
 			if ( !m_SSL_keep )
-				SSLClose();					// XXXXXXXX BUG???
+				SSLClose(TRUE);					// XXXXXXXX BUG???
 			break;
 		case PRST_HTTP_DIGEST:
 			if ( !ProxyMakeDigest(dig) )
@@ -1430,7 +1445,7 @@ BOOL CExtSocket::ProxyFunc()
 			m_ProxyStr.Empty();
 			m_ProxyResult.RemoveAll();
 			if ( !m_SSL_keep )
-				SSLClose();					// XXXXXXXX BUG???
+				SSLClose(TRUE);					// XXXXXXXX BUG???
 			break;
 
 		//////////////////////////////////////////////////////////////////////

@@ -149,7 +149,10 @@ BOOL CFifoPipe::IsPipeName(LPCTSTR path)
 }
 BOOL CFifoPipe::Open(LPCTSTR pCommand)
 {
-	Close();
+	if ( pCommand == NULL )
+		pCommand = m_Command;
+	else
+		m_Command = pCommand;
 
 	if ( IsPipeName(pCommand) ) {
 

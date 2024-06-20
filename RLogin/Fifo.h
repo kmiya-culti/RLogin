@@ -41,7 +41,6 @@ enum FifoMsgQueInCmd {
 	FIFO_QCMD_GETSOCKOPT,		// CFifoSocket
 	FIFO_QCMD_SETSOCKOPT,		// CFifoSocket
 	FIFO_QCMD_IOCtl,			// CFifoSocket
-	FIFO_QCMD_SSLCONNECT,		// CFifoSocket
 
 	FIFO_QCMD_SENDWINSIZE,		// CFifoTelnet/CFifoLogin
 	FIFO_QCMD_SENDBREAK,		// CFifoTelnet/CFifoPipe/CFifoCom
@@ -389,7 +388,6 @@ public:
 	CEvent m_ThreadEvent;
 	int m_Threadtatus;
 	CWinThread *m_pWinThread;
-	SSL *m_SSL_pSock;
 
 	CString m_HostAddress;
 	UINT m_nHostPort;
@@ -408,7 +406,6 @@ public:
 	void ThreadEnd();
 	BOOL Open(LPCTSTR lpszHostAddress = NULL, UINT nHostPort = 0, UINT nSocketPort = 0, int nFamily = AF_UNSPEC, int nSocketType = SOCK_STREAM);
 	BOOL Close();
-	BOOL ReOpen();
 
 	BOOL Attach(SOCKET hSocket);
 	void Detach();
@@ -424,7 +421,6 @@ class CFifoListen : public CFifoASync
 public:
 	CArray<WSAEVENT, WSAEVENT> m_SocketEvent;
 	CArray<SOCKET, SOCKET> m_Socket;
-	int m_nLastError;
 
 	BOOL m_bAbort;
 	CEvent m_AbortEvent;
@@ -449,6 +445,35 @@ public:
 
 	BOOL AddInfoOpen();
 	BOOL ListenProc();
+};
+
+#define	FIFOSSL_STATE_NONE		0
+#define	FIFOSSL_STATE_CONNECT	1
+#define	FIFOSSL_STATE_READ		2
+#define	FIFOSSL_STATE_WRITE		4
+#define	FIFOSSL_STATE_ERROR		5
+
+class CFifoSSL : public CFifoThread
+{
+public:
+	SSL *m_ssl;
+	BIO *m_rbio;
+	BIO *m_wbio;
+	int m_state;
+	BOOL m_bOverFlow[4];
+
+public:
+	CFifoSSL(class CRLoginDoc *pDoc, class CExtSocket *pSock);
+	~CFifoSSL();
+
+	void Polling(int nFd);
+	void Close();
+	
+	virtual void OnRead(int nFd);
+	virtual void OnWrite(int nFd);
+
+	virtual void OnConnect(int nFd);
+	virtual void OnClose(int nFd, int nLastError);
 };
 
 class CFifoProxy : public CFifoThread

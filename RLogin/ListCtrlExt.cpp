@@ -164,13 +164,11 @@ BEGIN_MESSAGE_MAP(CListCtrlExt, CListCtrl)
 	ON_NOTIFY_REFLECT_EX(NM_RCLICK, OnRclick)
 	ON_NOTIFY_REFLECT_EX(NM_DBLCLK, OnDblclk)
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
-#ifdef	USE_DARKMODE
 	ON_WM_ERASEBKGND()
 	ON_WM_CTLCOLOR()
 	ON_WM_PAINT()
 	ON_WM_MOUSEMOVE()
 	ON_WM_MOUSELEAVE()
-#endif
 END_MESSAGE_MAP()
 
 static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort)
@@ -261,11 +259,9 @@ void CListCtrlExt::InitColumn(LPCTSTR lpszSection, const LV_COLUMN *lpColumn, in
 	CSize dsz(7, 12);
 	CSize fsz(7, 12);
 
-#ifdef	USE_DARKMODE
 	CHeaderCtrl *pWnd = GetHeaderCtrl();
 	if ( pWnd != NULL )
 		m_HeadCtrl.SubclassWindow(pWnd->GetSafeHwnd());
-#endif
 
 	if ( pParent != NULL && CDialogExt::IsDialogExt(pParent) ) {
 		m_Dpi.cx = pParent->m_NowDpi.cx;
@@ -355,10 +351,8 @@ void CListCtrlExt::SaveColumn(LPCTSTR lpszSection)
 
 	((CRLoginApp *)AfxGetApp())->WriteProfileBinary(lpszSection, _T("SortItemTab"), buf.GetPtr(), buf.GetSize());
 
-#ifdef	USE_DARKMODE
 	if ( m_HeadCtrl.GetSafeHwnd() != NULL )
 			m_HeadCtrl.UnsubclassWindow();
-#endif
 }
 void CListCtrlExt::SetLVCheck(WPARAM ItemIndex, BOOL bCheck)
 {
@@ -909,7 +903,6 @@ BOOL CListCtrlExt::OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRE
 	return CListCtrl::OnChildNotify(message, wParam, lParam, pResult);
 }
 
-#ifdef	USE_DARKMODE
 BOOL CListCtrlExt::OnEraseBkgnd(CDC* pDC)
 {
 	CRect rect;
@@ -1093,15 +1086,12 @@ void CListCtrlExt::OnMouseLeave()
 {
 	//CListCtrl::OnMouseLeave();
 }
-#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // CTreeCtrlExt
 
 BEGIN_MESSAGE_MAP(CTreeCtrlExt, CTreeCtrl)
-#ifdef	USE_DARKMODE
 	ON_WM_PAINT()
-#endif
 END_MESSAGE_MAP()
 
 void CTreeCtrlExt::OnPaint()

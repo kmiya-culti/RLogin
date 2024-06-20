@@ -257,7 +257,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_IdKeyPos = 0;
 		SetRecvBufSize(CHAN_SES_PACKET_DEFAULT);
 		srand((UINT)time(NULL));
-		m_bPfdConnect = 0;
+		m_PfdConnect = 0;
 		m_ExtInfoStat = EXTINFOSTAT_CHECK;
 		m_ExtInfo.RemoveAll();
 		m_DhGexReqBits = 4096;
@@ -1916,7 +1916,15 @@ void Cssh::ChannelCheck(int nFd, int fdEvent, void *pParam)
 			break;
 
 		case FD_CLOSE:			// CFifoSsh::OnClose
-			if ( (pChan->m_Status & CHAN_OPEN_LOCAL) == 0 )
+			if ( pChan->m_Type == SSHFT_LOCAL_LISTEN || pChan->m_Type == SSHFT_LOCAL_SOCKS ) {
+				if ( pChan->m_pFifoBase->m_nLastError != 0 ) {
+					if ( pChan->m_pFifoBase->m_nLastError != WSAEADDRINUSE || m_pDocument == NULL || !m_pDocument->m_bPfdCheck ) {
+						::SetLastError(pChan->m_pFifoBase->m_nLastError);
+						ThreadMessageBox(_T("Listen socket error '%s:%d'"), pChan->m_lHost, pChan->m_lPort);
+					}
+				}
+				ChannelClose(id);
+			} else if ( (pChan->m_Status & CHAN_OPEN_LOCAL) == 0 )
 				SendMsgChannelOpenFailure(id);
 			else if ( (pChan->m_Status & CHAN_OPEN_REMOTE) != 0 )
 				ChannelClose(id, CHAN_CLOSE_LOCAL);
@@ -2100,7 +2108,7 @@ void Cssh::PortForward(BOOL bReset)
 	CStringArrayExt tmp;
 	CFifoChannel *pChan;
 
-	m_bPfdConnect = 0;
+	m_PfdConnect = 0;
 	m_PortFwdTable = m_pDocument->m_ParamTab.m_PortFwd;
 
 	if ( m_pDocument->m_ServerEntry.m_ReEntryFlag && !m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) )
@@ -2156,7 +2164,7 @@ void Cssh::PortForward(BOOL bReset)
 			m_Permit[n].m_Type  = tmp.GetVal(4);
 			SendMsgGlobalRequest(n, "tcpip-forward", tmp[0], GetPortNum(tmp[1]));
 			LogIt(_T("Remote %s %s:%s"), (m_Permit[n].m_Type == PFD_REMOTE ? _T("Listen") : _T("Proxy")), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
-			m_bPfdConnect++;
+			m_PfdConnect++;
 			a++;
 			break;
 		}
@@ -2168,12 +2176,12 @@ void Cssh::PortForward(BOOL bReset)
 			PostClose(0);
 		}
 
-		if ( m_bPfdConnect == 0 ) { // && !m_bConnect ) {
+		if ( m_PfdConnect == 0 ) { // && !m_bConnect ) {
 			m_bConnect = TRUE;
 			m_pFifoMid->SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
 		}
 	} else
-		m_bPfdConnect = 0;
+		m_PfdConnect = 0;
 }
 void Cssh::CancelPortForward()
 {
@@ -2201,6 +2209,9 @@ void Cssh::CancelPortForward()
 		m_GlbReqMap.Add((WORD)n);
 		bDelay = TRUE;
 	}
+
+	if ( m_pDocument != NULL )
+		m_pDocument->m_bPfdCheck = FALSE;
 
 	if ( !bDelay )
 		PortForward(TRUE);
@@ -3134,12 +3145,14 @@ void Cssh::SendMsgChannelOpenFailure(int id)
 
 	ASSERT(pChan != NULL);
 
-	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN_FAILURE);
-	tmp.Put32Bit(pChan->m_RemoteID);
-	tmp.Put32Bit(SSH2_OPEN_CONNECT_FAILED);
-	tmp.PutStr("open failed");
-	tmp.PutStr("");
-	SendPacket2(&tmp);
+	if ( (pChan->m_Status & CHAN_OPEN_REMOTE) != 0 && pChan->m_RemoteID != (-1) ) {
+		tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN_FAILURE);
+		tmp.Put32Bit(pChan->m_RemoteID);
+		tmp.Put32Bit(SSH2_OPEN_CONNECT_FAILED);
+		tmp.PutStr("open failed");
+		tmp.PutStr("");
+		SendPacket2(&tmp);
+	}
 
 	ChannelClose(id);
 }
@@ -4665,6 +4678,8 @@ FAILURE:
 	if ( pChan != NULL )
 		ChannelClose(pChan->m_LocalID);
 
+	ASSERT(id != (-1));
+
 	tmp.Clear();
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN_FAILURE);
 	tmp.Put32Bit(id);
@@ -5047,15 +5062,17 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 		return 0;
 	}
 
-	if ( m_bPfdConnect > 0 && --m_bPfdConnect <= 0 ) { // && !m_bConnect ) {
+	if ( m_PfdConnect > 0 && --m_PfdConnect <= 0 ) { // && !m_bConnect ) {
 		m_bConnect = TRUE;
 		m_pFifoMid->SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
 	}
 
 	if ( type == SSH2_MSG_REQUEST_FAILURE && num < m_Permit.GetSize() ) {
-		str.Format(_T("Global Request Failure %s:%d->%s:%d"),
-			(LPCTSTR)m_Permit[num].m_lHost, m_Permit[num].m_lPort, (LPCTSTR)m_Permit[num].m_rHost, m_Permit[num].m_rPort);
-		::AfxMessageBox(str, MB_ICONERROR);
+		if ( m_pDocument != NULL || !m_pDocument->m_bPfdCheck ) {
+			str.Format(_T("Global Request Failure %s:%d->%s:%d"),
+				(LPCTSTR)m_Permit[num].m_lHost, m_Permit[num].m_lPort, (LPCTSTR)m_Permit[num].m_rHost, m_Permit[num].m_rPort);
+			::AfxMessageBox(str, MB_ICONERROR);
+		}
 		m_Permit.RemoveAt(num);
 	}
 

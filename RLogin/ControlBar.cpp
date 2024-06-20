@@ -626,7 +626,6 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
 		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 
-#ifdef	USE_DARKMODE
 	} else if ( _tcscmp(name, _T("Edit")) == 0 ) {
 		if ( (pWnd->GetStyle() & ES_MULTILINE) != 0 )
 			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
@@ -646,9 +645,6 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 
 	}
-#else
-	}
-#endif
 
 	return TRUE;
 }
@@ -905,7 +901,6 @@ afx_msg HBRUSH CDialogBarEx::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
 	HBRUSH hbr = CDialogBar::OnCtlColor(pDC, pWnd, nCtlColor);
 
-#ifdef	USE_DARKMODE
 	switch(nCtlColor) {
 	case CTLCOLOR_MSGBOX:		// Message box
 	case CTLCOLOR_EDIT:			// Edit control
@@ -923,22 +918,6 @@ afx_msg HBRUSH CDialogBarEx::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 		pDC->SetBkMode(TRANSPARENT);
 		break;
 	}
-#else
-	switch(nCtlColor) {
-	case CTLCOLOR_MSGBOX:		// Message box
-	case CTLCOLOR_EDIT:			// Edit control
-	case CTLCOLOR_LISTBOX:		// List-box control
-		break;
-	case CTLCOLOR_BTN:			// Button control
-	case CTLCOLOR_DLG:			// Dialog box
-	case CTLCOLOR_SCROLLBAR:
-	case CTLCOLOR_STATIC:		// Static control
-		hbr = GetAppColorBrush(APPCOL_BARBACK);
-		pDC->SetTextColor(GetAppColor(APPCOL_BARTEXT));
-		pDC->SetBkMode(TRANSPARENT);
-		break;
-	}
-#endif
 
 	return hbr;
 }

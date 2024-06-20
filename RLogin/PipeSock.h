@@ -20,6 +20,7 @@ public:
 	CEvent m_AbortEvent[3];
 	CEvent m_ThreadEvent[3];
 	PROCESS_INFORMATION m_proInfo;
+	CString m_Command;
 
 public:
 	CFifoPipe(class CRLoginDoc *pDoc, class CExtSocket *pSock);
@@ -28,7 +29,7 @@ public:
 	virtual void OnUnLinked(int nFd, BOOL bMid);
 
 	BOOL IsPipeName(LPCTSTR path);
-	BOOL Open(LPCTSTR pCommand);
+	BOOL Open(LPCTSTR pCommand = NULL);
 	void Close();
 	void SendBreak(int opt);
 

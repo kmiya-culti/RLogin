@@ -56,7 +56,10 @@ static UINT ComEventThread(LPVOID pParam)
 }
 BOOL CFifoCom::Open(HANDLE hCom)
 {
-	if ( (m_hCom = hCom) == INVALID_HANDLE_VALUE )
+	if ( hCom != INVALID_HANDLE_VALUE )
+		m_hCom = hCom;
+
+	if ( m_hCom == INVALID_HANDLE_VALUE )
 		return FALSE;
 
 	m_ThreadMode = THREAD_RUN;
@@ -173,6 +176,8 @@ void CFifoCom::OnReadWriteProc()
 	}
 
 	LastModemStatus = pSock->m_ModemStatus;
+	
+	SendFdEvents(FIFO_STDOUT, FD_CONNECT, NULL);
 
 	while ( m_ThreadMode == THREAD_RUN ) {
 
@@ -541,8 +546,6 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 
 	if ( !((CFifoCom *)m_pFifoLeft)->Open(m_hCom) )
 		return FALSE;
-
-	m_pFifoLeft->SendFdEvents(FIFO_STDOUT, FD_CONNECT, NULL);
 
 	return TRUE;
 }

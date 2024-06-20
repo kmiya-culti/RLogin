@@ -1101,6 +1101,7 @@
 #define IDC_TABTEXTCOL                  2537
 #define IDC_TABBACKCOL                  2538
 #define IDC_TABBACKGRAD                 2539
+#define IDC_EDITKEY                     2540
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1255,7 +1256,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        173
 #define _APS_NEXT_COMMAND_VALUE         5158
-#define _APS_NEXT_CONTROL_VALUE         2540
+#define _APS_NEXT_CONTROL_VALUE         2541
 #define _APS_NEXT_SYMED_VALUE           679
 #endif
 #endif

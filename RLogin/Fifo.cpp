@@ -10,6 +10,7 @@
 #include "Fifo.h"
 
 #include <openssl/ssl.h>
+#include <openssl/bio.h>
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -1680,7 +1681,6 @@ CFifoSocket::CFifoSocket(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFif
 	m_Threadtatus = FIFO_THREAD_NONE;
 	m_pWinThread = NULL;
 	m_bAbort = FALSE;
-	m_SSL_pSock = NULL;
 }
 CFifoSocket::~CFifoSocket()
 {
@@ -1708,9 +1708,6 @@ static UINT FifoSocketOpenWorker(LPVOID pParam)
 	status = (pThis->AddInfoOpen() && pThis->SocketLoop() ? FIFO_THREAD_NONE : FIFO_THREAD_ERROR);
 	pThis->ThreadEnd();
 	pThis->m_Threadtatus = status;
-
-	// m_SSL_pSock SSL_read/SSL_writeを使用
-	OPENSSL_thread_stop();
 
 	pThis->m_ThreadEvent.SetEvent();
 	return 0;
@@ -1771,7 +1768,7 @@ BOOL CFifoSocket::Close()
 		::closesocket(m_hSocket);
 
 	if ( m_SockEvent != WSA_INVALID_EVENT )
-	WSACloseEvent(m_SockEvent);
+		WSACloseEvent(m_SockEvent);
 
 	m_hSocket = INVALID_SOCKET;
 	m_SockEvent = WSA_INVALID_EVENT;
@@ -1782,13 +1779,6 @@ BOOL CFifoSocket::Close()
 
 	WSASetLastError(m_nLastError);
 	return FALSE;
-}
-BOOL CFifoSocket::ReOpen()
-{
-	Close();
-	Reset(FIFO_STDIN);
-	Reset(FIFO_STDOUT);
-	return Open();
 }
 static UINT FifoSocketWorker(LPVOID pParam)
 {
@@ -1947,7 +1937,6 @@ BOOL CFifoSocket::SocketLoop()
 {
 	int n;
 	int len;
-	int sslErr = 0;
 	int nDefBufSize = m_nBufSize;
 	DWORD Event;
 	WSANETWORKEVENTS NetworkEvents;
@@ -1964,8 +1953,6 @@ BOOL CFifoSocket::SocketLoop()
 	DWORD RecvTimeOut = 0;
 	DWORD SendTimeOut = 0;
 	DWORD TimeOut;
-	HANDLE hPauseEvent = NULL;
-	void **pParam = NULL;
 	BOOL bReadWrite = FALSE;
 	FifoMsg *pFifoMsg;
 
@@ -1975,25 +1962,6 @@ BOOL CFifoSocket::SocketLoop()
 	buffer = TempBuffer(m_nBufSize);
 
 	while ( m_Threadtatus == FIFO_THREAD_EXEC ) {
-		if ( hPauseEvent != NULL ) {
-			m_hWaitEvents.RemoveAll();
-			m_hWaitEvents.Add(hPauseEvent);
-			m_hWaitEvents.Add(m_AbortEvent);
-
-			if ( (Event = WSAWaitForMultipleEvents((DWORD)m_hWaitEvents.GetSize(), (WSAEVENT *)m_hWaitEvents.GetData(), FALSE, WSA_INFINITE, FALSE)) == WSA_WAIT_FAILED ) {
-				m_nLastError = WSAGetLastError();
-				return FALSE;
-			} else if ( Event >= WSA_WAIT_EVENT_0 && (Event -= WSA_WAIT_EVENT_0) < (DWORD)m_hWaitEvents.GetSize() && m_hWaitEvents[Event] == m_AbortEvent ) {
-				m_bAbort = TRUE;
-				return TRUE;
-			}
-
-			if ( pParam != NULL ) {
-				m_SSL_pSock = (SSL *)pParam[1];
-				fdEvents |= FD_READ;
-			}
-			hPauseEvent = NULL;
-		}
 
 		m_hWaitEvents.RemoveAll();
 
@@ -2086,11 +2054,6 @@ BOOL CFifoSocket::SocketLoop()
 					m_nLastError = NetworkEvents.iErrorCode[FD_READ_BIT];
 					return FALSE;
 				} else {
-					if ( sslErr == (0x200 | SSL_ERROR_WANT_READ) )	// SSL_write is SSL_ERROR_WANT_READ
-						goto SSLWRITERETRY;
-					SSLREADRETRY:
-					sslErr = 0;
-
 					for ( ; ; ) {
 						if ( m_nLimitSize > 0 ) {
 							n = (int)((now = clock()) - RecvClock);
@@ -2108,20 +2071,7 @@ BOOL CFifoSocket::SocketLoop()
 							fdEvents &= ~FD_READ;
 							break;
 						} else {
-							if ( m_SSL_pSock != NULL ) {
-								if ( (len = SSL_read(m_SSL_pSock, (void *)buffer, m_nBufSize)) < 0 ) {
-									if ( (sslErr = SSL_get_error(m_SSL_pSock, len)) != SSL_ERROR_WANT_READ && sslErr != SSL_ERROR_WANT_WRITE ) {
-										m_nLastError = WSAECONNABORTED;
-										return FALSE;
-									}
-									fdEvents |= (sslErr == SSL_ERROR_WANT_READ ? FD_READ : FD_WRITE);
-									sslErr |= 0x100;	// SSL_read mark
-									break;
-								}
-							} else
-								len = ::recv(m_hSocket, (char *)buffer, m_nBufSize, 0);
-
-							if ( len <= 0 ) {
+							if ( (len = ::recv(m_hSocket, (char *)buffer, m_nBufSize, 0)) <= 0 ) {
 								fdEvents |= FD_READ;
 								if ( (nCloseFlag & CLOSEFLAG_READ) != 0 )
 									Write(FIFO_STDOUT, NULL, 0);
@@ -2142,11 +2092,6 @@ BOOL CFifoSocket::SocketLoop()
 					m_nLastError = NetworkEvents.iErrorCode[FD_WRITE_BIT];
 					return FALSE;
 				} else {
-					if ( sslErr == (0x100 | SSL_ERROR_WANT_WRITE) )	// SSL_read is SSL_ERROR_WANT_WRITE
-						goto SSLREADRETRY;
-					SSLWRITERETRY:
-					sslErr = 0;
-
 					for ( ; ; ) {
 						if ( m_nLimitSize > 0 ) {
 							n = (int)((now = clock()) - SendClock);
@@ -2181,20 +2126,7 @@ BOOL CFifoSocket::SocketLoop()
 							nCloseFlag |= CLOSEFLAG_WRITE;
 							break;
 						} else {
-							if ( m_SSL_pSock != NULL ) {
-								if ( (len = SSL_write(m_SSL_pSock, (const char *)buffer, n)) < 0 ) {
-									if ( (sslErr = SSL_get_error(m_SSL_pSock, len)) != SSL_ERROR_WANT_WRITE && sslErr != SSL_ERROR_WANT_READ ) {
-										m_nLastError = WSAECONNABORTED;
-										return FALSE;
-									}
-									fdEvents |= (sslErr == SSL_ERROR_WANT_READ ? FD_READ : FD_WRITE);
-									sslErr |= 0x200;	// SSL_write mark
-									break;
-								}
-							} else
-								len = ::send(m_hSocket, (const char *)buffer, n, 0);
-
-							if ( len <= 0 ) {
+							if ( (len = ::send(m_hSocket, (const char *)buffer, n, 0)) <= 0 ) {
 								fdEvents |= FD_WRITE;
 								break;
 							} else {
@@ -2307,19 +2239,6 @@ BOOL CFifoSocket::SocketLoop()
 								*(pFifoMsg->pResult) = TRUE;
 						}
 						break;
-					case FIFO_QCMD_SSLCONNECT:
-						// SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SSLCONNECT, 0, 0, (void *)param);
-						pParam = (void **)(pFifoMsg->buffer);
-						hPauseEvent = (HANDLE)pParam[0];
-						m_SSL_pSock = (SSL *)pParam[1];
-						if ( hPauseEvent != NULL ) {
-							//　WSAEventSelectを閉じて待たないとSSL_connectが失敗する
-							oldEvents = 0;
-							WSAEventSelect(m_hSocket, NULL, 0);
-						}
-						if ( pFifoMsg->pResult != NULL )
-							*(pFifoMsg->pResult) = TRUE;
-						break;
 					}
 					break;
 				}
@@ -2392,6 +2311,9 @@ BOOL CFifoListen::Open(LPCTSTR lpszHostAddress, UINT nHostPort, int nFamily, int
 	m_Threadtatus = (-1);
 	m_AbortEvent.ResetEvent();
 	m_ThreadEvent.ResetEvent();
+
+	m_nLastError = 0;
+	m_bAbort = FALSE;
 
 	if ( (m_pWinThread = AfxBeginThread(ListenWorker, this, THREAD_PRIORITY_NORMAL)) == NULL )
 		return FALSE;
@@ -2571,6 +2493,290 @@ BOOL CFifoListen::ListenProc()
 }
 
 ///////////////////////////////////////////////////////
+// CFifoSSL
+//
+//	STDIN	->	BIO_write(rbio)	->	SSL	->	SSL_read	->	EXTOUT
+//	STDOUT	<-	BIO_read(wbio)	<-	SSL	<-	SSL_write	<-	EXTIN
+
+CFifoSSL::CFifoSSL(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoThread(pDoc, pSock)
+{
+	m_ssl = NULL;
+	m_rbio = m_wbio = NULL;
+	m_state = FIFOSSL_STATE_NONE;
+	ZeroMemory(m_bOverFlow, sizeof(m_bOverFlow));
+}
+CFifoSSL::~CFifoSSL()
+{
+}
+void CFifoSSL::Polling(int nFd)
+{
+	int len, total;
+	BYTE *buf = TempBuffer(m_nBufSize);
+	BOOL bWantRead = FALSE;
+	BOOL bWantWrite = FALSE;
+
+	if ( m_state == FIFOSSL_STATE_ERROR || m_ssl == NULL )
+		return;
+
+	for ( ; ; ) {
+		// Polling Loops Start Entry
+		RECHECK:
+
+		//TRACE("Polling %d %d %d %d %d(%d) %d(%d) %d %d\n", nFd, m_state, bWantRead, bWantWrite, m_bOverFlow[FIFO_STDOUT], GetDataSize(FIFO_STDOUT), m_bOverFlow[FIFO_EXTOUT], GetDataSize(FIFO_EXTOUT), BIO_pending(m_rbio), BIO_pending(m_wbio));
+
+		// STDIN	->	BIO_write(rbio)	->	SSL
+		total = 0;
+		while ( (len = Peek(FIFO_STDIN, buf, m_nBufSize)) > 0 ) {
+			if ( (len = BIO_write(m_rbio, buf, len)) <= 0 ) {
+				if ( !BIO_should_retry(m_rbio) )
+					goto ERRRET;
+				break;
+			}
+			Consume(FIFO_STDIN, len);
+			total += len;
+		}
+		if ( total > 0 )
+			bWantRead = FALSE;
+		else if ( len < 0 )
+			goto ENDOFRET;
+
+		// STDOUT	<-	BIO_read(wbio)	<-	SSL
+		total = 0;
+		while ( !m_bOverFlow[FIFO_STDOUT] ) {
+			if ( GetDataSize(FIFO_STDOUT) >= FIFO_BUFUPPER ) {
+				m_bOverFlow[FIFO_STDOUT] = TRUE;
+				SetFdEvents(FIFO_STDOUT, FD_WRITE);
+				break;
+			}
+			if ( (len = BIO_read(m_wbio, buf, m_nBufSize)) <= 0 ) {
+				if ( !BIO_should_retry(m_wbio) )
+					goto ERRRET;
+				break;
+			}
+			if ( Write(FIFO_STDOUT, buf, len) != len )
+				goto ERRRET;
+			total += len;
+		}
+		if ( total > 0 )
+			bWantWrite = FALSE;
+
+		// Read/Write要求で処理されなかった
+		if ( bWantRead || bWantWrite )
+			break;
+
+		switch(m_state) {
+		case FIFOSSL_STATE_NONE:
+			// SSL	<-	SSL_write	<-	EXTIN
+			total = 0;
+			for ( ; ; ) {
+				if ( (len = Peek(FIFO_EXTIN, buf, m_nBufSize)) == 0 ) {
+					break;
+				} else if ( len < 0 ) {
+					if ( total == 0 )
+						goto ERRRET;
+					break;
+				}
+				if ( (len = SSL_write(m_ssl, buf, len)) <= 0 ) {
+					if ( (len = SSL_get_error(m_ssl, len)) == SSL_ERROR_NONE ) {
+						break;
+					} else if ( len == SSL_ERROR_WANT_READ ) {
+						m_state = FIFOSSL_STATE_WRITE;
+						bWantRead = TRUE;
+						goto RECHECK;
+					} else if ( len == SSL_ERROR_WANT_WRITE ) {
+						bWantWrite = TRUE;
+						break;
+					} else {
+						goto ERRRET;
+					}
+				}
+				Consume(FIFO_EXTIN, len);
+				total += len;
+			}
+
+			// SSL	->	SSL_read	->	EXTOUT
+			for ( ; ; ) {
+				if ( m_bOverFlow[FIFO_EXTOUT] )
+					break;
+				else if ( GetDataSize(FIFO_EXTOUT) >= FIFO_BUFUPPER ) {
+					m_bOverFlow[FIFO_EXTOUT] = TRUE;
+					SetFdEvents(FIFO_EXTOUT, FD_WRITE);
+					break;
+				}
+				if ( (len = SSL_read(m_ssl, buf, m_nBufSize)) > 0 ) {
+					if ( Write(FIFO_EXTOUT, buf, len) != len )
+						goto ERRRET;
+				} else if ( (len = SSL_get_error(m_ssl, len)) == SSL_ERROR_NONE || len == SSL_ERROR_ZERO_RETURN ) {
+					break;
+				} else if ( len == SSL_ERROR_WANT_READ ) {
+					bWantRead = TRUE;
+					break;
+				} else if ( len == SSL_ERROR_WANT_WRITE ) {
+					m_state = FIFOSSL_STATE_READ;
+					bWantWrite = TRUE;
+					goto RECHECK;
+				} else {
+					goto ERRRET;
+				}
+			}
+			break;
+
+		case FIFOSSL_STATE_CONNECT:
+			switch(m_pSock->SSLCheck()) {
+			case SSL_ERROR_NONE:
+				m_state = FIFOSSL_STATE_NONE;
+				SendFdEvents(FIFO_EXTOUT, FD_CONNECT, NULL);
+				goto RECHECK;
+			case SSL_ERROR_WANT_READ:
+				bWantWrite = TRUE;
+				break;
+			case SSL_ERROR_WANT_WRITE:
+				bWantRead = TRUE;
+				break;
+			default:
+				goto ERRRET;
+			}
+			break;
+
+		case FIFOSSL_STATE_READ:
+			for ( ; ; ) {
+				if ( m_bOverFlow[FIFO_EXTOUT] )
+					break;
+				else if ( GetDataSize(FIFO_EXTOUT) >= FIFO_BUFUPPER ) {
+					m_bOverFlow[FIFO_EXTOUT] = TRUE;
+					SetFdEvents(FIFO_EXTOUT, FD_WRITE);
+					break;
+				}
+				if ( (len = SSL_read(m_ssl, buf, m_nBufSize)) > 0 ) {
+					if ( Write(FIFO_EXTOUT, buf, len) != len )
+						goto ERRRET;
+				} else if ( (len = SSL_get_error(m_ssl, len)) == SSL_ERROR_NONE || len == SSL_ERROR_ZERO_RETURN ) {
+					m_state = FIFOSSL_STATE_NONE;
+					goto RECHECK;
+				} else if ( len == SSL_ERROR_WANT_READ ) {
+					m_state = FIFOSSL_STATE_NONE;
+					bWantRead = TRUE;
+					goto RECHECK;
+				} else if ( len == SSL_ERROR_WANT_WRITE ) {
+					bWantWrite = TRUE;
+					break;
+				} else
+					goto ERRRET;
+			}
+			break;
+
+		case FIFOSSL_STATE_WRITE:
+			total = 0;
+			for ( ; ; ) {
+				if ( (len = Peek(FIFO_EXTIN, buf, m_nBufSize)) == 0 ) {
+					m_state = FIFOSSL_STATE_NONE;
+					goto RECHECK;
+				} else if ( len < 0 ) {
+					if ( total == 0 )
+						goto ENDOFRET;
+					m_state = FIFOSSL_STATE_NONE;
+					goto RECHECK;
+				}
+				if ( (len = SSL_write(m_ssl, buf, len)) > 0 ) {
+					Consume(FIFO_EXTIN, len);
+					total += len;
+				} else if ( (len = SSL_get_error(m_ssl, len)) == SSL_ERROR_NONE || len == SSL_ERROR_ZERO_RETURN ) {
+					m_state = FIFOSSL_STATE_NONE;
+					goto RECHECK;
+				} else if ( len == SSL_ERROR_WANT_READ ) {
+					bWantRead = TRUE;
+					break;
+				} else if ( len == SSL_ERROR_WANT_WRITE ) {
+					m_state = FIFOSSL_STATE_NONE;
+					bWantWrite = TRUE;
+					goto RECHECK;
+				} else
+					goto ERRRET;
+			}
+			break;
+		}
+
+		// Read/Write要求がなかった
+		if ( !bWantRead && !bWantWrite )
+			break;
+	}
+	return;
+
+ERRRET:
+	m_nLastError = WSAECONNABORTED;
+
+ENDOFRET:
+	m_state = FIFOSSL_STATE_ERROR;
+	SendFdEvents(FIFO_EXTOUT, FD_CLOSE, (void *)(UINT_PTR)m_nLastError);
+	Write(FIFO_EXTOUT, NULL, 0);
+}
+void CFifoSSL::Close()
+{
+	m_ssl = NULL;
+	m_rbio = m_wbio = NULL;
+	m_state = FIFOSSL_STATE_NONE;
+	ZeroMemory(m_bOverFlow, sizeof(m_bOverFlow));
+
+	m_nLastError = 0;
+
+	Reset(FIFO_STDIN);
+	Reset(FIFO_STDOUT);
+	Reset(FIFO_EXTIN);
+	Reset(FIFO_EXTOUT);
+}
+void CFifoSSL::OnRead(int nFd)
+{
+	Polling(nFd);
+}
+void CFifoSSL::OnWrite(int nFd)
+{
+	ASSERT(nFd <= FIFO_EXTOUT);
+
+	if ( m_bOverFlow[nFd] ) {
+		if ( GetDataSize(nFd) < FIFO_BUFLOWER ) {
+			m_bOverFlow[nFd] = FALSE;
+			ResetFdEvents(nFd, FD_WRITE);
+			Polling(nFd);
+		}
+	} else
+		ResetFdEvents(nFd, FD_WRITE);
+}
+void CFifoSSL::OnConnect(int nFd)
+{
+	if ( nFd == FIFO_STDIN ) {
+		if ( !m_pSock->SSLInit() )
+			goto ERRRET;
+
+		m_rbio = BIO_new(BIO_s_mem());
+		m_wbio = BIO_new(BIO_s_mem());
+
+		//BIO_set_callback_ex(m_wbio, BioCallbackFunc);
+		//BIO_set_callback_arg(m_wbio, (char *)this);
+
+		m_ssl = m_pSock->m_SSL_pSock;
+		SSL_set_bio(m_ssl, m_rbio, m_wbio);
+
+		m_state = FIFOSSL_STATE_CONNECT;
+		ZeroMemory(m_bOverFlow, sizeof(m_bOverFlow));
+
+		Polling(nFd);
+	} else
+		SendFdEvents(GetXFd(nFd), FD_CONNECT, NULL);
+	return;
+
+ERRRET:
+	m_pSock->m_ProxyStatus = PRST_NONE;
+	m_pSock->m_ProxyLastError = WSAECONNABORTED;
+	SendFdEvents(FIFO_EXTOUT, FD_CLOSE, (void *)(UINT_PTR)m_pSock->m_ProxyLastError);
+}
+void CFifoSSL::OnClose(int nFd, int nLastError)
+{
+	m_nLastError = nLastError;
+
+	SendFdEvents(GetXFd(nFd), FD_CLOSE, (void *)(UINT_PTR)nLastError);
+}
+
+///////////////////////////////////////////////////////
 // CFifoProxy
 
 /*
@@ -2596,15 +2802,8 @@ void CFifoProxy::OnWrite(int nFd)
 }
 void CFifoProxy::OnConnect(int nFd)
 {
-	if ( nFd != FIFO_STDIN )
-		return;
-
-	if ( m_pSock->m_SSL_mode != 0 && !m_pSock->SSLConnect() ) {
-		m_pSock->m_ProxyStatus = PRST_NONE;
-		m_pSock->m_ProxyLastError = WSAECONNABORTED;
-		SendFdEvents(FIFO_EXTOUT, FD_CLOSE, (void *)(UINT_PTR)m_pSock->m_ProxyLastError);
-	}
-	m_pSock->ProxyCheck();
+	if ( nFd == FIFO_STDIN )
+		m_pSock->ProxyCheck();
 }
 void CFifoProxy::OnClose(int nFd, int nLastError)
 {

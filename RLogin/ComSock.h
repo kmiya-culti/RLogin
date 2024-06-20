@@ -34,7 +34,7 @@ public:
 
 	virtual void OnUnLinked(int nFd, BOOL bMid);
 
-	BOOL Open(HANDLE hCom);
+	BOOL Open(HANDLE hCom = INVALID_HANDLE_VALUE);
 	void Close();
 
 	BOOL FlowCtrlCheck(int nFd);

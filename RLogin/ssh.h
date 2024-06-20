@@ -914,7 +914,7 @@ public:
 
 	CArray<CPermit, CPermit &> m_Permit;
 	CStringArrayExt m_PortFwdTable;
-	int m_bPfdConnect;
+	int m_PfdConnect;
 
 	//CRcpUpload m_RcpCmd;
 

@@ -301,7 +301,6 @@ void CBlockDlg::OnNMCustomdrawBlocklist(NMHDR *pNMHDR, LRESULT *pResult)
         *pResult = CDRF_NOTIFYSUBITEMDRAW;
 		break;
 	case CDDS_ITEMPREPAINT | CDDS_SUBITEM:
-#ifdef	USE_DARKMODE
 		if ( pLVCD->nmcd.lItemlParam >= 0 && pLVCD->nmcd.lItemlParam < m_UniBlockTab.GetSize() ) {
 			if ( m_UniBlockTab[(int)pLVCD->nmcd.lItemlParam].index == m_CodeSet )
 				pLVCD->clrText = RGB(255, 0, 0);
@@ -311,17 +310,6 @@ void CBlockDlg::OnNMCustomdrawBlocklist(NMHDR *pNMHDR, LRESULT *pResult)
 				pLVCD->clrText = GetAppColor(APPCOL_CTRLTEXT);
 		} else
 			pLVCD->clrText = GetAppColor(APPCOL_CTRLTEXT);
-#else
-		if ( pLVCD->nmcd.lItemlParam >= 0 && pLVCD->nmcd.lItemlParam < m_UniBlockTab.GetSize() ) {
-			if ( m_UniBlockTab[(int)pLVCD->nmcd.lItemlParam].index == m_CodeSet )
-				pLVCD->clrText = RGB(255, 0, 0);
-			else if ( m_UniBlockTab[(int)pLVCD->nmcd.lItemlParam].index != (-1) )
-				pLVCD->clrText = RGB(127, 127, 127);
-			else
-				pLVCD->clrText = GetSysColor(COLOR_WINDOWTEXT);
-		} else
-			pLVCD->clrText = GetSysColor(COLOR_WINDOWTEXT);
-#endif
         *pResult = CDRF_NEWFONT;
 		break;
 	default:

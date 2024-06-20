@@ -405,21 +405,12 @@ void CColEditDlg::OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult)
         *pResult = CDRF_NOTIFYSUBITEMDRAW;
 		break;
 	case CDDS_ITEMPREPAINT | CDDS_SUBITEM:
-#ifdef	USE_DARKMODE
 		if ( pLVCD->iSubItem == 1 ) {
 			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 2)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 3)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 4)));
 		} else if ( pLVCD->iSubItem == 6 ) {
 			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 7)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 8)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 9)));
 		} else
 			pLVCD->clrTextBk = GetAppColor(APPCOL_CTRLFACE);
-#else
-		if ( pLVCD->iSubItem == 1 ) {
-			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 2)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 3)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 4)));
-		} else if ( pLVCD->iSubItem == 6 ) {
-			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 7)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 8)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 9)));
-		} else
-			pLVCD->clrTextBk = GetSysColor(COLOR_WINDOW);
-#endif
         *pResult = CDRF_NEWFONT;
 		break;
 	default:
@@ -701,10 +692,8 @@ static const int AppColList[] = {
 	APPCOL_BARBACK, APPCOL_BARSHADOW,
 	APPCOL_BARFACE, APPCOL_BARHIGH, APPCOL_BARBODER, APPCOL_BARTEXT,
 	APPCOL_TABFACE, APPCOL_TABTEXT, APPCOL_TABHIGH, APPCOL_TABSHADOW,
-#ifdef	USE_DARKMODE
 	APPCOL_CTRLFACE, APPCOL_CTRLTEXT, 
 	APPCOL_CTRLHIGH, APPCOL_CTRLHTEXT, APPCOL_CTRLSHADOW, 
-#endif
 	(-1)
 };
 
@@ -1001,7 +990,6 @@ void CAppColDlg::OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult)
         *pResult = CDRF_NOTIFYSUBITEMDRAW;
 		break;
 	case CDDS_ITEMPREPAINT | CDDS_SUBITEM:
-#ifdef	USE_DARKMODE
 		if ( pLVCD->iSubItem == 1 )
 			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 2)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 3)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 4)));
 		else if ( pLVCD->iSubItem == 5 )
@@ -1009,15 +997,6 @@ void CAppColDlg::OnNMCustomdrawList(NMHDR *pNMHDR, LRESULT *pResult)
 		else
 			pLVCD->clrTextBk = GetAppColor(APPCOL_CTRLFACE);
         *pResult = CDRF_NEWFONT;
-#else
-		if ( pLVCD->iSubItem == 1 )
-			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 2)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 3)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 4)));
-		else if ( pLVCD->iSubItem == 5 )
-			pLVCD->clrTextBk = RGB(_tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 6)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 7)), _tstoi(m_List.GetItemText((int)pLVCD->nmcd.dwItemSpec, 8)));
-		else
-			pLVCD->clrTextBk = GetSysColor(COLOR_WINDOW);
-        *pResult = CDRF_NEWFONT;
-#endif
 		break;
 	default:
         *pResult = 0;

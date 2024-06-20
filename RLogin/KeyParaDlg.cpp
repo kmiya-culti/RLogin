@@ -30,6 +30,9 @@ CKeyParaDlg::CKeyParaDlg(CWnd* pParent /*=NULL*/)
 	m_hMapsEdit = NULL;
 	m_bCtrlMode = FALSE;
 
+	m_hKeyEdit = NULL;
+	m_bKeyInsert = FALSE;
+
 	m_pData = NULL;
 }
 
@@ -47,11 +50,13 @@ void CKeyParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_CBStringExact(pDX, IDC_KEYCODE, m_KeyCode);
 	DDX_CBStringExact(pDX, IDC_KEYMAPS, m_Maps);
 	DDX_Control(pDX, IDC_EDITCTRL, m_EditCtrl);
+	DDX_Control(pDX, IDC_EDITKEY, m_EditKey);
 }
 
 BEGIN_MESSAGE_MAP(CKeyParaDlg, CDialogExt)
 	ON_BN_CLICKED(IDC_MENUBTN, &CKeyParaDlg::OnBnClickedMenubtn)
 	ON_BN_CLICKED(IDC_EDITCTRL, &CKeyParaDlg::OnBnClickedEditctrl)
+	ON_BN_CLICKED(IDC_EDITKEY, &CKeyParaDlg::OnBnClickedEditKey)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -84,6 +89,9 @@ BOOL CKeyParaDlg::OnInitDialog()
 	CWnd *pWnd;
 	if ( (pWnd = GetDlgItem(IDC_KEYMAPS)) != NULL && (pWnd = pWnd->GetWindow(GW_CHILD)) != NULL )
 		m_hMapsEdit = pWnd->GetSafeHwnd();
+
+	if ( (pWnd = GetDlgItem(IDC_KEYCODE)) != NULL && (pWnd = pWnd->GetWindow(GW_CHILD)) != NULL )
+		m_hKeyEdit = pWnd->GetSafeHwnd();
 
 	SubclassComboBox(IDC_KEYCODE);
 	SubclassComboBox(IDC_KEYMAPS);
@@ -164,6 +172,24 @@ BOOL CKeyParaDlg::PreTranslateMessage(MSG* pMsg)
 			::SendMessage(m_hMapsEdit, EM_REPLACESEL, (WPARAM)TRUE, (LPARAM)(LPCTSTR)tmp);
 			return TRUE;
 		}
+
+	} else if ( m_bKeyInsert && m_hKeyEdit != NULL && (pMsg->message == WM_KEYDOWN || pMsg->message == WM_SYSKEYDOWN) && pMsg->hwnd == m_hKeyEdit ) {
+		CKeyNode key;
+		switch(pMsg->wParam) {
+		case VK_SHIFT:
+		case VK_CONTROL:
+		case VK_MENU:
+			break;
+		default:
+			key.m_Code = (int)pMsg->wParam;
+			UpdateData(TRUE);
+			m_KeyCode = key.GetCode();
+			//m_WithShift = (GetKeyState(VK_SHIFT)   & 0x80) != 0 ? TRUE : FALSE;
+			//m_WithCtrl  = (GetKeyState(VK_CONTROL) & 0x80) != 0 ? TRUE : FALSE;
+			//m_WithAlt   = (GetKeyState(VK_MENU)    & 0x80) != 0 ? TRUE : FALSE;
+			UpdateData(FALSE);
+			return TRUE;
+		}
 	}
 	return CDialogExt::PreTranslateMessage(pMsg);
 }
@@ -203,4 +229,11 @@ void CKeyParaDlg::OnBnClickedEditctrl()
 
 	if ( m_hMapsEdit != NULL )
 		::SetFocus(m_hMapsEdit);
+}
+void CKeyParaDlg::OnBnClickedEditKey()
+{
+	m_bKeyInsert = (m_EditKey.GetCheck() == BST_CHECKED ? TRUE : FALSE);
+
+	if ( m_hKeyEdit != NULL )
+		::SetFocus(m_hKeyEdit);
 }

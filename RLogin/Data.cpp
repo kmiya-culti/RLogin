@@ -6255,6 +6255,20 @@ static const struct _KeyNameTab	{
 #endif
 
 	{ (-1),			NULL			},
+
+}, UsKeyNameTab[] = {
+	{ VK_OEM_1,			_T("$BA(;)")	},
+	{ VK_OEM_PLUS,		_T("$BB(=)")	},
+	{ VK_OEM_COMMA,		_T("$BC(,)")	},
+	{ VK_OEM_MINUS,		_T("$BD(~)")	},
+	{ VK_OEM_PERIOD,	_T("$BE(.)")	},
+	{ VK_OEM_2,			_T("$BF(/)")	},
+	{ VK_OEM_3,			_T("$C0(`)")	},
+	{ VK_OEM_4,			_T("$DB([)")	},
+	{ VK_OEM_5,			_T("$DC(\\)")	},
+	{ VK_OEM_6,			_T("$DD(])")	},
+	{ VK_OEM_7,			_T("$DE(')")	},
+	{ (-1),			NULL			},
 };
 
 LPCTSTR CKeyNode::GetCode()
@@ -6268,8 +6282,17 @@ LPCTSTR CKeyNode::GetCode()
 
 	if ( !bKeyCodeInit ) {
 		memset(KeyCodeTab, 0, sizeof(KeyCodeTab));
+
 		for ( n = 0 ; KeyNameTab[n].name != NULL ; n++ )
 			KeyCodeTab[KeyNameTab[n].code] = KeyNameTab[n].name;
+
+		HKL hk = GetKeyboardLayout(0);
+		if ( HIWORD(hk) != 0x0411 ) {	// !VK_106JP
+			// VK_101US
+			for ( n = 0 ; UsKeyNameTab[n].name != NULL ; n++ )
+				KeyCodeTab[UsKeyNameTab[n].code] = UsKeyNameTab[n].name;
+		}
+
 		bKeyCodeInit = TRUE;
 	}
 
@@ -6397,6 +6420,7 @@ void CKeyNode::SetComboList(CComboBox *pCombo)
 {
 	int n;
 	CString str;
+	HKL hk = GetKeyboardLayout(0);
 
 	if ( pCombo == NULL )
 		return;
@@ -6404,8 +6428,17 @@ void CKeyNode::SetComboList(CComboBox *pCombo)
 	for ( n = pCombo->GetCount() - 1 ; n >= 0 ; n-- )
 		pCombo->DeleteString(n);
 
-	for ( n = 0 ; KeyNameTab[n].name != NULL ; n++ )
-		pCombo->AddString(KeyNameTab[n].name);
+	if ( HIWORD(hk) == 0x0411 ) {	// VK_106JP
+		for ( n = 0 ; KeyNameTab[n].name != NULL ; n++ )
+			pCombo->AddString(KeyNameTab[n].name);
+	} else {
+		for ( n = 0 ; KeyNameTab[n].name != NULL ; n++ ) {
+			if ( KeyNameTab[n].code < VK_OEM_1 || KeyNameTab[n].code > VK_OEM_102 )
+				pCombo->AddString(KeyNameTab[n].name);
+		}
+		for ( n = 0 ; UsKeyNameTab[n].name != NULL ; n++ )
+			pCombo->AddString(UsKeyNameTab[n].name);
+	}
 
 	for ( n = 0x30 ; n <= 0x39 ; n++ ) {
 		str.Format(_T("%c"), n);
@@ -8845,6 +8878,21 @@ const CParamTab & CParamTab::operator = (CParamTab &data)
 	m_PluginAuth = data.m_PluginAuth;
 
 	return *this;
+}
+BOOL CParamTab::IsPfdEnable()
+{
+	int n;
+	CStringArrayExt tmp;
+
+	for ( n = 0 ; n < m_PortFwd.GetSize() ; n++ ) {
+		m_PortFwd.GetArray(n, tmp);
+		if ( tmp.GetSize() <= 4 || (tmp.GetSize() > 5 && tmp.GetVal(5) == 0) )
+			continue;
+
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -115,6 +115,7 @@ CRLoginDoc::CRLoginDoc()
 	m_bExitPause = FALSE;
 	m_bSleepDisable = FALSE;
 	m_SockSyncChar = (-1);
+	m_bPfdCheck = FALSE;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -664,6 +665,7 @@ void CRLoginDoc::DeleteContents()
 	m_CloseTime = 0;
 	m_CmdsPath.Empty();
 	m_bExitPause = FALSE;
+	m_bPfdCheck = FALSE;
 
 	CDocument::DeleteContents();
 }
@@ -1638,8 +1640,7 @@ void CRLoginDoc::LogInit()
 				delete m_pLogFile;
 				m_pLogFile = NULL;
 			}
-			file.Format(_T("LogFile Open Error '%s%s%s'"), (LPCTSTR)dirs, (LPCTSTR)name, (LPCTSTR)exts);
-			::AfxMessageBox(file, MB_ICONERROR);
+			ThreadMessageBox(_T("LogFile Open Error '%s%s%s'"), (LPCTSTR)dirs, (LPCTSTR)name, (LPCTSTR)exts);
 		}
 	}
 }
@@ -2078,6 +2079,9 @@ int CRLoginDoc::SocketOpen()
 
 	if ( m_ServerEntry.m_ReEntryFlag )
 		goto SKIPINPUT;
+
+	if ( m_ServerEntry.m_ProtoType == PROTO_SSH && m_ParamTab.IsPfdEnable() )
+		m_bPfdCheck = ((CRLoginApp *)::AfxGetApp())->IsOnlineEntry(m_ServerEntry.m_EntryName);
 
 	// 0=NONE, 1=HTTP, 2=SOCKS4, 3=SOCKS5, 4=HTTP(Basic)
 	if ( (m_ServerEntry.m_ProxyMode & 7) > 0 && (m_TextRam.IsOptEnable(TO_PROXPASS) || !m_ServerEntry.m_bPassOk) ) {

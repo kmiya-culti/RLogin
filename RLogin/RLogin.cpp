@@ -848,17 +848,10 @@ void InitAppColor()
 	AppColorTable[1][APPCOL_BARBODER]		= AppColorTable[0][COLOR_BTNSHADOW];
 	AppColorTable[1][APPCOL_BARTEXT]		= DARKMODE_TEXTCOLOR;
 
-#ifdef	USE_DARKMODE
 	AppColorTable[1][APPCOL_TABFACE]		= AppColorTable[1][COLOR_MENU];
 	AppColorTable[1][APPCOL_TABTEXT]		= AppColorTable[1][COLOR_MENUTEXT];
 	AppColorTable[1][APPCOL_TABHIGH]		= AppColorTable[1][COLOR_BACKGROUND];
 	AppColorTable[1][APPCOL_TABSHADOW]		= AppColorTable[1][COLOR_BTNSHADOW];
-#else
-	AppColorTable[1][APPCOL_TABFACE]		= AppColorTable[0][COLOR_MENU];
-	AppColorTable[1][APPCOL_TABTEXT]		= AppColorTable[0][COLOR_MENUTEXT];
-	AppColorTable[1][APPCOL_TABHIGH]		= AppColorTable[0][COLOR_WINDOW];
-	AppColorTable[1][APPCOL_TABSHADOW]		= AppColorTable[0][COLOR_BTNSHADOW];
-#endif
 
 	AppColorTable[1][APPCOL_CTRLFACE]		= AppColorTable[1][COLOR_WINDOW];
 	AppColorTable[1][APPCOL_CTRLTEXT]		= AppColorTable[1][COLOR_WINDOWTEXT];

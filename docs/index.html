@@ -15,10 +15,16 @@ TD {
 				
 				
 				
+				
+				
+				
 		background-color : #ffffff;
 font-size : 90%;
 }
 .BOX{
+				
+				
+				
 				
 				
 				
@@ -42,8 +48,8 @@ font-size : 90%;
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.29.4)</TD>
-            <TD width="20%" align="right">2024/05/20</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.29.5)</TD>
+            <TD width="20%" align="right">2024/06/21</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -453,6 +459,15 @@ font-size : 90%;
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2024/06/21</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.5/">2.29.5</A></TD>
+            <TD>Assign Key Stringに対象キーでコードを入力する機能を追加<BR>
+            Editcコントロールで編集すると表示が重なるバグを修正<BR>
+            ProxyのSSLを別スレッドでポーリングするように変更<BR>
+            SSHポートフォワードのListen socketエラー処理を修正<BR>
+            openssl-3.3.1に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2024/05/20</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.4/">2.29.4</A></TD>
             <TD>タブバー常時表示で接続が無いと負荷が高いバグを修正<BR>
@@ -503,20 +518,6 @@ font-size : 90%;
             openssl-3.2.1に更新</TD>
           </TR>
           <TR>
-            <TD align="center">2023/01/22</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.0/">2.29.0</A></TD>
-            <TD>ソースコード内のMBC文字列をエスケープコードに変更<BR>
-            OS設定のページコードを起動時に取得するように変更<BR>
-            オプションのキーボード・ポートフォワードなど複数選択に変更<BR>
-            SSL/QUIC接続時のメモリーリークを修正<BR>
-            リストを含むダイアログをサイズ変更可能に変更<BR>
-            サイズ変更可能なダイアログの右下にグリップを追加<BR>
-            ダイアログのシステムメニューアイコンを追加<BR>
-            オプション・カラーの16色カラーテーブル編集に色サンプルを追加<BR>
-            ドッキングバーのドラッグ時の動作を変更<BR>
-            Windows10以降のダークモードに対応</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -540,13 +541,13 @@ font-size : 90%;
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.3.0.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.3.1.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.3.0 openssl-3.3.0-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.3.1 openssl-3.3.1-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -631,7 +632,7 @@ font-size : 90%;
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.3.0 9 Apr 2024<BR>
+            <P>OpenSSL 3.3.1 4 Jun 2024<BR>
             Copyright (c) 1998-2024 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -5846,6 +5847,10 @@ function TekClock2() {
                   <TD>設定できるキーを選択します</TD>
                 </TR>
                 <TR>
+                  <TD align="center">キーコード入力</TD>
+                  <TD>対象キーを押すだけでキーコード名が入力されるようにします</TD>
+                </TR>
+                <TR>
                   <TD align="center">Shift Ctrl Alt</TD>
                   <TD>同時に押すキーを選択します</TD>
                 </TR>
@@ -5896,7 +5901,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image036.jpg" width="370" height="270" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image036.jpg" width="387" height="275" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

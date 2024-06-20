@@ -126,6 +126,7 @@ public:
 	CWordArray m_OptFixCheck;
 	BOOL m_bSleepDisable;
 	int m_SockSyncChar;
+	BOOL m_bPfdCheck;
 
 	static void LoadOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
 	static void SaveOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);

@@ -718,7 +718,6 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 				else
 					ExSetWindowTheme(hWnd, NULL, NULL);
 				break;
-#ifdef	USE_DARKMODE
 			case BS_AUTOCHECKBOX:
 			case BS_RADIOBUTTON:
 			case BS_AUTORADIOBUTTON:
@@ -742,7 +741,6 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 					ExSetWindowTheme(hWnd, NULL, NULL);
 				}
 				break;
-#endif
 			default:
 				if ( pParent->m_bDarkMode )
 					ExSetWindowTheme(hWnd, L"", L"");
@@ -757,7 +755,6 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 		ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
 		//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 
-#ifdef	USE_DARKMODE
 	//} else if ( _tcscmp(name, _T("Static")) == 0 ) {
 	//	ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
 	//	SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
@@ -831,14 +828,6 @@ static BOOL CALLBACK EnumSetThemeProc(HWND hWnd , LPARAM lParam)
 		//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
 
 	}
-#else
-	} else if ( _tcscmp(name, _T("Edit")) == 0 ) {
-		if ( (pWnd->GetStyle() & ES_MULTILINE) != 0 ) {
-			ExSetWindowTheme(hWnd, (pParent->m_bDarkMode ? L"DarkMode_Explorer" : L"Explorer"), NULL);
-			//SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
-		}
-	}
-#endif
 
 	return TRUE;
 }
@@ -1586,14 +1575,13 @@ afx_msg HBRUSH CDialogExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
 	HBRUSH hbr = CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
 
-#ifdef	USE_DARKMODE
 	switch(nCtlColor) {
 	case CTLCOLOR_MSGBOX:		// Message box
 	case CTLCOLOR_EDIT:			// Edit control
 	case CTLCOLOR_LISTBOX:		// List-box control
 		hbr = GetAppColorBrush(APPCOL_CTRLFACE);
 		pDC->SetTextColor(GetAppColor(APPCOL_CTRLTEXT));
-		pDC->SetBkMode(TRANSPARENT);
+		pDC->SetBkColor(GetAppColor(APPCOL_CTRLFACE));
 		break;
 	case CTLCOLOR_BTN:			// Button control
 	case CTLCOLOR_DLG:			// Dialog box
@@ -1604,22 +1592,6 @@ afx_msg HBRUSH CDialogExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 		pDC->SetBkMode(TRANSPARENT);
 		break;
 	}
-#else
-	switch(nCtlColor) {
-	case CTLCOLOR_MSGBOX:		// Message box
-	case CTLCOLOR_EDIT:			// Edit control
-	case CTLCOLOR_LISTBOX:		// List-box control
-		break;
-	case CTLCOLOR_BTN:			// Button control
-	case CTLCOLOR_DLG:			// Dialog box
-	case CTLCOLOR_SCROLLBAR:
-	case CTLCOLOR_STATIC:		// Static control
-		hbr = GetAppColorBrush(m_bBackWindow ? APPCOL_DLGOPTFACE : APPCOL_DLGFACE);
-		pDC->SetTextColor(GetAppColor(APPCOL_DLGTEXT));
-		pDC->SetBkMode(TRANSPARENT);
-		break;
-	}
-#endif
 
 	return hbr;
 }

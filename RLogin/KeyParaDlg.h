@@ -32,8 +32,11 @@ public:
 	CString	m_KeyCode;
 	CString	m_Maps;
 	CButton m_EditCtrl;
+	CButton m_EditKey;
 	HWND m_hMapsEdit;
 	BOOL m_bCtrlMode;
+	HWND m_hKeyEdit;
+	BOOL m_bKeyInsert;
 
 	class CKeyNode *m_pData;
 
@@ -48,5 +51,6 @@ protected:
 protected:
 	afx_msg void OnBnClickedMenubtn();
 	afx_msg void OnBnClickedEditctrl();
+	afx_msg void OnBnClickedEditKey();
 	DECLARE_MESSAGE_MAP()
 };
