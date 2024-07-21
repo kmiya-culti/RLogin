@@ -172,6 +172,8 @@ public:
 	inline CRegExArg & GetAt(int index) { return m_Data[index]; }
 	inline CRegExArg & operator[] (int index) { return m_Data[index]; }
 	const CRegExRes & operator = (CRegExRes &data);
+
+	CRegExRes() { m_Status = 0; };
 };
 
 class CRegExWork : public CObject

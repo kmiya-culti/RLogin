@@ -492,7 +492,8 @@ void CCharSetPage::OnEditDelall()
 {
 	CInitAllDlg dlg;
 
-	dlg.m_Title.LoadString(IDS_INITFONTSETTITLE);
+	if ( dlg.m_Title.LoadString(IDS_INITFONTSETTITLE) == 0 )
+		dlg.m_Title.Empty();
 
 	if ( dlg.DoModal() != IDOK )
 		return;

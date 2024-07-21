@@ -33,7 +33,7 @@ void CHeaderCtrlExt::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	CDC *pDC = CDC::FromHandle(lpDrawItemStruct->hDC);
 	int nSavedDC = pDC->SaveDC();
 	CRect rect = lpDrawItemStruct->rcItem;
-	TCHAR title[256];
+	TCHAR title[256] = { _T('\0') };
 	UINT fmt = DT_SINGLELINE | DT_WORD_ELLIPSIS | DT_VCENTER;
 
 	ZeroMemory(&hdi, sizeof(hdi));
@@ -150,6 +150,8 @@ CListCtrlExt::CListCtrlExt()
 	m_Dpi.cy = SYSTEM_DPI_Y;
 	m_bSetLVCheck = FALSE;
 	m_EditFlag = EDITFLAG_NONE;
+	m_EditItem = 0;
+	m_EditNum = 0;
 }
 CListCtrlExt::~CListCtrlExt()
 {
@@ -807,9 +809,15 @@ class CRectTrackerList : public CRectTracker
 public:
 	CListCtrlExt *m_pOwner;
 
+	CRectTrackerList(CListCtrlExt *pOwner);
+
 	virtual void OnChangedRect(const CRect& rectOld);
 };
 
+CRectTrackerList::CRectTrackerList(CListCtrlExt *pOwner)
+{
+	m_pOwner = pOwner;
+}
 void CRectTrackerList::OnChangedRect(const CRect& rectOld)
 {
 	CPoint point;
@@ -831,7 +839,7 @@ BOOL CListCtrlExt::OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	int item, y;
 	CRect rect;
-	CRectTrackerList tracker;
+	CRectTrackerList tracker(this);
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 
 	if ( !m_bMove )
@@ -840,7 +848,6 @@ BOOL CListCtrlExt::OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult)
 	GetItemRect(pNMLV->iItem, rect, LVIR_LABEL);
 	tracker.m_rect = rect;
 	tracker.m_nStyle = CRectTracker::hatchedBorder | CRectTracker::resizeOutside;
-	tracker.m_pOwner = this;
 
 	if ( tracker.Track(this, pNMLV->ptAction, FALSE, NULL) ) {
 		y = pNMLV->ptAction.y + (tracker.m_rect.top - rect.top);
@@ -1100,8 +1107,10 @@ void CTreeCtrlExt::OnPaint()
 	BOOL bFocus = (::GetFocus() == GetSafeHwnd() ? TRUE : FALSE);
 	HTREEITEM hItem = GetSelectedItem();
 	TVITEM tv;
-	TCHAR text[256];
+	TCHAR text[257] = { _T('\0') };
 	CDC *pDC;
+
+	ZeroMemory(text, sizeof(TCHAR) * 257);
 
 	if ( hItem != NULL ) {
 		ZeroMemory(&tv, sizeof(tv));

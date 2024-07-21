@@ -353,17 +353,23 @@ LRESULT CStatusDlg::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 
 void CStatusDlg::OnDropFiles(HDROP hDropInfo)
 {
-    int i;
-	TCHAR FileName[MAX_PATH * 2];
+    int i, n;
+	int max = MAX_PATH;
+	TCHAR* pFileName = new TCHAR[max + 1];
     int FileCount;
 
-    FileCount = DragQueryFile(hDropInfo, 0xffffffff, FileName, sizeof(FileName));
+    FileCount = DragQueryFile(hDropInfo, 0xffffffff, NULL, 0);
 
 	for( i = 0 ; i < FileCount ; i++ ) {
-		DragQueryFile(hDropInfo, i, FileName, sizeof(FileName));
+		if (max < (n = DragQueryFile(hDropInfo, i, NULL, 0))) {
+			max = n;
+			delete[] pFileName;
+			pFileName = new TCHAR[max + 1];
+		}
+		DragQueryFile(hDropInfo, i, pFileName, max);
 
 		CBuffer text;
-		text.LoadFile(FileName);
+		text.LoadFile(pFileName);
 		text.KanjiConvert(text.KanjiCheck());
 
 		SetStatusText((LPCTSTR)text);

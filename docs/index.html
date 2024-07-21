@@ -18,10 +18,18 @@ TD {
 				
 				
 				
+				
+				
+				
+				
 		background-color : #ffffff;
 font-size : 90%;
 }
 .BOX{
+				
+				
+				
+				
 				
 				
 				
@@ -48,8 +56,8 @@ font-size : 90%;
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.29.5)</TD>
-            <TD width="20%" align="right">2024/06/21</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.29.6)</TD>
+            <TD width="20%" align="right">2024/07/22</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -349,7 +357,7 @@ font-size : 90%;
             <BR>
             プログラム内部では、文字バンクにしたがったコードからFonts Setで設定されたIconvセットにてUTF-16に変換して表示します。クリップボードやキーボード入力による漢字は、オプション設定の&quot;Iconv
             Character Set&quot;にしたがってUNICODEから変換して送り出します</TD>
-            <TD valign="top" align="left"><IMG src="image002.jpg" width="597" height="530" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image002.jpg" width="609" height="536" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -459,6 +467,13 @@ font-size : 90%;
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2024/07/22</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.6/">2.29.6</A></TD>
+            <TD>Visual Studio 2022のコード分析を実施し問題のある部分を修正<BR>
+            SSHの複数チャンネルオープン時に接続を閉じると処理が重複するのを修正<BR>
+            ファイルアップ・ダウンにauto/intel hex/s-record/tek hexを追加</TD>
+          </TR>
+          <TR>
             <TD align="center">2024/06/21</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.5/">2.29.5</A></TD>
             <TD>Assign Key Stringに対象キーでコードを入力する機能を追加<BR>
@@ -500,22 +515,6 @@ font-size : 90%;
             カラー絵文字の表示方法を複数から選択するように変更<BR>
             最小化時にメッセージを表示する場合は、復帰するように変更<BR>
             zlib-1.3.1に更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2024/02/19</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.1/">2.29.1</A></TD>
-            <TD>ドッキングバーのドラッグ時の不都合を修正<BR>
-            ドッキングバーの空領域で右クリックで表示メニュー<BR>
-            タブバーを左右上下にドッキングするように変更<BR>
-            ダーク時のタブバーのブロードキャストチェックアイコンを修正<BR>
-            メニュー・表示にバー位置の固定・初期化を追加<BR>
-            メニュー・ヘルプに各種ウィンドウの色設定を追加<BR>
-            メインのスクロールバーや境界線をダークモード対応<BR>
-            メッセージボックスをダークモード対応<BR>
-            ツールバーの文字コードアイコンを修正<BR>
-            オプション・カラー設定にダークモードを有効にするを追加<BR>
-            ソケット接続に失敗した場合のデッドロックを修正<BR>
-            openssl-3.2.1に更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -2005,8 +2004,45 @@ font-size : 90%;
                   <TD>受信した文字をコード変換してファイルに保存します</TD>
                 </TR>
                 <TR>
+                  <TD align="center">ファイルがすでに…</TD>
+                  <TD>上記のモードの場合、ファイルが存在する場合に追加で書き込みを行います</TD>
+                </TR>
+                <TR>
                   <TD align="center" width="30%">デコード処理…</TD>
-                  <TD>uuencodeやbase64で処理されたデータを復元してファイルに保存します。base64は、最初と最後が判らないのでご注意ください</TD>
+                  <TD>uuencodeやbase64で処理されたデータを復元してファイルに保存します。base64は、最初と最後が判らないのでご注意ください<BR>
+                  <TABLE cellpadding="3">
+                    <TBODY>
+                      <TR>
+                        <TD>auto</TD>
+                        <TD>自動でbase64以外のuuencode/ish/intel hex/s-record/tek hexフォーマットを判定して処理を行います。最初の行しかチェックしていません、正しく判別出来ない場合がありますのでご注意ください</TD>
+                      </TR>
+                      <TR>
+                        <TD>uudecode</TD>
+                        <TD>uuencodeされたファイル</TD>
+                      </TR>
+                      <TR>
+                        <TD>base64</TD>
+                        <TD>base64でエンコードされたファイル</TD>
+                      </TR>
+                      <TR>
+                        <TD>ish</TD>
+                        <TD>ishでエンコードされたファイル</TD>
+                      </TR>
+                      <TR>
+                        <TD>intel hex</TD>
+                        <TD><A href="https://ja.wikipedia.org/wiki/Intel_HEX">intel hex</A>フォーマットのファイル</TD>
+                      </TR>
+                      <TR>
+                        <TD>s-record</TD>
+                        <TD><A href="https://ja.wikipedia.org/wiki/S-record">s-record</A>フォーマットのファイル</TD>
+                      </TR>
+                      <TR>
+                        <TD>tek hex</TD>
+                        <TD><A href="https://en.wikipedia.org/wiki/Tektronix_hex_format">tektronix hex</A>フォーマットのファイル</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">改行コードを…</TD>

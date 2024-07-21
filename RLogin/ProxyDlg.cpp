@@ -85,7 +85,7 @@ void CProxyDlg::OnProtoType(UINT nID)
 		nID = IDC_RADIO1 + 7;
 
 	for ( n = 0 ; ItemTab[n].nId != 0 ; n++ ) {
-		if ( (pWnd = GetDlgItem(ItemTab[n].nId)) != NULL )
+		if ( (pWnd = GetDlgItem(ItemTab[n].nId)) != NULL && nID >= IDC_RADIO1 && nID < (IDC_RADIO1 + 9) )
 			pWnd->EnableWindow(ItemTab[n].mode[nID - IDC_RADIO1]);
 	}
 

@@ -1124,6 +1124,8 @@ static const struct _CompTab {
 CCompress::CCompress()
 {
 	m_Mode = 0;
+	ZeroMemory(&m_InCompStr, sizeof(m_InCompStr));
+	ZeroMemory(&m_OutCompStr, sizeof(m_OutCompStr));
 }
 CCompress::~CCompress()
 {
@@ -1307,8 +1309,10 @@ BOOL CXmssKey::SetBufSize(uint32_t oId)
 	ZeroMemory(m_pSecBuf, m_SecLen);
 
     for ( int i = 0 ; i < XMSS_OID_LEN ; i++) {
-		m_pPubBuf[XMSS_OID_LEN - i - 1] = (BYTE)(m_oId >> (8 * i));
-		m_pSecBuf[XMSS_OID_LEN - i - 1] = (BYTE)(m_oId >> (8 * i));
+		if ( m_PubLen > (XMSS_OID_LEN - i - 1) )
+			m_pPubBuf[XMSS_OID_LEN - i - 1] = (BYTE)(m_oId >> (8 * i));
+		if ( m_SecLen > (XMSS_OID_LEN - i - 1) )
+			m_pSecBuf[XMSS_OID_LEN - i - 1] = (BYTE)(m_oId >> (8 * i));
 	}
 
 	return TRUE;
@@ -1484,6 +1488,7 @@ BOOL CXmssKey::SaveStateFile(LPCTSTR fileName)
 	statFile.Format(_T("%s.xmss"), (LPCTSTR)baseName);
 	oldFile.Format(_T("%s.omss"), (LPCTSTR)baseName);
 
+	// no error check...
 	DeleteFile(oldFile);
 	_trename(statFile, oldFile);
 
@@ -4302,7 +4307,7 @@ int CIdKey::LoadOpenSshKey(FILE *fp, LPCTSTR pass)
 			throw _T("bad public key");
 
 		pubkey.FingerPrint(line, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
-		m_LoadMsg.Format(_T("%s(%d) %32.32s..."), pubkey.GetName(), pubkey.GetSize(), line);
+		m_LoadMsg.Format(_T("%s(%d) %32.32s..."), pubkey.GetName(), pubkey.GetSize(), (LPCTSTR)line);
 
 		len = body.Get32Bit();				// size of encrypted key blob
 
@@ -4900,7 +4905,7 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 		}
 
 		FingerPrint(line, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
-		m_LoadMsg.Format(_T("%s(%d) %32.32s..."), MbsToTstr(str), GetSize(), line);
+		m_LoadMsg.Format(_T("%s(%d) %32.32s..."), MbsToTstr(str), GetSize(), (LPCTSTR)line);
 
 		pubblob.Move(pubsave);
 		encblob.Base64Decode(prikey);

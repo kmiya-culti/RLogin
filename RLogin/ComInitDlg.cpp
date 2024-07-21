@@ -26,14 +26,17 @@ CComInitDlg::CComInitDlg(CWnd* pParent /*=NULL*/)
 {
 	m_pSock = NULL;
 	m_ComIndex = 0;
+	m_BaudRate = _T("9600");
 	m_DataBits = _T("8");
 	m_ParityBit = ParityBitsName[0];
 	m_StopBits = StopBitsName[0];
 	m_FlowCtrl = 1;
-	m_BaudRate = _T("9600");
+
+	m_XoffLim = m_XonLim = 0;
+	m_XonChar = m_XoffChar = 0;
+
 	m_SendWait[0] = 0;
 	m_SendWait[1] = 0;
-	m_XonLim = 0;
 }
 CComInitDlg::~CComInitDlg()
 {

@@ -1050,7 +1050,7 @@ public:	// Options
 	int m_DefModKey[MODKEY_MAX];
 	CRect m_ScrnOffset;
 	CString m_TimeFormat;
-	CString m_DefFontName[16];
+	CStringLoad m_DefFontName[16];
 	CString m_TraceLogFile;
 	int m_TraceMaxCount;
 	int m_DefTypeCaret;

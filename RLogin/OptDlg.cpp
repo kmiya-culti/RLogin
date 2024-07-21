@@ -30,6 +30,7 @@ CTreePage::CTreePage(UINT nIDTemplate)
 	m_pSheet = NULL;
 	m_hTreeItem = NULL;
 	m_pOwn = NULL;
+	m_nPage = 0;
 	m_UrlOpt = NULL;
 
 	SetBackWindow(TRUE);
@@ -192,7 +193,7 @@ BOOL COptDlg::CreatePage(int nPage)
 }
 void COptDlg::SetActivePage(int nPage)
 {
-	CTreePage *pPage;
+	CTreePage *pPage = NULL;
 
 	if ( m_ActivePage >= 0 && (pPage = GetPage(m_ActivePage)) != NULL )
 		pPage->ShowWindow(SW_HIDE);
@@ -204,6 +205,9 @@ void COptDlg::SetActivePage(int nPage)
 		m_Tree.SetItemState(pPage->m_hTreeItem, TVIS_SELECTED, TVIS_SELECTED);
 		m_ActivePage = nPage;
 	}
+
+	if ( pPage == NULL )
+		return;
 
 	if ( nPage > 0 && m_bOptFixed && (m_psh.dwFlags & PSH_NOAPPLYNOW) != 0 ) {
 		pPage->EnableWindow(FALSE);

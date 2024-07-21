@@ -450,11 +450,21 @@ class CFileNode *CFileNode::Find(LPCTSTR path)
 
 CCmdQue::CCmdQue()
 {
-	m_hFile = INVALID_HANDLE_VALUE;
+	m_ExtId = 0;
+	m_SendTime = 0;
 	m_Func = NULL;
 	m_EndFunc = NULL;
-	m_bThrad = FALSE;
+	m_Offset = m_Size = m_NextOfs = 0LL;
+	m_Len = m_Max = 0;
+	m_hFile = INVALID_HANDLE_VALUE;
+	m_pOwner = NULL;
 	m_EndCmd = 0;
+	m_bThrad = FALSE;
+	m_pSFtp = NULL;
+
+	m_Type = 0;
+	m_LastError = 0;
+	m_BufPos = 0;
 }
 
 #ifdef	USE_OLE
@@ -538,13 +548,16 @@ CFileOverLap::CFileOverLap()
 	m_pBuffer = NULL;
 	m_Pos = m_Len = m_Max = 0;
 
-	memset(&m_OverLap, 0 , sizeof(m_OverLap));
+	ZeroMemory(&m_Seek, sizeof(m_Seek));
+	ZeroMemory(&m_OverLap, sizeof(m_OverLap));
 	m_OverLap.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	m_pPostWnd = NULL;
 	m_pThread = NULL;
 	m_Stat = FOL_INIT;
 	m_LastError = 0;
+
+	m_Stat = FOL_INIT;
 }
 CFileOverLap::~CFileOverLap()
 {
@@ -759,6 +772,9 @@ void CFileOverLap::ReadOverLapWork()
 			pCmdQue = m_ReadQue.RemoveHead();
 			m_Lock.Unlock();
 
+			if ( pCmdQue == NULL )
+				continue;
+
 			if ( m_LastError != 0 ) {
 				DoneNextQue(pCmdQue, FALSE);
 				pCmdQue = NULL;
@@ -870,39 +886,51 @@ BOOL CFileOverLap::ReadOverLapInit()
 
 IMPLEMENT_DYNAMIC(CSFtp, CDialogExt)
 
-CSFtp::CSFtp(CWnd* pParent /*=NULL*/)
-	: CDialogExt(CSFtp::IDD, pParent)
+CSFtp::CSFtp(CWnd* pParent /*=NULL*/) : CDialogExt(CSFtp::IDD, pParent)
 {
-	//{{AFX_DATA_INIT(CSFtp)
-	//}}AFX_DATA_INIT
-	m_pSSh    = NULL;
+	m_pFifoSftp = NULL;
+
 	m_pChan   = NULL;
+	m_pSSh = NULL;
 	m_VerId   = (-1);
 	m_SeqId   = 0;
-	m_LocalSortItem  = 0;
-	m_RemoteSortItem = 0;
-	m_HostKanjiSet   = _T("SJIS");
-	m_UpDownCount = 0;
+
+	m_hIcon = AfxGetApp()->LoadIcon(IDI_ACTIVE);
+	m_HostKanjiSet = _T("SJIS");
+	m_pCacheNode = NULL;
+	m_ToolBarOfs = 0;
+	m_UpdateCheckMode = 0;
+	m_LocalCurTime = m_RemoteCurTime = 0;
+	m_bUidGid = FALSE;
+
 	m_bDragList = FALSE;
+	m_hDragWnd = NULL;
+	m_DragImage = 0;
+	m_DragAcvite = 0;
+
 	m_DoUpdate = 0;
 	m_DoAbort = FALSE;
 	m_DoExec = 0;
-	m_hIcon = AfxGetApp()->LoadIcon(IDI_ACTIVE);
-	m_ProgDiv = 0;
-	m_ProgSize = m_ProgOfs = 0;
-	m_TotalSize = m_TotalPos = 0;
-	m_TransmitSize = 0;
-	m_TransmitClock = 0;
-	m_pCacheNode = NULL;
-	m_UpdateCheckMode = 0;
+
 	m_AutoRenMode = 0;
-	m_bUidGid = FALSE;
 	m_bShellExec[0] = m_bShellExec[1] = 0;
 	m_bPostMsg = FALSE;
 	m_bBuzy = FALSE;
 	m_bTheadExec = FALSE;
+
+	m_LocalSortItem  = 0;
+	m_RemoteSortItem = 0;
+	m_SortNodeNum = 0;
+
+	m_UpDownCount = 0;
+	m_UpDownRate = 0;
+	m_ProgDiv = 0;
+	m_ProgSize = m_ProgOfs = 0LL;
+	m_ProgClock = 0;
+	m_TotalSize = m_TotalPos = 0LL;
+	m_TransmitSize = 0LL;
+	m_TransmitClock = 0;
 	m_pTaskbarList = NULL;
-	m_pFifoSftp = NULL;
 }
 CSFtp::~CSFtp()
 {
@@ -2751,6 +2779,8 @@ int CSFtp::CompareNode(int src, int dis)
 		item = m_RemoteSortItem & 0x7F;
 		revs = m_RemoteSortItem & 0x80;
 		break;
+	default:
+		return (-1);
 	}
 
 	if ( pSrc->IsDir() != pDis->IsDir() )
@@ -3464,7 +3494,8 @@ BOOL CSFtp::DropFiles(HWND hWnd, HDROP hDropInfo, DROPEFFECT dropEffect)
 {
 	int n, i;
 	int max = DragQueryFile(hDropInfo, 0xFFFFFFFF, NULL, 0);
-	TCHAR path[_MAX_PATH + 4];
+	int len = _MAX_PATH;
+	TCHAR *pPath = new TCHAR[len + 1];
 	CString tmp, file;
 	CWaitCursor wait;
 
@@ -3472,8 +3503,14 @@ BOOL CSFtp::DropFiles(HWND hWnd, HDROP hDropInfo, DROPEFFECT dropEffect)
 	m_DoAbort  = FALSE;
 
 	for ( n = 0 ; n < max && !m_DoAbort ; n++ ) {
-		DragQueryFile(hDropInfo, n, path, _MAX_PATH);
-		tmp = path;
+		if ( len < (i = DragQueryFile(hDropInfo, n, NULL, 0)) ) {
+			len = i;
+			delete [] pPath;
+			pPath = new TCHAR[len + 1];
+		}
+		DragQueryFile(hDropInfo, n, pPath, len);
+
+		tmp = pPath;
 		if ( (i = tmp.ReverseFind(_T('\\'))) > 0 )
 			file = tmp.Mid(i + 1);
 		else
@@ -3481,18 +3518,21 @@ BOOL CSFtp::DropFiles(HWND hWnd, HDROP hDropInfo, DROPEFFECT dropEffect)
 
 		if ( hWnd == m_RemoteList.m_hWnd ) {
 			CFileNode node;
-			if ( node.GetFileStat(path, file) )
+			if ( node.GetFileStat(pPath, file) )
 				UpLoadFile(&node, node.GetRemotePath(m_RemoteCurDir, this), dropEffect == DROPEFFECT_MOVE ? TRUE : FALSE);
 
 		} else if ( hWnd == m_LocalList.m_hWnd ) {
 			JointPath(m_LocalCurDir, file, tmp);
-			if ( !LocalCopy(path, tmp, dropEffect == DROPEFFECT_MOVE ? TRUE : FALSE) )
+			if ( !LocalCopy(pPath, tmp, dropEffect == DROPEFFECT_MOVE ? TRUE : FALSE) )
 				break;
 		}
 	}
 
+	delete [] pPath;
+
 	DragFinish(hDropInfo);
 	SendWaitQue();
+
 	return (m_DoAbort ? FALSE : TRUE);
 }
 BOOL CSFtp::DescriptorFiles(HWND hWnd, HGLOBAL hDescInfo, DROPEFFECT dropEffect, COleDataObject *pDataObject)

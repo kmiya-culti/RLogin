@@ -33,9 +33,19 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_Fd = (-1);
 	m_RecvBufSize = RECVDEFSIZ;
 
-	m_ProxyCmdMode = FALSE;
+	m_RealHostPort = 0;
+	m_RealRemotePort = 0;
+	m_RealSocketType = 0;
+
 	m_ProxyStatus = PRST_NONE;
+	m_ProxyLastError = 0;
 	m_ProxyCode = 0;
+	m_ProxyPort = 0;
+	m_ProxyLength = 0;
+	m_ProxyNum = 0;
+	m_ProxyConnect = FALSE;
+	m_ProxyCmdMode = FALSE;
+
 	m_SSL_mode  = 0;
 	m_SSL_pCtx  = NULL;
 	m_SSL_pSock = NULL;

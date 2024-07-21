@@ -300,6 +300,8 @@ public:
 	CDWordArray			m_BreakAddr;
 	int					m_CaseAddr;
 	class CScriptLoop	*m_Next;
+
+	inline CScriptLoop() { m_StartPos = 0; m_CaseAddr = 0; m_Next = NULL; };
 };
 
 typedef struct _ScriptDebug {
@@ -476,7 +478,7 @@ public:
 	void ResetEvent(int flag);
 	void SetDocument(class CRLoginDoc *pDoc);
 
-	struct {
+	struct _MenuTab {
 		CString str;
 		CString func;
 		int pos;

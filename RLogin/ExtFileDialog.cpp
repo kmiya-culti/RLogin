@@ -85,6 +85,9 @@ void CFileDownPage::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CFileDownPage, CDialogRes)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO3, OnDownMode)
+	ON_BN_CLICKED(IDC_CHECK1, OnDownCrLf)
+	ON_BN_CLICKED(IDC_CHECK2, OnDownWait)
 END_MESSAGE_MAP()
 
 static const INITDLGTAB DownItemTab[] = {
@@ -129,7 +132,7 @@ BOOL CFileDownPage::OnInitDialog()
 	m_DownMode     = m_pUpDown->m_DownMode;
 	m_DownFrom     = m_pUpDown->m_DownFrom;
 	m_DownTo       = m_pUpDown->m_DownTo;
-	m_DecMode      = m_pUpDown->m_DecMode;
+	m_DecMode      = m_pUpDown->m_DecMode + 1;	// auto=(-1)->0
 	m_bDownCrLf    = m_pUpDown->m_bDownCrLf;
 	m_DownCrLfMode = m_pUpDown->m_DownCrLfMode;
 	m_bDownWait    = m_pUpDown->m_bDownWait;
@@ -139,6 +142,10 @@ BOOL CFileDownPage::OnInitDialog()
 
 	UpdateData(FALSE);
 	AddHelpButton(_T("#UPDOWNDLG"));
+
+	OnDownMode(IDC_RADIO1);
+	OnDownCrLf();
+	OnDownWait();
 
 	return TRUE;
 }
@@ -150,7 +157,7 @@ BOOL CFileDownPage::OnApply()
 	m_pUpDown->m_DownMode     = m_DownMode;
 	m_pUpDown->m_DownFrom     = m_DownFrom;
 	m_pUpDown->m_DownTo       = m_DownTo;
-	m_pUpDown->m_DecMode      = m_DecMode;
+	m_pUpDown->m_DecMode      = m_DecMode - 1;	// auto=0->(-1)
 	m_pUpDown->m_bDownCrLf    = m_bDownCrLf;
 	m_pUpDown->m_DownCrLfMode = m_DownCrLfMode;
 	m_pUpDown->m_bDownWait    = m_bDownWait;
@@ -159,6 +166,47 @@ BOOL CFileDownPage::OnApply()
 	m_pUpDown->m_bFileAppend  = m_bFileAppend;
 
 	return TRUE;
+}
+
+void CFileDownPage::OnDownMode(UINT nID)
+{
+	int n;
+	CWnd *pWnd;
+	static const struct {
+		int		nId;
+		BOOL	mode[3];
+	} ItemTab[] = {		/*	none	conv	decode	*/
+		{ IDC_COMBO1,	{	FALSE,	TRUE,	FALSE,	} },	// m_DownFrom
+		{ IDC_COMBO2,	{	FALSE,	TRUE,	FALSE,	} },	// m_DownTo
+		{ IDC_COMBO3,	{	FALSE,	FALSE,	TRUE,	} },	// m_DecMode
+		{ IDC_CHECK4,	{	TRUE,	TRUE,	FALSE,	} },	// m_bFileAppend
+		{ 0 }
+	};
+
+	UpdateData(TRUE);
+
+	for ( n = 0 ; ItemTab[n].nId != 0 ; n++ ) {
+		if ( (pWnd = GetDlgItem(ItemTab[n].nId)) != NULL )
+			pWnd->EnableWindow(ItemTab[n].mode[m_DownMode]);
+	}
+}
+void CFileDownPage::OnDownCrLf()
+{
+	CWnd *pWnd;
+
+	UpdateData(TRUE);
+
+	if ( (pWnd = GetDlgItem(IDC_COMBO4)) != NULL )
+		pWnd->EnableWindow(m_bDownCrLf);
+}
+void CFileDownPage::OnDownWait()
+{
+	CWnd *pWnd;
+
+	UpdateData(TRUE);
+
+	if ( (pWnd = GetDlgItem(IDC_EDIT1)) != NULL )
+		pWnd->EnableWindow(m_bDownWait);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -193,6 +241,8 @@ void CFileUpConvPage::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CFileUpConvPage, CDialogRes)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO3, OnUpMode)
+	ON_BN_CLICKED(IDC_CHECK1, OnUpCrLf)
 END_MESSAGE_MAP()
 
 static const INITDLGTAB UpConvItemTab[] = {
@@ -240,6 +290,9 @@ BOOL CFileUpConvPage::OnInitDialog()
 	UpdateData(FALSE);
 	AddHelpButton(_T("#UPDOWNDLG"));
 
+	OnUpMode(IDC_RADIO1);
+	OnUpCrLf();
+
 	return TRUE;
 }
 
@@ -255,6 +308,37 @@ BOOL CFileUpConvPage::OnApply()
 	m_pUpDown->m_UpCrLfMode = m_UpCrLfMode;
 
 	return TRUE;
+}
+
+void CFileUpConvPage::OnUpMode(UINT nID)
+{
+	int n;
+	CWnd *pWnd;
+	static const struct {
+		int		nId;
+		BOOL	mode[3];
+	} ItemTab[] = {		/*	none	conv	decode	*/
+		{ IDC_COMBO1,	{	FALSE,	TRUE,	FALSE,	} },	// m_UpFrom
+		{ IDC_COMBO2,	{	FALSE,	TRUE,	FALSE,	} },	// m_UpTo
+		{ IDC_COMBO3,	{	FALSE,	FALSE,	TRUE,	} },	// m_EncMode
+		{ 0 }
+	};
+
+	UpdateData(TRUE);
+
+	for ( n = 0 ; ItemTab[n].nId != 0 ; n++ ) {
+		if ( (pWnd = GetDlgItem(ItemTab[n].nId)) != NULL )
+			pWnd->EnableWindow(ItemTab[n].mode[m_UpMode]);
+	}
+}
+void CFileUpConvPage::OnUpCrLf()
+{
+	CWnd *pWnd;
+
+	UpdateData(TRUE);
+
+	if ( (pWnd = GetDlgItem(IDC_COMBO4)) != NULL )
+		pWnd->EnableWindow(m_UpCrLf);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -300,6 +384,9 @@ void CFileUpSendPage::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CFileUpSendPage, CDialogRes)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO4, IDC_RADIO6, OnSendMode)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECK2, IDC_CHECK2, OnSendMode)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECK3, IDC_CHECK3, OnSendMode)
 END_MESSAGE_MAP()
 
 static const INITDLGTAB UpSendItemTab[] = {
@@ -344,6 +431,8 @@ BOOL CFileUpSendPage::OnInitDialog()
 	UpdateData(FALSE);
 	AddHelpButton(_T("#UPDOWNDLG"));
 
+	OnSendMode(IDC_RADIO4);
+
 	return TRUE;
 }
 
@@ -365,6 +454,42 @@ BOOL CFileUpSendPage::OnApply()
 	m_pUpDown->m_CrLfMsec  = m_CrLfMsec;
 
 	return TRUE;
+}
+
+void CFileUpSendPage::OnSendMode(UINT nID)
+{
+	int n;
+	CWnd *pWnd;
+	static const struct {
+		int		nId;
+		BOOL	mode[3];
+	} ItemTab[] = {		/*	none	size	line	*/
+		{ IDC_EDIT1,	{	FALSE,	TRUE,	FALSE,	} },	// m_BlockSize
+		{ IDC_EDIT2,	{	FALSE,	TRUE,	FALSE,	} },	// m_BlockMsec
+		{ IDC_EDIT3,	{	FALSE,	FALSE,	TRUE,	} },	// m_CharUsec
+		{ IDC_EDIT4,	{	FALSE,	FALSE,	TRUE,	} },	// m_LineMsec
+		{ IDC_EDIT5,	{	FALSE,	FALSE,	TRUE,	} },	// m_RecvMsec
+		{ IDC_EDIT6,	{	FALSE,	FALSE,	TRUE,	} },	// m_CrLfMsec
+		{ IDC_CHECK2,	{	FALSE,	FALSE,	TRUE,	} },	// m_RecvWait
+		{ IDC_CHECK3,	{	FALSE,	FALSE,	TRUE,	} },	// m_CrLfWait
+		{ 0 }
+	};
+
+	UpdateData(TRUE);
+
+	for ( n = 0 ; ItemTab[n].nId != 0 ; n++ ) {
+		if ( (pWnd = GetDlgItem(ItemTab[n].nId)) != NULL ) {
+			if ( ItemTab[n].mode[m_SendMode] ) {
+				if ( ItemTab[n].nId == IDC_EDIT5 )
+					pWnd->EnableWindow(m_RecvWait);
+				else if ( ItemTab[n].nId == IDC_EDIT6 )
+					pWnd->EnableWindow(m_CrLfWait);
+				else
+					pWnd->EnableWindow(ItemTab[n].mode[m_SendMode]);
+			} else
+				pWnd->EnableWindow(ItemTab[n].mode[m_SendMode]);
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////

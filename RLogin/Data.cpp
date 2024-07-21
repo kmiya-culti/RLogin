@@ -1150,7 +1150,8 @@ void CBuffer::Base32Encode(LPBYTE buf, int len, BOOL bHex)
 	}
 }
 
-static const char *QuotedEncTab = "0123456789abcdef";
+static const char *HexEncTab = "0123456789ABCDEF";
+static const char *QuotedEncTab  = "0123456789abcdef";
 static const char QuotedDecTab[] = {
 	-1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
 	-1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
@@ -1237,6 +1238,58 @@ void CBuffer::PutHexBuf(LPBYTE buf, int len)
 		buf++;
 		len--;
     }
+}
+void CBuffer::IntelHexEncode(LPBYTE buf, int len)
+{
+	while ( len > 0 ) {
+		PutByte(HexEncTab[*buf >> 4]);
+		PutByte(HexEncTab[*buf & 15]);
+		buf++;
+		len--;
+    }
+}
+LPCSTR CBuffer::IntelHexDecode(LPCSTR str)
+{
+    int c1, c2;
+
+	Clear();
+	while ( *str != '\0' ) {
+		if ( (c1 = QuotedDecTab[(BYTE)str[0]]) >= 0 && (c2 = QuotedDecTab[(BYTE)str[1]]) >= 0 ) {
+			Put8Bit((c1 << 4) | c2);
+			str += 2;
+		} else
+			break;
+	}
+	return str;
+}
+void CBuffer::TekHexEncode(int val, int len)
+{
+	int n;
+	char tmp[8];
+
+	for ( n = 0 ; n < len && n < 8 ; n++ ) {
+		tmp[n] = HexEncTab[val & 15];
+		val >>= 4;
+	}
+	while ( n > 0 )
+		PutByte(tmp[--n]);
+}
+int CBuffer::TekHexDecode(int pos, int len)
+{
+	int n, d;
+	int val = 0;
+	LPBYTE p = GetPos(pos);
+
+	if ( (pos + len) > GetSize() )
+		return (-1);
+
+	for ( n = 0 ; n < len ; n++ ) {
+		if ( (d = QuotedDecTab[*(p++)]) == (-1) )
+			return (-1);
+		val = (val << 4) | d;
+	}
+
+	return val;
 }
 
 static const char BubBabVowels[] = { 'a', 'e', 'i', 'o', 'u', 'y' };
@@ -1558,8 +1611,8 @@ void CBuffer::IshEncJis7(LPBYTE buf, int len)
 		d = data.GetBits(13);
 		du = d / 91;
 		dl = d - du * 91;
-		PutByte(ent_j7[du & 0x7f]);
-		PutByte(ent_j7[dl & 0x7f]);
+		PutByte(ent_j7[du % 91]);
+		PutByte(ent_j7[dl % 91]);
 	}
 }
 
@@ -2170,11 +2223,11 @@ BOOL CBuffer::HuffmanDecode(LPBYTE buf, int len)
 		c = *(buf++);
 		len--;
 
-		t = &qpack_huffman_decode_table[t->fstate & 0x1ff][c >> 4];
+		t = &qpack_huffman_decode_table[t->fstate % 257][c >> 4];
 		if (t->fstate & NGHTTP3_QPACK_HUFFMAN_SYM)
 			PutByte(t->sym);
 
-		t = &qpack_huffman_decode_table[t->fstate & 0x1ff][c & 0xf];
+		t = &qpack_huffman_decode_table[t->fstate % 257][c & 0xf];
 		if (t->fstate & NGHTTP3_QPACK_HUFFMAN_SYM)
 			PutByte(t->sym);
 	}
@@ -3387,11 +3440,16 @@ CStringLoad::CStringLoad(int nID, BOOL bMenu)
 		Delete(0, n + 1);
 }
 
-BOOL CStringLoad::LoadString(UINT nID)
+int CStringLoad::LoadString(UINT nID)
 {
-	return ((CRLoginApp *)AfxGetApp())->LoadResString(MAKEINTRESOURCE(nID), *this);
+	BOOL rt = ((CRLoginApp *)AfxGetApp())->LoadResString(MAKEINTRESOURCE(nID), *this);
+
+	if ( !rt )
+		Empty();
+
+	return (rt ? 1 : 0);
 }
-BOOL CStringLoad::IsDigit(LPCTSTR str)
+int CStringLoad::IsDigit(LPCTSTR str)
 {
 	return (*str >= _T('0') && *str <= _T('9') ? TRUE : FALSE);
 }
@@ -10736,7 +10794,7 @@ void CStringIndex::SubSetXmlElemnt(CBuffer &str, int nest)
 
 	for ( n = 0 ; n < GetSize() ; n++ ) {
 		if ( m_Array[n].GetSize() == 0 && !m_Array[n].m_nIndex.IsEmpty() && !IsDupIndex(m_Array[n].m_nIndex) ) {
-			tmp.Format(_T(" %s"), m_Array[n].m_nIndex);
+			tmp.Format(_T(" %s"), (LPCTSTR)m_Array[n].m_nIndex);
 			str += (LPCTSTR)tmp;
 			if ( !m_Array[n].IsEmpty() ) {
 				str += _T("=\"");
@@ -11656,11 +11714,25 @@ BOOL CHttpSession::GetRequest(LPCTSTR url, CBuffer &buf, LPCTSTR head, LPCSTR bo
 
 	return rc;
 }
+
+//////////////////////////////////////////////////////////////////////
+// CHttpThreadSession
+
+CHttpThreadSession::CHttpThreadSession(LPCTSTR url, LPCTSTR head, LPCSTR body, CWnd *pWnd)
+{
+	m_TheadhWnd  = (pWnd == NULL ? NULL   : pWnd->GetSafeHwnd());
+	m_ThreadUrl  = (url  == NULL ? _T("") : url);
+	m_ThreadHead = (head == NULL ? _T("") : head);
+	m_ThreadBody = (body == NULL ?    ""  : body);
+}
+
 static UINT ThreadRequestProc(LPVOID pParam)
 {
 	CHttpThreadSession *pSess = (CHttpThreadSession *)pParam;
 	CBuffer *pBuf = new CBuffer;
 	CString *pMsg = new CString;
+
+	ASSERT(pSess != NULL && pSess->m_TheadhWnd != NULL && !pSess->m_ThreadUrl.IsEmpty());
 
 	if ( pSess->GetRequest(pSess->m_ThreadUrl, *pBuf, pSess->m_ThreadHead, pSess->m_ThreadBody, pMsg) ) {
 		::PostMessage(pSess->m_TheadhWnd, WM_HTTPREQUEST, (WPARAM)TRUE, (LPARAM)pBuf);
@@ -11676,12 +11748,7 @@ static UINT ThreadRequestProc(LPVOID pParam)
 }
 void CHttpThreadSession::Request(LPCTSTR url, LPCTSTR head, LPCSTR body, CWnd *pWnd)
 {
-	CHttpThreadSession *pSess = new CHttpThreadSession;
-
-	pSess->m_TheadhWnd  = pWnd->GetSafeHwnd();
-	pSess->m_ThreadUrl  = url;
-	pSess->m_ThreadHead = (head == NULL ? _T("") : head);
-	pSess->m_ThreadBody = (body == NULL ? "" : body);
+	CHttpThreadSession *pSess = new CHttpThreadSession(url, head, body, pWnd);
 
 	AfxBeginThread(ThreadRequestProc, pSess, THREAD_PRIORITY_BELOW_NORMAL);
 }
@@ -11689,6 +11756,14 @@ void CHttpThreadSession::Request(LPCTSTR url, LPCTSTR head, LPCSTR body, CWnd *p
 //////////////////////////////////////////////////////////////////////
 // CEmojiDocPos
 
+CEmojiDocPos::CEmojiDocPos(CRLoginDoc* pDoc, int Seq, int Abs, RECT Pos)
+{
+	m_pBack = m_pNext = NULL;
+	m_pDoc = pDoc;
+	m_Seq = Seq;
+	m_Abs = Abs;
+	m_Pos = Pos;
+}
 CEmojiDocPos *CEmojiDocPos::AddList(CEmojiDocPos *pTop)
 {
 	if ( pTop == NULL )
@@ -11800,13 +11875,7 @@ CEmojiImage::~CEmojiImage()
 }
 void CEmojiImage::Add(class CRLoginDoc *pDoc, CRect pos)
 {
-	CEmojiDocPos *pDocPos = new CEmojiDocPos;
-
-	pDocPos->m_pDoc  = pDoc;
-	pDocPos->m_Seq   = pDoc->m_DocSeqNumber;
-	pDocPos->m_Pos   = pos;
-	pDocPos->m_Abs   = pDoc->m_TextRam.m_HisAbs;
-
+	CEmojiDocPos *pDocPos = new CEmojiDocPos(pDoc, pDoc->m_DocSeqNumber, pDoc->m_TextRam.m_HisAbs, pos);
 	m_pDocPos = pDocPos->AddTail(m_pDocPos);
 }
 

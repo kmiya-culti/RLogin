@@ -229,7 +229,8 @@ void CExtOptPage::OnLvnGetInfoTipExtlist(NMHDR *pNMHDR, LRESULT *pResult)
 	if ( (n = str.GetLength() + sizeof(TCHAR)) > pGetInfoTip->cchTextMax )
 		n = pGetInfoTip->cchTextMax;
 
-	lstrcpyn(pGetInfoTip->pszText, str, n);
+	if ( lstrcpyn(pGetInfoTip->pszText, str, n) == NULL )
+		pGetInfoTip->pszText[0] = L'\0';
 
 	*pResult = 0;
 }
@@ -244,7 +245,7 @@ void CExtOptPage::OnEditDelall()
 {
 	int n, i;
 	CInitAllDlg dlg;
-	CTextRam TextRam;
+	CTextRam *pTextRam = new CTextRam;
 
 	dlg.m_Title.LoadString(IDS_INITEXTOPTTITLE);
 
@@ -253,29 +254,31 @@ void CExtOptPage::OnEditDelall()
 
 	switch(dlg.m_InitType) {
 	case 0:		// Init Default Entry
-		TextRam.Serialize(FALSE);
+		pTextRam->Serialize(FALSE);
 		break;
 
 	case 1:		// Init Program Default
-		TextRam.Init();
+		pTextRam->Init();
 		break;
 
 	case 2:		// Copy Entry option
 		ASSERT(dlg.m_pInitEntry != NULL);
 		{
 			CBuffer tmp(dlg.m_pInitEntry->m_ProBuffer.GetPtr(), dlg.m_pInitEntry->m_ProBuffer.GetSize());
-			TextRam.Serialize(FALSE, tmp);
+			pTextRam->Serialize(FALSE, tmp);
 		}
 		break;
 	}
 
 	for ( i = 0 ; i < m_ExtList.GetItemCount() ; i++ ) {
 		n = (int)m_ExtList.GetItemData(i);
-		m_ExtList.SetLVCheck(i,  TextRam.IsOptEnable(ExtListTab[n].num) ? TRUE : FALSE);
+		m_ExtList.SetLVCheck(i,  pTextRam->IsOptEnable(ExtListTab[n].num) ? TRUE : FALSE);
 	}
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+
+	delete pTextRam;
 }
 void CExtOptPage::OnEditCopy()
 {

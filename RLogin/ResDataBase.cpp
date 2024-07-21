@@ -722,8 +722,8 @@ HGLOBAL CDlgTempBase::GetDialogHandle()
 	if ( (m_hTemplate = GlobalAlloc(GPTR, tmp.GetSize())) == NULL )
 		return NULL;
 
-	ptr = (LPBYTE)GlobalLock(m_hTemplate);
-	memcpy(ptr, tmp.GetPtr(), tmp.GetSize());
+	if ( (ptr = (LPBYTE)GlobalLock(m_hTemplate)) != NULL )
+		memcpy(ptr, tmp.GetPtr(), tmp.GetSize());
 	GlobalUnlock(m_hTemplate);
 
 	return m_hTemplate;
@@ -856,6 +856,14 @@ const CResMenuData & CResMenuData::operator = (CResMenuData &data)
 	m_String = data.m_String;
 
 	return *this;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CResBaseNode
+
+CResBaseNode::CResBaseNode()
+{
+	m_ResId = 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1135,7 +1143,7 @@ BOOL CResToolBarBase::SetToolBar(class CToolBarEx &ToolBar, CWnd *pWnd)
 				key.Format(_T("%d-%d"), m_ResId, TabCount);
 				item = ::AfxGetApp()->GetProfileInt(_T("ToolBarEx"), key, item);
 				for ( i = 0 ; i <  DropCount ; i++ ) {
-					if ( pNewTab[TabCount + i] == (UINT)item )
+					if ( (TabCount + i) < (int)m_Item.GetSize() && pNewTab[TabCount + i] == (UINT)item )
 						break;
 				}
 				if ( i >= DropCount )
@@ -1147,7 +1155,8 @@ BOOL CResToolBarBase::SetToolBar(class CToolBarEx &ToolBar, CWnd *pWnd)
 		} else {
 			if ( m_Item[n] != 0 )
 				ToolBar.AddItemImage((int)m_Item[n]);
-			pNewTab[TabCount++] = (UINT)m_Item[n];
+			if ( TabCount < (int)m_Item.GetSize() )
+				pNewTab[TabCount++] = (UINT)m_Item[n];
 		}
 	}
 

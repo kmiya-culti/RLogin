@@ -42,7 +42,10 @@ static char THIS_FILE[]=__FILE__;
 CMemMap::CMemMap()
 {
 	m_hFile = NULL;
+	m_ColsMax = m_LineMax = 0;
 	m_pMapTop = NULL;
+	ZeroMemory(m_MapData, sizeof(m_MapData));
+	m_MapSize = m_MapPage = 0ll;
 }
 CMemMap::~CMemMap()
 {
@@ -1440,13 +1443,48 @@ void CTextBitMap::SetIndex(int mode, CStringIndex &index)
 
 CTextSave::CTextSave()
 {
-	m_bAll = FALSE;
 	m_pNext = NULL;
-	m_pCharCell = NULL;
 	m_pTextRam = NULL;
+
+	m_bAll = FALSE;
+
+	m_pCharCell = NULL;
+	ZeroMemory(&m_AttNow, sizeof(m_AttNow));
+	ZeroMemory(&m_AttSpc, sizeof(m_AttSpc));
+
+	m_Cols = m_Lines = 0;
+	m_CurX = m_CurY = 0;
+	m_TopY = m_BtmY = 0;
+	m_LeftX = m_RightX = 0;
+
+	m_DoWarp = FALSE;
+	m_Exact = FALSE;
+	m_LastChar = 0;
+	m_LastFlag = 0;
+	m_LastPos.x = m_LastPos.y = 0;
+	m_LastCur.x = m_LastCur.y = 0;
+	m_LastSize = 0;
+	m_LastAttr = 0;
+	ZeroMemory(m_LastStr, sizeof(m_LastStr));
+	m_bRtoL= FALSE;
+	m_bJoint = FALSE;
+
+	ZeroMemory(m_AnsiOpt, sizeof(m_AnsiOpt));
+
+	m_BankGL = m_BankGR = m_BankSG = 0;
+	ZeroMemory(m_BankTab, sizeof(m_BankTab));
+
 	m_TabMap = NULL;
-	m_SaveParam.m_TabMap = NULL;
-	m_StsParam.m_TabMap = NULL;
+	ZeroMemory(&m_SaveParam, sizeof(m_SaveParam));
+
+	m_StsMode = 0;
+	m_StsLine = 0;
+	ZeroMemory(&m_StsParam, sizeof(m_StsParam));
+
+	m_XtMosPointMode = 0;
+	m_XtOptFlag = 0;
+	m_DispCaret = 0;
+	m_TypeCaret = 0;
 }
 CTextSave::~CTextSave()
 {
@@ -1573,21 +1611,21 @@ void CTabFlag::SizeCheck(int cols_max, int line_max, int def_tab)
 
 BOOL CTabFlag::IsSingleColsFlag(int x)
 {
-	if ( m_pSingleColsFlag != NULL )
+	if ( m_pSingleColsFlag != NULL && x < m_Param.Cols )
 		return ((m_pSingleColsFlag[x / 8] & (1 << (x % 8))) != 0 ? TRUE : FALSE);
 
 	return ((x % m_DefTabSize) == 0 ? TRUE : FALSE);
 }
 BOOL CTabFlag::IsMultiColsFlag(int x, int y)
 {
-	if ( m_pMultiColsFlag != NULL )
+	if ( m_pMultiColsFlag != NULL && x < m_Param.Cols && y < m_Param.Line )
 		return ((m_pMultiColsFlag[x / 8 + y * m_Param.Element] & (1 << (x % 8))) != 0 ? TRUE : FALSE);
 
 	return ((x % m_DefTabSize) == 0 ? TRUE : FALSE);
 }
 BOOL CTabFlag::IsLineFlag(int y)
 {
-	if ( m_pLineFlag != NULL )
+	if ( m_pLineFlag != NULL && y < m_Param.Line )
 		return m_pLineFlag[y];
 
 	return TRUE;
@@ -1598,42 +1636,48 @@ void CTabFlag::SetSingleColsFlag(int x)
 	if ( m_pSingleColsFlag == NULL )
 		InitTab();
 
-	m_pSingleColsFlag[x / 8] |= (1 << (x % 8));
+	if ( m_pSingleColsFlag != NULL && x < m_Param.Cols )
+		m_pSingleColsFlag[x / 8] |= (1 << (x % 8));
 }
 void CTabFlag::ClrSingleColsFlag(int x)
 {
 	if ( m_pSingleColsFlag == NULL )
 		InitTab();
 
-	m_pSingleColsFlag[x / 8] &= ~(1 << (x % 8));
+	if ( m_pSingleColsFlag != NULL && x < m_Param.Cols )
+		m_pSingleColsFlag[x / 8] &= ~(1 << (x % 8));
 }
 void CTabFlag::SetMultiColsFlag(int x, int y)
 {
 	if ( m_pMultiColsFlag == NULL )
 		InitTab();
 
-	m_pMultiColsFlag[x / 8 + y * m_Param.Element] |= (1 << (x % 8));
+	if ( m_pMultiColsFlag != NULL && x < m_Param.Cols && y < m_Param.Line )
+		m_pMultiColsFlag[x / 8 + y * m_Param.Element] |= (1 << (x % 8));
 }
 void CTabFlag::ClrMultiColsFlag(int x, int y)
 {
 	if ( m_pMultiColsFlag == NULL )
 		InitTab();
 
-	m_pMultiColsFlag[x / 8 + y * m_Param.Element] &= ~(1 << (x % 8));
+	if ( m_pMultiColsFlag != NULL && x < m_Param.Cols && y < m_Param.Line )
+		m_pMultiColsFlag[x / 8 + y * m_Param.Element] &= ~(1 << (x % 8));
 }
 void CTabFlag::SetLineflag(int y)
 {
 	if ( m_pLineFlag == NULL )
 		InitTab();
 
-	m_pLineFlag[y] = 001;
+	if ( m_pLineFlag != NULL && y < m_Param.Line )
+		m_pLineFlag[y] = 001;
 }
 void CTabFlag::ClrLineflag(int y)
 {
 	if ( m_pLineFlag == NULL )
 		InitTab();
 
-	m_pLineFlag[y] = 000;
+	if ( m_pLineFlag != NULL && y < m_Param.Line )
+		m_pLineFlag[y] = 000;
 }
 
 void CTabFlag::AllClrSingle()
@@ -1641,36 +1685,42 @@ void CTabFlag::AllClrSingle()
 	if ( m_pSingleColsFlag == NULL )
 		InitTab();
 
-	memset(m_pSingleColsFlag, 0, m_Param.Element);
+	if ( m_pSingleColsFlag != NULL )
+		memset(m_pSingleColsFlag, 0, m_Param.Element);
 }
 void CTabFlag::AllClrMulti()
 {
 	if ( m_pMultiColsFlag == NULL )
 		InitTab();
 
-	memset(m_pMultiColsFlag, 0, m_Param.Line * m_Param.Element);
+	if ( m_pMultiColsFlag != NULL )
+		memset(m_pMultiColsFlag, 0, m_Param.Line * m_Param.Element);
 }
 void CTabFlag::LineClrMulti(int y)
 { 
 	if ( m_pMultiColsFlag == NULL )
 		InitTab();
 
-	memset(m_pMultiColsFlag + y * m_Param.Element, 0, m_Param.Element);
+	if ( m_pMultiColsFlag != NULL )
+		memset(m_pMultiColsFlag + y * m_Param.Element, 0, m_Param.Element);
 }
 void CTabFlag::AllClrLine()
 {
 	if ( m_pLineFlag == NULL )
 		InitTab();
 
-	memset(m_pLineFlag, 0, m_Param.Line);
+	if ( m_pLineFlag != NULL )
+		memset(m_pLineFlag, 0, m_Param.Line);
 }
 void CTabFlag::CopyLine(int dy, int sy)
 {
 	if ( m_pMultiColsFlag == NULL )
 		InitTab();
 
-	m_pLineFlag[dy] = m_pLineFlag[sy];
-	memcpy(m_pMultiColsFlag + dy * m_Param.Element, m_pMultiColsFlag + sy * m_Param.Element, m_Param.Element);
+	if ( m_pMultiColsFlag != NULL && dy < m_Param.Line && sy < m_Param.Line ) {
+		m_pLineFlag[dy] = m_pLineFlag[sy];
+		memcpy(m_pMultiColsFlag + dy * m_Param.Element, m_pMultiColsFlag + sy * m_Param.Element, m_Param.Element);
+	}
 }
 
 void *CTabFlag::SaveFlag(void *pData)
@@ -1700,7 +1750,7 @@ void CTabFlag::LoadFlag(void *pData)
 	if ( m_pData == NULL )
 		InitTab();
 
-	if ( memcmp(&m_Param, pData, sizeof(m_Param)) == 0 )
+	if ( m_pData != NULL && memcmp(&m_Param, pData, sizeof(m_Param)) == 0 )
 		memcpy(m_pData, (BYTE *)pData + sizeof(m_Param), m_Param.Size);
 
 	else {
@@ -2328,7 +2378,7 @@ void CTextRam::InitHistory()
 	try {
 		CSpace spc;
 		DWORD mx, my, nx;
-		char head[5];
+		char head[5] = { '\0' };
 		CCharCell ram, *vp;
 
 		m_HisFhd.SeekToBegin();
@@ -5736,8 +5786,8 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	CStringW str;
 	CFontChacheNode *pFontCache;
 	CFontNode *pFontNode = &(m_FontTab[prop.bank]);
-	CDC workDC, mirDC, *pSaveDC;
-	CBitmap *pOldMap, *pOldMirMap, MirMap;
+	CDC workDC, mirDC, *pSaveDC = NULL;
+	CBitmap *pOldMap, *pOldMirMap = NULL, MirMap;
  	static BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
 
 	mode = ETO_CLIPPED;
@@ -5997,6 +6047,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	}
 	
 	if ( ATT_EXTYPE(prop.attr) == ATT_MIRROR ) {
+		ASSERT(pSaveDC != NULL && pOldMirMap != NULL);
 		rect = save;
 		pSaveDC->StretchBlt(rect.left + rect.Width() - 1, rect.top, 0 - rect.Width(), rect.Height(), pDC, 0, 0, rect.Width(), rect.Height(), SRCCOPY);
 		mirDC.SelectObject(pOldMirMap);
@@ -9763,6 +9814,11 @@ void CTextRam::ALTRAM(int idx)
 
 	if ( idx == m_AltIdx )
 		return;
+
+	if ( m_AltIdx < 0 )
+		m_AltIdx = 0;
+	else if (m_AltIdx > 1 )
+		m_AltIdx = 1;
 
 	SAVERAM();
 

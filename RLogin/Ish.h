@@ -56,6 +56,8 @@
 #define	ISH_CRC32_INIT		0xFFFFFFFF
 #define	ISH_CRC32_MATCH		0xDEBB20E3
 
+#define	ISH_LINE_COMMENT	50
+
 class CIsh : public CObject
 {
 public:
@@ -71,6 +73,8 @@ public:
 	CStringA m_FileName;
 	LONGLONG m_FileSize;
 	LONGLONG m_FileSeek;
+	int m_LineTotal;
+	int m_LineCount;
 	time_t m_FileTime;
 	WORD m_FileCRC;
 	DWORD m_FileCRC32;
@@ -93,6 +97,7 @@ public:
 	inline LONGLONG GetSize() { return m_WorkSize; }
 	inline BYTE *GetBuf(int idx, int ofs) { return (m_Buf + (idx - 1) * m_Len + ofs); }
 
+	void Init();
 	int DecodeLine(LPCSTR str, CBuffer &out);
 
 	void SetHeader(CBuffer &out);

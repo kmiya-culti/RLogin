@@ -163,6 +163,7 @@ IMPLEMENT_DYNAMIC(CGrapWnd, CFrameWndExt)
 CGrapWnd::CGrapWnd(class CTextRam *pTextRam)
 {
 	m_pTextRam = pTextRam;
+	m_Type = 0;
 	m_MaxX = 1024;
 	m_MaxY = 1024;
 	m_AspX = ASP_DIV;
@@ -170,19 +171,73 @@ CGrapWnd::CGrapWnd(class CTextRam *pTextRam)
 	m_Maps = 0;
 	m_DspX = m_DspY = 0;
 	m_DspA = TRUE;
-	m_pActMap = NULL;
-	m_Type = 0;
+	m_pActMap = m_pOldMap = NULL;
 	m_ImageIndex = (-1);
+	m_BlockX = m_BlockY = 0;
+	m_CellX = m_CellY = 0;
 	m_Crc = 0;
 	m_Use = 0;
 	m_Alive = 0;
-	m_pList[0] = m_pList[1] = m_pList[2] = NULL;
+	ZeroMemory(m_pList, sizeof(m_pList));
 	m_TransIndex = (-1);
 	m_bHaveAlpha = FALSE;
-	m_SixelBackColor = m_SixelTransColor = (-1);
+	m_GifAnimePos = 0;
+	m_GifAnimeClock = 0;
 	m_pHistogram = NULL;
+
+	m_SixelStat = 0;
+	m_SixelWidth = m_SixelHeight = 0;
+	m_SixelPointX = m_SixelPointY = m_SixelRepCount = 0;
+	m_SixelColorIndex = m_SixelValue = 0;
+	m_SixelTrueColor = 0;
+	m_SixelValueInit = FALSE;
+	m_SixelParam.RemoveAll();
+	ZeroMemory(m_SixelMaxTab, sizeof(m_SixelMaxTab));
+	m_SixelBackColor = m_SixelTransColor = 0;
+	m_pAlphaMap = NULL;
+	m_pIndexMap = NULL;
+
+	m_BitPen = 0;
+	m_MulPen = 0;
+	m_ColPen = 0;
+	m_LwPen = 0;
+
+	m_BitBrush = 0;
+	m_MulBrush = 0;
+	m_ColBrush = 0;
+	m_CharBrush = 0;
+	m_HatBrush = 0;
+	m_MapBrush = FALSE;
+
+	m_ActMap = 0;
 	m_ColMap = NULL;
 	m_ColAlpha = NULL;
+	m_BakCol = 0;
+	ZeroMemory(m_PtnMap, sizeof(m_PtnMap));
+
+	ZeroMemory(&m_Wopt, sizeof(m_Wopt));
+	ZeroMemory(&m_SaveWopt, sizeof(m_SaveWopt));
+	m_LocPush = FALSE;
+
+	m_UseXPos = FALSE;
+	m_Pos.x = m_Pos.y = 0;
+	m_PosStack.RemoveAll();
+
+	ZeroMemory(&m_Topt, sizeof(m_Topt));
+	ZeroMemory(&m_SaveTopt, sizeof(m_SaveTopt));
+
+	m_ActFont = 0;
+	for ( int n = 0 ; n < 4 ; n++ )
+		m_UserFontName[n].Empty();
+	ZeroMemory(m_UserFont, sizeof(m_UserFont));
+
+	m_ArcFlag = 0;
+	m_ArcDegs = 0;
+	m_ArcPoint.RemoveAll();
+
+	for ( int n = 0 ; n < 26 ; n++ )
+		m_Macro[n].Empty();
+	m_FilFlag = FALSE;
 }
 CGrapWnd::~CGrapWnd()
 {
@@ -3514,7 +3569,7 @@ void CGrapWnd::SetImage(CImage &image, BOOL bCheckAlpha)
 void CGrapWnd::AddGifAnime(CImage &image, int width, int height, CRect &rect, int bkidx, COLORREF bkcol, int delay, int motd, int trsidx)
 {
 	int n;
-	int idx;
+	int idx, maxidx;
 	CGifAnime anime;
 	CImage tmp, work;
 
@@ -3586,10 +3641,12 @@ void CGrapWnd::AddGifAnime(CImage &image, int width, int height, CRect &rect, in
 
 	} else if ( trsidx != (-1) && image.GetBPP() <= 8 ) {
 		// 透過色以外を描画
-		n = image.GetMaxColorTableEntries();
-		RGBQUAD *paltab = new RGBQUAD[n];
-		image.GetColorTable(0, n, paltab);
-		while ( n-- > 0 )
+		maxidx = image.GetMaxColorTableEntries();
+		RGBQUAD *paltab = new RGBQUAD[maxidx];
+
+		ZeroMemory(paltab, sizeof(RGBQUAD) * maxidx);
+		image.GetColorTable(0, maxidx, paltab);
+		for ( n = 0 ; n < maxidx ; n++ )
 			paltab[n].rgbReserved = 255;
 
 		switch(image.GetBPP()) {
@@ -3597,7 +3654,7 @@ void CGrapWnd::AddGifAnime(CImage &image, int width, int height, CRect &rect, in
 			for ( int y = 0 ; y < rect.Height() ; y++ ) {
 				for ( int x = 0 ; x < rect.Width() ; x++ ) {
 					BYTE *s = (BYTE *)image.GetPixelAddress(x, y);
-					if ( (idx = *s & (1 << (x % 8))) != trsidx ) {
+					if ( (idx = *s & (1 << (x % 8))) != trsidx && idx < maxidx ) {
 						RGBQUAD *p = (RGBQUAD *)tmp.GetPixelAddress(rect.left + x, rect.top + y);
 						*p = paltab[idx];
 					}
@@ -3608,7 +3665,7 @@ void CGrapWnd::AddGifAnime(CImage &image, int width, int height, CRect &rect, in
 			for ( int y = 0 ; y < rect.Height() ; y++ ) {
 				for ( int x = 0 ; x < rect.Width() ; x++ ) {
 					BYTE *s = (BYTE *)image.GetPixelAddress(x, y);
-					if ( (idx = *s & (3 << (x % 4))) != trsidx ) {
+					if ( (idx = *s & (3 << (x % 4))) != trsidx && idx < maxidx ) {
 						RGBQUAD *p = (RGBQUAD *)tmp.GetPixelAddress(rect.left + x, rect.top + y);
 						*p = paltab[idx];
 					}
@@ -3619,7 +3676,7 @@ void CGrapWnd::AddGifAnime(CImage &image, int width, int height, CRect &rect, in
 			for ( int y = 0 ; y < rect.Height() ; y++ ) {
 				for ( int x = 0 ; x < rect.Width() ; x++ ) {
 					BYTE *s = (BYTE *)image.GetPixelAddress(x, y);
-					if ( (idx = *s & (15 << (x % 2))) != trsidx ) {
+					if ( (idx = *s & (15 << (x % 2))) != trsidx && idx < maxidx ) {
 						RGBQUAD *p = (RGBQUAD *)tmp.GetPixelAddress(rect.left + x, rect.top + y);
 						*p = paltab[idx];
 					}
@@ -3630,7 +3687,7 @@ void CGrapWnd::AddGifAnime(CImage &image, int width, int height, CRect &rect, in
 			for ( int y = 0 ; y < rect.Height() ; y++ ) {
 				for ( int x = 0 ; x < rect.Width() ; x++ ) {
 					BYTE *s = (BYTE *)image.GetPixelAddress(x, y);
-					if ( (idx = *s) != trsidx ) {
+					if ( (idx = *s) != trsidx && idx < maxidx ) {
 						RGBQUAD *p = (RGBQUAD *)tmp.GetPixelAddress(rect.left + x, rect.top + y);
 						*p = paltab[idx];
 					}
@@ -3875,6 +3932,7 @@ BOOL CGrapWnd::LoadPicture(LPBYTE lpBuf, int len)
 CHistogram::CHistogram()
 {
 	m_MaxValue = 0;
+	ZeroMemory(m_Histgram, sizeof(m_Histgram));
 	m_pGrapWnd = NULL;
 	m_TheadFlag = 0;
 }

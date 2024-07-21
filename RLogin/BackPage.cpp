@@ -25,7 +25,10 @@ CBackPage::CBackPage() : CTreePage(CBackPage::IDD)
 	m_TextFormat.Empty();
 	m_MapStyle = 0;
 	m_UrlOpt = _T("#BACKSET");
+	m_TextColor = m_TabTextColor = m_TabBackColor = 0;
+	m_TabBackGradient = FALSE;
 	m_bTabColDark = FALSE;
+	ZeroMemory(&m_LogFont, sizeof(m_LogFont));
 }
 CBackPage::~CBackPage()
 {

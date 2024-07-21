@@ -87,12 +87,14 @@ CTabBar::CTabBar()
 	m_pGhostView = NULL;
 	m_bNumber = FALSE;
 	m_ImageCount = 0;
+	m_FontSize = 0;
 	m_SetCurTimer = 0;
 	m_GhostWndTimer = 0;
 	m_TabHeight = 16;
 	m_BoderSize = 2;
 	m_MinTabSize = MINTAB_SIZE;
 	m_TabLines = 1;
+	m_bMultiLine = FALSE;
 	m_bTrackMode = FALSE;
 }
 
@@ -306,7 +308,7 @@ void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 	int n, idx, sel = (-1);
 	TC_ITEM tci, ntc;
 	CString title;
-	TCHAR tmp[MAX_PATH + 2];
+	TCHAR tmp[MAX_PATH + 2] = { _T('\0') };
 	CChildFrame *pWnd;
 	CMainFrame *pMainframe = ((CMainFrame *)AfxGetMainWnd());
 	CMDIChildWnd* pActive = (pMainframe == NULL ? NULL : pMainframe->MDIGetActive(NULL));
@@ -327,8 +329,7 @@ void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 
 		ntc.mask = 0;
 
-		if ( (HWND)tci.lParam != NULL ) {
-			pWnd = (CChildFrame *)FromHandle((HWND)tci.lParam);
+		if ( (HWND)tci.lParam != NULL && (pWnd = (CChildFrame *)FromHandle((HWND)tci.lParam)) != NULL ) {
 			pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument());
 			pWnd->GetWindowText(title);
 		} else {
@@ -735,7 +736,7 @@ void CTabBar::OnGetDispInfo(NMHDR* pNMHDR, LRESULT* pResult)
 		(LPCTSTR)pDoc->m_ServerEntry.m_EntryName,
 		pDoc->m_ServerEntry.m_ProtoType == PROTO_COMPORT ? (LPCTSTR)pDoc->m_ServerEntry.m_PortName : (LPCTSTR)pDoc->m_ServerEntry.m_UserName, 
 		(LPCTSTR)pDoc->m_ServerEntry.m_HostName,
-		tm.Format(_T("%c")));
+		(LPCTSTR)tm.Format(_T("%c")));
 
 	pINFO->lpszText = (LPTSTR)(LPCTSTR)m_ToolTipStr;
 	pINFO->hinst = NULL;
@@ -1069,7 +1070,7 @@ void CTabBar::SetTabTitle(BOOL bNumber)
 	int n;
 	TC_ITEM tci;
 	CString title, work;
-	TCHAR tmp[MAX_PATH + 2];
+	TCHAR tmp[MAX_PATH + 2] = { _T('\0') };
 	CWnd *pWnd;
 
 	m_bNumber = bNumber;

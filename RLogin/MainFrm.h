@@ -102,6 +102,7 @@ public:
 	int m_Mode;
 	void *m_pObject;
 	class CTimerObject *m_pList;
+
 	CTimerObject();
 	void CallObject();
 };
@@ -111,6 +112,8 @@ class CMidiQue : public CObject
 public:
 	int m_mSec;
 	DWORD m_Msg;
+
+	inline CMidiQue(int mSec, DWORD Msg) { m_mSec = mSec; m_Msg = Msg; };
 };
 
 class CMenuBitMap : public CObject
@@ -118,6 +121,8 @@ class CMenuBitMap : public CObject
 public:
 	int m_Id;
 	CBitmap m_Bitmap;
+
+	inline CMenuBitMap() { m_Id  = 0; };
 };
 
 #define	CLIPOPENTHREADMAX	3		// クリップボードアクセススレッド多重起動数
@@ -267,7 +272,7 @@ public:
 	CPaneFrame *GetWindowPanePoint(CPoint point);
 	void SwapChild(CWnd *pLeft, CWnd *pRight);
 	BOOL IsOverLap(HWND hWnd);
-	BOOL IsTopLevelDoc(CRLoginDoc *pDoc);
+	BOOL IsTopLevelDoc(class CRLoginDoc *pDoc);
 	int GetTabIndex(CWnd *pWnd);
 	void GetTabTitle(CWnd *pWnd, CString &title);
 	CWnd *GetTabWnd(int idx);

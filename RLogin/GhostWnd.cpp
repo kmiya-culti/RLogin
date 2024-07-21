@@ -17,6 +17,7 @@ CGhostWnd::CGhostWnd()
 {
 	m_pView = NULL;
 	m_pDoc  = NULL;
+	m_Timer = 0;
 }
 CGhostWnd::~CGhostWnd()
 {

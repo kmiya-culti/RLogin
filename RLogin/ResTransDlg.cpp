@@ -17,6 +17,11 @@ IMPLEMENT_DYNAMIC(CResTransDlg, CDialogExt)
 CResTransDlg::CResTransDlg(CWnd* pParent /*=NULL*/)
 	: CDialogExt(CResTransDlg::IDD, pParent)
 {
+	m_bTranstate = FALSE;
+	m_TransMax = m_TransPos = m_TransNext = 0;
+
+	m_ProcStat = 0;
+	m_bProcAbort = FALSE;
 }
 
 CResTransDlg::~CResTransDlg()
@@ -469,12 +474,12 @@ void CResTransDlg::OnOK()
 	if ( m_bTranstate ) {
 #ifdef	_M_X64
 		LCID lcid;
-		TCHAR name[256];
+		TCHAR name[256] = { _T('\0') };
 
 		if ( (lcid = LocaleNameToLCID(m_TransTo, 0)) != 0 ) {
 			m_ResDataBase.m_LangId = LANGIDFROMLCID(lcid);
 			m_ResDataBase.m_Transrate = m_TransTo;
-			GetLocaleInfo(lcid, LOCALE_SNATIVELANGNAME, name, sizeof(name));
+			GetLocaleInfo(lcid, LOCALE_SNATIVELANGNAME, name, 255);
 			m_ResDataBase.m_Language = name;
 		} else 
 #endif

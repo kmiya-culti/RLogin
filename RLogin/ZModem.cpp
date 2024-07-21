@@ -132,11 +132,14 @@ CZModem::CZModem(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, pWnd)
 	Crc32t = 1;
 	Crc32r = 1;
 
+	ZeroMemory(Rxhdr, sizeof(Rxhdr));
+	ZeroMemory(Txhdr, sizeof(Txhdr));
+
 	Rxpos = 0;
 	Txpos = 0;
 
 	Usevhdrs = 0;
-	memset(Attn, 0, sizeof(Attn));
+	ZeroMemory(Attn, sizeof(Attn));
 
 	Znulls = 0;
 	Not8bit = 0;

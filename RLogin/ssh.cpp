@@ -149,35 +149,168 @@ void CFifoSsh::OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent
 }
 
 //////////////////////////////////////////////////////////////////////
+// CFifoChannel
+
+CFifoChannel::CFifoChannel()
+{
+	m_Type = 0;
+	m_Status = 0;
+	m_Stage = 0;
+
+	m_RemoteID = (-1);
+	m_LocalID = (-1);
+
+	m_LocalComs = 0;
+	m_LocalWind = 0;
+	m_LocalPacks = 0;
+
+	m_RemoteComs = 0;
+	m_RemotePacks = 0;
+
+	m_TypeName.Empty();
+
+	m_lHost.Empty();
+	m_rHost.Empty();
+	m_lPort = m_rPort = 0;
+
+	m_bClosed = FALSE;
+	m_pFifoBase = NULL;
+}
+
+//////////////////////////////////////////////////////////////////////
 // Cssh
 
 Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 {
 	m_Type = ESCT_SSH_MAIN;
-	m_SaveDh = NULL;
-	m_EcdhClientKey = NULL;
+
 	m_SSHVer = 0;
+	m_HostName.Empty();
+	m_HostPort = 0;
+
+	m_ServerPrompt.Empty();
+	m_ServerVerStr.Empty();
+	m_ClientVerStr.Empty();
+
+	m_SSH2Status = 0;
+	m_bKnownHostUpdate = TRUE;
+
+	m_IdKeyTab.RemoveAll();
+
+	m_x11AuthName.Empty();
+	m_x11LocalName.Empty();
+	m_x11AuthData.ZeroClear();
+	m_x11LocalData.ZeroClear();
+	m_bx11pfdEnable = FALSE;
+
+	m_pAgentMutex = NULL;
+	m_AgentPass.Empty();
+
 	m_InPackStat = 0;
-	m_KeepAliveTiimerId = 0;
-	m_KeepAliveSendCount = m_KeepAliveReplyCount = 0;
-	m_KeepAliveRecvGlobalCount = m_KeepAliveRecvChannelCount = 0;
-	m_CurveEvpKey = NULL;
-	m_CurveClientPubkey.m_bZero = TRUE;
-	m_RsaHostBlob.m_bZero = TRUE;
-	m_RsaTranBlob.m_bZero = TRUE;
-	m_RsaSharedKey.m_bZero = TRUE;
-	m_RsaOaepSecret.m_bZero = TRUE;
-	m_SessHash.m_bZero = TRUE;
-	m_SntrupClientKey.m_bZero = TRUE;
-	m_LastFreeId = 2;
+	m_InPackLen = 0;
+	m_InPackPad = 0;
+	m_Incom.Clear();
+	m_PacketStat = 0;
+
+	ZeroMemory(m_SessionId, sizeof(m_SessionId));
+	m_SessionIdLen = 0;
+	ZeroMemory(m_SessionKey, sizeof(m_SessionKey));
+
+	m_HostKey.Close();
+	m_pIdKey = NULL;
+	m_IdKeyPos = 0;
+	ZeroMemory(m_AuthReqTab, sizeof(m_AuthReqTab));
+	m_bKeybIntrReq = FALSE;
+	m_bReqRsaSha1 = FALSE;
+
+	m_ServerFlag = 0;
+	m_SupportCipher = 0;
+	m_SupportAuth = 0;
+	m_CipherMode = SSH_CIPHER_NONE;
+	m_CipTabMax = 0;
+	ZeroMemory(m_CipTab, sizeof(m_CipTab));
+	m_CompMode = 0;
+
+	m_SendPackSeq = m_SendPackLen = 0;
+	m_RecvPackSeq = m_RecvPackLen = 0;
+	m_InPackBuf.Clear();
+	ZeroMemory(m_Cookie, sizeof(m_Cookie));
+
+	for ( int n = 0 ; n < 10 ; n++ ) {
+		m_SProp[n].Empty();
+		m_CProp[n].Empty();
+		m_VProp[n].Empty();
+	}
 
 	for ( int n = 0 ; n < 6 ; n++ )
 		m_VKey[n] = NULL;
 
-	m_pAgentMutex = NULL;
+	m_HisPeer.ZeroClear();
+	m_MyPeer.ZeroClear();
+	m_SessHash.ZeroClear();
+	m_NeedKeyLen = 0;
+	m_KexStrictStat = KEXSTRICT_CHECK;
 
+	m_DhMode = DHMODE_GROUP_1;
+	m_SaveDh = NULL;
+	m_DhGexReqBits = 4096;
+
+	m_EcdhCurveNid = DHMODE_ECDH_S2_N256;
+	m_EcdhClientKey = NULL;
+	m_EcdhGroup = NULL;
+
+	m_CurveEvpKey = NULL;
+	m_CurveClientPubkey.ZeroClear();
+	m_SntrupClientKey.ZeroClear();
+
+	m_RsaHostBlob.ZeroClear();
+	m_RsaTranBlob.ZeroClear();
+	m_RsaSharedKey.ZeroClear();
+	m_RsaOaepSecret.ZeroClear();
+	
+	m_AuthStat = AST_START;
+	m_AuthMode = AUTH_MODE_NONE;
+	m_AuthMeta.Empty();
+	m_AuthLog.Empty();
+	m_bAuthAgentReqEnable = FALSE;
+
+	m_GlbReqMap.RemoveAll();
+	m_OpnReqMap.RemoveAll();
+	m_ChnReqMap.RemoveAll();
+
+	m_OpenChanCount = 0;
+
+	m_Permit.RemoveAll();
+	m_PortFwdTable.RemoveAll();
+	m_PfdConnect = 0;
+
+	m_ExtInfoStat = EXTINFOSTAT_CHECK;
+	m_ExtInfo.RemoveAll();
+
+	m_KeepAliveTiimerId = 0;
+	m_KeepAliveSendCount = m_KeepAliveReplyCount = 0;
+	m_KeepAliveRecvGlobalCount = m_KeepAliveRecvChannelCount = 0;
+	
+	m_SSPI_phContext = NULL;
+	m_SSPI_TargetName.Empty();
+	ZeroMemory(&m_SSPI_hCredential, sizeof(m_SSPI_hCredential));
+	ZeroMemory(&m_SSPI_hNewContext, sizeof(m_SSPI_hNewContext));
+	ZeroMemory(&m_SSPI_tsExpiry, sizeof(m_SSPI_tsExpiry));
+
+	m_LastFreeId = 2;
+	m_FifoCannel.RemoveAll();
+	m_FileList.RemoveAll();
+	m_DelayedCheck.RemoveAll();
+
+	m_WorkStr.Empty();
+	m_WorkMbs.Empty();
+
+	m_PluginStat = STATE_NONE;
 	m_pFifoPipe = NULL;
 	m_pFifoPlugin = NULL;
+
+	SetRecvBufSize(CHAN_SES_PACKET_DEFAULT);
+	srand((UINT)time(NULL));
 }
 Cssh::~Cssh()
 {
@@ -915,7 +1048,7 @@ void Cssh::GetStatus(CString &str)
 
 	if ( m_Permit.GetSize() > 0 ) {
 		str += _T("\r\n");
-		tmp.Format(_T("Remote listened : %d\r\n"), m_Permit.GetSize());
+		tmp.Format(_T("Remote listened : %d\r\n"), (int)m_Permit.GetSize());
 		str += tmp;
 
 		for ( int n = 0 ; n < m_Permit.GetSize() ; n++ ) {
@@ -1840,7 +1973,7 @@ void Cssh::ChannelClose(int id, int nStat)
 	if ( id == FdToId(FIFO_EXTIN) && (m_SSH2Status & SSH2_STAT_HAVESTDIO) != 0 ) {
 		m_SSH2Status &= ~SSH2_STAT_HAVESTDIO;
 
-		if ( m_OpenChanCount > 0 && ::AfxMessageBox(CStringLoad(IDS_SSHCLOSEALL), MB_ICONQUESTION | MB_YESNO) == IDYES )
+		if ( nStat != 0 && m_OpenChanCount > 0 && ::AfxMessageBox(CStringLoad(IDS_SSHCLOSEALL), MB_ICONQUESTION | MB_YESNO) == IDYES )
 			PostClose(0);
 	}
 
@@ -2367,7 +2500,7 @@ void Cssh::PluginProc(int type, CBuffer *bp)
 				m_pDocument->EntryText(file);
 
 				if ( !m_pFifoPipe->Open(file) ) {
-					errMsg.Format(_T("State None, command exec error '%s'"), file);
+					errMsg.Format(_T("State None, command exec error '%s'"), (LPCTSTR)file);
 					m_PluginStat = STATE_ERROR;
 					break;
 				}
@@ -3056,7 +3189,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 		m_AuthLog = _T("none");
 
 	SendDisconnect2(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, "User Auth Failure");
-	wrk.Format(_T("SSH2 User Auth Failure \"%s\" Status=%04o\nSend Disconnect Message...\n%s"), MbsToTstr(str), m_SSH2Status, m_AuthLog);
+	wrk.Format(_T("SSH2 User Auth Failure \"%s\" Status=%04o\nSend Disconnect Message...\n%s"), MbsToTstr(str), m_SSH2Status, (LPCTSTR)m_AuthLog);
 
 	if ( m_bReqRsaSha1 )
 		wrk += CStringLoad(IDS_SSHRSASIGNMSG);
@@ -3233,6 +3366,8 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	//	{ 0, 0 }
 	//};
 
+	ASSERT(m_pDocument != NULL);
+
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) ) {
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
 		tmp.Put32Bit(pChan->m_RemoteID);
@@ -3284,8 +3419,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 		}
 	}
 
-	if ( m_pDocument != NULL )
-		m_pDocument->m_TextRam.GetScreenSize(&cx, &cy, &sx, &sy);
+	m_pDocument->m_TextRam.GetScreenSize(&cx, &cy, &sx, &sy);
 
 	tmp.Clear();
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
@@ -3696,7 +3830,7 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	CBuffer tmp(-1), sign(-1), addb(-1), skey(-1);
 	BIGNUM *spub = NULL, *ssec = NULL;
 	LPBYTE p;
-	const EVP_MD *evp_md;
+	const EVP_MD *evp_md = EVP_sha1();
 
 	bp->GetBuf(&tmp);
 	addb.PutBuf(tmp.GetPtr(), tmp.GetSize());
@@ -5068,7 +5202,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 	}
 
 	if ( type == SSH2_MSG_REQUEST_FAILURE && num < m_Permit.GetSize() ) {
-		if ( m_pDocument != NULL || !m_pDocument->m_bPfdCheck ) {
+		if ( m_pDocument != NULL && !m_pDocument->m_bPfdCheck ) {
 			str.Format(_T("Global Request Failure %s:%d->%s:%d"),
 				(LPCTSTR)m_Permit[num].m_lHost, m_Permit[num].m_lPort, (LPCTSTR)m_Permit[num].m_rHost, m_Permit[num].m_rPort);
 			::AfxMessageBox(str, MB_ICONERROR);
@@ -5358,7 +5492,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 	case SSH2_MSG_DISCONNECT:
 		bp->Get32Bit();
 		bp->GetStr(str);
-		tmp.Format("SSH2 Receive Disconnect Message\n%s", str);
+		tmp.Format("SSH2 Receive Disconnect Message\n%s", (LPCSTR)str);
 		::AfxMessageBox(LocalStr(tmp), MB_ICONERROR);
 		break;
 

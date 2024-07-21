@@ -734,7 +734,7 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,210,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.29.5 (2024/06/21)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.29.6 (2024/07/22)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2024 Culti",IDC_STATIC,44,17,189,8
     LTEXT           "OpenSSL 3.3.1 4 Jun 2024",IDC_STATIC,44,50,189,8
     LTEXT           "Copyright (c) 1998-2024 The OpenSSL Project",IDC_STATIC,44,60,189,8
@@ -2239,14 +2239,14 @@ BEGIN
     CONTROL         "文字コードの変換を行う",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,7,23,208,10
     COMBOBOX        IDC_COMBO1,222,21,60,100,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_COMBO2,288,21,60,100,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "デコード処理を行う",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,7,39,208,10
-    COMBOBOX        IDC_COMBO3,288,37,60,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "改行コードを変換する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,55,208,10
-    COMBOBOX        IDC_COMBO4,288,53,60,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "指定時間(sec)受信が無ければ終了する",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,71,208,10
-    CONTROL         "受信した文字を表示する",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,87,208,10
-    EDITTEXT        IDC_EDIT1,288,69,60,14,ES_AUTOHSCROLL
-    CONTROL         "ファイルがすでに存在する場合に追加で書き込みを行う",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,103,208,10
+    CONTROL         "ファイルがすでに存在する場合に追加で書き込みを行う",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,39,202,10
+    CONTROL         "デコード処理を行う",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,7,55,208,10
+    COMBOBOX        IDC_COMBO3,288,53,60,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "改行コードを変換する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,71,208,10
+    COMBOBOX        IDC_COMBO4,288,69,60,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "指定時間(sec)受信が無ければ終了する",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,87,208,10
+    CONTROL         "受信した文字を表示する",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,103,208,10
+    EDITTEXT        IDC_EDIT1,288,85,60,14,ES_AUTOHSCROLL
 END
 
 IDD_SECPOLICYDLG DIALOGEX 0, 0, 270, 161
@@ -2311,8 +2311,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,29,5,0
- PRODUCTVERSION 2,29,5,0
+ FILEVERSION 2,29,6,0
+ PRODUCTVERSION 2,29,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2329,12 +2329,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.29.5.0"
+            VALUE "FileVersion", "2.29.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.29.5.0"
+            VALUE "ProductVersion", "2.29.6.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4403,6 +4403,12 @@ BEGIN
 0x6162, 0x6573, 0x3436, "\000" 
     IDC_COMBO3, 0x403, 4, 0
 0x7369, 0x0068, 
+    IDC_COMBO3, 0x403, 10, 0
+0x6e69, 0x6574, 0x206c, 0x6568, 0x0078, 
+    IDC_COMBO3, 0x403, 9, 0
+0x2d73, 0x6572, 0x6f63, 0x6472, "\000" 
+    IDC_COMBO3, 0x403, 8, 0
+0x6574, 0x206b, 0x6568, 0x0078, 
     IDC_COMBO4, 0x403, 3, 0
 0x5243, "\000" 
     IDC_COMBO4, 0x403, 3, 0
@@ -4414,12 +4420,20 @@ END
 
 IDD_FILEDOWNDLG DLGINIT
 BEGIN
+    IDC_COMBO3, 0x403, 5, 0
+0x7561, 0x6f74, "\000" 
     IDC_COMBO3, 0x403, 9, 0
 0x7575, 0x6564, 0x6f63, 0x6564, "\000" 
     IDC_COMBO3, 0x403, 7, 0
 0x6162, 0x6573, 0x3436, "\000" 
     IDC_COMBO3, 0x403, 4, 0
 0x7369, 0x0068, 
+    IDC_COMBO3, 0x403, 10, 0
+0x6e69, 0x6574, 0x206c, 0x6568, 0x0078, 
+    IDC_COMBO3, 0x403, 9, 0
+0x2d73, 0x6572, 0x6f63, 0x6472, "\000" 
+    IDC_COMBO3, 0x403, 8, 0
+0x6574, 0x206b, 0x6568, 0x0078, 
     IDC_COMBO4, 0x403, 3, 0
 0x5243, "\000" 
     IDC_COMBO4, 0x403, 3, 0

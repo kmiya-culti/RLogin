@@ -230,10 +230,14 @@ CProgDlg::CProgDlg(CWnd* pParent /*=NULL*/)
 	m_FileName = _T("");
 	m_Message = _T("");
 	m_Div = 1;
+	m_LastSize = m_ResumeSize = 0LL;
+	m_UpdatePos = m_LastPos = m_ActivePos = 0LL;
+	m_StartClock = m_LastClock = m_UpdateClock = clock();
+	m_LastRate = 0;
 	m_pAbortFlag = NULL;
-	m_pSock = NULL;
 	m_UpdatePost = FALSE;
 	m_AutoDelete = FALSE;
+	m_pSock = NULL;
 }
 
 void CProgDlg::DoDataExchange(CDataExchange* pDX)
@@ -280,17 +284,7 @@ BOOL CProgDlg::OnInitDialog()
 	m_FileSize.SetRange(0, 0);
 	m_FileSize.SetPos(0);
 
-	m_EndTime = _T("");
-	m_TotalSize = _T("");
-	m_TransRate = _T("");
-	m_Message   = _T("");
 	UpdateData(FALSE);
-
-	m_LastSize = 0;
-	m_ResumeSize = 0;
-	m_UpdatePos = m_LastPos = m_ActivePos = 0;
-	m_StartClock = m_LastClock = m_UpdateClock = clock();
-	m_LastRate = 0;
 
 	SetTimer(1130, 200, NULL);
 

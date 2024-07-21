@@ -660,6 +660,7 @@ IMPLEMENT_DYNAMIC(CAppColDlg, CTtyModeDlg)
 
 CAppColDlg::CAppColDlg()
 {
+	ZeroMemory(m_ColTab, sizeof(m_ColTab));
 }
 CAppColDlg::~CAppColDlg()
 {

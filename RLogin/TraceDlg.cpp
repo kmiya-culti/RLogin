@@ -1033,6 +1033,7 @@ IMPLEMENT_DYNAMIC(CHistoryDlg, CDialogExt)
 CHistoryDlg::CHistoryDlg(CWnd* pParent /*=NULL*/)	: CDialogExt(CTraceDlg::IDD, pParent)
 {
 	m_bHorz = TRUE;
+	m_TrackPos = 0;
 	m_bTrackMode = FALSE;
 	m_PaneSize[0] = 0;
 	m_PaneSize[1] = 333;

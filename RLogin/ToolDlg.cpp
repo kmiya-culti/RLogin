@@ -504,7 +504,7 @@ void CToolDlg::OnUpdateEditDelete(CCmdUI *pCmdUI)
 
 void CToolDlg::OnEditDelall()
 {
-	int n, sz;
+	int n, sz = 0;
 	CResDataBase DataBase;
 	CResToolBarBase *pResToolBar;
 

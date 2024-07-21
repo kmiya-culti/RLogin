@@ -99,6 +99,8 @@ class CResBaseNode : CObject
 {
 public:
 	WORD m_ResId;
+
+	CResBaseNode();
 };
 
 class CResStringBase : public CResBaseNode

@@ -35,12 +35,15 @@ static const int CheckOptTab[] = { TO_RLTENAT,  TO_RLTENEC,   TO_RLTENLM,   TO_S
 
 CProtoPage::CProtoPage() : CTreePage(CProtoPage::IDD)
 {
-	m_KeepAlive = 0;
+	m_UrlOpt = _T("#PROTOPT");
+
+	m_KeepAlive = m_TelKeepAlive = 0;
 	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ )
 		m_Check[n] = FALSE;
+	m_x11AuthFlag = FALSE;
 	m_RsaExt = 0;
 	m_VerIdent.Empty();
-	m_UrlOpt = _T("#PROTOPT");
+	m_StdIoBufSize = 0;
 }
 
 CProtoPage::~CProtoPage()

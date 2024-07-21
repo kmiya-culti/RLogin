@@ -25,21 +25,25 @@ IMPLEMENT_DYNCREATE(CColParaDlg, CTreePage)
 
 CColParaDlg::CColParaDlg() : CTreePage(CColParaDlg::IDD)
 {
+	m_UrlOpt = _T("#COLOPT");
+
 	m_ColSet = -1;
-	for ( int n = 0 ; n < 24 ; n++ )
-		m_Attrb[n] = 0;
 	m_WakeUpSleep = 0;
 	m_FontCol[0] = 0;
 	m_FontCol[1] = 0;
 	m_FontColName[0] = _T("0");
 	m_FontColName[1] = _T("0");
+	ZeroMemory(m_ColTab, sizeof(m_ColTab));
+	ZeroMemory(m_Attrb, sizeof(m_Attrb));
 	m_GlassStyle = FALSE;
 	m_DarkMode = TRUE;
+
+	m_EmojiColorMode = EMOJIMODE_MONO;
 	m_EmojiFontName = _T("");
 	m_EmojiImageDir = _T("");
-	m_EmojiColorMode = EMOJIMODE_MONO;
-	m_UrlOpt = _T("#COLOPT");
-	m_Constrast = 0.0;
+
+	m_Constrast = m_Bright = 0.0;
+	ZeroMemory(m_Huecol, sizeof(m_Huecol));
 }
 CColParaDlg::~CColParaDlg()
 {

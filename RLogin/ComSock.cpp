@@ -467,6 +467,7 @@ CComSock::CComSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 
 	m_SendWait[0] = 0;
 	m_SendWait[1] = 0;
+	m_SendCrLf    = 0;
 
 	m_ComEvent    = 0;
 	m_CommError   = 0;
@@ -877,7 +878,7 @@ BOOL CComSock::LoadComConf(LPCTSTR ComSetStr, int ComPort, BOOL bOpen)
 				return FALSE;
 		} else
 			m_hCom = hCom;
-	} else if ( hCom != INVALID_HANDLE_VALUE )
+	} else if ( hCom != INVALID_HANDLE_VALUE && hCom != NULL )
 		::CloseHandle(hCom);
 
 	if ( m_pComConf != NULL )
@@ -1113,7 +1114,7 @@ RETRY:
 
 	} else if ( --ReTry > 0 && ::GetLastError() == ERROR_INSUFFICIENT_BUFFER ) {
 		nBufLen *= 2;
-		delete pDevBuf;
+		delete [] pDevBuf;
 		pDevBuf = new TCHAR[nBufLen];
 		goto RETRY;
 

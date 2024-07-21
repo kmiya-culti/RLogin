@@ -701,6 +701,8 @@ public:
 
 	BOOL m_bClosed;
 	CFifoBase *m_pFifoBase;
+
+	CFifoChannel();
 };
 
 ///////////////////////////////////////////////////////
@@ -927,9 +929,9 @@ public:
 	int m_KeepAliveRecvGlobalCount;
 	int m_KeepAliveRecvChannelCount;
 
-	CredHandle m_SSPI_hCredential;
 	CtxtHandle *m_SSPI_phContext;
 	CString m_SSPI_TargetName;
+	CredHandle m_SSPI_hCredential;
 	CtxtHandle m_SSPI_hNewContext;
 	TimeStamp m_SSPI_tsExpiry;
 

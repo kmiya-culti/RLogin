@@ -64,6 +64,9 @@ protected:
 
 public:
 	DECLARE_MESSAGE_MAP()
+	afx_msg void OnDownMode(UINT nID);
+	afx_msg void OnDownCrLf();
+	afx_msg void OnDownWait();
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -96,6 +99,8 @@ protected:
 
 public:
 	DECLARE_MESSAGE_MAP()
+	afx_msg void OnUpMode(UINT nID);
+	afx_msg void OnUpCrLf();
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -134,6 +139,7 @@ protected:
 
 public:
 	DECLARE_MESSAGE_MAP()
+	afx_msg void OnSendMode(UINT nID);
 };
 
 //////////////////////////////////////////////////////////////////////

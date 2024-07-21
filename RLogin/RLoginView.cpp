@@ -272,6 +272,7 @@ CRLoginView::CRLoginView()
 	m_ClipFlag = 0;
 	m_ClipStaPosSave.SetSize(-1, -1);
 	m_ClipTimer = 0;
+	m_ClipKeyFlags = 0;
 	m_KeyMacFlag = FALSE;
 	m_KeyMacSizeCheck = FALSE;
 	m_ActiveFlag = TRUE;
@@ -298,7 +299,9 @@ CRLoginView::CRLoginView()
 	}
 #endif
 
+	m_RDownClock = 0;
 	m_RDownStat = 0;
+	m_RDownOfs = 0;
 	m_RMovePixel = 0;
 	m_SmoothTimer = 0;
 	m_TopOffset = 0;
@@ -314,6 +317,7 @@ CRLoginView::CRLoginView()
 	m_ClipSavePoint.x = m_ClipSavePoint.y = 0;
 	m_RclickTimer = 0;
 
+	m_CellCols = m_CellLines = 0;
 	m_pCellSize = NULL;
 	m_pSelectGrapWnd = NULL;
 
@@ -334,6 +338,7 @@ CRLoginView::CRLoginView()
 	m_bDelayInvalThread = 0;
 	m_DelayInvalWait = INFINITE;
 	m_DelayInvalClock = (-1);
+	m_pDelayInvalEvent = m_pDelayInvalSync = NULL;
 
 	m_MatrixCols.SetSize(COLS_MAX);
 
@@ -344,6 +349,8 @@ CRLoginView::CRLoginView()
 
 	m_bDarkMode = FALSE;
 	m_bPostInvRect = FALSE;
+
+	m_HaveBack = FALSE;
 }
 
 CRLoginView::~CRLoginView()
@@ -565,7 +572,7 @@ void CRLoginView::CreateGrapImage(int type)
 	if ( !pDoc->m_TextRam.IsInitText() )
 		return;
 
-	tmp.Format(_T("Image - %s"), pDoc->GetTitle());
+	tmp.Format(_T("Image - %s"), (LPCTSTR)pDoc->GetTitle());
 
 	if ( pDoc->m_TextRam.m_pImageWnd == NULL ) {
 		pDoc->m_TextRam.m_pImageWnd = new CGrapWnd(&(pDoc->m_TextRam));
@@ -2946,7 +2953,7 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 					uc += _T("]");
 			}
 
-			msg.Format(_T("%d, %d (%d:%d) %s\n"), x + 1, y + m_HisOfs - m_HisMin + 1, vp->m_Vram.fcol, vp->m_Vram.bcol, uc);
+			msg.Format(_T("%d, %d (%d:%d) %s\n"), x + 1, y + m_HisOfs - m_HisMin + 1, vp->m_Vram.fcol, vp->m_Vram.bcol, (LPCTSTR)uc);
 
 			if ( IS_IMAGE(vp->m_Vram.mode) ) {
 				CGrapWnd *gp = pDoc->m_TextRam.GetGrapWnd(vp->m_Vram.pack.image.id);
@@ -3752,25 +3759,34 @@ BOOL CRLoginView::SetDropFile(LPCTSTR FileName, BOOL &doCmd, BOOL &doSub)
 }
 void CRLoginView::OnDropFiles(HDROP hDropInfo)
 {
-    int i;
-	TCHAR FileName[MAX_PATH * 2];
+    int i, n;
+	int max = MAX_PATH;
+	TCHAR *pFileName = new TCHAR[max + 1];
     int FileCount;
 	CRLoginDoc *pDoc = GetDocument();
 	BOOL doCmd = FALSE;
 	BOOL doSub = FALSE;
 
 	if ( pDoc->m_TextRam.m_DropFileMode == 0 )
-		return;
+		goto ENDOF;
 
-    FileCount = DragQueryFile(hDropInfo, 0xffffffff, FileName, sizeof(FileName));
+	FileCount = DragQueryFile(hDropInfo, 0xffffffff, NULL, 0);
 
 	for( i = 0 ; i < FileCount ; i++ ) {
-		DragQueryFile(hDropInfo, i, FileName, sizeof(FileName));
-		SetDropFile(FileName, doCmd, doSub);
+		if ( max < (n = DragQueryFile(hDropInfo, i, NULL, 0)) ) {
+			max = n;
+			delete [] pFileName;
+			pFileName = new TCHAR[max + 1];
+		}
+		DragQueryFile(hDropInfo, i, pFileName, max);
+		SetDropFile(pFileName, doCmd, doSub);
 	}
 
 	if ( doCmd )
 		pDoc->DoDropFile();
+
+ENDOF:
+	delete [] pFileName;
 }
 
 BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)

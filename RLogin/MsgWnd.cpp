@@ -16,6 +16,7 @@ IMPLEMENT_DYNCREATE(CMsgWnd, CWnd)
 
 CMsgWnd::CMsgWnd()
 {
+	m_Timer = 0;
 	m_Mixval = 100;
 	m_BackColor = RGB(0, 0, 0);
 	m_TextColor = RGB(255, 255, 255);
@@ -416,7 +417,7 @@ void CTrackWnd::OnPaint()
 	CRect rect;
 	CString str;
 	CFont font, *pOldFont;
-	COLORREF bc;
+	COLORREF bc = 0;
 	CPaintDC dc(this); // device context for painting
 
 	GetWindowText(str);

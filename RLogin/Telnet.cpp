@@ -252,6 +252,43 @@ CTelnet::CTelnet(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_Type = ESCT_TELNET;
 	ReceiveStatus = RVST_NON;
 	m_KeepAliveTiimerId = 0;
+
+	ZeroMemory(HisOpt, sizeof(HisOpt));
+	ZeroMemory(MyOpt, sizeof(MyOpt));
+	SubOptLen = 0;
+	ZeroMemory(SubOptBuf, sizeof(SubOptBuf));
+	ReceiveStatus = 0;
+	m_KeepAliveTiimerId = 0;
+
+	CpcOpt.flowcontrol = FALSE;
+	CpcOpt.baudrate = 0;
+	CpcOpt.datasize = 0;
+	CpcOpt.parity = 0;
+	CpcOpt.stopsize = 0;
+	CpcOpt.control = 0;
+	CpcOpt.linestate = 0;
+	CpcOpt.modemstate = 0;
+	CpcOpt.linemask = 0;
+	CpcOpt.modemmask = 0;
+
+	ZeroMemory(pka, sizeof(pka));
+	ZeroMemory(ska, sizeof(ska));
+	ZeroMemory(pkb, sizeof(pkb));
+	ZeroMemory(&ddk, sizeof(ddk));
+	ZeroMemory(&idk, sizeof(idk));
+	PassSendFlag = 0;
+
+	ZeroMemory(feed, sizeof(feed));
+	ZeroMemory(&krb_key, sizeof(krb_key));
+	ZeroMemory(&krb_sched, sizeof(krb_sched));
+	ZeroMemory(&temp_feed, sizeof(temp_feed));
+	temp_feed_init = 0;
+	ZeroMemory(stream, sizeof(stream));
+	EncryptInputFlag = 0;
+	EncryptOutputFlag = 0;
+
+	ZeroMemory(slc_tab, sizeof(slc_tab));
+	slc_mode = 0;
 }
 CTelnet::~CTelnet()
 {

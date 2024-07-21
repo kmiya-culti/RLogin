@@ -156,6 +156,8 @@ public:
 	class CIdleProc *m_pNext;
 	int m_Type;
 	void *m_pParam;
+
+	CIdleProc(int Type, void* pParam);
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -168,7 +170,7 @@ public:
 	CIdleProc *m_pIdleTop;
 	CPtrArray m_SocketIdle;
 	class CFontChache m_FontData;
-	WSADATA wsaData;
+	WSADATA *m_pWsaData;
 	CString m_BaseDir;
 	CString m_ExecDir;
 	CString m_PathName;

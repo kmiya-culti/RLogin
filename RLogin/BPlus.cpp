@@ -118,15 +118,50 @@ const unsigned short crc16tab[] = {
 CBPlus::CBPlus(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, pWnd)
 {
 	m_ProtoName = _T("BPlus");
+
 	BP_Special_Quoting = 1;
-	F_FileType = FALSE;
-	SA_Buf = new buf_type[Max_SA+1];
+
 	Seq_Num = 0;
+	CheckSum = crc_16 = 0;
+
+	His_WS = His_WR = His_BS = His_CM = 0;
+	ZeroMemory(His_QS, sizeof(His_QS));
+	His_DR = His_UR = His_FI = 0;
+	Our_WS = Our_WR = Our_BS = Our_CM = 0;
+	ZeroMemory(Our_QS, sizeof(Our_QS));
+	Our_DR = Our_UR = Our_FI = 0;
+
+	B_Plus = 0;
+	Use_CRC = 0;
+	Buffer_Size = 0;
+	Mx_Bf_Sz = 0;
+	SA_Max = 0;
+	SA_Error_Count = 0;
+	ZeroMemory(Quote_Table, sizeof(Quote_Table));
+
+	R_Size = 0;
+	Timed_Out = Packet_Received = masked = 0;
+	SA_Next_to_ACK = 0;
+	SA_Next_to_Fill = 0;
+	SA_Waiting = 0;
+	Aborting = 0;
+
+	SA_Buf =  new buf_type[Max_SA + 1];
+	R_buffer = new char[Max_Buf_Size];
+
+	e_ch = 0;
+
+	S_File_Size = R_File_Size = S_Remaining = R_Remaining = 0;
+	Resume_Flag = 0;
+
+	F_Ctime = F_Mtime = 0;
+	F_FileType = FALSE;
 }
 
 CBPlus::~CBPlus()
 {
 	delete [] SA_Buf;
+	delete [] R_buffer;
 }
 
 void CBPlus::OnProc(int cmd)

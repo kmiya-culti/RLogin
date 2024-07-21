@@ -34,6 +34,7 @@ CSyncSock::CSyncSock(class CRLoginDoc *pDoc, CWnd *pWnd)
 	m_DoCommand = 0;
 
 	m_ThreadMode = THREAD_NONE;
+	m_pSyncThread = NULL;
 
 	m_RecvBuf.Clear();
 	m_SendBuf.Clear();
@@ -47,6 +48,8 @@ CSyncSock::CSyncSock(class CRLoginDoc *pDoc, CWnd *pWnd)
 	m_bUseWrite = FALSE;
 	m_ExtFileDlgMode = 0;
 	m_bInitDone = FALSE;
+	m_Param = 0;
+	m_pLongLong[0] = m_pLongLong[1] = 0LL;
 }
 
 CSyncSock::~CSyncSock()

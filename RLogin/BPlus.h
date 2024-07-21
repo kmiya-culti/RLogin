@@ -56,7 +56,7 @@ public:
 	int    	Aborting;
 
 	buf_type *SA_Buf;
-	char	R_buffer[Max_Buf_Size];
+	char	*R_buffer;
 
 	int		e_ch;
 

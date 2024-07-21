@@ -299,13 +299,13 @@ void CRLoginDoc::OnFileClose()
 		CString msg, title = GetTitle();
 		CTime tm(m_ConnectTime);
 		if ( title.Compare(m_ServerEntry.m_EntryName) != 0 )
-			title.Format(_T("%s(%s)"), GetTitle(), m_ServerEntry.m_EntryName);
+			title.Format(_T("%s(%s)"), (LPCTSTR)GetTitle(), (LPCTSTR)m_ServerEntry.m_EntryName);
 		msg.Format(_T("%s\r\n%s@%s\r\n%s\r\n\r\n%s"),
-			title,
+			(LPCTSTR)title,
 			m_ServerEntry.m_ProtoType == PROTO_COMPORT ? (LPCTSTR)m_ServerEntry.m_PortName : (LPCTSTR)m_ServerEntry.m_UserName, 
 			(LPCTSTR)m_ServerEntry.m_HostName,
-			tm.Format(_T("%c")),
-			CStringLoad(IDS_FILECLOSEQES));
+			(LPCTSTR)tm.Format(_T("%c")),
+			(LPCTSTR)CStringLoad(IDS_FILECLOSEQES));
 		if ( ::AfxMessageBox(msg, MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 	}
@@ -778,7 +778,7 @@ void CRLoginDoc::SetMenu(CMenu *pMenu)
 
 		for ( n = 0 ; (pChild = (CChildFrame *)pMain->GetTabWnd(n)) != NULL ; n++ ) {
 			if ( (pDoc = (CRLoginDoc *)pChild->GetActiveDocument()) != NULL ) {
-				str.Format(_T("&%d %s"), n + 1, pDoc->GetTitle());
+				str.Format(_T("&%d %s"), n + 1, (LPCTSTR)pDoc->GetTitle());
 				pSubMenu->AppendMenu(MF_STRING, AFX_IDM_FIRST_MDICHILD + n, str);
 				if ( pDoc == this )
 					ThisId = AFX_IDM_FIRST_MDICHILD + n;
@@ -1694,7 +1694,8 @@ CWnd *CRLoginDoc::GetAciveView()
 
 	pos = GetFirstViewPosition();
 	while ( pos != NULL ) {
-		pWnd = GetNextView(pos);
+		if ( (pWnd = GetNextView(pos)) == NULL )
+			break;
 		if ( pView == NULL )
 			pView = pWnd;
 		if ( pAct != NULL && pAct->GetSafeHwnd() == pWnd->GetSafeHwnd() )
@@ -2069,7 +2070,7 @@ int CRLoginDoc::SocketOpen()
 
 	if ( !m_ServerEntry.m_BeforeEntry.IsEmpty() && m_ServerEntry.m_BeforeEntry.Compare(m_ServerEntry.m_EntryName) != 0 && !((CRLoginApp *)::AfxGetApp())->IsOnlineEntry(m_ServerEntry.m_BeforeEntry) ) {
 		CString cmds;
-		cmds.Format(_T("/Entry \"%s\" /After %d"), m_ServerEntry.m_BeforeEntry, ((CMainFrame *)::AfxGetMainWnd())->SetAfterId((void *)this));
+		cmds.Format(_T("/Entry \"%s\" /After %d"), (LPCTSTR)m_ServerEntry.m_BeforeEntry, ((CMainFrame *)::AfxGetMainWnd())->SetAfterId((void *)this));
 		pApp->OpenCommandLine(cmds);
 		return TRUE;
 	}
@@ -2424,8 +2425,13 @@ void CRLoginDoc::OnUpdateSendBreak(CCmdUI *pCmdUI)
 }
 void CRLoginDoc::OnScriptMenu(UINT nID)
 {
-	if ( m_pScript != NULL )
-		m_pScript->Call(m_pScript->m_MenuTab[nID - IDM_SCRIPT_MENU1].func);
+	if ( m_pScript != NULL ) {
+		if ( !m_pScript->Call(m_pScript->m_MenuTab[nID - IDM_SCRIPT_MENU1].func) ) {
+			CString msg;
+			msg.Format(_T("Script function not defined '%s'"), (LPCTSTR)m_pScript->m_MenuTab[nID - IDM_SCRIPT_MENU1].func);
+			AfxMessageBox(msg);
+		}
+	}
 }
 
 void CRLoginDoc::OnTekdisp()

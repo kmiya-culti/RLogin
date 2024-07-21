@@ -22,7 +22,7 @@ public:
 	CComboBox m_EntryCombo;
 	CStatic m_TitleWnd;
 	CServerEntry *m_pInitEntry;
-	CString m_Title;
+	CStringLoad m_Title;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート

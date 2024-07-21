@@ -33,10 +33,12 @@ IMPLEMENT_DYNCREATE(CKeyPage, CTreePage)
 
 CKeyPage::CKeyPage() : CTreePage(CKeyPage::IDD)
 {
+	m_UrlOpt = _T("#KEYOPT");
+
 	for ( int n = 0 ; n < KEYTABMAX ; n++ )
 		m_KeyMap[n] = FALSE;
 	m_KeyLayout = VK_101US;
-	m_UrlOpt = _T("#KEYOPT");
+	ZeroMemory(m_MetaKeys, sizeof(m_MetaKeys));
 }
 
 CKeyPage::~CKeyPage()

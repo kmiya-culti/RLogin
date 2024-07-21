@@ -48,6 +48,7 @@ CIso646Dlg::CIso646Dlg(CWnd* pParent /*=NULL*/)
 	: CDialogExt(CIso646Dlg::IDD, pParent)
 {
 	m_CharSet = DEFAULT_CHARSET;
+	ZeroMemory(m_Iso646Tab, sizeof(m_Iso646Tab));
 }
 CIso646Dlg::~CIso646Dlg()
 {

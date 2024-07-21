@@ -36,10 +36,16 @@ CFontParaDlg::CFontParaDlg(CWnd* pParent /*=NULL*/)
 	m_FontName = _T("");
 	m_FontNum  = 0;
 	m_FontQuality = DEFAULT_QUALITY;
-	m_pData = NULL;
-	m_pFontTab = NULL;
 	m_FontSize = 20;
 	m_UniBlock = _T("");
+	m_Iso646Name[0] = _T("");
+	m_Iso646Name[1] = _T("");
+	ZeroMemory(m_Iso646Tab, sizeof(m_Iso646Tab));
+	m_OverZero = _T("");
+
+	m_CodeSet = SET_UNICODE;
+	m_pData = NULL;
+	m_pFontTab = NULL;
 	m_pTextRam = NULL;
 	//}}AFX_DATA_INIT
 }

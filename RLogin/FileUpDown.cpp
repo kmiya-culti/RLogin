@@ -49,10 +49,24 @@ CFileUpDown::CFileUpDown(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, p
 	m_bXonXoff     = FALSE;
 	m_bRecvEcho    = TRUE;
 
-	m_UpFp         = NULL;
+	m_FileHandle   = NULL;
+	m_FileLen      = 0;
+	m_FileSize     = 0LL;
+	m_TranSize     = 0LL;
+	m_TransOffs    = 0LL;
+	m_TranSeek     = 0LL;
+	m_bSizeLimit   = FALSE;
+
+	m_UuStat       = 0;
+	m_ishVolPath.RemoveAll();
+	m_AutoMode     = EDCODEMODE_AUTO;
+
 	m_IConvEof     = FALSE;
 	m_EncStart     = FALSE;
 	m_EncodeEof    = FALSE;
+	m_EncodeSize   = 0LL;
+	m_HighWordSize = 0;
+
 	m_CrLfEof      = FALSE;
 	m_LineEof      = FALSE;
 	m_SizeEof      = FALSE;
@@ -202,6 +216,500 @@ void CFileUpDown::CheckShortName()		// check 8.3 file name
 
 //////////////////////////////////////////////////////////////////////
 
+BOOL CFileUpDown::UuDecode(LPCSTR line)
+{
+	CStringA msg;
+	CBuffer work;
+
+	switch(m_UuStat) {
+	case 0:
+		if ( strncmp(line, "begin ", 6) == 0 )
+			m_UuStat = 1;
+		else if( strncmp(line, "begin-base64 ", 13) == 0 )
+			m_UuStat = 2;
+		else
+			break;
+
+		// skip begin...
+		while ( *line >  ' ' ) line++;
+		while ( *line == ' ' ) line++;
+		// skip 644..
+		while ( *line >  ' ' ) line++;
+		while ( *line == ' ' ) line++;
+
+		if ( m_FileHandle == NULL ) {
+			if ( !CheckFileName(CHKFILENAME_SAVE, line) )
+				return FALSE;
+			if ( (m_FileHandle = _tfopen(m_PathName, _T("wb"))) == NULL ) {
+				::ThreadMessageBox(_T("uudecode '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
+				return FALSE;
+			}
+			UpDownInit(0, 0);
+		}
+
+		msg.Format("uudecode start '%s'", line);
+		UpDownMessage(msg);
+		break;
+	case 1:
+		if ( strncmp(line, "end", 3) == 0 ) {
+			m_UuStat = 0;
+			m_AutoMode = m_DecMode;
+			if ( m_FileHandle != NULL )
+				fclose(m_FileHandle);
+			m_FileHandle = NULL;
+			UpDownMessage("uudecode end... closed");
+		} else {
+			work.UuDecode(line);
+			if ( work.GetSize() > 0 ) {
+				if ( fwrite(work.GetPtr(), 1, work.GetSize(), m_FileHandle) != work.GetSize() ) {
+					::ThreadMessageBox(_T("uudecode fwrite error '%s'\n"), m_PathName);
+					return FALSE;
+				}
+			}
+		}
+		break;
+	case 2:
+		if ( strncmp(line, "====", 4) == 0 ) {
+			m_UuStat = 0;
+			m_AutoMode = m_DecMode;
+			if ( m_FileHandle != NULL ) {
+				fclose(m_FileHandle);
+				m_FileHandle = NULL;
+				UpDownMessage("uudecode end... closed");
+			}
+		} else {
+			work.Base64Decode(line);
+			if ( work.GetSize() > 0 ) {
+				if ( fwrite(work.GetPtr(), 1, work.GetSize(), m_FileHandle) != work.GetSize() ) {
+					::ThreadMessageBox(_T("uudecode fwrite error '%s'\n"), m_PathName);
+					return FALSE;
+				}
+			}
+		}
+	}
+
+	return TRUE;
+}
+BOOL CFileUpDown::Base64Decode(LPCSTR line)
+{
+	CBuffer work;
+
+	work.Base64Decode(line);
+
+	if ( work.GetSize() > 0 ) {
+		if ( m_FileHandle == NULL ) {
+			if ( !CheckFileName(CHKFILENAME_SAVE, "") )
+				return FALSE;
+			if ( (m_FileHandle = _tfopen(m_PathName, _T("wb"))) == NULL ) {
+				::ThreadMessageBox(_T("base64 '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
+				return FALSE;
+			}
+			UpDownInit(0, 0);
+		}
+
+		if ( fwrite(work.GetPtr(), 1, work.GetSize(), m_FileHandle) != work.GetSize() ) {
+			::ThreadMessageBox(_T("base64 fwrite error '%s'\n"), m_PathName);
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+BOOL CFileUpDown::IshDecode(LPCSTR line, BOOL &bRewSize)
+{
+	CStringA msg;
+	CBuffer work;
+
+	switch(m_Ish.DecodeLine(line, work)) {
+	case ISH_RET_HEAD:
+		if ( m_FileHandle == NULL ) {
+			if ( m_Ish.m_VolSeq != 0 && m_ishVolPath.Find(m_Ish.m_VolChkName) != NULL ) {
+				m_PathName = m_ishVolPath[m_Ish.m_VolChkName];
+				m_FileHandle = _tfopen(m_PathName, _T("r+b"));
+			} else if ( !CheckFileName(CHKFILENAME_SAVE, m_Ish.m_FileName) )
+				return FALSE;
+			else
+				m_FileHandle = _tfopen(m_PathName, _T("wb"));
+
+			if ( m_FileHandle == NULL ) {
+				::ThreadMessageBox(_T("ish decode '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
+				return FALSE;
+			}
+		}
+		if ( m_FileHandle != NULL && m_Ish.m_VolSeq != 0 ) {
+			_fseeki64(m_FileHandle, m_Ish.m_FileSeek, SEEK_SET);
+			m_ishVolPath[m_Ish.m_VolChkName] = m_PathName;
+		}
+		UpDownInit(m_Ish.m_FileSize);
+		bRewSize = FALSE;
+		if ( m_Ish.m_VolSeq != 0 )
+			msg.Format("ish start '%s' #%d", (LPCSTR)m_Ish.m_FileName, m_Ish.m_VolSeq);
+		else
+			msg.Format("ish start '%s'", (LPCSTR)m_Ish.m_FileName);
+		UpDownMessage(msg);
+		break;
+	case ISH_RET_DATA:
+		if ( m_FileHandle == NULL )
+			break;
+		if ( work.GetSize() > 0 ) {
+			if ( fwrite(work.GetPtr(), 1, work.GetSize(), m_FileHandle) != work.GetSize() ) {
+				::ThreadMessageBox(_T("ish fwrite error '%s'\n"), m_PathName);
+				return FALSE;
+			}
+		}
+		UpDownStat(m_Ish.GetSize());
+		break;
+	case ISH_RET_ENDOF:
+		m_AutoMode = m_DecMode;
+		if ( m_FileHandle == NULL )
+			break;
+		if ( work.GetSize() > 0 )
+			fwrite(work.GetPtr(), 1, work.GetSize(), m_FileHandle);
+		if ( m_Ish.m_VolSeq != 0 )
+			m_ishVolPath[m_Ish.m_VolChkName][m_Ish.m_VolSeq] = 1;
+		UpDownStat(m_Ish.m_FileSize);
+		fclose(m_FileHandle);
+		m_FileHandle = NULL;
+		if ( m_Ish.m_FileTime != 0 ) {
+			struct _utimbuf utm;
+			utm.actime  = m_Ish.m_FileTime;
+			utm.modtime = m_Ish.m_FileTime;
+			_tutime(m_PathName, &(utm));
+		}
+		if ( m_Ish.m_VolSeq != 0 ) {
+			msg.Format("ish end '%s' (%d/%d)", (LPCSTR)m_Ish.m_FileName, m_ishVolPath[m_Ish.m_VolChkName].GetSize(), m_Ish.m_VolMax);
+			UpDownMessage(msg);
+		} else
+			UpDownMessage("ish end... closed");
+		break;
+	case ISH_RET_ECCERR:
+		m_AutoMode = m_DecMode;
+		if ( m_FileHandle == NULL )
+			break;
+		fclose(m_FileHandle);
+		m_FileHandle = NULL;
+		UpDownMessage("ish ECC error... closed");
+		break;
+	case ISH_RET_CRCERR:
+		m_AutoMode = m_DecMode;
+		if ( m_FileHandle == NULL )
+			break;
+		fclose(m_FileHandle);
+		m_FileHandle = NULL;
+		UpDownMessage("ish CRC error... closed");
+		break;
+	}
+
+	return TRUE;
+}
+BOOL CFileUpDown::IntelHexDecode(LPCSTR line)
+{
+	CBuffer work;
+	BYTE sum = 0;
+	BYTE *s;
+	int len;
+	WORD addr;
+	int type;
+	WORD HighWord;
+
+	if ( *line != ':' )
+		return TRUE;
+
+	work.IntelHexDecode(++line);
+	if ( work.GetSize() >= 5 ) {
+		s = work.GetPtr();
+		for ( int n = 0 ; n < work.GetSize() ; n++ )
+			sum += *(s++);
+		if ( sum != 0 )
+			return TRUE;
+
+		len = work.Get8Bit();
+		addr = (WORD)work.Get16Bit();
+		type = work.Get8Bit();
+
+		if ( len != (work.GetSize() - 1) )
+			return TRUE;
+
+		switch(type) {
+		case 0:		// data
+			if ( m_FileHandle == NULL ) {
+				if ( !CheckFileName(CHKFILENAME_SAVE, "") )
+					return FALSE;
+				if ( (m_FileHandle = _tfopen(m_PathName, _T("wb"))) == NULL ) {
+					::ThreadMessageBox(_T("intel hex '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
+					return FALSE;
+				}
+				UpDownMessage("intel hex new file");
+				UpDownInit(0, 0);
+			}
+			m_TranSize = m_TransOffs + (LONGLONG)addr;
+			if ( m_TranSeek != m_TranSize && _fseeki64(m_FileHandle, m_TranSize, SEEK_SET) != 0 ) {
+				::ThreadMessageBox(_T("intel hex fseek error '%s'\n"), m_PathName);
+				return FALSE;
+			}
+			if ( fwrite(work.GetPtr(), 1, len, m_FileHandle) != len ) {
+				::ThreadMessageBox(_T("intel hex fwrite error '%s'\n"), m_PathName);
+				return FALSE;
+			}
+			m_TranSeek = m_TranSize + len;
+			break;
+		case 1:		// endof
+			m_TransOffs = m_TranSeek = 0LL;
+			m_AutoMode = m_DecMode;
+			if ( m_FileHandle != NULL ) {
+				fclose(m_FileHandle);
+				m_FileHandle = NULL;
+				UpDownMessage("intel hex end of data... closed");
+			}
+			break;
+		case 2:		// segment
+			HighWord = work.Get16Bit();
+			m_TransOffs = (LONGLONG)HighWord << 4;
+			break;
+		case 4:		// high word address
+			HighWord = work.Get16Bit();
+			m_TransOffs = (LONGLONG)HighWord << 16;
+			break;
+		}
+	}
+
+	return TRUE;
+}
+BOOL CFileUpDown::SRecordDecode(LPCSTR line)
+{
+	CBuffer work;
+	int len, alen;
+
+	if ( line[0] != 'S' )
+		return TRUE;
+
+	if ( line[1] == '0' )
+		alen = 2;				// len = 1, addr = 2, sum = 1	4 byte, addr == 0
+	else if ( line[1] == '1' )
+		alen = 2;				// len = 1, addr = 2, sum = 1	4 byte
+	else if ( line[1] == '2' )
+		alen = 3;				// len = 1, addr = 3, sum = 1	5 byte
+	else if ( line[1] == '3' )
+		alen = 4;				// len = 1, addr = 4, sum = 1	6 byte
+	else if ( line[1] == '7' || line[1] == '8' || line[1] == '9'  ) {
+		m_TransOffs = m_TranSeek = m_TransOffs = 0LL;
+		m_AutoMode = m_DecMode;
+		if ( m_FileHandle != NULL ) {
+			fclose(m_FileHandle);
+			m_FileHandle = NULL;
+			UpDownMessage("s-record end of data... closed");
+		}
+		return TRUE;
+	} else
+		return TRUE;
+
+	work.IntelHexDecode(line + 2);
+	if ( work.GetSize() < (alen + 2) )
+		return TRUE;
+
+	BYTE sum = 0;
+	BYTE *s = work.GetPtr();
+	for ( int n = 0 ; n < work.GetSize() ; n++ )
+		sum += *(s++);
+	if ( sum != 0xFF )
+		return TRUE;
+
+	len = work.Get8Bit();
+	if ( len > work.GetSize() )
+		return TRUE;
+	len -= (alen + 1);		// addr + sum
+
+	m_TranSize = 0LL;
+	for ( int n = 0 ; n < alen ; n++ )
+		m_TranSize = (m_TranSize << 8) | (LONGLONG)work.Get8Bit();
+
+	if ( line[1] == '0' ) {
+		CStringA msg;
+		work.ConsumeEnd(1);	// remove sum
+		msg.Format("s-record '%s'", (LPCSTR)work);
+		UpDownMessage((LPCSTR)msg);
+
+	} else {
+		if ( m_FileHandle == NULL ) {
+			if ( !CheckFileName(CHKFILENAME_SAVE, "") )
+				return FALSE;
+			if ( (m_FileHandle = _tfopen(m_PathName, _T("wb"))) == NULL ) {
+				::ThreadMessageBox(_T("s-record '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
+				return FALSE;
+			}
+			UpDownMessage("s-record new file");
+			UpDownInit(0, 0);
+		}
+
+		if ( m_TranSeek != m_TranSize && _fseeki64(m_FileHandle, m_TranSize, SEEK_SET) != 0 ) {
+			::ThreadMessageBox(_T("s-record fseek error '%s'\n"), m_PathName);
+			return FALSE;
+		}
+		if ( fwrite(work.GetPtr(), 1, len, m_FileHandle) != len ) {
+			::ThreadMessageBox(_T("s-record fwrite error '%s'\n"), m_PathName);
+			return FALSE;
+		}
+		m_TranSeek = m_TranSize + len;
+	}
+
+	return TRUE;
+}
+BOOL CFileUpDown::TekHexDecode(CBuffer &line)
+{
+	int n, i;
+	BYTE sum = 0;
+	int len, alen, ch;
+	int type;
+	CBuffer work;
+
+	if ( *((LPCSTR)line) != '%' )
+		return TRUE;
+
+	if ( (len = line.TekHexDecode(1, 2)) < 7 )
+		return TRUE;
+
+	for ( n = 0 ; n < len ; n++ ) {
+		if ( (ch = line.TekHexDecode(1 + n, 1)) == (-1) )
+			break;
+		if ( n != 3 && n != 4 )		// sum
+			sum += (BYTE)ch;
+	}
+	if ( n < len || sum != line.TekHexDecode(4, 2) )
+		return TRUE;
+
+	type = line.TekHexDecode(3, 1);
+	if ( type == 8 ) {
+		m_TransOffs = m_TranSeek = m_TransOffs = 0LL;
+		m_AutoMode = m_DecMode;
+		if ( m_FileHandle != NULL ) {
+			fclose(m_FileHandle);
+			m_FileHandle = NULL;
+			UpDownMessage("tek hex end of data... closed");
+		}
+		return TRUE;
+	} else if ( type != 6 )
+		return TRUE;
+
+	alen = line.TekHexDecode(6, 1);
+	if ( alen < 1 || alen > 8 )
+		return TRUE;
+	m_TranSize = (LONGLONG)(DWORD)line.TekHexDecode(7, alen);
+
+	work.Clear();
+	i = 7 + alen;
+	len = len - 6 - alen;
+	for ( n = 0 ; n < len ; n++ ) {
+		if ( (ch = line.TekHexDecode(i++, 1)) == (-1) )
+			break;
+		if ( (n & 1) == 0 )
+			sum = (BYTE)ch;
+		else {
+			sum = (sum << 4) | ch;
+			work.PutByte(sum);
+		}
+	}
+	if ( n < len )
+		return TRUE;
+
+	len = work.GetSize();
+
+	if ( m_FileHandle == NULL ) {
+		if ( !CheckFileName(CHKFILENAME_SAVE, "") )
+			return FALSE;
+		if ( (m_FileHandle = _tfopen(m_PathName, _T("wb"))) == NULL ) {
+			::ThreadMessageBox(_T("tek hex '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
+			return FALSE;
+		}
+		m_TranSeek = 0LL;
+		UpDownMessage("tek hex new file");
+		UpDownInit(0, 0);
+	}
+
+	if ( m_TranSeek != m_TranSize && _fseeki64(m_FileHandle, m_TranSize, SEEK_SET) != 0 ) {
+		::ThreadMessageBox(_T("tek hex fseek error '%s'\n"), m_PathName);
+		return FALSE;
+	}
+	if ( fwrite(work.GetPtr(), 1, len, m_FileHandle) != len ) {
+		::ThreadMessageBox(_T("tek hex fwrite error '%s'\n"), m_PathName);
+		return FALSE;
+	}
+	m_TranSeek = m_TranSize + len;
+
+	return TRUE;
+}
+int CFileUpDown::DecodeCheck(CBuffer &line)
+{
+	LPCSTR p = line;
+	CBuffer work;
+	BYTE sum = 0;
+
+	// uudecode
+	if ( strncmp(p, "begin ", 6) == 0 || strncmp(p, "begin-base64 ", 13) == 0 )
+		return EDCODEMODE_UUENC;
+
+	// ish header
+	if ( *p == '!' ) {
+		work.IshDecJis7(p);
+		if ( work.GetSize() > 60 && m_Ish.ChkCRC(work) && *(work.GetPos(0)) == 0 )
+			return EDCODEMODE_ISH;
+	} else if ( *p == '#' ) {
+		work.IshDecJis8(p);
+		if ( work.GetSize() > 60 && m_Ish.ChkCRC(work) && *(work.GetPos(0)) == 0 )
+			return EDCODEMODE_ISH;
+	}
+
+	// intel hex
+	if ( *p == ':' ) {
+		work.IntelHexDecode(p + 1);
+		if ( work.GetSize() >= 5 ) {
+			BYTE *s = work.GetPtr();
+			for ( int n = 0 ; n < work.GetSize() ; n++ )
+				sum += *(s++);
+			if ( sum == 0 ) {
+				int len = work.Get8Bit();
+				if ( len == (work.GetSize() - (1 + 2 + 1)) )	// type=1 + addr=2 + sum=1
+					return EDCODEMODE_IHEX;
+			}
+		}
+	}
+
+	// s-record
+	if ( p[0] == 'S' && strchr("012345789", p[1]) != NULL ) {
+		work.IntelHexDecode(p + 2);
+		BYTE *s = work.GetPtr();
+		for ( int n = 0 ; n < work.GetSize() ; n++ )
+			sum += *(s++);
+		if ( sum == 0xFF ) {
+			int len = work.Get8Bit();
+			if ( len <= work.GetSize() )
+				return EDCODEMODE_SREC;
+		}
+	}
+
+	// tek hex
+	if ( *p == '%' ) {
+		int len = line.TekHexDecode(1, 2);
+		if ( len >= 7 ) {
+			int n, ch;
+			for ( n = 0 ; n < len ; n++ ) {
+				if ( (ch = line.TekHexDecode(1 + n, 1)) == (-1) )
+					break;
+				if ( n != 3 && n != 4 )		// sum
+					sum += (BYTE)ch;
+			}
+			if ( n >= len && sum == line.TekHexDecode(4, 2) )
+				return EDCODEMODE_THEX;
+		}
+	}
+
+	// base64は、判別が曖昧なので注意
+	//p = work.Base64Decode(p);
+	//if ( (*p == '\0' || *p == '=') && work.GetSize() > 0 )
+	//	return EDCODEMODE_BASE64;
+
+	return EDCODEMODE_AUTO;
+}
+
 /*
 	〇文字の変換やデコードを行わない
 	〇文字コードの変換を行う From [EUC/SJIS/UTF9...] To [EUC/SJIS/UTF9...]
@@ -215,35 +723,35 @@ void CFileUpDown::DownLoad()
 {
 	int ch, len;
 	int last = (-1);
-	int uudec = 0;
-	FILE *fp = NULL;
 	struct _stati64 st;
 	BOOL bRewSize = TRUE;
-	LONGLONG TranSize;
+	LONGLONG CharSize;
 	CBuffer tmp, work, line;
-	LPCSTR p;
-	CStringA msg;
-	CIsh ish;
-	CStringBinary ishVolPath;
 
 	if ( !CheckFileName(CHKFILENAME_SAVE, "", EXTFILEDLG_DOWNLOAD) )
 		return;
 
-	if ( m_bFileAppend && !_tstati64(m_PathName, &st) && (st.st_mode & _S_IFMT) == _S_IFREG ) {
-		if ( (fp = _tfopen(m_PathName, _T("r+b"))) == NULL ) {
+	if ( m_bFileAppend && m_DownMode != DOWNMODE_DECODE && !_tstati64(m_PathName, &st) && (st.st_mode & _S_IFMT) == _S_IFREG ) {
+		if ( (m_FileHandle = _tfopen(m_PathName, _T("r+b"))) == NULL ) {
 			::ThreadMessageBox(_T("DownLoad '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 			return;
 		}
-		_fseeki64(fp, 0, SEEK_END);
+		_fseeki64(m_FileHandle, 0, SEEK_END);
 
-	} else if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL ) {
+	} else if ( (m_FileHandle = _tfopen(m_PathName, _T("wb"))) == NULL ) {
 		::ThreadMessageBox(_T("DownLoad '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 		return;
 	}
 
 	UpDownOpen("Simple File Download");
 	UpDownInit(0, 0);
-	TranSize = 0;
+
+	CharSize = 0LL;
+	m_TranSize = m_TranSeek = m_TransOffs = 0LL;
+	m_UuStat = 0;
+	m_Ish.Init();
+	m_ishVolPath.RemoveAll();
+	m_AutoMode = m_DecMode;
 
 	while ( !AbortCheck() ) {
 		tmp.Clear();
@@ -262,8 +770,8 @@ void CFileUpDown::DownLoad()
 			SendEchoBuffer((char *)tmp.GetPtr(), tmp.GetSize());
 
 		if ( bRewSize ) {
-			TranSize += tmp.GetSize();
-			UpDownStat(TranSize);
+			CharSize += tmp.GetSize();
+			UpDownStat(CharSize);
 		}
 
 		if ( m_bDownCrLf ) {
@@ -284,13 +792,19 @@ void CFileUpDown::DownLoad()
 
 		switch(m_DownMode) {
 		case DOWNMODE_NONE:
-			fwrite(tmp.GetPtr(), 1, tmp.GetSize(), fp);
+			if ( fwrite(tmp.GetPtr(), 1, tmp.GetSize(), m_FileHandle) != tmp.GetSize() ) {
+				::ThreadMessageBox(_T("file fwrite error '%s'\n"), m_PathName);
+				goto ENDOFRET;
+			}
 			break;
 
 		case DOWNMODE_ICONV:
 			work.Clear();
 			m_IConv.IConvSub(m_DownFrom, m_DownTo, &tmp, &work);
-			fwrite(work.GetPtr(), 1, work.GetSize(), fp);
+			if ( fwrite(work.GetPtr(), 1, work.GetSize(), m_FileHandle) != work.GetSize() ) {
+				::ThreadMessageBox(_T("iconv fwrite error '%s'\n"), m_PathName);
+				goto ENDOFRET;
+			}
 			break;
 
 		case DOWNMODE_DECODE:
@@ -300,156 +814,38 @@ void CFileUpDown::DownLoad()
 					if ( line.GetSize() <= 0 )
 						continue;
 
-					switch(m_DecMode) {
+					if ( m_AutoMode == EDCODEMODE_AUTO )
+						m_AutoMode = DecodeCheck(line);
+
+					switch(m_AutoMode) {
+					case EDCODEMODE_AUTO:
+						break;
 					case EDCODEMODE_UUENC:
-						switch(uudec) {
-						case 0:
-							if ( strncmp((LPCSTR)line, "begin ", 6) == 0 )
-								uudec = 1;
-							else if( strncmp((LPCSTR)line, "begin-base64 ", 13) == 0 )
-								uudec = 2;
-							else
-								break;
-
-							p = line;
-							// skip begin...
-							while ( *p >  ' ' ) p++;
-							while ( *p == ' ' ) p++;
-							// skip 644..
-							while ( *p >  ' ' ) p++;
-							while ( *p == ' ' ) p++;
-
-							if ( fp == NULL ) {
-								if ( !CheckFileName(CHKFILENAME_SAVE, p) )
-									goto ENDOFRET;
-								if ( m_bFileAppend && !_tstati64(m_PathName, &st) && (st.st_mode & _S_IFMT) == _S_IFREG ) {
-									if ( (fp = _tfopen(m_PathName, _T("r+b"))) == NULL ) {
-										::ThreadMessageBox(_T("uudecode '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
-										goto ENDOFRET;
-									}
-									_fseeki64(fp, 0, SEEK_END);
-								} else if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL ) {
-									::ThreadMessageBox(_T("uudecode '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
-									goto ENDOFRET;
-								}
-								UpDownInit(0, 0);
-							}
-
-							msg.Format("uudecode start '%s'", p);
-							UpDownMessage(msg);
-							break;
-						case 1:
-							if ( strncmp((LPCSTR)line, "end", 3) == 0 ) {
-								uudec = 0;
-								if ( fp != NULL )
-									fclose(fp);
-								fp = NULL;
-								UpDownMessage("uudecode end... closed");
-							} else {
-								work.UuDecode((LPCSTR)line);
-								if ( work.GetSize() > 0 )
-									fwrite(work.GetPtr(), 1, work.GetSize(), fp);
-							}
-							break;
-						case 2:
-							if ( strncmp((LPCSTR)line, "====", 4) == 0 ) {
-								uudec = 0;
-								if ( fp != NULL )
-									fclose(fp);
-								fp = NULL;
-								UpDownMessage("uudecode end... closed");
-							} else {
-								work.Base64Decode((LPCSTR)line);
-								if ( work.GetSize() > 0 )
-									fwrite(work.GetPtr(), 1, work.GetSize(), fp);
-							}
-						}
+						if ( !UuDecode(line) )
+							goto ENDOFRET;
 						break;
-
 					case EDCODEMODE_BASE64:
-						work.Base64Decode((LPCSTR)line);
-						if ( work.GetSize() > 0 )
-							fwrite(work.GetPtr(), 1, work.GetSize(), fp);
+						if ( !Base64Decode(line) )
+							goto ENDOFRET;
 						break;
-
 					case EDCODEMODE_ISH:
-						switch(ish.DecodeLine((LPCSTR)line, work)) {
-						case ISH_RET_HEAD:
-							if ( fp == NULL ) {
-								if ( ish.m_VolSeq != 0 && ishVolPath.Find(ish.m_VolChkName) != NULL ) {
-									m_PathName = ishVolPath[ish.m_VolChkName];
-									fp = _tfopen(m_PathName, _T("r+b"));
-								} else if ( !CheckFileName(CHKFILENAME_SAVE, ish.m_FileName) )
-									goto ENDOFRET;
-								else if ( m_bFileAppend && !_tstati64(m_PathName, &st) && (st.st_mode & _S_IFMT) == _S_IFREG ) {
-									if ( (fp = _tfopen(m_PathName, _T("r+b"))) != NULL )
-										_fseeki64(fp, 0, SEEK_END);
-								} else
-									fp = _tfopen(m_PathName, _T("wb"));
-
-								if ( fp == NULL ) {
-									::ThreadMessageBox(_T("ish decode '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
-									goto ENDOFRET;
-								}
-							}
-							if ( fp != NULL && ish.m_VolSeq != 0 ) {
-								_fseeki64(fp, ish.m_FileSeek, SEEK_SET);
-								ishVolPath[ish.m_VolChkName] = m_PathName;
-							}
-							UpDownInit(ish.m_FileSize);
-							bRewSize = FALSE;
-							if ( ish.m_VolSeq != 0 )
-								msg.Format("ish start '%s' #%d", ish.m_FileName, ish.m_VolSeq);
-							else
-								msg.Format("ish start '%s'", ish.m_FileName);
-							UpDownMessage(msg);
-							break;
-						case ISH_RET_DATA:
-							if ( fp == NULL )
-								break;
-							if ( work.GetSize() > 0 )
-								fwrite(work.GetPtr(), 1, work.GetSize(), fp);
-							UpDownStat(ish.GetSize());
-							break;
-						case ISH_RET_ENDOF:
-							if ( fp == NULL )
-								break;
-							if ( work.GetSize() > 0 )
-								fwrite(work.GetPtr(), 1, work.GetSize(), fp);
-							if ( ish.m_VolSeq != 0 )
-								ishVolPath[ish.m_VolChkName][ish.m_VolSeq] = 1;
-							UpDownStat(ish.m_FileSize);
-							fclose(fp);
-							fp = NULL;
-							if ( ish.m_FileTime != 0 ) {
-								struct _utimbuf utm;
-								utm.actime  = ish.m_FileTime;
-								utm.modtime = ish.m_FileTime;
-								_tutime(m_PathName, &(utm));
-							}
-							if ( ish.m_VolSeq != 0 ) {
-								msg.Format("ish end '%s' (%d/%d)", ish.m_FileName, ishVolPath[ish.m_VolChkName].GetSize(), ish.m_VolMax);
-								UpDownMessage(msg);
-							} else
-								UpDownMessage("ish end... closed");
-							break;
-						case ISH_RET_ECCERR:
-							if ( fp == NULL )
-								break;
-							fclose(fp);
-							fp = NULL;
-							UpDownMessage("ish ECC error... closed");
-							break;
-						case ISH_RET_CRCERR:
-							if ( fp == NULL )
-								break;
-							fclose(fp);
-							fp = NULL;
-							UpDownMessage("ish CRC error... closed");
-							break;
-						}
+						if ( !IshDecode(line, bRewSize) )
+							goto ENDOFRET;
+						break;
+					case EDCODEMODE_IHEX:
+						if ( !IntelHexDecode(line) )
+							goto ENDOFRET;
+						break;
+					case EDCODEMODE_SREC:
+						if ( !SRecordDecode(line) )
+							goto ENDOFRET;
+						break;
+					case EDCODEMODE_THEX:
+						if ( !TekHexDecode(line) )
+							goto ENDOFRET;
 						break;
 					}
+
 					line.Clear();
 				} else
 					line.PutByte(ch);
@@ -459,8 +855,8 @@ void CFileUpDown::DownLoad()
 	}
 
 ENDOFRET:
-	if ( fp != NULL )
-		fclose(fp);
+	if ( m_FileHandle != NULL )
+		fclose(m_FileHandle);
 	UpDownClose();
 }
 
@@ -473,9 +869,9 @@ BOOL CFileUpDown::GetFile(GETPROCLIST *pProc)
 	
 	if ( AbortCheck() ) {
 		UpDownClose();
-		if ( m_UpFp != NULL ) {
-			fclose(m_UpFp);
-			m_UpFp = NULL;
+		if ( m_FileHandle != NULL ) {
+			fclose(m_FileHandle);
+			m_FileHandle = NULL;
 		}
 		return EOF;
 	}
@@ -483,17 +879,17 @@ BOOL CFileUpDown::GetFile(GETPROCLIST *pProc)
 	if ( m_FileBuffer.GetSize() > 0 )
 		return m_FileBuffer.GetByte();
 
-	if ( m_UpFp == NULL ) {
+	if ( m_FileHandle == NULL ) {
 		if ( m_PathName.IsEmpty() )
 			return EOF;
 
 		if ( _tstati64(m_PathName, &st) || (st.st_mode & _S_IFMT) != _S_IFREG ) {
-			::ThreadMessageBox(_T("Upload '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
+			::ThreadMessageBox(_T("Upload '%s'\n%s"), (LPCTSTR)m_PathName, CStringLoad(IDE_FILEOPENERROR));
 			return EOF;
 		}
 
-		if ( (m_UpFp = _tfopen(m_PathName, _T("rb"))) == NULL ) {
-			::ThreadMessageBox(_T("Upload '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
+		if ( (m_FileHandle = _tfopen(m_PathName, _T("rb"))) == NULL ) {
+			::ThreadMessageBox(_T("Upload '%s'\n%s"), (LPCTSTR)m_PathName, CStringLoad(IDE_FILEOPENERROR));
 			return EOF;
 		}
 
@@ -506,14 +902,19 @@ BOOL CFileUpDown::GetFile(GETPROCLIST *pProc)
 		else if ( m_FileLen > 4096 )
 			m_FileLen = 4096;
 
+		if ( m_bSizeLimit && m_FileSize > 0xFFFFFFFFLL ) {
+			::ThreadMessageBox(_T("Upload '%s'\n%s"), (LPCTSTR)m_PathName, _T("File Size 4GByte Over"));
+			return EOF;
+		}
+
 		UpDownOpen("Simple File Upload");
 		UpDownInit(m_FileSize);
 	}
 
-	if ( (len = (int)fread(m_FileBuffer.PutSpc(m_FileLen), 1, m_FileLen, m_UpFp)) <= 0 ) {
+	if ( (len = (int)fread(m_FileBuffer.PutSpc(m_FileLen), 1, m_FileLen, m_FileHandle)) <= 0 ) {
 		UpDownClose();
-		fclose(m_UpFp);
-		m_UpFp = NULL;
+		fclose(m_FileHandle);
+		m_FileHandle = NULL;
 		return EOF;
 	}
 
@@ -531,9 +932,9 @@ BOOL CFileUpDown::GetIshFile(GETPROCLIST *pProc)
 	
 	if ( AbortCheck() ) {
 		UpDownClose();
-		if ( m_UpFp != NULL ) {
-			fclose(m_UpFp);
-			m_UpFp = NULL;
+		if ( m_FileHandle != NULL ) {
+			fclose(m_FileHandle);
+			m_FileHandle = NULL;
 		}
 		return EOF;
 	}
@@ -541,7 +942,7 @@ BOOL CFileUpDown::GetIshFile(GETPROCLIST *pProc)
 	if ( m_FileBuffer.GetSize() > 0 )
 		return m_FileBuffer.GetByte();
 
-	if ( m_UpFp == NULL ) {
+	if ( m_FileHandle == NULL ) {
 		if ( m_PathName.IsEmpty() )
 			return EOF;
 
@@ -550,7 +951,7 @@ BOOL CFileUpDown::GetIshFile(GETPROCLIST *pProc)
 			return EOF;
 		}
 
-		if ( (m_UpFp = _tfopen(m_PathName, _T("rb"))) == NULL ) {
+		if ( (m_FileHandle = _tfopen(m_PathName, _T("rb"))) == NULL ) {
 			::ThreadMessageBox(_T("ish Upload '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 			return EOF;
 		}
@@ -561,7 +962,7 @@ BOOL CFileUpDown::GetIshFile(GETPROCLIST *pProc)
 
 		CheckShortName();
 
-		if ( !m_Ish.EncodeHead(ISH_LEN_JIS7, m_UpFp, m_FileName, st.st_size, st.st_mtime, m_FileBuffer) ) {
+		if ( !m_Ish.EncodeHead(ISH_LEN_JIS7, m_FileHandle, m_FileName, st.st_size, st.st_mtime, m_FileBuffer) ) {
 			::AfxMessageBox(_T("ish file size limit error"), MB_ICONERROR);
 			return EOF;
 		}
@@ -570,10 +971,10 @@ BOOL CFileUpDown::GetIshFile(GETPROCLIST *pProc)
 		UpDownInit(m_FileSize);
 
 	} else {
-		if ( (len = m_Ish.EncodeBlock(m_UpFp, m_FileBuffer)) < 0 ) {
+		if ( (len = m_Ish.EncodeBlock(m_FileHandle, m_FileBuffer)) < 0 ) {
 			UpDownClose();
-			fclose(m_UpFp);
-			m_UpFp = NULL;
+			fclose(m_FileHandle);
+			m_FileHandle = NULL;
 			return EOF;
 		}
 
@@ -595,7 +996,7 @@ void CFileUpDown::UnGetFile(int ch)
 }
 int CFileUpDown::GetIConv(GETPROCLIST *pProc)
 {
-	int ch;
+	int ch = EOF;
 	CBuffer tmp;
 
 	for ( ; ; ) {
@@ -715,9 +1116,284 @@ int CFileUpDown::GetBase64(GETPROCLIST *pProc)
 		}
 	}
 }
+int CFileUpDown::GetIntelHexEncode(GETPROCLIST *pProc)
+{
+	int len, ch;
+	BYTE sum;
+	BYTE head[8];
+	BYTE tmp[34];
+
+	for ( ; ; ) {
+		if ( m_EncodeBuffer.GetSize() > 0 )
+			return m_EncodeBuffer.GetByte();
+
+		if ( m_EncodeEof ) {
+			m_EncStart = FALSE;
+			m_EncodeEof = FALSE;
+			return EOF;
+		}
+
+		for ( len = 0 ; len < 32 && (ch = (this->*pProc->GetProc)(pProc->pNext)) != EOF ; len++ )
+			tmp[len] = (BYTE)ch;
+
+		if ( ch == EOF )
+			m_EncodeEof = TRUE;
+
+		if ( !m_EncStart ) {
+			m_EncStart = TRUE;
+			m_EncodeSize = 0LL;
+			m_HighWordSize = 0;
+		}
+
+		if ( len > 0 ) {
+			if ( m_HighWordSize != (WORD)(m_EncodeSize >> 16) ) {
+				m_HighWordSize = (WORD)(m_EncodeSize >> 16);
+
+				if ( m_FileSize <= 0xFFFFFLL ) {
+					head[0] = 0x02;
+					head[1] = 0x00;
+					head[2] = 0x00;
+					head[3] = 0x02;		// 拡張セグメントアドレス
+					head[4] = (BYTE)(m_HighWordSize << (12 - 8));
+					head[5] = (BYTE)(m_HighWordSize << 12);
+				} else {
+					head[0] = 0x02;
+					head[1] = 0x00;
+					head[2] = 0x00;
+					head[3] = 0x04;		// 拡張リニアアドレス
+					head[4] = (BYTE)(m_HighWordSize >> 8);
+					head[5] = (BYTE)(m_HighWordSize);
+				}
+
+				sum = 0;
+				for ( int n = 0 ; n < 6 ; n++ )
+					sum += head[n];
+				head[6] = (BYTE)(0 - sum);
+
+				m_EncodeBuffer.PutByte(':');
+				m_EncodeBuffer.IntelHexEncode(head, 7);
+				m_EncodeBuffer.PutByte('\n');
+			}
+
+			head[0] = (BYTE)len;
+			head[1] = (BYTE)(m_EncodeSize >> 8);
+			head[2] = (BYTE)(m_EncodeSize);
+			head[3] = 0x00;		// データ
+
+			// データがHighWord境界を超えない
+			ASSERT(m_HighWordSize == (WORD)((m_EncodeSize + len - 1) >> 16));
+			m_EncodeSize += len;
+
+			sum = 0;
+			for ( int n = 0 ; n < 4 ; n++ )
+				sum += head[n];
+			for ( int n = 0 ; n < len ; n++ )
+				sum += tmp[n];
+			tmp[len] = (BYTE)(0 - sum);
+
+			m_EncodeBuffer.PutByte(':');
+			m_EncodeBuffer.IntelHexEncode(head, 4);
+			m_EncodeBuffer.IntelHexEncode(tmp, len + 1);
+			m_EncodeBuffer.PutByte('\n');
+		}
+
+		if ( m_EncodeEof )
+			m_EncodeBuffer += ":00000001FF\n";
+	}
+}
+int CFileUpDown::GetSRecordEncode(GETPROCLIST *pProc)
+{
+	int len, ch, ext;
+	BYTE sum, type;
+	BYTE head[8];
+	BYTE tmp[34];
+
+	for ( ; ; ) {
+		if ( m_EncodeBuffer.GetSize() > 0 )
+			return m_EncodeBuffer.GetByte();
+
+		if ( m_EncodeEof ) {
+			m_EncStart = FALSE;
+			m_EncodeEof = FALSE;
+			return EOF;
+		}
+
+		if ( !m_EncStart ) {
+			LPCSTR p = m_FileName;
+			for ( len = 0 ; len < 31 && *p != '\0' ; len++ )
+				tmp[len] = *(p++);
+			tmp[len++] = '\0';
+
+			// S0 recode
+			type = '0';
+			ext = 0;
+			head[ext++] = (BYTE)(len + 2 + 1);
+			head[ext++] = 0x00;
+			head[ext++] = 0x00;
+
+			sum = 0;
+			for ( int n = 0 ; n < ext ; n++ )
+				sum += head[n];
+			for ( int n = 0 ; n < len ; n++ )
+				sum += tmp[n];
+			tmp[len] = (BYTE)(~sum);
+
+			m_EncodeBuffer.PutByte('S');
+			m_EncodeBuffer.PutByte(type);
+			m_EncodeBuffer.IntelHexEncode(head, ext);
+			m_EncodeBuffer.IntelHexEncode(tmp, len + 1);
+			m_EncodeBuffer.PutByte('\n');
+
+			m_EncStart = TRUE;
+			m_EncodeSize = 0LL;
+		}
+
+		for ( len = 0 ; len < 32 && (ch = (this->*pProc->GetProc)(pProc->pNext)) != EOF ; len++ )
+			tmp[len] = (BYTE)ch;
+
+		if ( ch == EOF )
+			m_EncodeEof = TRUE;
+
+		if ( len > 0 ) {
+			ext = 0;
+			if ( m_FileSize <= 0xFFFFLL ) {
+				// S1 recode
+				type = '1';
+				head[ext++] = (BYTE)(len + 2 + 1);
+				head[ext++] = (BYTE)(m_EncodeSize >> 8);
+				head[ext++] = (BYTE)(m_EncodeSize);
+			} else if ( m_FileSize <= 0xFFFFFFLL ) {
+				// S2 recode
+				type = '2';
+				head[ext++] = (BYTE)(len + 3 + 1);
+				head[ext++] = (BYTE)(m_EncodeSize >> 16);
+				head[ext++] = (BYTE)(m_EncodeSize >> 8);
+				head[ext++] = (BYTE)(m_EncodeSize);
+			} else {
+				// S3 recode
+				type = '3';
+				head[ext++] = (BYTE)(len + 4 + 1);
+				head[ext++] = (BYTE)(m_EncodeSize >> 24);
+				head[ext++] = (BYTE)(m_EncodeSize >> 16);
+				head[ext++] = (BYTE)(m_EncodeSize >> 8);
+				head[ext++] = (BYTE)(m_EncodeSize);
+			}
+
+			m_EncodeSize += len;
+
+			sum = 0;
+			for ( int n = 0 ; n < ext ; n++ )
+				sum += head[n];
+			for ( int n = 0 ; n < len ; n++ )
+				sum += tmp[n];
+			tmp[len] = (BYTE)(~sum);
+
+			m_EncodeBuffer.PutByte('S');
+			m_EncodeBuffer.PutByte(type);
+			m_EncodeBuffer.IntelHexEncode(head, ext);
+			m_EncodeBuffer.IntelHexEncode(tmp, len + 1);
+			m_EncodeBuffer.PutByte('\n');
+		}
+
+		if ( m_EncodeEof ) {
+			if ( m_FileSize <= 0xFFFFLL )
+				m_EncodeBuffer += "S9030000FC\n";		// S9 recode
+			else if ( m_FileSize <= 0xFFFFFFLL )
+				m_EncodeBuffer += "S804000000FB\n";		// S8 recode
+			else
+				m_EncodeBuffer += "S70500000000FA\n";	// S7 recode
+		}
+	}
+}
+int CFileUpDown::GetTekHexEncode(GETPROCLIST *pProc)
+{
+	int len, ch;
+	int blen, type, alen;
+	BYTE sum;
+	BYTE tmp[34];
+	LONGLONG asz;
+
+	for ( ; ; ) {
+		if ( m_EncodeBuffer.GetSize() > 0 )
+			return m_EncodeBuffer.GetByte();
+
+		if ( m_EncodeEof ) {
+			m_EncStart = FALSE;
+			m_EncodeEof = FALSE;
+			return EOF;
+		}
+
+		for ( len = 0 ; len < 32 && (ch = (this->*pProc->GetProc)(pProc->pNext)) != EOF ; len++ )
+			tmp[len] = (BYTE)ch;
+
+		if ( ch == EOF )
+			m_EncodeEof = TRUE;
+
+		if ( !m_EncStart ) {
+			m_EncStart = TRUE;
+			m_EncodeSize = 0LL;
+		}
+
+		if ( len > 0 ) {
+			if ( (m_EncodeSize & 0xFFFF0000LL) != 0 ) {
+				if ( (m_EncodeSize & 0xF0000000LL) != 0 )
+					alen = 8;
+				else if ( (m_EncodeSize & 0x0F000000LL) != 0 )
+					alen = 7;
+				else if ( (m_EncodeSize & 0x00F00000LL) != 0 )
+					alen = 6;
+				else
+					alen = 5;
+			}else {
+				if ( (m_EncodeSize & 0xF000LL) != 0 )
+					alen = 4;
+				else if ( (m_EncodeSize & 0x0F00LL) != 0 )
+					alen = 3;
+				else if ( (m_EncodeSize & 0x00F0LL) != 0 )
+					alen = 2;
+				else
+					alen = 1;
+			}
+
+			type = 6;
+			blen = 2 + 1 + 2 + 1 + alen + len * 2;
+
+			sum =  (BYTE)((blen >> 4) & 15);
+			sum += (BYTE)(blen & 15);
+			sum += (BYTE)type;
+			sum += (BYTE)alen;
+
+			asz = m_EncodeSize;
+			for ( int n = 0 ; n < alen ; n++ ) {
+				sum += (BYTE)(asz & 15);
+				asz >>= 4;
+			}
+
+			for ( int n = 0 ; n < len ; n++ ) {
+				sum += (BYTE)((tmp[n] >> 4) & 15);
+				sum += (BYTE)(tmp[n] & 15);
+			}
+
+			m_EncodeBuffer.PutByte('%');
+			m_EncodeBuffer.TekHexEncode(blen, 2);
+			m_EncodeBuffer.TekHexEncode(type, 1);
+			m_EncodeBuffer.TekHexEncode(sum, 2);
+			m_EncodeBuffer.TekHexEncode(alen, 1);
+			m_EncodeBuffer.TekHexEncode((int)m_EncodeSize, alen);
+			for ( int n = 0 ; n < len ; n++ )
+				m_EncodeBuffer.TekHexEncode(tmp[n], 2);
+			m_EncodeBuffer.PutByte('\n');
+
+			m_EncodeSize += len;
+		}
+
+		if ( m_EncodeEof )
+			m_EncodeBuffer += "%0781010\n";
+	}
+}
 int CFileUpDown::GetCrLf(GETPROCLIST *pProc)
 {
-	int ch;
+	int ch = EOF;
 
 	for ( ; ; ) {
 		if ( m_CrLfBuffer.GetSize() > 0 )
@@ -794,7 +1470,7 @@ BOOL CFileUpDown::ReadLine(GETPROCLIST *pProc, CBuffer &out)
 }
 BOOL CFileUpDown::ReadSize(GETPROCLIST *pProc, CBuffer &out, int size)
 {
-	int len, ch;
+	int len, ch = EOF;
 
 	out.Clear();
 
@@ -888,6 +1564,27 @@ RECHECK:
 			pProc = &(procTab[n++]);
 			pProc->GetProc = &CFileUpDown::GetIshFile;
 			pProc->UnGetProc = &CFileUpDown::UnGetFile;
+			break;
+		case EDCODEMODE_IHEX:
+			procTab[n].pNext = pProc;
+			pProc = &(procTab[n++]);
+			pProc->GetProc = &CFileUpDown::GetIntelHexEncode;
+			pProc->UnGetProc = &CFileUpDown::UnGetEncode;
+			m_bSizeLimit = TRUE;
+			break;
+		case EDCODEMODE_SREC:
+			procTab[n].pNext = pProc;
+			pProc = &(procTab[n++]);
+			pProc->GetProc = &CFileUpDown::GetSRecordEncode;
+			pProc->UnGetProc = &CFileUpDown::UnGetEncode;
+			m_bSizeLimit = TRUE;
+			break;
+		case EDCODEMODE_THEX:
+			procTab[n].pNext = pProc;
+			pProc = &(procTab[n++]);
+			pProc->GetProc = &CFileUpDown::GetTekHexEncode;
+			pProc->UnGetProc = &CFileUpDown::UnGetEncode;
+			m_bSizeLimit = TRUE;
 			break;
 		}
 		break;
@@ -986,9 +1683,9 @@ RECHECK:
 		} while ( ((clock() - st) * 1000 / CLOCKS_PER_SEC) < maxMsec );
 	}
 
-	if ( m_UpFp != NULL ) {
-		fclose(m_UpFp);
-		m_UpFp = NULL;
+	if ( m_FileHandle != NULL ) {
+		fclose(m_FileHandle);
+		m_FileHandle = NULL;
 	}
 
 	// m_MultiFileの扱いに注意

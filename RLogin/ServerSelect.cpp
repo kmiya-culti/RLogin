@@ -36,7 +36,10 @@ CServerSelect::CServerSelect(CWnd* pParent /*=NULL*/)
 	m_bTreeUpdate = FALSE;
 	m_bTrackerActive = FALSE;
 	m_TreeListPer = 200;
+	m_DragActive = 0;
+	m_DragImage = 0;
 	m_bDragList = FALSE;
+	m_DragNumber = 0;
 	m_pOPtDlg = NULL;
 	m_pEditIndex = NULL;
 
@@ -216,7 +219,7 @@ void CServerSelect::InitList(CStringIndex *pIndex, BOOL bFolder)
 	if ( bFolder ) {
 		for ( n = 0 ; n < pIndex->GetSize() ; n++, i++ ) {
 			m_List.InsertItem(LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM, i, (*pIndex)[n].m_nIndex, 0, 0, 0, (-1) - n);
-			str.Format(_T("<-Tab (%d)"), (*pIndex)[n].m_TabData.GetSize());
+			str.Format(_T("<-Tab (%d)"), (int)(*pIndex)[n].m_TabData.GetSize());
 			m_List.SetItemText(i, 1, str); //_T("<--Tab Group"));
 		}
 	}
@@ -744,7 +747,7 @@ void CServerSelect::OnEditEntry()
 void CServerSelect::OnDelEntry() 
 {
 	int n, i;
-	CString tmp, msg;
+	CStringLoad tmp, msg;
 	CDWordArray tab;
 
 	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
@@ -1678,7 +1681,7 @@ void CServerSelect::OffsetTracker(CPoint point)
 CStringIndex *CServerSelect::DragIndex(CPoint point)
 {
 	int n;
-	UINT uFlags;
+	UINT uFlags = 0;
 	HTREEITEM hItem;
 	TCHITTESTINFO info;
 	CStringIndex *pIndex = NULL;
@@ -2052,7 +2055,7 @@ void CServerSelect::OnNMRClickServertree(NMHDR *pNMHDR, LRESULT *pResult)
 	int n, id;
 	CMenuLoad PopUpMenu;
 	CMenu *pSubMenu;
-	UINT uFlags;
+	UINT uFlags = 0;
 	CPoint point;
 	HTREEITEM hTree;
 	CStringIndex *pIndex = NULL;

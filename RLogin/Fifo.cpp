@@ -802,7 +802,7 @@ void CFifoBase::Link(CFifoBase *pLeft, int lFd, CFifoBase *pRight, int rFd)
 		pRight->OnLinked(rFd, FALSE);
 		pLeft->Unlock();
 
-	} else {
+	} else if (pExtReadFifo != NULL && pExtWriteFifo != NULL) {
 		pMid = pLeft;
 		pLeft = pReadFifo->m_pReadBase;
 
@@ -1681,6 +1681,12 @@ CFifoSocket::CFifoSocket(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFif
 	m_Threadtatus = FIFO_THREAD_NONE;
 	m_pWinThread = NULL;
 	m_bAbort = FALSE;
+
+	m_HostAddress.IsEmpty();
+	m_nHostPort = 0;
+	m_nSocketPort = 0;
+	m_nFamily = AF_UNSPEC;
+	m_nSocketType = SOCK_STREAM;
 }
 CFifoSocket::~CFifoSocket()
 {
@@ -2274,6 +2280,14 @@ CFifoListen::CFifoListen(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFif
 {
 	m_Threadtatus = 0;
 	m_pWinThread = NULL;
+
+	m_bAbort = FALSE;
+
+	m_HostAddress.IsEmpty();
+	m_nHostPort = 0;
+	m_nFamily = AF_UNSPEC;
+	m_nSocketType = SOCK_STREAM;
+	m_nBacklog = 128;
 }
 CFifoListen::~CFifoListen()
 {

@@ -814,7 +814,7 @@ CScriptValue::operator LPCWSTR ()
 		m_Buf.Apend((LPBYTE)(LPCWSTR)tmp, tmp.GetLength() * sizeof(WCHAR));
 		break;
 	case VALTYPE_LPDDOUB:
-		tmp.Format(L"%g", ((double *)(ThrowNullPtr(m_Value.m_Ptr))));
+		tmp.Format(L"%g", *((double *)(ThrowNullPtr(m_Value.m_Ptr))));
 		m_Buf.Clear();
 		m_Buf.Apend((LPBYTE)(LPCWSTR)tmp, tmp.GetLength() * sizeof(WCHAR));
 		break;
@@ -865,7 +865,7 @@ CScriptValue::operator LPCDSTR ()
 		m_Buf.Apend((LPBYTE)(LPCDSTR)work, work.GetLength() * sizeof(DCHAR));
 		return (LPCDSTR)m_Buf;
 	case VALTYPE_LPDDOUB:
-		tmp.Format(L"%g", ((double *)(ThrowNullPtr(m_Value.m_Ptr))));
+		tmp.Format(L"%g", *((double *)(ThrowNullPtr(m_Value.m_Ptr))));
 		break;
 	case VALTYPE_IDENT:
 		return (LPCDSTR)*((CScriptValue *)(ThrowNullPtr(m_Value.m_Ptr)));
@@ -1005,7 +1005,7 @@ CScriptValue::operator void * ()
 
 int CScriptValue::Compare(int mode, CScriptValue *ptr)
 {
-	int c;
+	int c = 0;
 
 	switch(mode & 2) {
 	case 0:
@@ -1329,7 +1329,7 @@ void CScriptValue::Debug(CString &str)
 		_T("wstr"),		_T("dstr"),		_T("pbyte"),	_T("pwchar"),	_T("pdchar"),
 		_T("pdouble"),	_T("ident"),	_T("ptr"),		_T("empty") };
 
-	str.Format(_T("%s:(%s)="), m_Index, typestr[m_Type]);
+	str.Format(_T("%s:(%s)="), (LPCTSTR)m_Index, typestr[m_Type]);
 	switch(m_Type) {
 	case VALTYPE_INT:
 		tmp.Format(_T("%d"), m_Value.m_Int);
@@ -1492,6 +1492,12 @@ CScript::CScript()
 	m_SrcMax = 0;
 	m_pSrcText = NULL;
 	m_pSrcDlg = NULL;
+
+	for ( int n = 0 ; n < 10 ; n++ ) {
+		m_MenuTab[n].func.Empty();
+		m_MenuTab[n].str.Empty();
+		m_MenuTab[n].pos = 0;
+	}
 
 	FuncInit();
 
@@ -3757,8 +3763,10 @@ int CScript::Exec()
 				// switch(n & 0x03)
 				m_pDoc->ScriptValue(n >> 2, *m_Stack, DOC_MODE_CALL);
 				StackPop();
-			} else
-				StackPop();
+			} else {
+				throw _T("Function not defined");
+//				StackPop();
+			}
 			break;
 
 		case CM_ADDINDEX:
@@ -5591,7 +5599,7 @@ int CScript::Func08(int cmd, CScriptValue &local)
 		ResetEvent(SCP_EVENT_CONS | SCP_EVENT_TIMER);
 		if ( m_ConsMode != DATA_BUF_NONE ) {
 			int ms = (int)local[0];
-			int n, ch, pos = (-1);
+			int n, ch = 0, pos = (-1);
 			int len = m_ConsBuff.GetSize() / sizeof(DWORD);
 			LPDWORD p = (LPDWORD)m_ConsBuff.GetPtr();
 			for ( n = 0 ; n < len ; n += 2 ) {
@@ -6463,7 +6471,7 @@ int CScript::Func03(int cmd, CScriptValue &local)
 			if ( (n = tmp.ReverseFind('\\')) >= 0 || (n = tmp.ReverseFind(':')) >= 0 || (n = tmp.ReverseFind('/')) >= 0 )
 				(*acc) = (LPCTSTR)tmp.Left(n);
 			else
-				(*acc) = (LPCTSTR)"";
+				(*acc) = (LPCTSTR)_T("");
 		}
 		break;
 

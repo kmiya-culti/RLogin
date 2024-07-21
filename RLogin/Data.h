@@ -88,6 +88,7 @@ public:
 	void Move(CBuffer &data);
 	void Swap(CBuffer &data);
 	inline void Clear() { m_Len = m_Ofs = 0; }
+	inline void ZeroClear() { m_Len = m_Ofs = 0; m_bZero = TRUE; }
 	inline LPBYTE GetPtr() { return (m_Data + m_Ofs); }
 	inline LPBYTE GetPos(int pos) { return (m_Data + m_Ofs + pos); }
 	inline BYTE GetAt(int pos) { return m_Data[m_Ofs + pos]; }
@@ -150,6 +151,10 @@ public:
 	LPCTSTR Base16Decode(LPCTSTR str);
 	void Base16Encode(LPBYTE buf, int len);
 	void PutHexBuf(LPBYTE buf, int len);
+	void IntelHexEncode(LPBYTE buf, int len);
+	LPCSTR IntelHexDecode(LPCSTR str);
+	void TekHexEncode(int val, int len);
+	int TekHexDecode(int pos, int len);
 	LPCTSTR QuotedDecode(LPCTSTR str);
 	void QuotedEncode(LPBYTE buf, int len);
 	void BubbleBabble(LPBYTE buf, int len);
@@ -258,7 +263,7 @@ public:
 	inline void operator = (LPCWSTR str) { *((CString *)this) = str; }
 	inline void operator = (LPCSTR  str) { *((CString *)this) = str; }
 
-	BOOL LoadString(UINT nID);
+	int LoadString(UINT nID);
 
 	BOOL IsDigit(LPCTSTR str);
 	int CompareDigit(LPCTSTR dis);
@@ -1184,6 +1189,8 @@ public:
 	CStringA m_ThreadBody;
 
 	static void Request(LPCTSTR url, LPCTSTR head, LPCSTR body, CWnd *pWnd);
+
+	CHttpThreadSession(LPCTSTR url, LPCTSTR head, LPCSTR body, CWnd *pWnd);
 };
 
 #define	EMOJIIMGSTAT_DONE	0
@@ -1207,6 +1214,8 @@ public:
 	class CEmojiDocPos *RemoveAt(class CEmojiDocPos *pTop);
 
 	static class CEmojiDocPos *RemoveHead(class CEmojiDocPos **ppTop);
+
+	CEmojiDocPos(CRLoginDoc *pDoc, int Seq, int Abs, RECT Pos);
 };
 
 class CEmojiImage : public CObject

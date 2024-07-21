@@ -114,6 +114,7 @@ CNode::CNode()
 	m_Pam.m_DWord = 0;
 	m_Len  = 0;
 	m_Data = NULL;
+	m_Track = 0;
 
 	m_Flag = FALSE;
 	m_SubT = 0;

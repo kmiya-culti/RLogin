@@ -24,14 +24,24 @@ CIdkeySelDLg::CIdkeySelDLg(CWnd* pParent /*=NULL*/)
 	m_Type = _T("ED25519");
 	m_Bits = _T("");
 	m_Name = _T("");
+
+	m_pParamTab = NULL;
 	m_pIdKeyTab = NULL;
+
 	m_EntryNum = (-1);
 	m_pKeyGenEvent = new CEvent(FALSE, TRUE);
 	m_KeyGenFlag = 0;
 	m_GenIdKeyTimer = NULL;
 	m_GenElapse = 200;
+
+	m_GenIdKeyType = 0;
+	m_GenIdKeyBits = 0;
+	m_GenIdKeyStat = FALSE;
+	m_GenIdKeyMax = 0;
+	m_GenIdKeyCount = 0;
+	ZeroMemory(&m_GenStat, sizeof(m_GenStat));
+
 	m_ListInit = FALSE;
-	m_pParamTab = NULL;
 	m_bInitPageant = FALSE;
 }
 CIdkeySelDLg::~CIdkeySelDLg()
@@ -531,7 +541,7 @@ void CIdkeySelDLg::OnIdkeyExport()
 
 	dlg.m_OpenMode = IDKFDMODE_SAVE;
 	dlg.m_Title.LoadString(IDS_IDKEYFILESAVE);
-	dlg.m_Message.Format(_T("%s\n\n%s(%d) %s\n%32.32s..."), msg, pKey->GetName(), pKey->GetSize(), pKey->m_Name, finger);
+	dlg.m_Message.Format(_T("%s\n\n%s(%d) %s\n%32.32s..."), (LPCTSTR)msg, pKey->GetName(), pKey->GetSize(), (LPCTSTR)pKey->m_Name, (LPCTSTR)finger);
 
 	if ( dlg.DoModal() != IDOK )
 		return;

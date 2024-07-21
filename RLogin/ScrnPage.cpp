@@ -27,13 +27,14 @@ CScrnPage::CScrnPage() : CTreePage(CScrnPage::IDD)
 	m_ColsMax[0] = _T("");
 	m_ColsMax[1] = _T("");
 	m_VisualBell = 0;
-	m_TypeCaret = 0;
+	m_TypeCaret = m_ImeTypeCaret = 0;
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		m_Check[n] = FALSE;
 	m_FontHw = 10;
 	m_TtlMode = 0;
 	m_TtlRep = m_TtlCng = FALSE;
-	m_CaretColor = RGB(0, 0, 0);
+
+	m_CaretColor = m_ImeCaretColor = RGB(0, 0, 0);
 	m_TitleName.Empty();
 	m_SleepMode = 0;
 	m_UrlOpt = _T("#SCREENOPT");

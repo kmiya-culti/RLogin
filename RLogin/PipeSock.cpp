@@ -29,6 +29,7 @@ CFifoPipe::CFifoPipe(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoASy
 	m_InThreadMode  = 0;
 	m_OutThreadMode = 0;
 
+	m_ProcThread = NULL;
 	m_InThread = NULL;
 	m_OutThread = NULL;
 
@@ -539,8 +540,11 @@ ERRENDOF:
 	SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)m_nLastError);
 	Write(FIFO_STDOUT, NULL, 0);
 
-	CloseHandle(ReadOverLap.hEvent);
-	CloseHandle(WriteOverLap.hEvent);
+	if ( ReadOverLap.hEvent != NULL )
+		CloseHandle(ReadOverLap.hEvent);
+
+	if (WriteOverLap.hEvent != NULL )
+		CloseHandle(WriteOverLap.hEvent);
 }
 
 ///////////////////////////////////////////////////////

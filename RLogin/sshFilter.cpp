@@ -1116,7 +1116,7 @@ void CFifoRcp::RcpUpLoad()
 	if ( !ReadLine(FIFO_STDIN, line) || !line.IsEmpty() )
 		goto ERRRET;
 
-	line.Format("C%04o %I64d %s\n", stat.st_mode & 0777, stat.st_size, m_FileName);
+	line.Format("C%04o %I64d %s\n", stat.st_mode & 0777, stat.st_size, (LPCSTR)m_FileName);
 	if ( Send(FIFO_STDOUT, (LPBYTE)(LPCSTR)line, line.GetLength(), FIFORCP_TIMEOUT) < 0 )
 		goto ERRRET;
 

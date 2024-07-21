@@ -940,6 +940,7 @@ CMainFrame::CMainFrame()
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_hIconActive = AfxGetApp()->LoadIcon(IDI_ACTIVE);
 	m_IconShow = FALSE;
+	ZeroMemory(&m_IconData, sizeof(m_IconData));
 	m_pTopPane = NULL;
 	m_Frame.SetRectEmpty();
 	m_pTrackPane = NULL;
@@ -955,9 +956,11 @@ CMainFrame::CMainFrame()
 	m_MidiTimer = 0;
 	m_InfoThreadCount = 0;
 	m_SplitType = PANEFRAME_WSPLIT;
+	m_ExecCount = 0;
 	m_StartMenuHand = NULL;
 	m_bVersionCheck = FALSE;
 	m_hNextClipWnd = NULL;
+	m_ScrollBarFlag = FALSE;
 	m_bBroadCast = FALSE;
 	m_bMenuBarShow = FALSE;
 	m_bTabBarShow = FALSE;
@@ -968,6 +971,7 @@ CMainFrame::CMainFrame()
 	m_bClipEnable = FALSE;
 	m_bClipChain = FALSE;
 	m_ScreenDpiX = m_ScreenDpiY = 96;
+	m_ScreenX = m_ScreenY = m_ScreenW = m_ScreenH = 0;
 	m_bGlassStyle = FALSE;
 	m_UseBitmapUpdate = FALSE;
 	m_bClipThreadCount = 0;
@@ -985,6 +989,17 @@ CMainFrame::CMainFrame()
 	m_ImageSize.cx = m_ImageSize.cy = 16;
 	m_bDarkMode = FALSE;
 	m_bDockBarMode = FALSE;
+	m_SpeakQueLen = m_SpeakQuePos = m_SpeakQueTop = 0;
+	m_pSpeakView = NULL;
+	m_pSpeakDoc = NULL;
+	m_SpeakCols = m_SpeakLine = m_SpeakAbs = 0;
+	m_SpeakActive[0] = m_SpeakActive[1] = m_SpeakActive[2] = 0;
+	for ( int n = 0 ; n < SPEAKQUESIZE ; n++ ) {
+		m_SpeakData[n].num = 0;
+		m_SpeakData[n].skip = 0;
+		m_SpeakData[n].abs = 0;
+		m_SpeakData[n].line = 0;
+	}
 }
 
 CMainFrame::~CMainFrame()
@@ -1735,9 +1750,7 @@ void CMainFrame::SetMidiEvent(int msec, DWORD msg)
 		return;
 	}
 
-	qp = new CMidiQue;
-	qp->m_mSec = msec;
-	qp->m_Msg  = msg;
+	qp = new CMidiQue(msec, msg);
 
 	m_MidiQue.AddTail(qp);
 	qp = m_MidiQue.GetHead();
@@ -3074,16 +3087,17 @@ void CMainFrame::OnPaneDelete()
 	if ( m_pTopPane == NULL )
 		return;
 
-	CPaneFrame *pPane, *pOwner;
+	CPaneFrame *pPane, *pOwner, *pNext;
 
 	if ( (pPane = m_pTopPane->GetActive()) == NULL )
 		return;
 
 	if ( pPane->m_Style == PANEFRAME_WINDOW && pPane->m_hWnd == NULL && (pOwner = pPane->m_pOwn) != NULL ) {
+		pNext = (pOwner->m_pLeft == pPane ? pOwner->m_pRight : pOwner->m_pLeft);
 		pPane->m_pLeft = pPane->m_pRight = NULL;
 		delete pPane;
 
-		pPane = (pOwner->m_pLeft == pPane ? pOwner->m_pRight : pOwner->m_pLeft);
+		pPane = pNext;
 		pOwner->m_Style  = pPane->m_Style;
 		pOwner->m_pLeft  = pPane->m_pLeft;
 		pOwner->m_pRight = pPane->m_pRight;
@@ -3718,7 +3732,7 @@ void CMainFrame::OnInitMenu(CMenu* pMenu)
 	if ( (pDoc = GetMDIActiveDocument()) != NULL && pMenu != NULL && (pSubMenu = GetMenu()) != NULL && pSubMenu->GetSafeHmenu() == pMenu->GetSafeHmenu() )
 		pDoc->SetMenu(pMenu);
 
-	else {
+	else if ( pMenu != NULL ) {
 		m_DefKeyTab.CmdsInit();
 
 		for ( n = 0 ; n < m_DefKeyTab.m_Cmds.GetSize() ; n++ ) {

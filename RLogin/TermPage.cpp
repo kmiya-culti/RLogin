@@ -405,7 +405,7 @@ void CTermPage::OnEditDelall()
 {
 	int n, i;
 	CInitAllDlg dlg;
-	CTextRam TextRam;
+	CTextRam *pTextRam = new CTextRam;
 
 	dlg.m_Title.LoadString(IDS_INITTERMOPTTITLE);
 
@@ -414,29 +414,31 @@ void CTermPage::OnEditDelall()
 
 	switch(dlg.m_InitType) {
 	case 0:		// Init Default Entry
-		TextRam.Serialize(FALSE);
+		pTextRam->Serialize(FALSE);
 		break;
 
 	case 1:		// Init Program Default
-		TextRam.Init();
+		pTextRam->Init();
 		break;
 
 	case 2:		// Copy Entry option
 		ASSERT(dlg.m_pInitEntry != NULL);
 		{
 			CBuffer tmp(dlg.m_pInitEntry->m_ProBuffer.GetPtr(), dlg.m_pInitEntry->m_ProBuffer.GetSize());
-			TextRam.Serialize(FALSE, tmp);
+			pTextRam->Serialize(FALSE, tmp);
 		}
 		break;
 	}
 
 	for ( i = 0 ; i < m_OptList.GetItemCount() ; i++ ) {
 		n = (int)m_OptList.GetItemData(i);
-		m_OptList.SetLVCheck(i,  TextRam.IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
+		m_OptList.SetLVCheck(i,  pTextRam->IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
 	}
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+
+	delete pTextRam;
 }
 void CTermPage::OnEditCopy()
 {

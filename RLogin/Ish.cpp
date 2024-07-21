@@ -14,7 +14,25 @@ CIsh::CIsh()
 	m_Type = ISH_TYPE_JIS7;
 	m_Len  = ISH_LEN_JIS7;
 	m_IshSize = 0;
+
+	m_AddSize = 0;
+	m_DecLine = 0;
+	m_SeqNum = 0;
 	m_Buf  = NULL;
+
+	m_FileSize = m_FileSeek = 0LL;
+	m_FileTime = 0;
+
+	m_LineTotal = m_LineCount = 0;
+
+	m_FileCRC = 0;
+	m_FileCRC32 = 0;
+	m_WorkCRC = 0;
+
+	m_WorkSize = 0LL;
+	m_VolSeq = m_VolMax = 0;
+	m_VolSize = 0LL;
+	m_bMultiVolume = FALSE;
 }
 CIsh::~CIsh()
 {
@@ -186,6 +204,13 @@ void CIsh::GetFileCRC(FILE *fp)
 
 //////////////////////////////////////////////////////////////////////
 
+void CIsh::Init()
+{
+	m_Stat = 0;
+	m_Type = ISH_TYPE_JIS7;
+	m_Len  = ISH_LEN_JIS7;
+	m_IshSize = 0;
+}
 int CIsh::DecodeLine(LPCSTR str, CBuffer &out)
 {
 	int n, m;
@@ -597,12 +622,16 @@ void CIsh::SetHeader(CBuffer &out)
 
 	n = (int)((m_IshSize + 2 + ISH_COLS_LEN - 1) / ISH_COLS_LEN);	// data line
 	n =  n + (n / ISH_LINE_LEN + 1) * 2 + 3;						// tateyokosum(2) + head(3)
+
+	m_LineTotal = n + (n + ISH_LINE_COMMENT - 1) / ISH_LINE_COMMENT + 1;
+	m_LineCount = 4;
+
 	((CRLoginApp *)AfxGetApp())->GetVersion(version);
 
 	if ( m_VolSeq > 0 )
 		seq.Format("(%03d)", m_VolSeq);
 
-	mbs.Format("<<< %s%s for MS-DOS ( use %s ish ) [ %d lines ] RLogin ver%s >>>\n", m_FileName, seq, types[m_Type], n, TstrToMbs(version));
+	mbs.Format("<<< %s%s for MS-DOS ( use %s ish ) [ %d lines ] RLogin ver%s >>>\n", (LPCSTR)m_FileName, (LPCSTR)seq, types[m_Type], m_LineTotal, TstrToMbs(version));
 	out.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
 
 	out.Apend(work.GetPtr(), work.GetSize());
@@ -757,6 +786,14 @@ int CIsh::EncodeBlock(FILE *fp, CBuffer &out)
 		case ISH_TYPE_NJIS: out.IshEncNjis(GetBuf(num, 0), m_Len); break;
 		}
 		out.PutByte('\n');
+
+		if ( (++m_LineCount % ISH_LINE_COMMENT) == (ISH_LINE_COMMENT - 1) || (m_Stat == 2 && num == m_Len) ) {
+			CStringA str, seq;
+			if ( m_VolSeq > 0 )
+				seq.Format("(%03d)", m_VolSeq);
+			str.Format("--- %s%s %d/%d ---\n", (LPCSTR)m_FileName, (LPCSTR)seq, ++m_LineCount, m_LineTotal);
+			out += (LPCSTR)str;
+		}
 	}
 
 	return rsize;

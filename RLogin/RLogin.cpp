@@ -553,10 +553,16 @@ BOOL CAboutDlg::OnInitDialog()
 
 	if ( (pWnd = GetDlgItem(IDC_VERSIONSTR)) != NULL ) {
 		pWnd->GetWindowText(form);
-#ifdef	_M_X64
+#if		defined	_M_X64
 		text.Format(form, _T("x64"));
-#else
+#elif	defined _M_IX86
 		text.Format(form, _T("x32"));
+#elif	defined _M_ARM64
+		text.Format(form, _T("a64"));
+#elif	defined _M_ARM
+		text.Format(form, _T("a32"));
+#else
+		text.Format(form, _T("???"));
 #endif
 		pWnd->SetWindowText(text);
 	}
@@ -681,10 +687,12 @@ END_MESSAGE_MAP()
 
 CRLoginApp::CRLoginApp()
 {
+	m_pCmdInfo = NULL;
 	m_pServerEntry = NULL;
 	m_bLookCast = FALSE;
 	m_bOtherCast = FALSE;
 	m_LocalPass.Empty();
+	m_pWsaData = NULL;
 
 	m_ProvDefault = NULL;
 	m_ProvLegacy = NULL;
@@ -700,6 +708,8 @@ CRLoginApp::CRLoginApp()
 
 	m_pEmojiThreadQue = NULL;
 	m_EmojiThreadMode = 0;
+	m_EmojiPostStat = 0;
+	m_pEmojiPostDocPos = NULL;
 #endif
 
 	m_pVoice = NULL;
@@ -711,6 +721,9 @@ CRLoginApp::CRLoginApp()
 	m_TempSeqId = 0;
 	m_bRegistAppp = FALSE;
 	m_MakeKeyMode = MAKEKEY_USERHOST;
+
+	m_FindProcsId = 0;
+	m_FindProcsHwnd = NULL;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1465,7 +1478,7 @@ BOOL CRLoginApp::CreateDesktopShortcut(LPCTSTR entry)
 	WCHAR desktopPath[MAX_PATH];
 	CStringW srcParam, linkPath;
 	
-	if ( FAILED(SHGetSpecialFolderPath(NULL, desktopPath, CSIDL_DESKTOPDIRECTORY, FALSE)) )
+	if ( !SHGetSpecialFolderPath(NULL, desktopPath, CSIDL_DESKTOPDIRECTORY, FALSE) )
 		goto ENDOF;
 
 	srcParam.Format(L"/entry \"%s\" /inuse", TstrToUni(entry));
@@ -1573,7 +1586,9 @@ BOOL CRLoginApp::InitInstance()
 	// WINSOCK2.2の初期化
 	WORD wVersionRequested;
 	wVersionRequested = MAKEWORD( 2, 2 );
-	if ( WSAStartup( wVersionRequested, &wsaData ) != 0 ) {
+	ASSERT(m_pWsaData == NULL);
+	m_pWsaData = new WSADATA;
+	if ( WSAStartup( wVersionRequested, m_pWsaData) != 0 ) {
 		::AfxMessageBox(CStringLoad(IDS_SOCKETS_INIT_FAILED), MB_ICONERROR);
 		return FALSE;
 	}
@@ -1642,10 +1657,10 @@ BOOL CRLoginApp::InitInstance()
 		if ( !m_ResDataBase.LoadFile(rcFileName) )
 			::AfxMessageBox(_T("Can't Load Resources File"), MB_ICONWARNING);
 	} else {
-		TCHAR locale[256];
+		TCHAR locale[256] = { _T('\0') };
 		LANGID id = GetUserDefaultUILanguage();
 
-		if ( GetLocaleInfo(MAKELCID(id, SORT_DEFAULT), LOCALE_SISO639LANGNAME, locale, sizeof(locale)) != 0 ) {
+		if ( GetLocaleInfo(MAKELCID(id, SORT_DEFAULT), LOCALE_SISO639LANGNAME, locale, 255) != 0 ) {
 			CString base, ext;
 			base.Format(_T("lang\\%s"), m_pszAppName);
 			ext.Format(_T("_%s.txt"), locale);
@@ -1936,18 +1951,18 @@ LPCTSTR CRLoginApp::GetTempDir(BOOL bSeqId)
 	return m_TempDirPath;
 }
 
-int CRLoginApp::ExitInstance() 
+int CRLoginApp::ExitInstance()
 {
 	// Free Handle or Library
 	rand_buf(NULL, 0);
 
 	RLOGIN_provider_finish();
 
-	if ( m_ProvRlogin != NULL )
+	if (m_ProvRlogin != NULL)
 		OSSL_PROVIDER_unload(m_ProvRlogin);
-	if ( m_ProvLegacy != NULL )
+	if (m_ProvLegacy != NULL)
 		OSSL_PROVIDER_unload(m_ProvLegacy);
-	if ( m_ProvDefault != NULL )
+	if (m_ProvDefault != NULL)
 		OSSL_PROVIDER_unload(m_ProvDefault);
 
 	CONF_modules_finish();
@@ -1958,27 +1973,27 @@ int CRLoginApp::ExitInstance()
 	WSACleanup();
 
 #ifdef	USE_DWMAPI
-	if ( ExDwmApi != NULL )
+	if (ExDwmApi != NULL)
 		FreeLibrary(ExDwmApi);
 #endif
 
-	if ( ExShcoreApi != NULL )
+	if (ExShcoreApi != NULL)
 		FreeLibrary(ExShcoreApi);
 
-	if ( ExUserApi != NULL )
+	if (ExUserApi != NULL)
 		FreeLibrary(ExUserApi);
 
-	if ( ExKernel32Api != NULL )
+	if (ExKernel32Api != NULL)
 		FreeLibrary(ExKernel32Api);
 
-	if ( ExUxThemeDll != NULL )
+	if (ExUxThemeDll != NULL)
 		FreeLibrary(ExUxThemeDll);
 
-	if ( ExNtDll != NULL )
+	if (ExNtDll != NULL)
 		FreeLibrary(ExNtDll);
 
 #ifdef	USE_RCDLL
-	if ( ExRcDll != NULL )
+	if (ExRcDll != NULL)
 		FreeLibrary(ExRcDll);
 #endif
 
@@ -1986,33 +2001,33 @@ int CRLoginApp::ExitInstance()
 	EmojiImageFinish();
 
 	// WM_DRAWEMOJIが処理されずに終了する場合の処置
-	if ( m_EmojiPostStat == EMOJIPOSTSTAT_POST && m_pEmojiPostDocPos != NULL ) {
-		CEmojiDocPos *pDocPos;
-		while ( (pDocPos = CEmojiDocPos::RemoveHead(&m_pEmojiPostDocPos)) != NULL )
+	if (m_EmojiPostStat == EMOJIPOSTSTAT_POST && m_pEmojiPostDocPos != NULL) {
+		CEmojiDocPos* pDocPos;
+		while ((pDocPos = CEmojiDocPos::RemoveHead(&m_pEmojiPostDocPos)) != NULL)
 			delete pDocPos;
 	}
 
-	if ( m_pDCRT != NULL )
+	if (m_pDCRT != NULL)
 		m_pDCRT->Release();
 
-	if ( m_pDWriteFactory != NULL )
+	if (m_pDWriteFactory != NULL)
 		m_pDWriteFactory->Release();
 
-	if ( m_pD2DFactory != NULL )
+	if (m_pD2DFactory != NULL)
 		m_pD2DFactory->Release();
 
-	for ( int n = 0 ; n < EMOJI_HASH ; n++ ) {
-		CEmojiImage *pEmoji;
-		while ( (pEmoji = m_pEmojiList[n]) != NULL ) {
+	for (int n = 0; n < EMOJI_HASH; n++) {
+		CEmojiImage* pEmoji;
+		while ((pEmoji = m_pEmojiList[n]) != NULL) {
 			m_pEmojiList[n] = pEmoji->m_pNext;
 			delete pEmoji;
 		}
 	}
 
-	if ( ExD2D1Api != NULL )
+	if (ExD2D1Api != NULL)
 		FreeLibrary(ExD2D1Api);
 
-	if ( ExDWriteApi != NULL )
+	if (ExDWriteApi != NULL)
 		FreeLibrary(ExDWriteApi);
 #endif
 
@@ -2021,12 +2036,18 @@ int CRLoginApp::ExitInstance()
 
 	CSFtp::LocalDelete(m_TempDirBase);
 
-	while ( !m_PostMsgQue.IsEmpty() ) {
-		PostMsgQue *pQue = m_PostMsgQue.RemoveHead();
+	while (!m_PostMsgQue.IsEmpty()) {
+		PostMsgQue* pQue = m_PostMsgQue.RemoveHead();
 		delete pQue;
 	}
 
 	SaveAppColor();
+
+	if ( m_pWsaData != NULL ) {
+		WSACleanup();
+		delete m_pWsaData;
+		m_pWsaData = NULL;
+	}
 
 	return CWinApp::ExitInstance();
 }
@@ -2239,6 +2260,7 @@ HWND CRLoginApp::NewProcsMainWnd(CPoint *pPoint, BOOL *pbOpen)
 	HANDLE hEvent;
 
 	ZeroMemory(&StatInfo, sizeof(StatInfo));
+	StatInfo.cb = sizeof(StatInfo);
 	ZeroMemory(&ProcInfo, sizeof(ProcInfo));
 
 	tmp.Format(_T("RLogin%d"), GetCurrentThreadId());
@@ -2261,6 +2283,9 @@ HWND CRLoginApp::NewProcsMainWnd(CPoint *pPoint, BOOL *pbOpen)
 	// 最大5秒間メインウィンドウが開くのを待つ
 	WaitForSingleObject(hEvent, 5000);
 	CloseHandle(hEvent);
+
+	CloseHandle(ProcInfo.hProcess);
+	CloseHandle(ProcInfo.hThread);
 
 	return FindProcsMainWnd(ProcInfo.dwProcessId);
 }
@@ -2567,20 +2592,12 @@ void CRLoginApp::OnSendBroadCastMouseWheel(COPYDATASTRUCT *pCopyData)
 }
 void CRLoginApp::SendBroadCastMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
-	COPYDATASTRUCT copyData;
 	struct {
 		UINT nFlags;
 		short zDelta;
 		CPoint pt;
-	} WheelData;
-
-	WheelData.nFlags = nFlags;
-	WheelData.zDelta = zDelta;
-	WheelData.pt = pt;
-
-	copyData.dwData = 0x524c4f35;
-	copyData.cbData = sizeof(WheelData);
-	copyData.lpData = &WheelData;
+	} WheelData = { nFlags, zDelta, pt };
+	COPYDATASTRUCT copyData = { 0x524c4f35, sizeof(WheelData), &WheelData };
 
 	if ( (nFlags & MK_CONTROL) != 0 )
 		::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData);
@@ -3178,7 +3195,7 @@ BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file, BOOL bRLoginApp)
 	DWORD type;
 	DWORD max = 0;
 	BYTE *pData = NULL;
-	DWORD size;
+	DWORD size = 0;
 	FILETIME last;
 	HKEY hSubKey;
 	CStringA mbs;
@@ -3334,7 +3351,7 @@ BOOL CRLoginApp::SaveRegistryKey(HKEY hKey, CFile *file, LPCTSTR base)
 	DWORD type;
 	DWORD max = 0;
 	BYTE *pData = NULL;
-	DWORD size;
+	DWORD size = 0;
 	FILETIME last;
 	HKEY hSubKey;
 	CString keypath, out;
@@ -3719,6 +3736,16 @@ int CRLoginApp::DoMessageBox(LPCTSTR lpszPrompt, UINT nType, UINT nIDPrompt)
 	}
 }
 
+//////////////////////////////////////////////////////////////////////
+// CIdleProc
+
+CIdleProc::CIdleProc(int Type, void* pParam)
+{
+	m_pBack = m_pNext = NULL;
+	m_Type = Type;
+	m_pParam = pParam;
+}
+
 void CRLoginApp::AddIdleProc(int Type, void *pParam)
 {
 	CIdleProc *pProc = m_pIdleTop;
@@ -3731,9 +3758,7 @@ void CRLoginApp::AddIdleProc(int Type, void *pParam)
 	}
 
 	m_IdleProcCount++;
-	pProc = new CIdleProc;
-	pProc->m_Type = Type;
-	pProc->m_pParam = pParam;
+	pProc = new CIdleProc(Type, pParam);
 
 	if ( m_pIdleTop == NULL ) {
 		pProc->m_pBack = pProc->m_pNext = pProc;

@@ -15,9 +15,13 @@
 #define	SENDMODE_BLOCK		1
 #define	SENDMODE_LINE		2
 
+#define	EDCODEMODE_AUTO		(-1)
 #define	EDCODEMODE_UUENC	0
 #define	EDCODEMODE_BASE64	1
 #define	EDCODEMODE_ISH		2
+#define	EDCODEMODE_IHEX		3
+#define	EDCODEMODE_SREC		4
+#define	EDCODEMODE_THEX		5
 
 #define	CRLFMODE_CR			0
 #define	CRLFMODE_LF			1
@@ -58,9 +62,7 @@ public:
 
 	void Serialize(int mode);
 	void OnProc(int cmd);
-
 	void CheckShortName();
-	void DownLoad();
 
 	typedef struct _GETPROCLIST {
 		int (CFileUpDown::*GetProc)(struct _GETPROCLIST *pProc);
@@ -68,11 +70,27 @@ public:
 		struct _GETPROCLIST *pNext;
 	} GETPROCLIST;
 
-	FILE *m_UpFp;
+	FILE *m_FileHandle;
 	int m_FileLen;
 	LONGLONG m_FileSize, m_TranSize;
+	LONGLONG m_TransOffs, m_TranSeek;
+	BOOL m_bSizeLimit;
 	CBuffer m_FileBuffer;
 	CIsh m_Ish;
+	int m_UuStat;
+	CStringBinary m_ishVolPath;
+	int m_AutoMode;
+
+	BOOL UuDecode(LPCSTR line);
+	BOOL Base64Decode(LPCSTR line);
+	BOOL IshDecode(LPCSTR line, BOOL &bRewSize);
+	BOOL IntelHexDecode(LPCSTR line);
+	BOOL SRecordDecode(LPCSTR line);
+	BOOL TekHexDecode(CBuffer &line);
+	int DecodeCheck(CBuffer &line);
+
+	void DownLoad();
+
 	int GetFile(GETPROCLIST *pProc);
 	int GetIshFile(GETPROCLIST *pProc);
 	void UnGetFile(int ch);
@@ -85,8 +103,13 @@ public:
 	BOOL m_EncStart;
 	BOOL m_EncodeEof;
 	CBuffer m_EncodeBuffer;
+	LONGLONG m_EncodeSize;
+	WORD m_HighWordSize;
 	int GetEncode(GETPROCLIST *pProc);
 	int GetBase64(GETPROCLIST *pProc);
+	int GetIntelHexEncode(GETPROCLIST *pProc);
+	int GetSRecordEncode(GETPROCLIST *pProc);
+	int GetTekHexEncode(GETPROCLIST *pProc);
 	void UnGetEncode(int ch);
 
 	BOOL m_CrLfEof;

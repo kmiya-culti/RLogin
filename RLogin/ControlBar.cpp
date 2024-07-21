@@ -358,18 +358,19 @@ void CMiniDockFrameWndEx::OnNcLButtonDown(UINT nHitTest, CPoint point)
 		if ( (m_wndDockBar.m_dwStyle & CBRS_FLOAT_MULTI) == 0 ) {
 			int nPos = 1;
 			CControlBar* pBar = NULL;
-			while(pBar == NULL && nPos < m_wndDockBar.m_arrBars.GetSize())
+			CDockContextEx* pCtx = NULL;
+
+			while( pBar == NULL && nPos < m_wndDockBar.m_arrBars.GetSize() )
 				pBar = (CControlBar *)m_wndDockBar.m_arrBars[nPos];
-			CDockContextEx *pCtx = (CDockContextEx *)pBar->m_pDockContext;
 
-			ASSERT(pBar != NULL && pCtx != NULL && pCtx->m_pDestroyWnd == NULL);
+			if ( pBar != NULL && (pCtx = (CDockContextEx *)pBar->m_pDockContext) != NULL && pCtx->m_pDestroyWnd == NULL) {
+				// CFrameWnd‚Ìíœ‚Åghostwindow‚Ì‚æ‚¤‚È“®ì‚ð—}§
+				pCtx->m_pDestroyWnd = this;
+				m_DelayedDestroy = DELAYDESTORY_RESERV;
 
-			// CFrameWnd‚Ìíœ‚Åghostwindow‚Ì‚æ‚¤‚È“®ì‚ð—}§
-			pCtx->m_pDestroyWnd = this;
-			m_DelayedDestroy = DELAYDESTORY_RESERV;
-
-			pBar->m_pDockContext->StartDrag(point);
-			return;
+				pBar->m_pDockContext->StartDrag(point);
+				return;
+			}
 		}
 	}
 

@@ -339,6 +339,7 @@ CRegExNode::CRegExNode(void)
 {
 	m_Left  = NULL;
 	m_Right = NULL;
+	m_List  = NULL;
 
 	m_Type  = RGE_NONE;
 	m_SChar = 0;
@@ -371,6 +372,11 @@ const CRegExNode & CRegExNode::operator = (CRegExNode &data)
 CRegExQue::CRegExQue(void)
 {
 	m_Next = NULL;
+	m_List = NULL;
+
+	m_Node = NULL;
+	m_Work = NULL;
+	m_Flag = 0;
 }
 CRegExQue::~CRegExQue(void)
 {
@@ -386,8 +392,10 @@ CRegExArg::CRegExArg()
 	m_Str.Empty();
 
 	m_Del = TRUE;
+	m_Done = FALSE;
 	m_FrArg.RemoveAll();
 	m_BkArg.RemoveAll();
+	m_Flag = 0;
 }
 const CRegExArg & CRegExArg::operator = (CRegExArg &data)
 {
@@ -429,6 +437,14 @@ void CRegExRes::Clear()
 
 CRegExWork::CRegExWork()
 {
+	m_Next = NULL;
+	m_List = NULL;
+
+	m_Pos = 0;
+	m_Seq = 0;
+	m_Die = FALSE;
+	m_DupDone = FALSE;
+	m_Loop = 0;
 }
 CRegExWork::~CRegExWork(void)
 {
@@ -1112,7 +1128,8 @@ CRegExNode *CRegEx::CompileSub(DCHAR endc)
 			//   +<----->+
 			// -(s)-[a]-(e)-
 			lp = rp;
-			rp->m_Left = AllocNode(RGE_GROUPSTART);
+			if ( (rp->m_Left = AllocNode(RGE_GROUPSTART)) == NULL )
+				break;
 			rp->m_Left->m_EChar = m_Arg++;
 			m_ArgStack.AddHead(rp->m_Left->m_EChar);
 			switch(n & 0700) {
@@ -1125,6 +1142,8 @@ CRegExNode *CRegEx::CompileSub(DCHAR endc)
 				rp = rp->m_Left;
 				break;
 			}
+			if ( rp->m_Left->m_Left == NULL )
+				break;
 			rp->m_Left->m_Left = CompileSub(')');
 			if ( (n & 002) != 0 )
 				CompileReverse(rp->m_Left->m_Left);
@@ -1833,13 +1852,14 @@ BOOL CRegEx::MatchChar(DCHAR ch, int idx, CRegExRes *res)
 	while ( (qp = m_QueHead[2]) != NULL ) {
 		m_QueHead[2] = qp->m_Next;
 		// ワークの文字数と重なった終了を基準に削除
-		if ( qp->m_Work->m_Pos > REG_MAXREP || qp->m_Work->m_DupDone ) {
+		if (qp->m_Work == NULL || qp->m_Work->m_Pos > REG_MAXREP || qp->m_Work->m_DupDone ) {
 			qp->m_Next = m_QueFree;
 			m_QueFree = qp;
 		} else {
 			if ( qp->m_Work == whp && (qp->m_Flag & REG_NQFLAG_GREED) != 0 )
 				whp = NULL;
-			qp->m_Work->m_Die = FALSE;
+			if ( qp->m_Work != NULL )
+				qp->m_Work->m_Die = FALSE;
 			qp->m_Next = qtp;
 			qtp = qp;
 		}

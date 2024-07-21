@@ -131,7 +131,6 @@ public:
 	BOOL m_SSL_keep;
 	CString m_SSL_Msg;
 	CStringA m_SSL_alpn;
-	void *m_PauseParam[2];
 
 public:
 	CExtSocket(class CRLoginDoc *pDoc);

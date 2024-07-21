@@ -20,6 +20,7 @@ CUpdateDlg::CUpdateDlg(CWnd* pParent /*=NULL*/)
 	: CDialogExt(CUpdateDlg::IDD, pParent)
 {
 	m_DoExec = ::AfxGetApp()->GetProfileInt(_T("CUpdateDlg"), _T("Jobs"), 1);
+	m_DoResume = 0;
 
 	m_FileName = _T("");
 	m_Jobs = m_DoExec & 0x7F;

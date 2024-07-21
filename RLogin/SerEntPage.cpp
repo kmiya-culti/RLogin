@@ -29,6 +29,8 @@ IMPLEMENT_DYNCREATE(CSerEntPage, CTreePage)
 CSerEntPage::CSerEntPage() : CTreePage(CSerEntPage::IDD)
 , m_UsePassDlg(FALSE)
 {
+	m_UrlOpt = _T("#SERVEROPT");
+
 	m_EntryName = _T("");
 	m_HostName = _T("");
 	m_PortName = _T("");
@@ -37,15 +39,24 @@ CSerEntPage::CSerEntPage() : CTreePage(CSerEntPage::IDD)
 	m_TermName = _T("");
 	m_KanjiCode = 0;
 	m_ProtoType = 0;
-	m_DefComPort = _T("");
-	m_IdkeyName = _T("");
 	m_Memo = _T("");
 	m_Group = _T("");
+	m_DefComPort = _T("");
+	m_IdkeyName = _T("");
+	m_ProxyMode = 0;
+	m_SSL_Keep = FALSE;
+	m_ProxyHost = _T("");
+	m_ProxyPort = _T("");
+	m_ProxyUser = _T("");
+	m_ProxyPass = _T("");
+	m_ProxyCmd = _T("");
+	m_ExtEnvStr = _T("");
 	m_BeforeEntry = _T("");
 	m_UsePassDlg = FALSE;
 	m_UseProxyDlg = FALSE;
+	m_IconName = _T("");
 	m_bOptFixed = FALSE;
-	m_UrlOpt = _T("#SERVEROPT");
+	m_OptFixEntry = _T("");
 }
 CSerEntPage::~CSerEntPage()
 {

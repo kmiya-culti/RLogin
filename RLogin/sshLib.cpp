@@ -3168,7 +3168,15 @@ struct umac_ctx {
 						    ((UINT8 *)(p))[3] = (UINT)((i) >>  0)
 
 #define MUL64(a,b)					((UINT64)((UINT64)(UINT32)(a) * (UINT64)(UINT32)(b)))
+
+#ifdef	USE_NOENDIAN
+#define LOAD_UINT32_LITTLE(ptr)		((((UINT32)(((UINT8 *)(ptr))[0])) <<  0) | \
+									 (((UINT32)(((UINT8 *)(ptr))[1])) <<  8) | \
+									 (((UINT32)(((UINT8 *)(ptr))[2])) << 16) | \
+									 (((UINT32)(((UINT8 *)(ptr))[3])) << 24))
+#else
 #define LOAD_UINT32_LITTLE(ptr)     (*(UINT32 *)(ptr))
+#endif
 
 //////////////////////////////////////////////////////////////////////
 
@@ -3857,7 +3865,7 @@ ENDOF:
 
 #else
 	HMAC_CTX *ctx = NULL;
-	unsigned int dlen;
+	unsigned int dlen = 0;
 
 	if ( md == NULL )
 		goto ENDOF;
@@ -4508,8 +4516,7 @@ int bcrypt_pbkdf(const char *pass, size_t passlen, const unsigned char *salt, si
 	/* nothing crazy */
 	if (rounds < 1)
 		return -1;
-	if (passlen == 0 || saltlen == 0 || keylen == 0 ||
-	    keylen > sizeof(out) * sizeof(out) || saltlen > 1<<20)
+	if (passlen == 0 || saltlen == 0 || keylen == 0 || keylen > 1024 || saltlen > (1 << 20) )
 		return -1;
 	if ((countsalt = (u_int8_t *)calloc(1, saltlen + 4)) == NULL)
 		return -1;
@@ -4576,22 +4583,63 @@ int bcrypt_pbkdf(const char *pass, size_t passlen, const unsigned char *salt, si
 
 static inline uint32_t GET_32BIT_LSB_FIRST(const void *vp)
 {
+#ifdef	USE_NOENDIAN
+    const uint8_t *p = (const uint8_t *)vp;
+    return (((uint64_t)p[0]	 ) |
+			((uint64_t)p[1] <<  8) |
+		    ((uint64_t)p[2] << 16) |
+			((uint64_t)p[3] << 24));
+#else
 	return *((uint32_t *)vp);
+#endif
 }
 
 static inline void PUT_32BIT_LSB_FIRST(void *vp, uint32_t value)
 {
+#ifdef	USE_NOENDIAN
+    uint8_t *p = (uint8_t *)vp;
+    p[0] = (uint8_t)(value);
+    p[1] = (uint8_t)(value >> 8);
+    p[2] = (uint8_t)(value >> 16);
+    p[3] = (uint8_t)(value >> 24);
+#else
 	*((uint32_t *)vp) = value;
+#endif
 }
 
 static inline uint64_t GET_64BIT_LSB_FIRST(const void *vp)
 {
+#ifdef	USE_NOENDIAN
+    const uint8_t *p = (const uint8_t *)vp;
+    return (((uint64_t)p[0]	 ) |
+			((uint64_t)p[1] <<  8) |
+		    ((uint64_t)p[2] << 16) |
+			((uint64_t)p[3] << 24) |
+			((uint64_t)p[4] << 32) |
+			((uint64_t)p[5] << 40) |
+			((uint64_t)p[6] << 48) |
+			((uint64_t)p[7] << 56));
+#else
 	return *((uint64_t *)vp);
+#endif
 }
 
 static inline void PUT_64BIT_LSB_FIRST(void *vp, uint64_t value)
 {
+#ifdef	USE_NOENDIAN
+    uint8_t *p = (uint8_t *)vp;
+    p[0] = (uint8_t)(value);
+    p[1] = (uint8_t)(value >> 8);
+    p[2] = (uint8_t)(value >> 16);
+    p[3] = (uint8_t)(value >> 24);
+    p[4] = (uint8_t)(value >> 32);
+    p[5] = (uint8_t)(value >> 40);
+    p[6] = (uint8_t)(value >> 48);
+    p[7] = (uint8_t)(value >> 56);
+
+#else
 	*((uint64_t *)vp) = value;
+#endif
 }
 
 static inline uint64_t ror64(uint64_t x, unsigned rotation)
