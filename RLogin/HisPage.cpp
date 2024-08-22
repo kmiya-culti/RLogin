@@ -41,23 +41,35 @@ void CHisPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_HISMAX, m_HisMax);
 	DDX_CBIndex(pDX, IDC_COMBO1, m_LogMode);
 	DDX_CBIndex(pDX, IDC_COMBO2, m_LogCode);
-	DDX_Text(pDX, IDC_HISFILE_PATH, m_HisFile);
-	DDX_Text(pDX, IDC_AUTOLOG_PATH, m_LogFile);
+
 	DDX_Text(pDX, IDC_COMBO3, m_TimeFormat);
-	DDX_Text(pDX, IDC_TRACEFILE_PATH, m_TraceFile);
 	DDX_Text(pDX, IDC_TRACE_MAX, m_TraceMax);
+
+	DDX_CBStringExact(pDX, IDC_HISFILE_PATH, m_HisFile);
+	DDX_CBStringExact(pDX, IDC_AUTOLOG_PATH, m_LogFile);
+	DDX_CBStringExact(pDX, IDC_TRACEFILE_PATH, m_TraceFile);
+
+	DDX_Control(pDX, IDC_AUTOLOG_PATH, m_LogCombo);
+	DDX_Control(pDX, IDC_HISFILE_PATH, m_HisCombo);
+	DDX_Control(pDX, IDC_TRACEFILE_PATH, m_TraceCombo);
 }
 
 BEGIN_MESSAGE_MAP(CHisPage, CTreePage)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_EN_CHANGE(IDC_HISMAX, OnUpdateEdit)
-	ON_EN_CHANGE(IDC_HISFILE_PATH, OnUpdateEdit)
-	ON_EN_CHANGE(IDC_AUTOLOG_PATH, OnUpdateEdit)
-	ON_EN_CHANGE(IDC_TRACEFILE_PATH, OnUpdateEdit)
+
+	ON_CBN_SELCHANGE(IDC_HISFILE_PATH, OnUpdateEdit)
+	ON_CBN_EDITUPDATE(IDC_HISFILE_PATH, OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_AUTOLOG_PATH, OnUpdateEdit)
+	ON_CBN_EDITUPDATE(IDC_AUTOLOG_PATH, OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_TRACEFILE_PATH, OnUpdateEdit)
+	ON_CBN_EDITUPDATE(IDC_TRACEFILE_PATH, OnUpdateEdit)
+
 	ON_EN_CHANGE(IDC_TRACE_MAX, OnUpdateEdit)
 	ON_BN_CLICKED(IDC_HISFILE_SEL, OnHisfileSel)
 	ON_BN_CLICKED(IDC_AUTOLOG_SEL, OnAutoLogSel)
 	ON_BN_CLICKED(IDC_TRACEFILE_SEL, OnTraceLogSel)
+
 	ON_CBN_SELCHANGE(IDC_COMBO1, OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_COMBO2, OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_COMBO3, OnUpdateEdit)
@@ -96,6 +108,10 @@ BOOL CHisPage::OnInitDialog()
 
 	DoInit();
 
+	m_LogCombo.LoadHis(_T("HisPageLogFile"));
+	m_HisCombo.LoadHis(_T("HisPageHisFile"));
+	m_TraceCombo.LoadHis(_T("HisPageTraceFile"));
+
 	SubclassComboBox(IDC_COMBO3);
 
 	return TRUE;
@@ -125,6 +141,10 @@ BOOL CHisPage::OnApply()
 
 	m_pSheet->m_pTextRam->m_TraceMaxCount = _tstoi(m_TraceMax);
 	m_pSheet->m_pTextRam->m_TraceLogFile  = m_TraceFile;
+
+	m_LogCombo.AddHis(m_LogFile);
+	m_HisCombo.AddHis(m_HisFile);
+	m_TraceCombo.AddHis(m_TraceFile);
 
 	return TRUE;
 }

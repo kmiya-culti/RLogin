@@ -1,7 +1,6 @@
 #pragma once
 
 #include "afxcmn.h"
-#include "ComboBoxHis.h"
 #include "afxwin.h"
 #include "DialogExt.h"
 

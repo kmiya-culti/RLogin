@@ -1,7 +1,5 @@
 #pragma once
 
-#include "DialogExt.h"
-
 // CScriptPage ダイアログ
 
 class CScriptPage : public CTreePage
@@ -20,6 +18,8 @@ public:
 	BOOL m_Check[10];
 	CString m_ScriptFile;
 	CString m_ScriptStr;
+
+	CComboBoxHis m_ScriptCombo;
 
 public:
 	void DoInit();

@@ -57,6 +57,9 @@ CFileUpDown::CFileUpDown(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, p
 	m_TranSeek     = 0LL;
 	m_bSizeLimit   = FALSE;
 
+	m_CharSize     = 0LL;
+	m_bRewSize     = TRUE;
+
 	m_UuStat       = 0;
 	m_ishVolPath.RemoveAll();
 	m_AutoMode     = EDCODEMODE_AUTO;
@@ -244,7 +247,11 @@ BOOL CFileUpDown::UuDecode(LPCSTR line)
 				::ThreadMessageBox(_T("uudecode '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 				return FALSE;
 			}
-			UpDownInit(0, 0);
+			if ( !m_bRewSize ) {
+				UpDownInit(0, 0);
+				m_CharSize = 0LL;
+				m_bRewSize = TRUE;
+			}
 		}
 
 		msg.Format("uudecode start '%s'", line);
@@ -304,7 +311,11 @@ BOOL CFileUpDown::Base64Decode(LPCSTR line)
 				::ThreadMessageBox(_T("base64 '%s'\n%s"), m_PathName, CStringLoad(IDE_FILEOPENERROR));
 				return FALSE;
 			}
-			UpDownInit(0, 0);
+			if ( !m_bRewSize ) {
+				UpDownInit(0, 0);
+				m_CharSize = 0LL;
+				m_bRewSize = TRUE;
+			}
 		}
 
 		if ( fwrite(work.GetPtr(), 1, work.GetSize(), m_FileHandle) != work.GetSize() ) {
@@ -315,7 +326,7 @@ BOOL CFileUpDown::Base64Decode(LPCSTR line)
 
 	return TRUE;
 }
-BOOL CFileUpDown::IshDecode(LPCSTR line, BOOL &bRewSize)
+BOOL CFileUpDown::IshDecode(LPCSTR line)
 {
 	CStringA msg;
 	CBuffer work;
@@ -341,7 +352,7 @@ BOOL CFileUpDown::IshDecode(LPCSTR line, BOOL &bRewSize)
 			m_ishVolPath[m_Ish.m_VolChkName] = m_PathName;
 		}
 		UpDownInit(m_Ish.m_FileSize);
-		bRewSize = FALSE;
+		m_bRewSize = FALSE;
 		if ( m_Ish.m_VolSeq != 0 )
 			msg.Format("ish start '%s' #%d", (LPCSTR)m_Ish.m_FileName, m_Ish.m_VolSeq);
 		else
@@ -440,7 +451,11 @@ BOOL CFileUpDown::IntelHexDecode(LPCSTR line)
 					return FALSE;
 				}
 				UpDownMessage("intel hex new file");
-				UpDownInit(0, 0);
+				if ( !m_bRewSize ) {
+					UpDownInit(0, 0);
+					m_CharSize = 0LL;
+					m_bRewSize = TRUE;
+				}
 			}
 			m_TranSize = m_TransOffs + (LONGLONG)addr;
 			if ( m_TranSeek != m_TranSize && _fseeki64(m_FileHandle, m_TranSize, SEEK_SET) != 0 ) {
@@ -538,7 +553,11 @@ BOOL CFileUpDown::SRecordDecode(LPCSTR line)
 				return FALSE;
 			}
 			UpDownMessage("s-record new file");
-			UpDownInit(0, 0);
+			if ( !m_bRewSize ) {
+				UpDownInit(0, 0);
+				m_CharSize = 0LL;
+				m_bRewSize = TRUE;
+			}
 		}
 
 		if ( m_TranSeek != m_TranSize && _fseeki64(m_FileHandle, m_TranSize, SEEK_SET) != 0 ) {
@@ -622,7 +641,11 @@ BOOL CFileUpDown::TekHexDecode(CBuffer &line)
 		}
 		m_TranSeek = 0LL;
 		UpDownMessage("tek hex new file");
-		UpDownInit(0, 0);
+		if ( !m_bRewSize ) {
+			UpDownInit(0, 0);
+			m_CharSize = 0LL;
+			m_bRewSize = TRUE;
+		}
 	}
 
 	if ( m_TranSeek != m_TranSize && _fseeki64(m_FileHandle, m_TranSize, SEEK_SET) != 0 ) {
@@ -724,8 +747,6 @@ void CFileUpDown::DownLoad()
 	int ch, len;
 	int last = (-1);
 	struct _stati64 st;
-	BOOL bRewSize = TRUE;
-	LONGLONG CharSize;
 	CBuffer tmp, work, line;
 
 	if ( !CheckFileName(CHKFILENAME_SAVE, "", EXTFILEDLG_DOWNLOAD) )
@@ -746,7 +767,8 @@ void CFileUpDown::DownLoad()
 	UpDownOpen("Simple File Download");
 	UpDownInit(0, 0);
 
-	CharSize = 0LL;
+	m_CharSize = 0LL;
+	m_bRewSize = TRUE;
 	m_TranSize = m_TranSeek = m_TransOffs = 0LL;
 	m_UuStat = 0;
 	m_Ish.Init();
@@ -769,9 +791,9 @@ void CFileUpDown::DownLoad()
 		if ( m_bWithEcho )
 			SendEchoBuffer((char *)tmp.GetPtr(), tmp.GetSize());
 
-		if ( bRewSize ) {
-			CharSize += tmp.GetSize();
-			UpDownStat(CharSize);
+		if ( m_bRewSize ) {
+			m_CharSize += tmp.GetSize();
+			UpDownStat(m_CharSize);
 		}
 
 		if ( m_bDownCrLf ) {
@@ -829,7 +851,7 @@ void CFileUpDown::DownLoad()
 							goto ENDOFRET;
 						break;
 					case EDCODEMODE_ISH:
-						if ( !IshDecode(line, bRewSize) )
+						if ( !IshDecode(line) )
 							goto ENDOFRET;
 						break;
 					case EDCODEMODE_IHEX:
@@ -1625,10 +1647,11 @@ RECHECK:
 		if ( !bHaveData )
 			break;
 
+		st = clock();
+
 		Bufferd_SendBuf((char *)tmp.GetPtr(), tmp.GetSize());
 		Bufferd_Flush();
 
-		st = clock();
 		do {
 			n = maxMsec - ((clock() - st) * 1000 / CLOCKS_PER_SEC);
 

@@ -70,7 +70,8 @@ void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SLIDER_BRIGHT, m_SliderBright);
 	DDX_Control(pDX, IDC_SLIDER_HUECOL, m_SliderHuecol);
 	DDX_CBStringExact(pDX, IDC_EMOJIFONTNAME, m_EmojiFontName);
-	DDX_Text(pDX, IDC_EMOJIIMAGEDIR, m_EmojiImageDir);
+	DDX_CBStringExact(pDX, IDC_EMOJIIMAGEDIR, m_EmojiImageDir);
+	DDX_Control(pDX, IDC_EMOJIIMAGEDIR, m_EmojiImageDirCombo);
 	DDX_Radio(pDX, IDC_RADIO1, m_EmojiColorMode);
 }
 
@@ -93,7 +94,9 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CTreePage)
 	ON_BN_CLICKED(IDC_COLEDIT, &CColParaDlg::OnBnClickedColedit)
 	ON_BN_CLICKED(IDC_EMOJIIMAGESEL, &CColParaDlg::OnBnClickedImageSel)
 	ON_CBN_SELCHANGE(IDC_EMOJIFONTNAME, &CColParaDlg::OnUpdateTextRam)
-	ON_EN_CHANGE(IDC_EMOJIIMAGEDIR, &CColParaDlg::OnUpdateTextRam)
+	ON_CBN_EDITUPDATE(IDC_EMOJIFONTNAME, &CColParaDlg::OnUpdateTextRam)
+	ON_CBN_SELCHANGE(IDC_EMOJIIMAGEDIR, &CColParaDlg::OnUpdateTextRam)
+	ON_CBN_EDITUPDATE(IDC_EMOJIIMAGEDIR, &CColParaDlg::OnUpdateTextRam)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO4, &CColParaDlg::OnUpdateRadio)
 END_MESSAGE_MAP()
 
@@ -384,6 +387,8 @@ BOOL CColParaDlg::OnInitDialog()
 
 	DoInit();
 
+	m_EmojiImageDirCombo.LoadHis(_T("ColParaPageEmojiImageDir"));
+
 	SubclassComboBox(IDC_EMOJIFONTNAME);
 
 	return TRUE;
@@ -438,6 +443,8 @@ BOOL CColParaDlg::OnApply()
 	m_pSheet->m_pTextRam->SetOption(TO_RLDELYEMOJI, (m_EmojiColorMode & 2) != 0 ? TRUE : FALSE);
 	pApp->EmojiImageInit(m_EmojiFontName, m_EmojiImageDir);
 #endif
+
+	m_EmojiImageDirCombo.AddHis(m_EmojiImageDir);
 
 	return TRUE;
 }

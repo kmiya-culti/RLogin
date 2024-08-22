@@ -31,6 +31,8 @@ public:
 	CString m_PluginAuth;
 	int m_StdIoBufSize;
 
+	CComboBoxHis m_PluginAuthCombo;
+
 public:
 	void DoInit();
 

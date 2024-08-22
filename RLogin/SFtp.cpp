@@ -926,11 +926,13 @@ CSFtp::CSFtp(CWnd* pParent /*=NULL*/) : CDialogExt(CSFtp::IDD, pParent)
 	m_UpDownRate = 0;
 	m_ProgDiv = 0;
 	m_ProgSize = m_ProgOfs = 0LL;
-	m_ProgClock = 0;
-	m_TotalSize = m_TotalPos = 0LL;
+	m_ProgClock = m_TotalClock = 0;
+	m_TotalSize = m_TotalPos = m_TotalOfs = 0LL;
 	m_TransmitSize = 0LL;
 	m_TransmitClock = 0;
 	m_pTaskbarList = NULL;
+
+	ZeroMemory(m_ClockSize, sizeof(m_ClockSize));
 }
 CSFtp::~CSFtp()
 {
@@ -2075,7 +2077,10 @@ int CSFtp::RemoteCloseWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		DispErrMsg(_T("Make Directory Error"), pQue->m_Path);
 	else if ( type == (-3) )
 		DispErrMsg(_T("Open Write Error"), pQue->m_Path);
-	else
+	else if ( type == (-10) ) {	// skip
+		m_TotalOfs += pQue->m_Size;
+		SetPosProg(pQue->m_Size);
+	} else
 		st = SSH2_FX_OK;
 
 	if ( m_DoAbort ) {
@@ -2878,17 +2883,27 @@ void CSFtp::AddTotalRange(LONGLONG size)
 void CSFtp::SetRangeProg(LPCTSTR file, LONGLONG size, LONGLONG ofs)
 {
 	if ( file == NULL ) {
+		if ( m_ProgDiv > 0 && m_ProgClock != 0 && m_ProgSize > 0 ) {
+			m_TransmitSize += (m_ProgSize - m_ProgOfs);
+			m_TransmitClock += (clock() - m_ProgClock);
+		}
+
 		m_TotalPos += m_ProgSize;
 		m_ProgSize = 0;
 
 		if ( m_TotalPos >= m_TotalSize ) {
 			m_ProgDiv = 0;
-			m_TotalSize = m_TotalPos = 0;
+			m_ProgClock = m_TotalClock = 0;
+			m_TotalSize = m_TotalPos = m_TotalOfs = 0LL;
 			m_TransmitSize = 0;
 			m_TransmitClock = 0;
 
-			m_UpDownProg.SetRange(0, 0);
-			m_UpDownProg.SetPos(0);
+			ZeroMemory(m_ClockSize, sizeof(m_ClockSize));
+			m_LastClock = 0;
+
+			//m_UpDownProg.SetRange(0, 0);
+			//m_UpDownProg.SetPos(0);
+			m_UpDownProg.SetFinish();
 			m_UpDownStat[1].SetWindowText(_T(""));
 
 			m_UpDownProg.EnableWindow(FALSE);
@@ -2915,6 +2930,10 @@ void CSFtp::SetRangeProg(LPCTSTR file, LONGLONG size, LONGLONG ofs)
 		m_ProgOfs    = ofs;
 		m_ProgClock  = clock();
 		m_UpDownRate = 0;
+
+		if ( m_TotalClock == 0 )
+			m_TotalClock = m_LastClock = m_ProgClock;
+		m_TotalOfs += ofs;
 
 		m_UpDownProg.EnableWindow(TRUE);
 		m_UpDownStat[1].EnableWindow(TRUE);
@@ -2943,27 +2962,36 @@ void CSFtp::SetRangeProg(LPCTSTR file, LONGLONG size, LONGLONG ofs)
 void CSFtp::SetPosProg(LONGLONG pos)
 {
 	int n;
-	double d, e;
+	double e, d;
 	clock_t now = clock();
 	CString tmp[2];
 
-	if ( m_ProgDiv <= 0 )
+	if ( m_ProgDiv <= 0 || m_TotalClock == 0 )
 		return;
 
-	if ( now > m_ProgClock ) {
-		m_TransmitSize  += (pos - m_ProgOfs);
-		m_TransmitClock += (now - m_ProgClock);
+	if ( now > m_TotalClock ) {
+		if ( ((now - m_LastClock) * 1000 / CLOCKS_PER_SEC) >= 200 ) {	// 200ms * 5 = 1sec
+			m_ClockSize[4] = m_ClockSize[3];
+			m_ClockSize[3] = m_ClockSize[2];
+			m_ClockSize[2] = m_ClockSize[1];
+			m_ClockSize[1] = m_ClockSize[0];
+			m_ClockSize[0].clock = now;
+			m_ClockSize[0].size = m_TotalPos + pos - m_TotalOfs;
+			m_LastClock = now;
+		} else if ( (m_TotalPos + pos) < m_TotalSize )	// 基本200ms以下なら表示を更新しない
+			return;
 
-		if ( m_TransmitClock > (CLOCKS_PER_SEC * 5) ) {
-			m_TransmitSize = m_TransmitSize * CLOCKS_PER_SEC / m_TransmitClock;
-			m_TransmitClock = CLOCKS_PER_SEC;
-			d = (double)m_TransmitSize;
-		} else
-			d = (double)m_TransmitSize * (double)CLOCKS_PER_SEC / (double)m_TransmitClock;
+		// トータルの転送速度
+		d = (double)(m_TotalPos + pos - m_TotalOfs) * (double)CLOCKS_PER_SEC / (double)(now - m_TotalClock);
+
+		// 直近1秒の転送速度
+		if ( m_ClockSize[4].clock != 0 )
+			e = (double)(m_TotalPos + pos - m_TotalOfs - m_ClockSize[4].size) * (double)CLOCKS_PER_SEC / (double)(now - m_ClockSize[4].clock);
+		else
+			e = d;
 
 		if ( d > 0.0 ) {
-			e = (double)(m_TotalSize - m_TotalPos - pos) / d;
-			n = (int)e;
+			n = (int)((double)(m_TotalSize - m_TotalPos - pos) / d);
 			if ( n >= 3600 )
 				tmp[1].Format(_T("%d:%02d:%02d"), n / 3600, (n % 3600) / 60, n % 60);
 			else if ( n >= 60 )
@@ -2983,9 +3011,13 @@ void CSFtp::SetPosProg(LONGLONG pos)
 
 		m_UpDownStat[2].SetWindowText(tmp[0]);
 		m_UpDownStat[3].SetWindowText(tmp[1]);
-	}
 
-	m_UpDownProg.SetPos((int)((m_TotalPos + pos) / m_ProgDiv));
+	} else if ( (m_TotalPos + pos) >= m_TotalSize )
+		e = 1.0;
+	else
+		e = 0.0;
+
+	m_UpDownProg.SetPos((int)((m_TotalPos + pos) / m_ProgDiv), (int)e);
 
 	if ( m_pTaskbarList != NULL )
 		m_pTaskbarList->SetProgressValue(GetSafeHwnd(), (m_TotalPos + pos), m_TotalSize);

@@ -4,6 +4,8 @@
 #include "ComboBoxHis.h"
 #include "ListCtrlExt.h"
 #include "ToolBarEx.h"
+#include "ProgDlg.h"
+
 #include <Shobjidl.h>
 
 /* version */
@@ -246,7 +248,7 @@ public:
 	CComboBoxExt	m_RemoteCwd;
 	CListCtrlExt	m_LocalList;
 	CComboBoxExt	m_LocalCwd;
-	CProgressCtrl	m_UpDownProg;
+	CProgressWnd	m_UpDownProg;
 	CStatic	m_UpDownStat[4];
 	CString m_LastErrorMsg;
 	class CFifoBase *m_pFifoSftp;
@@ -406,9 +408,17 @@ public:
 	clock_t m_ProgClock;
 	LONGLONG m_TotalPos;
 	LONGLONG m_TotalSize;
+	LONGLONG m_TotalOfs;
+	clock_t m_TotalClock;
 	LONGLONG m_TransmitSize;
 	clock_t m_TransmitClock;
 	CComPtr<ITaskbarList3> m_pTaskbarList;
+
+	struct _ClockSize {
+		clock_t	clock;
+		LONGLONG size;
+	} m_ClockSize[5];
+	clock_t m_LastClock;
 
 	void SetUpDownCount(int count);
 	void AddTotalRange(LONGLONG size);

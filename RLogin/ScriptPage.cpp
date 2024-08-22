@@ -38,15 +38,18 @@ void CScriptPage::DoDataExchange(CDataExchange* pDX)
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_TERMCHECK1 + n, m_Check[n]);
 
-	DDX_Text(pDX, IDC_SCRIPT_PATH, m_ScriptFile);
+	DDX_CBStringExact(pDX, IDC_SCRIPT_PATH, m_ScriptFile);
+	DDX_Control(pDX, IDC_SCRIPT_PATH, m_ScriptCombo);
+
 	DDX_Text(pDX, IDC_SCRIPT_STR, m_ScriptStr);
 }
 
 BEGIN_MESSAGE_MAP(CScriptPage, CTreePage)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
-	ON_EN_CHANGE(IDC_SCRIPT_PATH, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_SCRIPT_STR, OnUpdateEdit)
 	ON_BN_CLICKED(IDC_SCRIPT_SEL, &CScriptPage::OnBnClickedScriptSel)
+	ON_CBN_SELCHANGE(IDC_SCRIPT_PATH, OnUpdateEdit)
+	ON_CBN_EDITUPDATE(IDC_SCRIPT_PATH, OnUpdateEdit)
 END_MESSAGE_MAP()
 
 static const INITDLGTAB ItemTab[] = {
@@ -87,6 +90,8 @@ BOOL CScriptPage::OnInitDialog()
 
 	DoInit();
 
+	m_ScriptCombo.LoadHis(_T("ScriptPageScriptFile"));
+
 	return TRUE;
 }
 BOOL CScriptPage::OnApply()
@@ -102,6 +107,8 @@ BOOL CScriptPage::OnApply()
 
 	m_pSheet->m_pEntry->m_ScriptFile = m_ScriptFile;
 	m_pSheet->m_pEntry->m_ScriptStr  = m_ScriptStr;
+		
+	m_ScriptCombo.AddHis(m_ScriptFile);
 
 	return TRUE;
 }

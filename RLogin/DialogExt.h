@@ -2,6 +2,7 @@
 
 #include <afxtempl.h>
 #include "UahMenuBar.h"
+#include "ComboBoxHis.h"
 
 class CShortCutKey : public CObject
 {

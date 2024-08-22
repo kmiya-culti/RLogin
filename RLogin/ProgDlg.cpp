@@ -20,12 +20,14 @@ IMPLEMENT_DYNAMIC(CProgressWnd, CWnd)
 
 CProgressWnd::CProgressWnd()
 {
+	m_bFinish = TRUE;
 	m_bNoRange = FALSE;
 	m_RangeLower = 0;
 	m_RangeUpper = 0;
 	m_RangePos = 0;
 
-	m_RateMax = 1;
+	m_RateMax = 0;
+	m_RateLast = 0;
 	m_LastPos = 0;
 
 	m_DataMax = 0;
@@ -37,7 +39,7 @@ CProgressWnd::~CProgressWnd()
 		delete [] m_pDataTab;
 }
 
-void CProgressWnd::InitDataTab(BOOL bInit)
+BOOL CProgressWnd::InitDataTab(BOOL bInit)
 {
 	CRect rect;
 	int DataMax;
@@ -46,7 +48,7 @@ void CProgressWnd::InitDataTab(BOOL bInit)
 	GetClientRect(rect);
 
 	if ( !bInit && m_pDataTab != NULL && m_DataMax == rect.Width() )
-		return;
+		return FALSE;
 
 	DataMax = rect.Width();
 	pDataTab = new BYTE[DataMax];
@@ -58,8 +60,9 @@ void CProgressWnd::InitDataTab(BOOL bInit)
 			m_LastPos = DataMax - 1;
 	} else {
 		ZeroMemory(pDataTab, sizeof(BYTE) * DataMax);
-		m_RateMax = 1;
+		m_RateMax = 0;
 		m_LastPos = 0;
+		m_RateLast = 0;
 	}
 
 	if ( m_pDataTab != NULL )
@@ -67,6 +70,8 @@ void CProgressWnd::InitDataTab(BOOL bInit)
 
 	m_DataMax = DataMax;
 	m_pDataTab = pDataTab;
+
+	return TRUE;
 }
 
 BEGIN_MESSAGE_MAP(CProgressWnd, CWnd)
@@ -80,11 +85,18 @@ void CProgressWnd::SetRange(short nLower, short nUpper)
 }
 void CProgressWnd::SetRange32(int nLower, int nUpper)
 {
+	BOOL bInit = TRUE;
+
+	if ( m_pDataTab != NULL && !m_bFinish && m_RangeLower == nLower && m_RangeUpper == nUpper )
+		bInit = FALSE;
+
 	m_RangeLower = nLower;
 	m_RangeUpper = nUpper;
 	m_bNoRange = (m_RangeLower >= m_RangeUpper ? TRUE : FALSE);
+	m_bFinish = FALSE;
 
-	InitDataTab(TRUE);
+	if ( InitDataTab(bInit) )
+		Invalidate(FALSE);
 }
 void CProgressWnd::GetRange(int &nLower, int &nUpper)
 {
@@ -113,6 +125,10 @@ int CProgressWnd::SetPos(int nPos, int nRate)
 		Invalidate(FALSE);
 	}
 
+	if ( nRate == 0 )
+		nRate = m_RateLast;
+	m_RateLast = nRate;
+
 	if ( nPos < m_RangeLower ) nPos = m_RangeLower;
 	if ( nPos > m_RangeUpper ) nPos = m_RangeUpper;
 
@@ -124,7 +140,7 @@ int CProgressWnd::SetPos(int nPos, int nRate)
 	}
 
 	nPos = (int)((LONGLONG)(nPos - m_RangeLower) * (m_DataMax - 1) / (LONGLONG)(m_RangeUpper - m_RangeLower));
-	nRate = (int)((LONGLONG)nRate * 255 / (LONGLONG)m_RateMax);
+	nRate = (m_RateMax <= 0 ? 0 : (int)((LONGLONG)nRate * 255 / (LONGLONG)m_RateMax));
 
 	if ( nPos < 0 ) nPos = 0;
 	if ( nPos >= m_DataMax ) nPos = m_DataMax - 1;
@@ -326,17 +342,6 @@ void CProgDlg::SetRange(LONGLONG max, LONGLONG rem)
 void CProgDlg::SetPos(LONGLONG pos)
 {
 	m_UpdatePos = pos;
-	m_UpdateClock = clock();
-
-	if ( (m_UpdateClock - m_LastClock) > 50 ) {
-		m_LastRate = (int)((pos - m_LastPos) * CLOCKS_PER_SEC / (LONGLONG)(m_UpdateClock - m_LastClock));
-		if ( (m_UpdateClock - m_LastClock) >= CLOCKS_PER_SEC ) {
-			m_LastClock = (m_LastClock + m_UpdateClock) / 2;
-			m_LastPos = (m_LastPos + pos) / 2;
-		}
-	}
-
-	m_FileSize.SetPos((int)(pos / m_Div), m_LastRate);
 }
 void CProgDlg::UpdatePos(LONGLONG pos)
 {
@@ -344,7 +349,16 @@ void CProgDlg::UpdatePos(LONGLONG pos)
 	double d = 1.0;
 
 	UpdateData(TRUE);
-//	m_FileSize.SetPos((int)(pos / m_Div));
+
+	m_UpdateClock = clock();
+	if ( (m_UpdateClock - m_LastClock) > 50 ) {
+		m_LastRate = (int)((pos - m_LastPos) * CLOCKS_PER_SEC / (LONGLONG)(m_UpdateClock - m_LastClock));
+		if ( (m_UpdateClock - m_LastClock) >= CLOCKS_PER_SEC ) {
+			m_LastClock = (m_LastClock + m_UpdateClock) / 2;
+			m_LastPos = (m_LastPos + pos) / 2;
+		}
+	}
+	m_FileSize.SetPos((int)(pos / m_Div), m_LastRate);
 
 	if ( pos > 1000000 )
 		m_TotalSize.Format(_T("%d.%03dM"), (int)(pos / 1000000), (int)((pos / 1000) % 1000));
@@ -393,7 +407,7 @@ void CProgDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	if ( m_ActivePos != m_UpdatePos ) {
 		m_ActivePos = m_UpdatePos;
-		UpdatePos(m_UpdatePos);
+		UpdatePos(m_ActivePos);
 	}
 	m_UpdatePost = FALSE;
 }

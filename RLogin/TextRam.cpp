@@ -2725,6 +2725,8 @@ void CTextRam::Init()
 	m_DelayMSecRecv = DELAY_RECV_MSEC;
 	m_DelayMSecCrLf = 0;
 	m_HisFile        = _T("");
+	m_LogFile        = _T("");
+	m_LogMode        = LOGMOD_RAW;
 	m_SshKeepAlive   = 300;
 	m_TelKeepAlive   = 300;
 	m_DropFileMode   = 0;

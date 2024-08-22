@@ -38,7 +38,9 @@ void CBackPage::DoDataExchange(CDataExchange* pDX)
 {
 	CTreePage::DoDataExchange(pDX);
 
-	DDX_Text(pDX, IDC_BACKFILE, m_BitMapFile);
+	DDX_CBStringExact(pDX, IDC_BACKFILE, m_BitMapFile);
+	DDX_Control(pDX, IDC_BACKFILE, m_BitMapCombo);
+
 	DDX_Check(pDX, IDC_TEXTMAPENABLE, m_bEnable);
 	DDX_CBIndex(pDX, IDC_HALIGN, m_HAlign);
 	DDX_CBIndex(pDX, IDC_VALIGN, m_VAlign);
@@ -56,7 +58,8 @@ BEGIN_MESSAGE_MAP(CBackPage, CTreePage)
 	ON_WM_DRAWITEM()
 	ON_BN_CLICKED(IDC_TEXTFONT, &CBackPage::OnBnClickedTextfont)
 	ON_STN_CLICKED(IDC_TEXTCOLOR, &CBackPage::OnStnClickedTextcolor)
-	ON_EN_CHANGE(IDC_BACKFILE, &CBackPage::OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_BACKFILE, &CBackPage::OnUpdateEdit)
+	ON_CBN_EDITUPDATE(IDC_BACKFILE, &CBackPage::OnUpdateEdit)
 	ON_BN_CLICKED(IDC_BACKSEL, &CBackPage::OnBitMapFileSel)
 	ON_BN_CLICKED(IDC_TEXTMAPENABLE, &CBackPage::OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_HALIGN, &CBackPage::OnUpdateEdit)
@@ -130,6 +133,8 @@ BOOL CBackPage::OnInitDialog()
 
 	DoInit();
 
+	m_BitMapCombo.LoadHis(_T("BackPageBitMapFile"));
+
 	return TRUE;
 }
 BOOL CBackPage::OnApply()
@@ -172,6 +177,8 @@ BOOL CBackPage::OnApply()
 		m_pSheet->m_pTextRam->SetOption(TO_RLTABGRAD, m_TabBackGradient);
 		m_pSheet->m_ModFlag |= UMOD_TABCOLOR;
 	}
+
+	m_BitMapCombo.AddHis(m_BitMapFile);
 
 	return TRUE;
 }

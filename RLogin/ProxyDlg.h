@@ -31,6 +31,10 @@ public:
 	BOOL m_CmdFlag;
 	CString m_ProxyCmd;
 
+	CComboBoxHis m_ServerCombo;
+	CComboBoxHis m_UserCombo;
+	CComboBoxHis m_ProxyCmdCombo;
+
 // オーバーライド
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート

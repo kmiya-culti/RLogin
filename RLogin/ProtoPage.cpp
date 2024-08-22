@@ -60,8 +60,9 @@ void CProtoPage::DoDataExchange(CDataExchange* pDX)
 		DDX_Check(pDX, IDC_CHECKFAST + n, m_Check[n]);
 	DDX_CBIndex(pDX, IDC_RSAEXTSEL, m_RsaExt);
 	DDX_CBIndex(pDX, IDC_STDBUFSIZE, m_StdIoBufSize);
-//	DDX_Text(pDX, IDC_VERINDENT, m_VerIdent);
-	DDX_Text(pDX, IDC_VERINDENT, m_PluginAuth);
+
+	DDX_CBStringExact(pDX, IDC_VERINDENT, m_PluginAuth);
+	DDX_Control(pDX, IDC_VERINDENT, m_PluginAuthCombo);
 }
 
 BEGIN_MESSAGE_MAP(CProtoPage, CTreePage)
@@ -71,7 +72,8 @@ BEGIN_MESSAGE_MAP(CProtoPage, CTreePage)
 	ON_BN_CLICKED(IDC_SSHTTYMODE, OnSshTtyMode)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_CBN_SELCHANGE(IDC_RSAEXTSEL, OnUpdateEdit)
-	ON_EN_CHANGE(IDC_VERINDENT, OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_VERINDENT, OnUpdateEdit)
+	ON_CBN_EDITUPDATE(IDC_VERINDENT, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_KEEPALIVE, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_KEEPALIVE2, OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_STDBUFSIZE, OnUpdateEdit)
@@ -121,6 +123,8 @@ BOOL CProtoPage::OnInitDialog()
 
 	DoInit();
 
+	m_PluginAuthCombo.LoadHis(_T("ProtoPagePluginAuth"));
+
 	return TRUE;
 }
 BOOL CProtoPage::OnApply() 
@@ -150,6 +154,8 @@ BOOL CProtoPage::OnApply()
 	m_pSheet->m_pParamTab->m_x11AuthData = m_x11AuthData;
 
 	m_pSheet->m_pParamTab->m_StdIoBufSize = 1 << m_StdIoBufSize;
+
+	m_PluginAuthCombo.AddHis(m_PluginAuth);
 
 	return TRUE;
 }

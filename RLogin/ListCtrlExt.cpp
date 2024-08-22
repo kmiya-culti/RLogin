@@ -169,8 +169,6 @@ BEGIN_MESSAGE_MAP(CListCtrlExt, CListCtrl)
 	ON_WM_ERASEBKGND()
 	ON_WM_CTLCOLOR()
 	ON_WM_PAINT()
-	ON_WM_MOUSEMOVE()
-	ON_WM_MOUSELEAVE()
 END_MESSAGE_MAP()
 
 static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort)
@@ -912,9 +910,10 @@ BOOL CListCtrlExt::OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRE
 
 BOOL CListCtrlExt::OnEraseBkgnd(CDC* pDC)
 {
-	CRect rect;
-	GetClientRect(rect);
-	pDC->FillSolidRect(rect, GetAppColor(APPCOL_CTRLFACE));
+// ちらつき防止の為にOnPaintで消去に変更 2024.08.19
+//	CRect rect;
+//	GetClientRect(rect);
+//	pDC->FillSolidRect(rect, GetAppColor(APPCOL_CTRLFACE));
 	return TRUE;
 }
 HBRUSH CListCtrlExt::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
@@ -939,7 +938,7 @@ void CListCtrlExt::OnPaint()
 	CRect rect, irct, mrct, srct, trct;
 	CPaintDC dc(this);
 	int nSavedDC = dc.SaveDC();
-	CRect clip = dc.m_ps.rcPaint;
+	CRect drec, clip = dc.m_ps.rcPaint;
 	CImageList *pImage = GetImageList(LVSIL_SMALL);
 	BOOL bCheck = (GetExtendedStyle() & LVS_EX_CHECKBOXES) != 0 ? TRUE : FALSE;
 	BOOL bFull = (GetExtendedStyle() & LVS_EX_FULLROWSELECT) != 0 ? TRUE : FALSE;
@@ -978,7 +977,7 @@ void CListCtrlExt::OnPaint()
 	GetParent()->OnCmdMsg((UINT)GetDlgCtrlID(), MAKELONG(NM_CUSTOMDRAW, WM_NOTIFY), &notify, NULL);
 	if ( (result & CDRF_NOTIFYITEMDRAW) != 0 )
 		flag |= 001;
-	
+
 	if ( bCheck && m_ImageList.GetSafeHandle() == NULL ) {
 		CBitmapEx bitmap;
 		m_ImageList.Create(MulDiv(14, SCREEN_DPI_X, DEFAULT_DPI_X), MulDiv(14, SCREEN_DPI_Y, DEFAULT_DPI_Y), ILC_COLOR24 | ILC_MASK, 2, 2);
@@ -988,6 +987,11 @@ void CListCtrlExt::OnPaint()
 			bitmap.DeleteObject();
 		}
 	}
+
+	drec.left = clip.right;
+	drec.right = clip.left;
+	drec.top = clip.bottom;
+	drec.bottom = clip.top;
 
 	for ( item = GetTopIndex() ; item < GetItemCount() ; item++ ) {
 		if ( !GetItemRect(item, rect, LVIR_BOUNDS) || !GetItemRect(item, irct, LVIR_ICON) )
@@ -999,6 +1003,15 @@ void CListCtrlExt::OnPaint()
 		bSel = (GetItemState(item, LVIS_SELECTED) != 0 ? TRUE : FALSE);
 
 		if ( rect.top < clip.bottom && rect.bottom > clip.top ) {
+
+			if ( rect.top < drec.top )
+				drec.top = rect.top;
+			if ( rect.bottom > drec.bottom )
+				drec.bottom = rect.bottom;
+			if ( rect.left < drec.left )
+				drec.left = rect.left;
+			if ( rect.right > drec.right )
+				drec.right = rect.right;
 
 			lvc.mask = LVCF_WIDTH | LVCF_FMT;
 
@@ -1051,6 +1064,7 @@ void CListCtrlExt::OnPaint()
 					}
 
 					if ( subItem == 0 ) {
+						dc.FillSolidRect(mrct.left, mrct.top, irct.right - mrct.left, mrct.Height(), GetAppColor(APPCOL_CTRLFACE));
 						trct.left = irct.right;
 						if ( !bFull )
 							srct = trct;
@@ -1082,16 +1096,16 @@ void CListCtrlExt::OnPaint()
 		}
 	}
 
+	if ( drec.top > clip.top )
+		dc.FillSolidRect(clip.left, clip.top, clip.Width(), drec.top - clip.top, GetAppColor(APPCOL_CTRLFACE));
+	if ( drec.bottom < clip.bottom )
+		dc.FillSolidRect(clip.left, drec.bottom, clip.Width(), clip.bottom - drec.bottom, GetAppColor(APPCOL_CTRLFACE));
+	if ( drec.left > clip.left )
+		dc.FillSolidRect(clip.left, clip.top, drec.left - clip.left, clip.Height(), GetAppColor(APPCOL_CTRLFACE));
+	if ( drec.right < clip.right )
+		dc.FillSolidRect(drec.right, clip.top, clip.right - drec.right, clip.Height(), GetAppColor(APPCOL_CTRLFACE));
+
 	dc.RestoreDC(nSavedDC);
-}
-void CListCtrlExt::OnMouseMove(UINT nFlags, CPoint point)
-{
-	//チラつくのでデフォルト動作をスキップ
-	//CListCtrl::OnMouseMove(nFlags, point);
-}
-void CListCtrlExt::OnMouseLeave()
-{
-	//CListCtrl::OnMouseLeave();
 }
 
 /////////////////////////////////////////////////////////////////////////////

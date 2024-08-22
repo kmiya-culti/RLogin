@@ -34,16 +34,20 @@ CProxyDlg::~CProxyDlg()
 void CProxyDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogExt::DoDataExchange(pDX);
-	DDX_Text(pDX, IDC_SERVERNAME, m_ServerName);
+
+	DDX_CBStringExact(pDX, IDC_SERVERNAME, m_ServerName);
+	DDX_Control(pDX, IDC_SERVERNAME, m_ServerCombo);
 	DDX_CBStringExact(pDX, IDC_SOCKNO, m_PortName);
-	DDX_Text(pDX, IDC_USERNAME, m_UserName);
+	DDX_CBStringExact(pDX, IDC_USERNAME, m_UserName);
+	DDX_Control(pDX, IDC_USERNAME, m_UserCombo);
 	DDX_Text(pDX, IDC_PASSWORD, m_PassWord);
 	DDX_Radio(pDX, IDC_RADIO1, m_ProxyType);
 	DDX_Radio(pDX, IDC_SSL_RADIO1, m_SSLType);
 	DDX_Check(pDX, IDC_SSL_KEEP, m_SSL_Keep);
 	DDX_Check(pDX, IDC_CHECK1, m_UsePassDlg);
 	DDX_Check(pDX, IDC_CHECK2, m_CmdFlag);
-	DDX_Text(pDX, IDC_PROXYCMD, m_ProxyCmd);
+	DDX_CBStringExact(pDX, IDC_PROXYCMD, m_ProxyCmd);
+	DDX_Control(pDX, IDC_PROXYCMD, m_ProxyCmdCombo);
 }
 
 
@@ -179,6 +183,10 @@ BOOL CProxyDlg::OnInitDialog()
 	SetSaveProfile(_T("ProxyDlg"));
 	AddHelpButton(_T("#PROXYSET"));
 
+	m_ServerCombo.LoadHis(_T("ProxyDlgServerName"));
+	m_UserCombo.LoadHis(_T("ProxyDlgUserName"));
+	m_ProxyCmdCombo.LoadHis(_T("ProxyDlgProxyCmd"));
+
 	return TRUE;
 }
 
@@ -226,6 +234,10 @@ void CProxyDlg::OnOK()
 			break;
 		}
 	}
+
+	m_ServerCombo.AddHis(m_ServerName);
+	m_UserCombo.AddHis(m_UserName);
+	m_ProxyCmdCombo.AddHis(m_ProxyCmd);
 
 	CDialogExt::OnOK();
 }

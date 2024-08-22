@@ -1611,8 +1611,8 @@ void CBuffer::IshEncJis7(LPBYTE buf, int len)
 		d = data.GetBits(13);
 		du = d / 91;
 		dl = d - du * 91;
-		PutByte(ent_j7[du % 91]);
-		PutByte(ent_j7[dl % 91]);
+		PutByte(ent_j7[du & 0x7f]);
+		PutByte(ent_j7[dl & 0x7f]);
 	}
 }
 
@@ -2223,11 +2223,11 @@ BOOL CBuffer::HuffmanDecode(LPBYTE buf, int len)
 		c = *(buf++);
 		len--;
 
-		t = &qpack_huffman_decode_table[t->fstate % 257][c >> 4];
+		t = &qpack_huffman_decode_table[t->fstate & 0x1ff][c >> 4];
 		if (t->fstate & NGHTTP3_QPACK_HUFFMAN_SYM)
 			PutByte(t->sym);
 
-		t = &qpack_huffman_decode_table[t->fstate % 257][c & 0xf];
+		t = &qpack_huffman_decode_table[t->fstate & 0x1ff][c & 0xf];
 		if (t->fstate & NGHTTP3_QPACK_HUFFMAN_SYM)
 			PutByte(t->sym);
 	}
@@ -2328,7 +2328,7 @@ BOOL CBuffer::GetPackStr(CStringA &str, int *pFlag, int prefix)
 
 	size = (int)data;
 
-	if ( (m_Ofs + size) >= m_Len )
+	if ( (m_Ofs + size) > m_Len )
 		return FALSE;
 
 	if ( (flags & (1 << prefix)) != 0 )		// huffman

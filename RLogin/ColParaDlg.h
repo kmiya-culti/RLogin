@@ -1,4 +1,5 @@
 #pragma once
+
 #include "afxcmn.h"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -41,6 +42,8 @@ public:
 	int m_EmojiColorMode;
 	CString m_EmojiFontName;
 	CString m_EmojiImageDir;
+
+	CComboBoxHis m_EmojiImageDirCombo;
 
 	double m_Constrast;
 	double m_Bright;

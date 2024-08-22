@@ -33,6 +33,8 @@ public:
 	BOOL m_TabBackGradient;
 	BOOL m_bTabColDark;
 
+	CComboBoxHis m_BitMapCombo;
+
 public:
 	void DoInit();
 

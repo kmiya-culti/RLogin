@@ -523,11 +523,13 @@ void CSyncSock::UpDownInit(LONGLONG size, LONGLONG rems)
 }
 void CSyncSock::UpDownStat(LONGLONG size)
 {
-	if ( m_pProgDlg != NULL && (!m_pProgDlg->m_UpdatePost || m_pProgDlg->m_LastSize == size) ) {
-		m_pProgDlg->m_UpdatePost = TRUE;
-		m_pLongLong[0] = size;
-		m_pProgDlg->PostMessage(WM_PROGUPDATE, PROG_UPDATE_POS, (LPARAM)m_pLongLong);
-	}
+	//if ( m_pProgDlg != NULL && (!m_pProgDlg->m_UpdatePost || m_pProgDlg->m_LastSize == size) ) {
+	//	m_pProgDlg->m_UpdatePost = TRUE;
+	//	m_pLongLong[0] = size;
+	//	m_pProgDlg->PostMessage(WM_PROGUPDATE, PROG_UPDATE_POS, (LPARAM)m_pLongLong);
+	//}
+	if ( m_pProgDlg != NULL )
+		m_pProgDlg->SetPos(size);
 }
 void CSyncSock::SendString(LPCWSTR str)
 {

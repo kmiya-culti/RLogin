@@ -10,12 +10,14 @@ class CProgressWnd : public CWnd
 	DECLARE_DYNAMIC(CProgressWnd)
 
 public:
+	BOOL m_bFinish;
 	BOOL m_bNoRange;
 	int m_RangeLower;
 	int m_RangeUpper;
 	int m_RangePos;
 
 	int m_RateMax;
+	int m_RateLast;
 	int m_LastPos;
 
 	int m_DataMax;
@@ -25,7 +27,7 @@ public:
 	CProgressWnd();
 	~CProgressWnd();
 
-	void InitDataTab(BOOL bInit);
+	BOOL InitDataTab(BOOL bInit);
 
 	void SetRange(short nLower, short nUpper);
 	void SetRange32(int nLower, int nUpper);
@@ -34,6 +36,8 @@ public:
 
 	int GetPos();
 	int SetPos(int nPos, int nRate = 0);
+
+	inline void SetFinish() { m_bFinish = TRUE; }
 
 public:
 	DECLARE_MESSAGE_MAP()

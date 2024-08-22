@@ -25,6 +25,10 @@ public:
 	CString m_TraceFile;
 	CString m_TraceMax;
 
+	CComboBoxHis m_LogCombo;
+	CComboBoxHis m_HisCombo;
+	CComboBoxHis m_TraceCombo;
+
 public:
 	void DoInit();
 

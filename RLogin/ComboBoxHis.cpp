@@ -54,6 +54,7 @@ IMPLEMENT_DYNAMIC(CComboBoxHis, CComboBoxExt)
 
 CComboBoxHis::CComboBoxHis()
 {
+	m_UpdateFlag = COMBOHIS_NOUPDATE;
 }
 
 CComboBoxHis::~CComboBoxHis()
@@ -62,6 +63,8 @@ CComboBoxHis::~CComboBoxHis()
 
 BEGIN_MESSAGE_MAP(CComboBoxHis, CComboBoxExt)
 	ON_WM_DESTROY()
+	ON_CONTROL_REFLECT(CBN_EDITCHANGE, &CComboBoxHis::OnCbnEditchange)
+	ON_CONTROL_REFLECT(CBN_SELCHANGE, &CComboBoxHis::OnCbnSelchange)
 END_MESSAGE_MAP()
 
 // CComboBoxHis メッセージ ハンドラー
@@ -70,14 +73,19 @@ void CComboBoxHis::LoadHis(LPCTSTR lpszSection)
 {
 	int n;
 	CStringArrayExt aray;
+	CString text;
 	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
+
+	GetWindowText(text);
 
 	RemoveAll();
 
 	pApp->GetProfileArray(lpszSection, aray);
 	for ( n = 0 ; n < aray.GetSize() ; n++ )
 		AddString(aray[n]);
+
 	m_Section = lpszSection;
+	SetWindowText(text);
 }
 void CComboBoxHis::SaveHis(LPCTSTR lpszSection)
 {
@@ -103,6 +111,7 @@ void CComboBoxHis::AddHis(LPCTSTR str)
 		DeleteString(n);
 
 	InsertString(0, str);
+	m_UpdateFlag |= COMBOHIS_ADDHIS;
 }
 void CComboBoxHis::RemoveAll()
 {
@@ -123,6 +132,7 @@ BOOL CComboBoxHis::PreTranslateMessage(MSG* pMsg)
 		ShowDropDown(TRUE);
 		if ( tmp[0].Compare(tmp[1]) != 0 )
 			SetWindowText(tmp[0]);
+		m_UpdateFlag |= COMBOHIS_SAVEHIS;
 		return TRUE;
 	}
 
@@ -130,8 +140,16 @@ BOOL CComboBoxHis::PreTranslateMessage(MSG* pMsg)
 }
 void CComboBoxHis::OnDestroy()
 {
-	if ( !m_Section.IsEmpty() )
+	if ( m_UpdateFlag == COMBOHIS_SAVEHIS && !m_Section.IsEmpty() )
 		SaveHis(m_Section);
 
 	CComboBox::OnDestroy();
+}
+void CComboBoxHis::OnCbnEditchange()
+{
+	m_UpdateFlag |= COMBOHIS_UPDATE;
+}
+void CComboBoxHis::OnCbnSelchange()
+{
+	m_UpdateFlag |= COMBOHIS_UPDATE;
 }

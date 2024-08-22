@@ -80,10 +80,12 @@ public:
 	int m_UuStat;
 	CStringBinary m_ishVolPath;
 	int m_AutoMode;
+	LONGLONG m_CharSize;
+	BOOL m_bRewSize;
 
 	BOOL UuDecode(LPCSTR line);
 	BOOL Base64Decode(LPCSTR line);
-	BOOL IshDecode(LPCSTR line, BOOL &bRewSize);
+	BOOL IshDecode(LPCSTR line);
 	BOOL IntelHexDecode(LPCSTR line);
 	BOOL SRecordDecode(LPCSTR line);
 	BOOL TekHexDecode(CBuffer &line);
