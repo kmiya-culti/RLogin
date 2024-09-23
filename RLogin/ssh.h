@@ -736,6 +736,9 @@ public:
 #define	DHMODE_SNT761X25519				14
 #define DHMODE_RSA1024SHA1				15
 #define DHMODE_RSA2048SHA2				16
+#define	DHMODE_MLKEM768N256				17
+#define DHMODE_MLKEM1024N384			18
+#define	DHMODE_MLKEM768X25519			19
 
 #define	AUTH_MODE_NONE					0
 #define	AUTH_MODE_PUBLICKEY				1
@@ -762,6 +765,16 @@ public:
 #define sntrup761_SECRETKEYBYTES		1763
 #define sntrup761_CIPHERTEXTBYTES		1039
 #define sntrup761_BYTES					32
+
+#define mlkem768_PUBLICKEYBYTES			1184
+#define mlkem768_SECRETKEYBYTES			2400
+#define mlkem768_CIPHERTEXTBYTES		1088
+#define mlkem768_BYTES					32
+
+#define mlkem1024_PUBLICKEYBYTES		1568
+#define mlkem1024_SECRETKEYBYTES		3168
+#define mlkem1024_CIPHERTEXTBYTES		1568
+#define mlkem1024_BYTES					32
 
 #define	KEXSTRICT_CHECK					0
 #define	KEXSTRICT_DISABLE				1
@@ -894,8 +907,8 @@ public:
 	const EC_GROUP *m_EcdhGroup;
 
 	EVP_PKEY *m_CurveEvpKey;
-	CBuffer m_CurveClientPubkey;
-	CBuffer m_SntrupClientKey;
+	CBuffer m_HybridClientPubkey;
+	CBuffer m_HybridClientSeckey;
 
 	CBuffer m_RsaHostBlob;
 	CBuffer m_RsaTranBlob;
@@ -1175,3 +1188,11 @@ int	sntrup761_keypair(unsigned char *pk, unsigned char *sk);
 int	sntrup761_enc(unsigned char *cstr, unsigned char *k, const unsigned char *pk);
 int	sntrup761_dec(unsigned char *k, const unsigned char *cstr, const unsigned char *sk);
 
+// ml_kem.cpp
+int mlkem768_keypair(uint8_t *pk, uint8_t *sk);
+int mlkem768_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
+int mlkem768_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
+// ml_kem_1024.cpp
+int mlkem1024_keypair(uint8_t *pk, uint8_t *sk);
+int mlkem1024_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
+int mlkem1024_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);

@@ -734,9 +734,9 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,210,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.29.7 (2024/08/23)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.29.8 (2024/09/24)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2024 Culti",IDC_STATIC,44,17,189,8
-    LTEXT           "OpenSSL 3.3.1 4 Jun 2024",IDC_STATIC,44,50,189,8
+    LTEXT           "OpenSSL 3.3.2 3 Sep 2024",IDC_STATIC,44,50,189,8
     LTEXT           "Copyright (c) 1998-2024 The OpenSSL Project",IDC_STATIC,44,60,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,80,189,8
@@ -1640,8 +1640,8 @@ BEGIN
     CONTROL         "複数行などで確認",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,97,123,75,10
     CONTROL         "常にペーストを確認",IDC_RADIO6,"Button",BS_AUTORADIOBUTTON,179,123,75,10
     CONTROL         "ペーストするテキストの末尾の改行を削除する",IDC_OPTCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,143,240,10
-    EDITTEXT        IDC_EDIT3,15,179,240,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT4,15,219,240,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_EDIT3,15,179,240,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_EDIT4,15,219,240,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     CONTROL         "OSC 52 ? によるクリップボードの読み込みを許可する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,260,190,10
     COMBOBOX        IDC_COMBO1,215,259,40,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "OSC 52 によるクリップボードの書き込みを許可する",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,276,240,10
@@ -1944,7 +1944,7 @@ CAPTION "拡張機能"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "",IDC_EXTLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,15,35,240,196
-    EDITTEXT        IDC_EDIT1,15,271,240,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_EDIT1,15,271,240,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     GROUPBOX        "各種オプション",IDC_TITLE1,7,7,256,232
     GROUPBOX        "OSC 1337 インライン拡張",IDC_TITLE2,7,245,256,48
     LTEXT           "要望のあったオプションや試験的な実装を試すことができます",IDC_TITLE3,15,21,240,8
@@ -1978,7 +1978,7 @@ BEGIN
     CONTROL         "",IDC_TEXTCOLOR,"Static",SS_OWNERDRAW | SS_NOTIFY,218,90,24,15,WS_EX_STATICEDGE
     COMBOBOX        IDC_VALIGN,80,110,50,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "フォント",IDC_TEXTFONT,205,110,50,15
-    EDITTEXT        IDC_TEXTFORMAT,15,145,240,15,ES_AUTOHSCROLL
+    COMBOBOX        IDC_TEXTFORMAT,15,145,240,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     CONTROL         "",IDC_BITMAPALPHA,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,144,180,111,22
     CONTROL         "",IDC_BITMAPBLEND,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,144,206,111,22
     CONTROL         "タブバーの背景色をグラデーションで描画",IDC_TABBACKGRAD,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,253,240,10
@@ -2311,8 +2311,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,29,7,0
- PRODUCTVERSION 2,29,7,0
+ FILEVERSION 2,29,8,0
+ PRODUCTVERSION 2,29,8,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2329,12 +2329,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.29.7.0"
+            VALUE "FileVersion", "2.29.8.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.29.7.0"
+            VALUE "ProductVersion", "2.29.8.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -3560,14 +3560,14 @@ BEGIN
 0x2e32, 0x0039, 
     IDC_FONTHW, 0x403, 4, 0
 0x2e33, 0x0030, 
-    IDC_VISUALBELL, 0x403, 6, 0
-0x6f53, 0x6e75, 0x0064, 
     IDC_VISUALBELL, 0x403, 5, 0
 0x6f4e, 0x656e, "\000" 
-    IDC_VISUALBELL, 0x403, 5, 0
-0x6f42, 0x6874, "\000" 
+    IDC_VISUALBELL, 0x403, 6, 0
+0x6f53, 0x6e75, 0x0064, 
     IDC_VISUALBELL, 0x403, 7, 0
 0x6956, 0x7573, 0x6c61, "\000" 
+    IDC_VISUALBELL, 0x403, 5, 0
+0x6f42, 0x6874, "\000" 
     IDC_DEFCARET, 0x403, 10, 0
 0x6f42, 0x2f78, 0x6c42, 0x6e69, 0x006b, 
     IDC_DEFCARET, 0x403, 11, 0
@@ -5090,6 +5090,7 @@ BEGIN
     IDT_EXTOPT_LIST29       "ペーストを確認する\tペーストを確認しない\tペースト時の確認を行わないようにします"
     IDT_EXTOPT_LIST30       "タブの背景をグラデーション\tタブの背景を単色\tタブバーの背景表示をグラデーションで描画します"
     IDT_EXTOPT_LIST31       "カラー絵文字の遅延描画\tカラー絵文字の通常表示\tカラー絵文字の表示をスレッドで行い遅延して表示します"
+    IDT_EXTOPT_LIST32       "カーソル行をぷるるん\t全画面を点滅\tビジュアルベルでカーソルのある行を左右に揺らします"
 END
 
 STRINGTABLE

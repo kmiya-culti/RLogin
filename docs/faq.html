@@ -5,14 +5,20 @@
 <TITLE>RLogin使い方説明</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
+TD {
+				
+				
+				
 				
 				
 				
 		background-color : #ffffff;
 font-size : 90%;
 }
-.BOX{		
+.BOX{
+				
+				
+				
 				
 				
 				
@@ -1239,9 +1245,10 @@ function OnClickOk(id) {
       <TABLE width="1250" cellpadding="5">
         <TBODY>
           <TR>
-            <TD width="600" valign="top"><A href="./#PROTOPT">プロトコルのオプション設定</A>にある<A href="./#SSHPROTOCOL">暗号方式などの設定</A>にはSSHバージョン２で使用できる多くの設定がありその優先順位が指定できます。各種アルゴリズムについてセキュリティや速度を誠に勝手ながらその指標をつけてみました。<BR>
+            <TD width="600" valign="top"><A href="./#PROTOPT">プロトコルのオプション設定</A>にある<A href="./#SSHPROTOCOL">暗号方式などの設定</A>にはSSHバージョン２で使用できる多くの設定がありその優先順位が指定できます。各種アルゴリズムについてセキュリティや速度を誠に勝手ながらその指標をつけてみました<BR>
             <BR>
-            ※指標が○ばっかりだとややこしさが同じなので◎を付けましたが、無難な選択の１つ程度とお考えください。またopensshのバージョンによってデフォルトで使用できなくなったり追加された物を明記するようにしてみました。<BR>
+            ※指標が○ばっかりだとややこしさが同じなので◎を付けましたが、無難な選択の１つ程度とお考えください。またopensshのバージョンによってデフォルトで使用できなくなったり追加された物を明記するようにしてみました<BR>
+            ※2024/09/11新しい鍵交換方式や○×などを最近の情報に更新しました<BR>
             <BR>
             <TABLE class="BOX" cellpadding="3" cellspacing="1" width="590">
               <TBODY>
@@ -1251,43 +1258,59 @@ function OnClickOk(id) {
                 </TR>
                 <TR>
                   <TD width="30%">diffie-hellman-group1-sha1</TD>
-                  <TD width="60%">検証する為のビットサイズが小さくハッシュ関数がsha1で推奨されていません。<BR>
-                  ※openssh-6.7から使用不可です。</TD>
+                  <TD width="60%">検証する為のビットサイズが小さくハッシュ関数がsha1で推奨されていません<BR>
+                  ※openssh-6.7から使用不可です</TD>
                   <TD align="center" width="10%">×</TD>
                 </TR>
                 <TR>
                   <TD width="30%">diffie-hellman-group14-sha1</TD>
-                  <TD width="60%">実用的な計算量だと思いますがハッシュ関数がsha1で推奨されていません。</TD>
-                  <TD align="center">△</TD>
+                  <TD width="60%">実用的な計算量だと思いますがハッシュ関数がsha1で推奨されていません</TD>
+                  <TD align="center">×</TD>
                 </TR>
                 <TR>
                   <TD width="30%">diffie-hellman-group14/16/18-<BR>
                   sha256/512</TD>
-                  <TD width="60%">上記のsha2版になりビットサイズも選択種が増えた物です。<BR>
+                  <TD width="60%">上記のsha2版になりビットサイズも選択種が増えた物です<BR>
                   ※openssh-7.3より使用可能です</TD>
-                  <TD align="center">○</TD>
+                  <TD align="center">△</TD>
                 </TR>
                 <TR>
                   <TD width="30%">diffie-hellman-group-exchange-sha1</TD>
                   <TD width="60%">ハッシュ関数のsha1が推奨されていません<BR>
-                  ※openssh-6.7から使用不可です。</TD>
+                  ※openssh-6.7から使用不可です</TD>
                   <TD align="center">×</TD>
                 </TR>
                 <TR>
                   <TD width="30%">diffie-hellman-group-exchange-sha256</TD>
-                  <TD width="60%">暗号方式やパケット検証に使われる方式によりビットサイズが増減し比較的計算量が多いので速度的に不満があります。</TD>
+                  <TD width="60%">暗号方式やパケット検証に使われる方式によりビットサイズが増減し比較的計算量が多いので速度的に不満があります</TD>
                   <TD align="center">△</TD>
                 </TR>
                 <TR>
                   <TD width="30%">ecdh-sha2-nistp256/384/521</TD>
-                  <TD valign="top" width="60%">256/384/521でデータサイズが増えますが計算速度差が少ないように思います。<BR>
-                  ※openssh-5.7より使用可能です。</TD>
+                  <TD valign="top" width="60%">256/384/521でデータサイズが増えますが計算速度差が少ないように思います<BR>
+                  ※openssh-5.7より使用可能です</TD>
+                  <TD align="center">○</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">curve25519-sha256</TD>
+                  <TD width="60%">署名・検証の計算が非常に速いです<BR>
+                  ※openssh-6.5より使用可能です<BR>
+                  ※openssh-7.4から名前が変更されました</TD>
                   <TD align="center">◎</TD>
                 </TR>
                 <TR>
-                  <TD width="30%">curve25519-sha256@libssh.org</TD>
-                  <TD width="60%">最近の方式なのでセキュリティが未知数の部分がありますが署名・検証の計算が非常に速いです。<BR>
-                  ※openssh-6.5より使用可能です。</TD>
+                  <TD>sntrup761x25519-sha512</TD>
+                  <TD>耐量子のハイブリッド方式の鍵交換です<BR>
+                  多少、クライアント側の処理が重いです<BR>
+                  ※openssh-9.0より使用可能です<BR>
+                  ※openssh-9.9から名前が変更されました</TD>
+                  <TD align="center">△</TD>
+                </TR>
+                <TR>
+                  <TD>mlkem768x25519-sha256</TD>
+                  <TD>耐量子のハイブリッド方式の鍵交換です<BR>
+                  非常に計算速度が速いです<BR>
+                  ※openssh-9.9より使用可能です</TD>
                   <TD align="center">○</TD>
                 </TR>
               </TBODY>
@@ -1297,36 +1320,37 @@ function OnClickOk(id) {
               <TBODY>
                 <TR>
                   <TD colspan="3">ホスト鍵<BR>
-                  サーバー側が持っている複数のホスト鍵からどれを使用するか選択します。<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A>で使用するユーザー鍵と同じだけ種類があります。これは、上記鍵交換にて検証する鍵になりますが、種類やビットサイズにより計算速度がかなり違います。接続からログインまでの時間がホスト鍵とクライアント鍵の署名・検証で決まり、ログイン認証がユーザー鍵の署名・検証の処理時間になります。</TD>
+                  サーバー側が持っている複数のホスト鍵からどれを使用するか選択します。<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A>で使用するユーザー鍵と同じだけ種類があります。これは、上記鍵交換にて検証する鍵になりますが、種類やビットサイズにより計算速度がかなり違います。接続からログインまでの時間がホスト鍵とクライアント鍵の署名・検証で決まり、ログイン認証がユーザー鍵の署名・検証の処理時間になります</TD>
                 </TR>
                 <TR>
                   <TD width="30%">ssh-dss</TD>
-                  <TD width="60%">現在では、ホスト鍵として使用するのは、まったく推奨されていません。<BR>
-                  ※openssh-7.0から使用不可です。</TD>
+                  <TD width="60%">現在では、ホスト鍵として使用するのは、まったく推奨されていません<BR>
+                  ※openssh-7.0から使用不可です</TD>
                   <TD align="center" width="10%">×</TD>
                 </TR>
                 <TR>
                   <TD width="30%">ssh-rsa</TD>
-                  <TD width="60%">ビットサイズが2048以上の物が推奨されているようです。4096以上では計算量が非常に多くなります。</TD>
-                  <TD width="10%" align="center">△</TD>
+                  <TD width="60%">ビットサイズが2048以上の物が推奨されているようです。4096以上では計算量が非常に多くなります<BR>
+                  ※openssh-8.8からsha1の検証が使用不可です</TD>
+                  <TD width="10%" align="center">×</TD>
                 </TR>
                 <TR>
                   <TD width="30%">rsa-sha2-256/512</TD>
-                  <TD width="60%">署名・検証にするハッシュ関数が拡張された物で鍵自身は、まったく同じです。<BR>
-                  ※openssh-7.3より使用可能です。</TD>
-                  <TD width="10%" align="center">○</TD>
+                  <TD width="60%">署名・検証にするハッシュ関数が拡張された物で鍵自身は、上記ssh-rsaとまったく同じです<BR>
+                  ※openssh-7.3より使用可能です</TD>
+                  <TD width="10%" align="center">△</TD>
                 </TR>
                 <TR>
                   <TD width="30%">ecdsa-sha2-256/384/521</TD>
-                  <TD width="60%">比較的最近の方式ですが現在では、多くのサーバーで対応が進んでいると思います。<BR>
-                  ※openssh-5.7より使用可能です。</TD>
-                  <TD width="10%" align="center">◎</TD>
+                  <TD width="60%">比較的最近の方式ですが現在では、多くのサーバーで対応が進んでいると思います<BR>
+                  ※openssh-5.7より使用可能です</TD>
+                  <TD width="10%" align="center">○</TD>
                 </TR>
                 <TR>
                   <TD width="30%">ssh-ed25519</TD>
-                  <TD width="60%">最近の方式なのでセキュリティが未知数の部分がありますが署名・検証の計算が非常に速いです。<BR>
-                  ※openssh-6.5より使用可能です。</TD>
-                  <TD width="10%" align="center">○</TD>
+                  <TD width="60%">最近の方式なのでセキュリティが未知数の部分がありますが署名・検証の計算が非常に速いです<BR>
+                  ※openssh-6.5より使用可能です</TD>
+                  <TD width="10%" align="center">◎</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -1335,31 +1359,32 @@ function OnClickOk(id) {
               <TBODY>
                 <TR>
                   <TD colspan="3">暗号方式<BR>
-                  暗号に用いる方式、計算する時のビットサイズ、符号化方法などさまざまな要因でセキュリティおよび速度が選択できます。速度については<A href="./#SSHPROTOCOL">暗号方式などの設定</A>で記載しています。</TD>
+                  暗号に用いる方式、計算する時のビットサイズ、符号化方法などさまざまな要因でセキュリティおよび速度が選択できます。速度については<A href="./#SSHPROTOCOL">暗号方式などの設定</A>で記載しています</TD>
                 </TR>
                 <TR>
                   <TD width="30%">arcfour/256/512</TD>
-                  <TD width="60%">速度的には、圧倒的に速いですが、脆弱性があるようで推奨されていません。安全性より速度の場合には、有効です。</TD>
-                  <TD align="center" width="10%">△</TD>
+                  <TD width="60%">速度的には、圧倒的に速いですが、脆弱性があるようで推奨されていません。安全性より速度の場合には、有効です<BR>
+                  ※openssh-7.2から使用不可です</TD>
+                  <TD align="center" width="10%">×</TD>
                 </TR>
                 <TR>
                   <TD width="30%">aes128/192/256-ctr</TD>
-                  <TD width="60%">現在では、多くのサーバーで採用されているようで比較的、速いと思います。とりあえずこれの１つです。</TD>
+                  <TD width="60%">現在では、多くのサーバーで採用されているようで比較的、速いと思います。とりあえずこれの１つです</TD>
                   <TD align="center" width="10%">◎</TD>
                 </TR>
                 <TR>
                   <TD width="30%">aes128/256-gcm</TD>
-                  <TD width="60%">暗号と検証を１つにしたもので検証を含めると速度的に優位かもしれません。</TD>
+                  <TD width="60%">暗号と検証を１つにしたもので検証を含めると速度的に優位かもしれません</TD>
                   <TD align="center" width="10%">○</TD>
                 </TR>
                 <TR>
                   <TD width="30%">chacha20-poly1305</TD>
-                  <TD width="60%">最近の方式なのでセキュリティが未知数の部分がありますが暗号・検証の計算が非常に速いです。</TD>
+                  <TD width="60%">最近の方式なのでセキュリティが未知数の部分がありますが暗号・検証の計算が非常に速いです</TD>
                   <TD align="center" width="10%">○</TD>
                 </TR>
                 <TR>
                   <TD width="30%">*-cbc</TD>
-                  <TD width="60%">脆弱性があるようで現在は非推奨になっています。</TD>
+                  <TD width="60%">脆弱性があるようで現在は非推奨になっています<BR>※openssh-7.2から使用不可です</TD>
                   <TD align="center" width="10%">×</TD>
                 </TR>
               </TBODY>
@@ -1369,7 +1394,7 @@ function OnClickOk(id) {
               <TBODY>
                 <TR>
                   <TD colspan="3">検証方式<BR>
-                  データパケットの検証を行う方式です。あまり計算量の多い物より速度的な優位性で選択するほうが良いように思います。セキュリティの意味合いよりデータの正当性を確かめる為の物だと思います。</TD>
+                  データパケットの検証を行う方式です。あまり計算量の多い物より速度的な優位性で選択するほうが良いように思います。セキュリティの意味合いよりデータの正当性を確かめる為の物だと思います</TD>
                 </TR>
                 <TR>
                   <TD width="30%">umac-32/64/96/128</TD>
@@ -1378,22 +1403,23 @@ function OnClickOk(id) {
                 </TR>
                 <TR>
                   <TD width="30%">hmac-md5</TD>
-                  <TD width="60%">無難な検証方式かもしれません。</TD>
-                  <TD align="center" width="10%">○</TD>
+                  <TD width="60%">無難な検証方式かもしれません<BR>
+                  ※openssh-7.2から使用不可です</TD>
+                  <TD align="center" width="10%">×</TD>
                 </TR>
                 <TR>
                   <TD width="30%">hmac-sha1</TD>
-                  <TD width="60%">必要十分な速度、サイズと思います。</TD>
+                  <TD width="60%">必要十分な速度、サイズと思います</TD>
                   <TD align="center" width="10%">◎</TD>
                 </TR>
                 <TR>
                   <TD width="30%">hmac-sha2-256/512</TD>
-                  <TD width="60%">最も、安全性の高い検証方法だと思いますが、速度的には計算量が多いかもしれません。</TD>
+                  <TD width="60%">最も、安全性の高い検証方法だと思いますが、速度的には計算量が多いかもしれません</TD>
                   <TD align="center" width="10%">△</TD>
                 </TR>
                 <TR>
                   <TD width="30%">*-etm@openssh.com</TD>
-                  <TD width="60%">パケットサイズの暗号と含めて検証する方式です。</TD>
+                  <TD width="60%">パケットサイズの暗号と含めて検証する方式です</TD>
                   <TD align="center" width="10%">○</TD>
                 </TR>
               </TBODY>

@@ -39,12 +39,10 @@ void CBackPage::DoDataExchange(CDataExchange* pDX)
 	CTreePage::DoDataExchange(pDX);
 
 	DDX_CBStringExact(pDX, IDC_BACKFILE, m_BitMapFile);
-	DDX_Control(pDX, IDC_BACKFILE, m_BitMapCombo);
-
+	DDX_CBStringExact(pDX, IDC_TEXTFORMAT, m_TextFormat);
 	DDX_Check(pDX, IDC_TEXTMAPENABLE, m_bEnable);
 	DDX_CBIndex(pDX, IDC_HALIGN, m_HAlign);
 	DDX_CBIndex(pDX, IDC_VALIGN, m_VAlign);
-	DDX_Text(pDX, IDC_TEXTFORMAT, m_TextFormat);
 	DDX_Control(pDX, IDC_BITMAPALPHA, m_BitMapAlpha);
 	DDX_Control(pDX, IDC_BITMAPBLEND, m_BitMapBlend);
 	DDX_Control(pDX, IDC_TEXTCOLOR, m_ColorBox);
@@ -52,6 +50,9 @@ void CBackPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_TABTEXTCOL, m_TabTextColorBox);
 	DDX_Control(pDX, IDC_TABBACKCOL, m_TabBackColorBox);
 	DDX_Check(pDX, IDC_TABBACKGRAD, m_TabBackGradient);
+
+	DDX_Control(pDX, IDC_BACKFILE, m_BitMapCombo);
+	DDX_Control(pDX, IDC_TEXTFORMAT, m_TextFormatCombo);
 }
 
 BEGIN_MESSAGE_MAP(CBackPage, CTreePage)
@@ -65,6 +66,8 @@ BEGIN_MESSAGE_MAP(CBackPage, CTreePage)
 	ON_CBN_SELCHANGE(IDC_HALIGN, &CBackPage::OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_VALIGN, &CBackPage::OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_MAPSTYLE, &CBackPage::OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_TEXTFORMAT, &CBackPage::OnUpdateEdit)
+	ON_CBN_EDITUPDATE(IDC_TEXTFORMAT,&CBackPage::OnUpdateEdit)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_BITMAPALPHA, &CBackPage::OnUpdateSlider)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_BITMAPBLEND, &CBackPage::OnUpdateSlider)
 	ON_STN_CLICKED(IDC_TABTEXTCOL, &CBackPage::OnStnClickedTabTextColor)
@@ -134,6 +137,7 @@ BOOL CBackPage::OnInitDialog()
 	DoInit();
 
 	m_BitMapCombo.LoadHis(_T("BackPageBitMapFile"));
+	m_TextFormatCombo.LoadHis(_T("BackPageTextFormat"));
 
 	return TRUE;
 }
@@ -179,6 +183,7 @@ BOOL CBackPage::OnApply()
 	}
 
 	m_BitMapCombo.AddHis(m_BitMapFile);
+	m_TextFormatCombo.AddHis(m_TextFormat);
 
 	return TRUE;
 }

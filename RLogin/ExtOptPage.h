@@ -21,6 +21,8 @@ public:
 	CListCtrlExt m_ExtList;
 	CString m_InlineExt;
 
+	CComboBoxHis m_InlineCombo;
+
 public:
 	void DoInit();
 

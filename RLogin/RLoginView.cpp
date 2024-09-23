@@ -276,7 +276,7 @@ CRLoginView::CRLoginView()
 	m_KeyMacFlag = FALSE;
 	m_KeyMacSizeCheck = FALSE;
 	m_ActiveFlag = TRUE;
-	m_VisualBellFlag = FALSE;
+	m_VisualBellFlag = 0;
 	m_BlinkFlag = 0;
 	m_ImageFlag = 0;
 	m_MouseEventFlag = FALSE;
@@ -1478,10 +1478,17 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		return;
 
 	case UPDATE_VISUALBELL:
-		if ( !m_VisualBellFlag ) {
+		if ( m_VisualBellFlag == 0 ) {
 			SetTimer(VTMID_VISUALBELL, 50, NULL);
-			m_VisualBellFlag = TRUE;
-			InvalidateFullText();
+			m_VisualBellFlag = 1;
+			if ( pDoc->m_TextRam.IsOptEnable(TO_RLVBELLLINE) ) {
+				rect.left = 0;
+				rect.right = pDoc->m_TextRam.m_Cols;
+				rect.top = pDoc->m_TextRam.m_CurY;
+				rect.bottom = pDoc->m_TextRam.m_CurY + 1;
+				InvalidateTextRect(rect);
+			} else
+				InvalidateFullText();
 			if ( m_pGhost != NULL )
 				m_pGhost->Invalidate(FALSE);
 		}
@@ -2194,9 +2201,23 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		break;
 
 	case VTMID_VISUALBELL:		// VisualBell
-		KillTimer(nIDEvent);
-		m_VisualBellFlag = FALSE;
-		InvalidateFullText();
+		if ( pDoc->m_TextRam.IsOptEnable(TO_RLVBELLLINE) ) {
+			if ( m_VisualBellFlag < 3 )
+				m_VisualBellFlag++;
+			else {
+				m_VisualBellFlag = 0;
+				KillTimer(nIDEvent);
+			}
+			rect.left = 0;
+			rect.right = pDoc->m_TextRam.m_Cols;
+			rect.top = pDoc->m_TextRam.m_CurY;
+			rect.bottom = pDoc->m_TextRam.m_CurY + 1;
+			InvalidateTextRect(rect);
+		} else {
+			m_VisualBellFlag = 0;
+			KillTimer(nIDEvent);
+			InvalidateFullText();
+		}
 		break;
 
 	case VTMID_WHEELMOVE:		// Wheel Timer

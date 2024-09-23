@@ -260,8 +260,8 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_EcdhGroup = NULL;
 
 	m_CurveEvpKey = NULL;
-	m_CurveClientPubkey.ZeroClear();
-	m_SntrupClientKey.ZeroClear();
+	m_HybridClientPubkey.ZeroClear();
+	m_HybridClientSeckey.ZeroClear();
 
 	m_RsaHostBlob.ZeroClear();
 	m_RsaTranBlob.ZeroClear();
@@ -2830,7 +2830,11 @@ void Cssh::SendMsgKexDhGexRequest()
 }
 int Cssh::SendMsgKexEcdhInit()
 {
-	CBuffer tmp(-1);
+	int n;
+	CBuffer tmp(-1), pubs(-1);
+
+	m_HybridClientPubkey.Clear();
+	m_HybridClientSeckey.Clear();
 
 	switch(m_DhMode) {
 	default:
@@ -2842,6 +2846,14 @@ int Cssh::SendMsgKexEcdhInit()
 		break;
 	case DHMODE_ECDH_S2_N521:
 		m_EcdhCurveNid = NID_secp521r1;
+		break;
+	case DHMODE_MLKEM768N256:
+		m_EcdhCurveNid = NID_X9_62_prime256v1;
+		mlkem768_keypair(m_HybridClientPubkey.PutSpc(mlkem768_PUBLICKEYBYTES), m_HybridClientSeckey.PutSpc(mlkem768_SECRETKEYBYTES));
+		break;
+	case DHMODE_MLKEM1024N384:
+		m_EcdhCurveNid = NID_secp384r1;
+		mlkem1024_keypair(m_HybridClientPubkey.PutSpc(mlkem1024_PUBLICKEYBYTES), m_HybridClientSeckey.PutSpc(mlkem1024_SECRETKEYBYTES));
 		break;
 	}
 
@@ -2855,8 +2867,12 @@ int Cssh::SendMsgKexEcdhInit()
 	if ( (m_EcdhGroup = EC_KEY_get0_group(m_EcdhClientKey)) == NULL )
 		return FALSE;
 
+	pubs.PutEcPoint(m_EcdhGroup, EC_KEY_get0_public_key(m_EcdhClientKey));
+	n = pubs.Get32Bit();
+	m_HybridClientPubkey.Apend(pubs.GetPtr(), pubs.GetSize());
+
 	tmp.Put8Bit(SSH2_MSG_KEX_ECDH_INIT);
-	tmp.PutEcPoint(m_EcdhGroup, EC_KEY_get0_public_key(m_EcdhClientKey));
+	tmp.PutBuf(m_HybridClientPubkey.GetPtr(), m_HybridClientPubkey.GetSize());
 	SendPacket2(&tmp);
 
 	return TRUE;
@@ -2868,7 +2884,8 @@ void Cssh::SendMsgKexCurveInit()
 	size_t len = 0;
 	int type = EVP_PKEY_X25519;
 
-	m_CurveClientPubkey.Clear();
+	m_HybridClientPubkey.Clear();
+	m_HybridClientSeckey.Clear();
 
 	switch(m_DhMode) {
 	case DHMODE_CURVE25519:
@@ -2879,9 +2896,11 @@ void Cssh::SendMsgKexCurveInit()
 		break;
 	case DHMODE_SNT761X25519:
 		type = EVP_PKEY_X25519;
-		m_CurveClientPubkey.PutSpc(sntrup761_PUBLICKEYBYTES);
-		m_SntrupClientKey.Clear();
-		sntrup761_keypair(m_CurveClientPubkey.GetPtr(), m_SntrupClientKey.PutSpc(sntrup761_SECRETKEYBYTES));
+		sntrup761_keypair(m_HybridClientPubkey.PutSpc(sntrup761_PUBLICKEYBYTES), m_HybridClientSeckey.PutSpc(sntrup761_SECRETKEYBYTES));
+		break;
+	case DHMODE_MLKEM768X25519:
+		type = EVP_PKEY_X25519;
+		mlkem768_keypair(m_HybridClientPubkey.PutSpc(mlkem768_PUBLICKEYBYTES), m_HybridClientSeckey.PutSpc(mlkem768_SECRETKEYBYTES));
 		break;
 	}
 
@@ -2901,11 +2920,11 @@ void Cssh::SendMsgKexCurveInit()
 	if ( EVP_PKEY_get_raw_public_key(m_CurveEvpKey, NULL, &len) <= 0 )
 		goto ENDOF;
 
-	if ( EVP_PKEY_get_raw_public_key(m_CurveEvpKey, m_CurveClientPubkey.PutSpc((int)len), &len) <= 0 )
+	if ( EVP_PKEY_get_raw_public_key(m_CurveEvpKey, m_HybridClientPubkey.PutSpc((int)len), &len) <= 0 )
 		goto ENDOF;
 
 	tmp.Put8Bit(SSH2_MSG_KEX_ECDH_INIT);
-	tmp.PutBuf(m_CurveClientPubkey.GetPtr(), m_CurveClientPubkey.GetSize());
+	tmp.PutBuf(m_HybridClientPubkey.GetPtr(), m_HybridClientPubkey.GetSize());
 	SendPacket2(&tmp);
 
 ENDOF:
@@ -3650,12 +3669,16 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_GROUP_16_512,	_T("diffie-hellman-group16-sha512")				},	// RFC8268	SHOULD			SHOULD
 		{ DHMODE_GROUP_17_512,	_T("diffie-hellman-group17-sha512")				},	// RFC8268	MAY				MAY
 		{ DHMODE_GROUP_18_512,	_T("diffie-hellman-group18-sha512")				},	// RFC8268	MAY				MAY
+		{ DHMODE_CURVE25519,	_T("curve25519-sha256@libssh.org")				},
 		{ DHMODE_CURVE25519,	_T("curve25519-sha256")							},	// RFC8731	MUST			SHOULD
 		{ DHMODE_CURVE448,		_T("curve448-sha512")							},	// RFC8731	MAY				MAY
 		{ DHMODE_SNT761X25519,	_T("sntrup761x25519-sha512@openssh.com")		},
 		{ DHMODE_SNT761X25519,	_T("sntrup761x25519-sha512")					},	// draft-josefsson-ntruprime-ssh-00
 		{ DHMODE_RSA1024SHA1,	_T("rsa1024-sha1")								},	// RFC4432	MUST NOT		MUST NOT
 		{ DHMODE_RSA2048SHA2,	_T("rsa2048-sha256")							},	// RFC4432	MAY				MAY
+		{ DHMODE_MLKEM768X25519,_T("mlkem768x25519-sha256")						},	// draft-kampanakis-curdle-ssh-pq-ke-04
+		{ DHMODE_MLKEM768N256,	_T("mlkem768nistp256-sha256")					},	// draft-kampanakis-curdle-ssh-pq-ke-04
+		{ DHMODE_MLKEM1024N384,	_T("mlkem1024nistp384-sha384")					},	// draft-kampanakis-curdle-ssh-pq-ke-04
 		{ 0,					NULL											},
 	};
 
@@ -3995,11 +4018,14 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 {
 	int ret = (-1);
 	CBuffer tmp(-1), sign(-1), addb(-1), skey(-1);
+	CBuffer  pubs(-1), shared_key(-1);
 	EC_POINT *server_public = NULL;
 	BIGNUM *shared_secret = NULL;
+	BYTE shared_digest[EVP_MAX_MD_SIZE];
 	int klen;
 	LPBYTE kbuf = NULL;
 	const EVP_MD *evp_md;
+	BN_CTX *bnctx = NULL;
 
 	bp->GetBuf(&tmp);
 	addb.PutBuf(tmp.GetPtr(), tmp.GetSize());
@@ -4013,7 +4039,50 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 	if ( (server_public = EC_POINT_new(m_EcdhGroup)) == NULL )
 		goto ENDRET;
 
-	bp->GetEcPoint(m_EcdhGroup, server_public);
+	switch(m_DhMode) {
+	default:
+	case DHMODE_ECDH_S2_N256:
+		evp_md = EVP_sha256();
+		bp->GetEcPoint(m_EcdhGroup, server_public);
+		break;
+	case DHMODE_ECDH_S2_N384:
+		evp_md = EVP_sha384();
+		bp->GetEcPoint(m_EcdhGroup, server_public);
+		break;
+	case DHMODE_ECDH_S2_N521:
+		evp_md = EVP_sha512();
+		bp->GetEcPoint(m_EcdhGroup, server_public);
+		break;
+	case DHMODE_MLKEM768N256:
+		evp_md = EVP_sha256();
+		bp->GetBuf(&pubs);
+		if ( pubs.GetSize() < mlkem768_CIPHERTEXTBYTES )
+			goto ENDRET;
+		if ( mlkem768_dec(shared_key.PutSpc(mlkem768_BYTES), pubs.GetPtr(), m_HybridClientSeckey.GetPtr()) != 0 )
+			goto ENDRET;
+		pubs.Consume(mlkem768_CIPHERTEXTBYTES);
+
+		if ( (bnctx = BN_CTX_new()) == NULL )
+			goto ENDRET;
+		if ( EC_POINT_oct2point(m_EcdhGroup, server_public, pubs.GetPtr(), pubs.GetSize(), bnctx) != 1 )
+			goto ENDRET;
+		break;
+	case DHMODE_MLKEM1024N384:
+		evp_md = EVP_sha384();
+		bp->GetBuf(&pubs);
+		if ( pubs.GetSize() < mlkem1024_CIPHERTEXTBYTES )
+			goto ENDRET;
+		if ( mlkem1024_dec(shared_key.PutSpc(mlkem1024_BYTES), pubs.GetPtr(), m_HybridClientSeckey.GetPtr()) != 0 )
+			goto ENDRET;
+		pubs.Consume(mlkem1024_CIPHERTEXTBYTES);
+
+		if ( (bnctx = BN_CTX_new()) == NULL )
+			goto ENDRET;
+		if ( EC_POINT_oct2point(m_EcdhGroup, server_public, pubs.GetPtr(), pubs.GetSize(), bnctx) != 1 )
+			goto ENDRET;
+		break;
+	}
+
 	bp->GetBuf(&sign);
 
 	if ( key_ec_validate_public(m_EcdhGroup, server_public) != 0 )
@@ -4024,28 +4093,22 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 
 	if ( ECDH_compute_key(kbuf, klen, server_public, m_EcdhClientKey, NULL) != (int)klen )
 		goto ENDRET;
-	if ( (shared_secret = BN_new()) == NULL )
-		goto ENDRET;
-	if ( BN_bin2bn(kbuf, klen, shared_secret) == NULL )
-		goto ENDRET;
+
+	if ( m_DhMode == DHMODE_MLKEM768N256 || m_DhMode == DHMODE_MLKEM1024N384 ) {
+		shared_key.Apend(kbuf, klen);
+		int n = MD_digest(evp_md, shared_key.GetPtr(), shared_key.GetSize(), shared_digest, sizeof(shared_digest));
+		skey.PutBuf(shared_digest, n);
+
+	} else {
+		if ( (shared_secret = BN_new()) == NULL )
+			goto ENDRET;
+		if ( BN_bin2bn(kbuf, klen, shared_secret) == NULL )
+			goto ENDRET;
+		skey.PutBIGNUM2(shared_secret);
+	}
 
 	addb.PutEcPoint(m_EcdhGroup, EC_KEY_get0_public_key(m_EcdhClientKey));
 	addb.PutEcPoint(m_EcdhGroup, server_public);
-
-	skey.PutBIGNUM2(shared_secret);
-
-	switch(m_DhMode) {
-	default:
-	case DHMODE_ECDH_S2_N256:
-		evp_md = EVP_sha256();
-		break;
-	case DHMODE_ECDH_S2_N384:
-		evp_md = EVP_sha384();
-		break;
-	case DHMODE_ECDH_S2_N521:
-		evp_md = EVP_sha512();
-		break;
-	}
 
 	if ( HostVerifyKey(&sign, &addb, &skey, evp_md) )
 		goto ENDRET;
@@ -4064,6 +4127,9 @@ ENDRET:
 
 	if ( server_public != NULL )
 		EC_POINT_clear_free(server_public);
+
+	if ( bnctx != NULL )
+		BN_CTX_free(bnctx);
 
 	return ret;
 }
@@ -4109,7 +4175,16 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 		ctsz = sntrup761_CIPHERTEXTBYTES;
 		if ( server_public.GetSize() < ctsz )
 			return (-1);
-		if ( sntrup761_dec(shared_key.PutSpc(sntrup761_BYTES), server_public.GetPtr(), m_SntrupClientKey.GetPtr()) != 0 )
+		if ( sntrup761_dec(shared_key.PutSpc(sntrup761_BYTES), server_public.GetPtr(), m_HybridClientSeckey.GetPtr()) != 0 )
+			return (-1);
+		break;
+	case DHMODE_MLKEM768X25519:
+		type = EVP_PKEY_X25519;
+		evp_md = EVP_sha256();
+		ctsz = mlkem768_CIPHERTEXTBYTES;
+		if ( server_public.GetSize() < ctsz )
+			return (-1);
+		if ( mlkem768_dec(shared_key.PutSpc(mlkem768_BYTES), server_public.GetPtr(), m_HybridClientSeckey.GetPtr()) != 0 )
 			return (-1);
 		break;
 	}
@@ -4132,20 +4207,18 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 	if ( EVP_PKEY_derive(ctx, shared_key.PutSpc((int)keylen), &keylen) <= 0 )
 		goto ENDRET;
 
-	addb.PutBuf(m_CurveClientPubkey.GetPtr(), m_CurveClientPubkey.GetSize());
+	addb.PutBuf(m_HybridClientPubkey.GetPtr(), m_HybridClientPubkey.GetSize());
 	addb.PutBuf(server_public.GetPtr(), server_public.GetSize());
 
-	if ( m_DhMode == DHMODE_SNT761X25519 ) {
+	if ( m_DhMode == DHMODE_SNT761X25519 || m_DhMode == DHMODE_MLKEM768X25519 ) {
 		n = MD_digest(evp_md, shared_key.GetPtr(), shared_key.GetSize(), shared_digest, sizeof(shared_digest));
 		skey.PutBuf(shared_digest, n);
 
 	} else {
 		if ( (shared_secret = BN_new()) == NULL )
 			goto ENDRET;
-
 		if ( BN_bin2bn(shared_key.GetPtr(), shared_key.GetSize(), shared_secret) == NULL )
 			goto ENDRET;
-
 		skey.PutBIGNUM2(shared_secret);
 	}
 
@@ -5245,12 +5318,15 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		case DHMODE_ECDH_S2_N256:
 		case DHMODE_ECDH_S2_N384:
 		case DHMODE_ECDH_S2_N521:
+		case DHMODE_MLKEM768N256:
+		case DHMODE_MLKEM1024N384:
 			if ( !SendMsgKexEcdhInit() )
 				goto DISCONNECT;
 			break;
 		case DHMODE_CURVE25519:
 		case DHMODE_CURVE448:
 		case DHMODE_SNT761X25519:
+		case DHMODE_MLKEM768X25519:
 			SendMsgKexCurveInit();
 			break;
 		default:
@@ -5284,6 +5360,8 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		case DHMODE_ECDH_S2_N256:
 		case DHMODE_ECDH_S2_N384:
 		case DHMODE_ECDH_S2_N521:
+		case DHMODE_MLKEM768N256:
+		case DHMODE_MLKEM1024N384:
 			if ( SSH2MsgKexEcdhReply(bp) )
 				goto DISCONNECT;
 			m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
@@ -5293,6 +5371,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		case DHMODE_CURVE25519:
 		case DHMODE_CURVE448:
 		case DHMODE_SNT761X25519:
+		case DHMODE_MLKEM768X25519:
 			if ( SSH2MsgKexCurveReply(bp) )
 				goto DISCONNECT;
 			m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
@@ -5537,3 +5616,61 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		break;
 	}
 }
+
+#if 0
+void kem_text()
+{
+	int n;
+	clock_t st;
+	CString str, tmp;
+
+	BYTE spk[sntrup761_PUBLICKEYBYTES];
+	BYTE ssk[sntrup761_SECRETKEYBYTES];
+	BYTE sct[sntrup761_CIPHERTEXTBYTES];
+	BYTE sss[sntrup761_BYTES];
+
+	st = clock();
+	for ( n = 0 ; n < 100 ; n++ )
+		sntrup761_keypair(spk, ssk);
+	tmp.Format(_T("sntrup761_keypair\t%d\n"), (int)(clock() - st));
+	str += tmp;
+
+	st = clock();
+	for ( n = 0 ; n < 100 ; n++ )
+		sntrup761_enc(sct, sss, spk);
+	tmp.Format(_T("sntrup761_enc\t%d\n"), (int)(clock() - st));
+	str += tmp;
+
+	st = clock();
+	for ( n = 0 ; n < 100 ; n++ )
+		sntrup761_dec(sss, sct, ssk);
+	tmp.Format(_T("sntrup761_dec\t%d\n"), (int)(clock() - st));
+	str += tmp;
+
+	BYTE mpk[mlkem768_PUBLICKEYBYTES];
+	BYTE msk[mlkem768_SECRETKEYBYTES];
+	BYTE mct[mlkem768_CIPHERTEXTBYTES];
+	BYTE mss[mlkem768_BYTES];
+
+	st = clock();
+	for ( n = 0 ; n < 1000 ; n++ )
+		mlkem768_keypair(mpk, msk);
+	tmp.Format(_T("mlkem768_keypair\t%d\n"), (int)(clock() - st));
+	str += tmp;
+
+	st = clock();
+	for ( n = 0 ; n < 1000 ; n++ )
+		mlkem768_enc(mct, mss, mpk);
+	tmp.Format(_T("mlkem768_enc\t%d\n"), (int)(clock() - st));
+	str += tmp;
+
+	st = clock();
+	for ( n = 0 ; n < 1000 ; n++ )
+		mlkem768_dec(mss, mct, msk);
+	tmp.Format(_T("mlkem768_dec\t%d\n"), (int)(clock() - st));
+	str += tmp;
+
+	::AfxMessageBox(str);
+}
+#endif
+

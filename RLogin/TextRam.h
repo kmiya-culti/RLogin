@@ -294,6 +294,7 @@
 #define	TO_RLENOEDPAST	1491		// ペーストを確認しない
 #define	TO_RLTABGRAD	1492		// タブの背景をグラデーション
 #define	TO_RLDELYEMOJI	1493		// 絵文字をスレッドで遅れて表示
+#define	TO_RLVBELLLINE	1494		// Visual Bellをラインで点滅
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 

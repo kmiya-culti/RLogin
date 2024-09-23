@@ -154,7 +154,9 @@ void CScrnPage::DoInit()
 	m_FontSize.Empty();
 	InitFontSize();
 
-	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2);
+	// TO_RLADBELL/TO_RLVSBELL	0=Sound, 1=None,  2=Both,   3=Visual
+	// m_VisualBell				0=None,  1=Sound, 2=Visual, 3=Both
+	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2) ^ 1;
 
 	if ( (m_TypeCaret = m_pSheet->m_pTextRam->m_TypeCaret) > 0 )
 		m_TypeCaret--;
@@ -233,7 +235,9 @@ BOOL CScrnPage::OnApply()
 	m_pSheet->m_pTextRam->m_FontSize = m_pSheet->m_pTextRam->m_DefFontSize;
 	m_pSheet->m_pTextRam->m_DefFontHw   = m_FontHw + 10;
 
-	m_pSheet->m_pTextRam->SetOptValue(TO_RLADBELL, 2, m_VisualBell);
+	// m_VisualBell				0=None,  1=Sound, 2=Visual, 3=Both
+	// TO_RLADBELL/TO_RLVSBELL	0=Sound, 1=None,  2=Both,   3=Visual
+	m_pSheet->m_pTextRam->SetOptValue(TO_RLADBELL, 2, m_VisualBell ^ 1);
 
 	m_pSheet->m_pTextRam->m_TypeCaret = m_TypeCaret + 1;
 	m_pSheet->m_pTextRam->m_CaretColor = m_CaretColor;

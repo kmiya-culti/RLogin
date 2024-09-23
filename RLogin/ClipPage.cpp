@@ -45,20 +45,28 @@ void CClipPage::DoDataExchange(CDataExchange* pDX)
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_CHECKFAST + n, m_Check[n]);
 
-	DDX_Text(pDX, IDC_EDIT3, m_WordStr);
+	DDX_CBStringExact(pDX, IDC_EDIT3, m_WordStr);
+	DDX_CBStringExact(pDX, IDC_EDIT4, m_ShellStr);
+
 	DDX_Check(pDX, IDC_CHECK1, m_ClipFlag[0]);
 	DDX_Check(pDX, IDC_CHECK2, m_ClipFlag[1]);
-	DDX_Text(pDX, IDC_EDIT4, m_ShellStr);
 	DDX_Radio(pDX, IDC_RADIO1, m_RClick);
 	DDX_CBIndex(pDX, IDC_COMBO1, m_ClipCrLf);
 	DDX_CBIndex(pDX, IDC_COMBO2, m_RtfMode);
 	DDX_Radio(pDX, IDC_RADIO4, m_PastEdit);
+
+	DDX_Control(pDX, IDC_EDIT3, m_WordStrCombo);
+	DDX_Control(pDX, IDC_EDIT4, m_ShellStrCombo);
 }
 
 BEGIN_MESSAGE_MAP(CClipPage, CTreePage)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, &CClipPage::OnUpdateCheck)
-	ON_EN_CHANGE(IDC_EDIT3, &CClipPage::OnUpdateChange)
-	ON_EN_CHANGE(IDC_EDIT4, &CClipPage::OnUpdateChange)
+	
+	ON_CBN_SELCHANGE(IDC_EDIT3, &CClipPage::OnUpdateChange)
+	ON_CBN_EDITUPDATE(IDC_EDIT3, &CClipPage::OnUpdateChange)
+	ON_CBN_SELCHANGE(IDC_EDIT4, &CClipPage::OnUpdateChange)
+	ON_CBN_EDITUPDATE(IDC_EDIT4, &CClipPage::OnUpdateChange)
+
 	ON_BN_CLICKED(IDC_CHECK1, &CClipPage::OnUpdateChange)
 	ON_BN_CLICKED(IDC_CHECK2, &CClipPage::OnUpdateChange)
 	ON_BN_CLICKED(IDC_RADIO1, &CClipPage::OnUpdateChange)
@@ -67,6 +75,7 @@ BEGIN_MESSAGE_MAP(CClipPage, CTreePage)
 	ON_BN_CLICKED(IDC_RADIO4, &CClipPage::OnUpdateChange)
 	ON_BN_CLICKED(IDC_RADIO5, &CClipPage::OnUpdateChange)
 	ON_BN_CLICKED(IDC_RADIO6, &CClipPage::OnUpdateChange)
+
 	ON_CBN_SELCHANGE(IDC_COMBO1, &CClipPage::OnUpdateChange)
 	ON_CBN_SELCHANGE(IDC_COMBO2, &CClipPage::OnUpdateChange)
 END_MESSAGE_MAP()
@@ -112,6 +121,9 @@ BOOL CClipPage::OnInitDialog()
 
 	CTreePage::OnInitDialog();
 	DoInit();
+
+	m_WordStrCombo.LoadHis(_T("ClipPageWordStr"));
+	m_ShellStrCombo.LoadHis(_T("ClipPageShellStr"));
 
 	return TRUE;
 }
@@ -165,6 +177,9 @@ BOOL CClipPage::OnApply()
 		m_pSheet->m_pTextRam->DisableOption(TO_RLENOEDPAST);
 		break;
 	}
+
+	m_WordStrCombo.AddHis(m_WordStr);
+	m_ShellStrCombo.AddHis(m_ShellStr);
 
 	return CTreePage::OnApply();
 }

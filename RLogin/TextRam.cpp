@@ -5462,20 +5462,31 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	int c, o;
 	CPen cPen[5], *oPen;
 	LOGBRUSH LogBrush;
-	CPoint point[2];
+	CPoint point[7], secp[7];
 	CRect box(rect), tmp;
+	int bd_size = prop.pView->m_CharHeight / 16;
 	static const DWORD PenExtTab[3][4]  = {	{ 3, 1, 3, 1 }, { 2, 1, 2, 1 },	{ 1, 1, 1, 1 } };
 	static int SinTab[] = { 0, 87, 174, 259, 342, 423, 500, 574, 643, 707, 766, 819, 866, 906, 940, 966, 985, 996, 1000 };
 
-	cPen[0].CreatePen(PS_SOLID, BD_SIZE, fc);
+	if ( bd_size <= 0 )
+		bd_size = 1;
 
-	if ( prop.pView->m_CharHeight < BD_HALFSIZE )
-		cPen[4].CreatePen(PS_SOLID, BD_SIZE, RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2));
-
-	oPen = pDC->SelectObject(&(cPen[0]));
+#undef	BD_SIZE
+#define	BD_SIZE	bd_size
 
 	LogBrush.lbColor = fc;
 	LogBrush.lbStyle = BS_SOLID;
+
+	if ( BD_SIZE == 1 ) {
+		cPen[0].CreatePen(PS_SOLID, BD_SIZE, fc);
+		if ( prop.pView->m_CharHeight < BD_HALFSIZE )
+			cPen[4].CreatePen(PS_SOLID, BD_SIZE, RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2));
+	} else {
+		cPen[0].CreatePen(PS_GEOMETRIC | PS_SOLID | PS_ENDCAP_FLAT | PS_JOIN_MITER, BD_SIZE, &LogBrush);
+		cPen[4].CreatePen(PS_GEOMETRIC | PS_SOLID | PS_ENDCAP_FLAT | PS_JOIN_MITER, BD_SIZE, &LogBrush);
+	}
+
+	oPen = pDC->SelectObject(&(cPen[0]));
 
 	if ( prop.zoom == 2 )
 		box.bottom += prop.pView->m_CharHeight;
@@ -5513,30 +5524,29 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 				case BD_LINE1 | BD_DOT2:
 				case BD_LINE2 | BD_DOT2:
 					if ( cPen[1].m_hObject == NULL )
-						cPen[1].CreatePen(PS_USERSTYLE, BD_SIZE, &LogBrush, 4, PenExtTab[0]);
+						cPen[1].CreatePen(PS_GEOMETRIC | PS_USERSTYLE | PS_ENDCAP_FLAT | PS_JOIN_MITER, BD_SIZE, &LogBrush, 4, PenExtTab[0]);
 					pDC->SelectObject(&(cPen[1]));
 					break;
 				case BD_LINE1 | BD_DOT3:
 				case BD_LINE2 | BD_DOT3:
 					if ( cPen[2].m_hObject == NULL )
-						cPen[2].CreatePen(PS_USERSTYLE, BD_SIZE, &LogBrush, 4, PenExtTab[1]);
+						cPen[2].CreatePen(PS_GEOMETRIC | PS_USERSTYLE | PS_ENDCAP_FLAT | PS_JOIN_MITER, BD_SIZE, &LogBrush, 4, PenExtTab[1]);
 					pDC->SelectObject(&(cPen[2]));
 					break;
 				case BD_LINE1 | BD_DOT4:
 				case BD_LINE2 | BD_DOT4:
 					if ( cPen[3].m_hObject == NULL )
-						cPen[3].CreatePen(PS_USERSTYLE, BD_SIZE, &LogBrush, 4, PenExtTab[2]);
+						cPen[3].CreatePen(PS_GEOMETRIC | PS_USERSTYLE | PS_ENDCAP_FLAT | PS_JOIN_MITER, BD_SIZE, &LogBrush, 4, PenExtTab[2]);
 					pDC->SelectObject(&(cPen[3]));
 					break;
 				}
 
-				point[0] = center;
-				point[1] = center;
-
 				switch(c) {
 				case 0:		// Left
 					point[0].x = box.left;
-					point[1].x++;
+					point[0].y = center.y;
+					point[1].x = center.x + 1 + (BD_SIZE - 1) / 2;
+					point[1].y = center.y;
 
 					switch(tab[c] & 0x0F) {
 					case BD_LINE1:
@@ -5566,13 +5576,16 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						break;
 					case BD_LINE5:	// ╱
 						pDC->MoveTo(box.right - 1, box.top);
-						pDC->LineTo(box.left, box.bottom - 1);
+						pDC->LineTo(box.left - 1, box.bottom);
 						break;
 					}
 					break;
 
 				case 1:		// Right
+					point[0].x = center.x - (BD_SIZE - 1) / 2;
+					point[0].y = center.y;
 					point[1].x = box.right;
+					point[1].y = center.y;
 
 					switch(tab[c] & 0x0F) {
 					case BD_LINE1:
@@ -5602,14 +5615,16 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						break;
 					case BD_LINE5:	// ╱
 						pDC->MoveTo(box.right - 1, box.top);
-						pDC->LineTo(box.left, box.bottom - 1);
+						pDC->LineTo(box.left - 1, box.bottom);
 						break;
 					}
 					break;
 
 				case 2:		// Up
+					point[0].x = center.x;
 					point[0].y = box.top;
-					point[1].y++;
+					point[1].x = center.x;
+					point[1].y = center.y + 1 + (BD_SIZE - 1) / 2;
 
 					switch(tab[c] & 0x0F) {
 					case BD_LINE1:
@@ -5639,12 +5654,15 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						break;
 					case BD_LINE5:	// ╲
 						pDC->MoveTo(box.left, box.top);
-						pDC->LineTo(box.right - 1, box.bottom - 1);
+						pDC->LineTo(box.right, box.bottom);
 						break;
 					}
 					break;
 
 				case 3:		// Down
+					point[0].x = center.x;
+					point[0].y = center.y - (BD_SIZE - 1) / 2;
+					point[1].x = center.x;
 					point[1].y = box.bottom;
 
 					switch(tab[c] & 0x0F) {
@@ -5675,7 +5693,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						break;
 					case BD_LINE5:	// ╲
 						pDC->MoveTo(box.left, box.top);
-						pDC->LineTo(box.right - 1, box.bottom - 1);
+						pDC->LineTo(box.right, box.bottom);
 						break;
 					}
 					break;
@@ -5768,6 +5786,16 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 					break;
 				}
 			}
+
+#ifdef	USE_PARENTHESIS
+		} else if ( prop.pText[a] >= 0x239B && prop.pText[a] <= 0x23AD ) {		// U+00239B-0023AD		⎛⎜⎝⎞⎟⎠	⎡⎢⎣⎤⎥⎦	⎧⎨⎩⎪⎫⎬⎭
+			c = prop.pText[a] - 0x239B;
+			for ( int b = 0 ; b < 7 ; b++ ) {
+				point[b].x = box.left + box.Width() * KakoTab[c][b][0] / 100;
+				point[b].y = box.top + box.Height() * KakoTab[c][b][1] / 100;
+			}
+			pDC->Polyline(point, 7);
+#endif
 		}
 
 		box.left += prop.pSpace[i];
@@ -6264,6 +6292,7 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 	BOOL bEraBack = FALSE;
 	COLORREF fcol, bcol, tcol;
 	CGrapWnd *pWnd;
+	int vbofs = 0;
 
 	// Text Color & Back Color
 	if ( (prop.attr & ATT_BOLD) != 0 && (!IsOptEnable(TO_RLBOLD) || IsOptEnable(TO_RLBOLDHC)) ) {
@@ -6366,6 +6395,23 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 	} else
 		bEraBack = TRUE;
 
+	if ( prop.pView->m_VisualBellFlag != 0 && IsOptEnable(TO_RLVBELLLINE) && (prop.line - prop.pView->m_HisOfs + prop.pView->m_HisMin) == m_CurY ) {
+		vbofs = MulDiv(((prop.pView->m_VisualBellFlag & 1) != 0 ? 2 : -2), SCREEN_DPI_X, DEFAULT_DPI_X);
+		rect.left  += vbofs;
+		rect.right += vbofs;
+		if ( bEraBack ) {
+			CRect box(rect);
+			if ( vbofs > 0 ) {
+				box.right = box.left;
+				box.left -= vbofs;
+			} else {
+				box.left = box.right;
+				box.right -= vbofs;
+			}
+			pDC->FillSolidRect(box, bcol);
+		}
+	}
+
 	if ( prop.idx != (-1) ) {
 		// Image Draw
 		if ( (pWnd = GetGrapWnd(prop.idx)) != NULL ) {
@@ -6402,9 +6448,11 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 	if ( (prop.attr & (ATT_FRAME | ATT_CIRCLE | ATT_RSLINE | ATT_RDLINE | ATT_LSLINE | ATT_LDLINE)) != 0 )
 		DrawVertLine(pDC, rect, fcol, bcol, prop);
 
-	// リバースチェック
+	//// リバースチェック
 	bRevs  = (IsOptEnable(TO_DECSCNM) ? 1 : 0);
-	bRevs ^= (prop.pView->m_VisualBellFlag ? 1 : 0);
+
+	if ( prop.pView->m_VisualBellFlag != 0 && !IsOptEnable(TO_RLVBELLLINE) )
+		bRevs ^= 1;
 
 	if ( bRevs )
 		pDC->InvertRect(rect);
@@ -9342,7 +9390,11 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 	} else if ( md == SET_UNICODE && (block = m_FontTab.m_UniBlockTab.Find(ch)) != (-1) )
 		vp->m_Vram.bank = (WORD)block;
 
+#ifdef	USE_PARENTHESIS
+	if ( ((ch >= 0x2500 && ch <= 0x259F) || (ch >= 0x239B && ch <= 0x23AD)) && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
+#else
 	if ( ch >= 0x2500 && ch <= 0x259F && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
+#endif
 		vp->m_Vram.attr |= ATT_BORDER;
 
 	if ( str != NULL ) {

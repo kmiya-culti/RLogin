@@ -20,6 +20,7 @@
 //#define	USE_MACCTX			// EVP_MAC_CTXの動作が微妙(init(key=NULLに非対応)
 //#define	USE_X509			// opensslのx509公開鍵証明を有効
 //#define	USE_NOENDIAN		// エンディアンにとらわれないコンパイル
+#define	USE_PARENTHESIS			// Unicodeの括弧文字を独自描画
 
 // Windows バージョン
 

@@ -34,6 +34,7 @@ public:
 	BOOL m_bTabColDark;
 
 	CComboBoxHis m_BitMapCombo;
+	CComboBoxHis m_TextFormatCombo;
 
 public:
 	void DoInit();

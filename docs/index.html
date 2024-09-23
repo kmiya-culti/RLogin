@@ -25,10 +25,20 @@ TD {
 				
 				
 				
+				
+				
+				
+				
+				
 		background-color : #ffffff;
 font-size : 90%;
 }
 .BOX{
+				
+				
+				
+				
+				
 				
 				
 				
@@ -473,6 +483,17 @@ font-size : 90%;
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2024/09/24</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.8/">2.29.8</A></TD>
+            <TD>SSH2のkexにmlkem768x25519-sha256を追加<BR>
+            Unicodeの罫線描画の線幅を可変するように変更<BR>
+            Unicodeの括弧文字の一部を独自描画に変更<BR>
+            sntrup761関数をopenssh-9.9の新しい物に更新<BR>
+            拡張機能にVisual Bellでカーソル行ぷるるんを追加<BR>
+            UTF-8の文字幅などをUnicode-16.0.0のデータに更新<BR>
+            openssl-3.3.2に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2024/08/23</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.7/">2.29.7</A></TD>
             <TD>SFTPのプログレスバーをグラフ表示に変更<BR>
@@ -480,7 +501,7 @@ font-size : 90%;
             オプション設定の再利用しそうなエディットをヒストリ付きコンボに変更<BR>
             オプションのヒストリー・通信ログの設定が初期化されないバグを修正<BR>
             ListCtrlのInfoTipが正しく表示されないバグを修正<BR>
-            2.29.6でHTTP/2のハフマン複合が出来なくなったバグを修正</TD>
+            2.29.6でHTTP/2のハフマン復号が出来なくなったバグを修正</TD>
           </TR>
           <TR>
             <TD align="center">2024/07/22</TD>
@@ -509,14 +530,6 @@ font-size : 90%;
             ALT+'-'で何もしないように修正</TD>
           </TR>
           <TR>
-            <TD align="center">2024/04/22</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.3/">2.29.3</A></TD>
-            <TD>keyboard-interactiveで実行するプラグインコマンドを追加<BR>
-            スクリプトのfile関数に文字種のオプションを追加<BR>
-            各種コントロールをダークモードに対応<BR>
-            openssl-3.3.0に更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -540,13 +553,13 @@ font-size : 90%;
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.3.1.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.3.2.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.3.1 openssl-3.3.1-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.3.2 openssl-3.3.2-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -631,7 +644,7 @@ font-size : 90%;
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.3.1 4 Jun 2024<BR>
+            <P>OpenSSL 3.3.2 3 Sep 2024<BR>
             Copyright (c) 1998-2024 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -3280,7 +3293,7 @@ fi</PRE>
           <TR>
             <TD valign="top" width="600">暗号・検証・圧縮方法の優先順位を任意に並べます<BR>
             変更したい項目を選択してSHIFT+↑、SHIFT+↓で順位が変わります<BR>
-            参照：<A href="faq.html#LOGON">ログイン手順の自動化</A> <A href="faq.html#SSHALGO">SSH2での各種選択</A><BR>
+            参照：<A href="faq.html#LOGINPROT">SSH2でのユーザー認証</A> <A href="faq.html#SSHALGO">SSH2での各種選択</A><BR>
             <BR>
             ※2.28.6からダイアログのサイズを変更出来るようにしました<BR>
             <BR>
@@ -4493,6 +4506,14 @@ function TekClock2() {
                 <TR>
                   <TD colspan="2">エスケープシーケンスのSOS/PM/APCでバッファリングしたデータをファイルに保存するようにします</TD>
                 </TR>
+                <TR>
+                  <TD align="center" rowspan="2">494</TD>
+                  <TD>カーソル行をぷるるん</TD>
+                  <TD>全画面を点滅</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2"><A href="#SCREENOPT">スクリーンのオプション設定</A>の「ベルコード(07)による動作を選択」で「Visual/Both」を選択した場合の動作を変更します。デフォルトは、「全画面を点滅」で端末画面を一時的に反転表示して点滅させます。このオプションをチェックして「カーソル行をぷるるん」にするとカーソルのある行だけを左右に細かく揺らします</TD>
+                </TR>
               </TBODY>
             </TABLE>
             <BR>
@@ -4505,7 +4526,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image047.jpg" width="609" height="536" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image047.jpg" width="611" height="538" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

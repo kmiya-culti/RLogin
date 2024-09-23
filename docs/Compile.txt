@@ -31,7 +31,7 @@ Invoke-WebRequest -Uri https://github.com/StrawberryPerl/Perl-Dist-Strawberry/re
 winget install nasm
 
 # ライブラリなどをダウンロード
-Invoke-WebRequest -Uri http://www.openssl.org/source/openssl-3.3.1.tar.gz -OutFile openssl-3.3.1.tar.gz
+Invoke-WebRequest -Uri http://www.openssl.org/source/openssl-3.3.2.tar.gz -OutFile openssl-3.3.2.tar.gz
 Invoke-WebRequest -Uri https://zlib.net/zlib-1.3.1.tar.xz -OutFile zlib-1.3.1.tar.xz
 Invoke-WebRequest -Uri https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz -OutFile libiconv-1.17.tar.gz
 Invoke-WebRequest -Uri http://nanno.bf1.jp/softlib/man/rlogin/libiconv-1.17.patch -OutFile libiconv-1.17.patch
@@ -48,7 +48,7 @@ git clone https://github.com/kmiya-culti/RLogin.git -b master
 
 # それぞれのライブラリをRLoginのソースコードの中に展開する
 cd RLogin\RLogin
-tar xzvf ..\..\openssl-3.3.1.tar.gz
+tar xzvf ..\..\openssl-3.3.2.tar.gz
 tar xzvf ..\..\zlib-1.3.1.tar.xz
 tar xzvf ..\..\libiconv-1.17.tar.gz
 Expand-Archive -Path ..\..\nettle-2.0.zip -DestinationPath .
@@ -58,7 +58,7 @@ Expand-Archive -Path ..\..\nettle-2.0.zip -DestinationPath .
 cmd /k "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
 
 # OpenSSLをコンパイルする
-cd openssl-3.3.1
+cd openssl-3.3.2
 perl Configure VC-WIN64A no-shared no-module enable-legacy
 nmake
 cd ..

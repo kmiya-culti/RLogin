@@ -85,6 +85,10 @@ void CComboBoxHis::LoadHis(LPCTSTR lpszSection)
 		AddString(aray[n]);
 
 	m_Section = lpszSection;
+
+	if ( !text.IsEmpty() && (n = FindStringExact(0, text)) == CB_ERR )
+		InsertString(0, text);
+
 	SetWindowText(text);
 }
 void CComboBoxHis::SaveHis(LPCTSTR lpszSection)

@@ -59,6 +59,7 @@ static const struct _OptListTab {
 //	{	TO_RLENOEDPAST,	IDT_EXTOPT_LIST29	},
 //	{	TO_RLTABGRAD,	IDT_EXTOPT_LIST30	},
 //	{	TO_RLDELYEMOJI,	IDT_EXTOPT_LIST31	},
+	{	TO_RLVBELLLINE,	IDT_EXTOPT_LIST32	},
 	{	0,				0					},
 };
 
@@ -76,7 +77,8 @@ void CExtOptPage::DoDataExchange(CDataExchange* pDX)
 	CTreePage::DoDataExchange(pDX);
 
 	DDX_Control(pDX, IDC_EXTLIST, m_ExtList);
-	DDX_Text(pDX, IDC_EDIT1, m_InlineExt);
+	DDX_CBStringExact(pDX, IDC_EDIT1, m_InlineExt);
+	DDX_Control(pDX, IDC_EDIT1, m_InlineCombo);
 }
 
 BEGIN_MESSAGE_MAP(CExtOptPage, CTreePage)
@@ -84,7 +86,8 @@ BEGIN_MESSAGE_MAP(CExtOptPage, CTreePage)
 	ON_NOTIFY(NM_DBLCLK, IDC_EXTLIST, &CExtOptPage::OnNMDblclkExtlist)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_EXTLIST, &CExtOptPage::OnLvnItemchangedExtlist)
 	ON_NOTIFY(LVN_GETINFOTIP, IDC_EXTLIST, &CExtOptPage::OnLvnGetInfoTipExtlist)
-	ON_EN_CHANGE(IDC_EDIT1, &CExtOptPage::OnUpdate)
+	ON_CBN_SELCHANGE(IDC_EDIT1, &CExtOptPage::OnUpdate)
+	ON_CBN_EDITUPDATE(IDC_EDIT1, &CExtOptPage::OnUpdate)
 	ON_COMMAND(ID_EDIT_DELALL, &CExtOptPage::OnEditDelall)
 	ON_COMMAND(ID_EDIT_COPY, &CExtOptPage::OnEditCopy)
 	ON_COMMAND(ID_EDIT_PASTE, &CExtOptPage::OnEditPaste)
@@ -149,6 +152,8 @@ BOOL CExtOptPage::OnInitDialog()
 
 	DoInit();
 
+	m_InlineCombo.LoadHis(_T("ExtOptPageInlineExt"));
+
 	return TRUE;
 }
 BOOL CExtOptPage::OnApply() 
@@ -166,6 +171,8 @@ BOOL CExtOptPage::OnApply()
 	}
 
 	m_pSheet->m_pTextRam->m_InlineExt.GetString(m_InlineExt, _T('|'));
+
+	m_InlineCombo.AddHis(m_InlineExt);
 
 	return TRUE;
 }

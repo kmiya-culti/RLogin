@@ -73,7 +73,7 @@ public:
 	CBitmap *m_pBitmap;
 	BOOL m_HaveBack;
 	BOOL m_ActiveFlag;
-	BOOL m_VisualBellFlag;
+	int m_VisualBellFlag;
 	int m_BlinkFlag;
 	int m_ImageFlag;
 	BOOL m_MouseEventFlag;

@@ -24,6 +24,9 @@ public:
 	int m_RtfMode;
 	int m_PastEdit;
 
+	CComboBoxHis m_WordStrCombo;
+	CComboBoxHis m_ShellStrCombo;
+
 public:
 	void DoInit();
 
