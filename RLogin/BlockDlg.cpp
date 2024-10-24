@@ -27,6 +27,10 @@ CBlockDlg::CBlockDlg(CWnd* pParent /*=NULL*/)
 	m_ScrollPos = 0;
 	m_ScrollPage = 0;
 	m_ScrollMax = 0;
+	m_WheelDelta = 0;
+	m_bSelCodeMode = FALSE;
+	m_SelCodeSta = (-1);
+	m_SelCodeEnd = (-1);
 }
 CBlockDlg::~CBlockDlg()
 {
@@ -47,6 +51,9 @@ BEGIN_MESSAGE_MAP(CBlockDlg, CDialogExt)
 	ON_COMMAND(ID_EDIT_COPY_ALL, &CBlockDlg::OnEditCopyAll)
 	ON_COMMAND(ID_EDIT_PASTE_ALL, &CBlockDlg::OnEditPasteAll)
 	ON_WM_VSCROLL()
+	ON_WM_LBUTTONDOWN()
+	ON_WM_RBUTTONDOWN()
+	ON_WM_MOUSEWHEEL()
 END_MESSAGE_MAP()
 
 static const INITDLGTAB ItemTab[] = {
@@ -156,7 +163,7 @@ void CBlockDlg::DrawPreView(HDC hDC)
 	for ( line = 0 ; line < m_ScrollPage && code < next ; line++ ) {
 		for ( cols = 0 ; cols < 16 && code < next ; cols++, code++ ) {
 			if ( m_pTextRam != NULL ) {
-				cflag = m_pTextRam->UnicodeCharFlag(CTextRam::UCS4toUCS2(code));
+				cflag = m_pTextRam->UnicodeBaseFlag(CTextRam::UCS4toUCS2(code));
 				if ( (cflag & UNI_WID) != 0 )
 					cwid = 2;
 				else if ( (cflag & UNI_AMB) != 0 )
@@ -191,6 +198,10 @@ void CBlockDlg::DrawPreView(HDC hDC)
 
 			sz = pDC->GetTextExtent(str);
 			pDC->TextOut(x + (width * cwid / 2 - sz.cx) / 2, y + (height - sz.cy) / 2, str);
+
+			if ( m_bSelCodeMode && code >= m_SelCodeSta && code <= m_SelCodeEnd )
+				pDC->InvertRect(CRect(frame.Width() * cols / 16, frame.Height() * line / m_ScrollPage,
+					frame.Width() * cols / 16 + width, frame.Height() * line / m_ScrollPage + height));
 		}
 	}
 
@@ -227,11 +238,28 @@ BOOL CBlockDlg::OnInitDialog()
 
 	m_UniBlockNow = m_UniBlockTab;
 
-	m_BlockList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
+	m_BlockList.SetExtendedStyle(LVS_EX_FULLROWSELECT | (m_bSelCodeMode ? 0 : LVS_EX_CHECKBOXES));
 	m_BlockList.InitColumn(_T("BlockDlg"), InitListTab, 2);
-	m_BlockList.SetPopUpMenu(IDR_POPUPMENU, 4);
+
+	if ( !m_bSelCodeMode )
+		m_BlockList.SetPopUpMenu(IDR_POPUPMENU, 4);
 
 	InitList();
+
+	if ( m_bSelCodeMode && m_SelCodeSta != (-1) ) {
+		for ( m_SelBlock = 0 ; m_SelBlock < m_UniBlockTab.GetSize() ; m_SelBlock++ ) {
+			if ( m_SelCodeSta < m_UniBlockTab[m_SelBlock].code )
+				break;
+		}
+		m_SelBlock--;
+		if ( (n = m_BlockList.GetSelectionMark()) >= 0 )
+			m_BlockList.SetItemState(n, 0, LVIS_FOCUSED | LVIS_SELECTED);
+		m_BlockList.SetSelectionMark(m_SelBlock);
+		m_BlockList.SetItemState(m_SelBlock, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+		m_BlockList.EnsureVisible(m_SelBlock, FALSE);
+		m_ScrollPos = 0;
+		m_PreViewBox.Invalidate(FALSE);
+	}
 
 	SetSaveProfile(_T("BlockDlg"));
 	AddHelpButton(_T("#UNIBLOCK"));
@@ -243,14 +271,16 @@ void CBlockDlg::OnOK()
 	int n, i;
 	CString str;
 
-	m_pFontNode->m_UniBlock.Empty();
+	if ( !m_bSelCodeMode ) {
+		m_pFontNode->m_UniBlock.Empty();
 
-	for ( n = 0 ; n < m_BlockList.GetItemCount() ; n++ ) {
-		if ( m_BlockList.GetLVCheck(n) && (i = (int)m_BlockList.GetItemData(n)) < (int)m_UniBlockTab.GetSize() && m_UniBlockTab[i].index == m_CodeSet ) {
-			str.Format(_T("U+%06X"), m_UniBlockTab[i].code);
-			if ( !m_pFontNode->m_UniBlock.IsEmpty() )
-				m_pFontNode->m_UniBlock += _T(",");
-			m_pFontNode->m_UniBlock += str;
+		for ( n = 0 ; n < m_BlockList.GetItemCount() ; n++ ) {
+			if ( m_BlockList.GetLVCheck(n) && (i = (int)m_BlockList.GetItemData(n)) < (int)m_UniBlockTab.GetSize() && m_UniBlockTab[i].index == m_CodeSet ) {
+				str.Format(_T("U+%06X"), m_UniBlockTab[i].code);
+				if ( !m_pFontNode->m_UniBlock.IsEmpty() )
+					m_pFontNode->m_UniBlock += _T(",");
+				m_pFontNode->m_UniBlock += str;
+			}
 		}
 	}
 
@@ -269,7 +299,7 @@ void CBlockDlg::OnLvnItemchangedBlocklist(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 
-	if ( (pNMLV->uNewState & LVIS_STATEIMAGEMASK) != 0 ) {
+	if ( !m_bSelCodeMode && (pNMLV->uNewState & LVIS_STATEIMAGEMASK) != 0 ) {
 		if ( m_BlockList.GetLVCheck(pNMLV->iItem) ) {
 			// Check in
 			m_UniBlockTab[(int)pNMLV->lParam].index = m_CodeSet;
@@ -427,4 +457,112 @@ void CBlockDlg::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 
 	m_PreViewBox.Invalidate(FALSE);
 	CDialogExt::OnVScroll(nSBCode, nPos, pScrollBar);
+}
+
+void CBlockDlg::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	CRect rect;
+	DWORD code;
+
+	if ( !m_bSelCodeMode )
+		return;
+
+	m_PreViewBox.GetClientRect(rect);
+	m_PreViewBox.ClientToScreen(rect);
+	ScreenToClient(rect);
+
+	if ( !rect.PtInRect(point) )
+		return;
+	
+	if ( m_SelBlock < 0 )
+		return;
+
+	if ( ((point.y - rect.top) * m_ScrollPage / rect.Height() + m_ScrollPos) >= m_ScrollMax )
+		return;
+
+	code = m_UniBlockTab[m_SelBlock].code;
+	code += (point.x - rect.left) * 16 / rect.Width();
+	code += ((point.y - rect.top) * m_ScrollPage / rect.Height() + m_ScrollPos) * 16;
+
+	m_SelCodeSta = code;
+
+	if ( m_SelCodeEnd == (-1) )
+		m_SelCodeEnd = code;
+
+	if ( m_SelCodeSta > m_SelCodeEnd )
+		m_SelCodeEnd = m_SelCodeSta;
+
+	m_PreViewBox.Invalidate(FALSE);
+}
+void CBlockDlg::OnRButtonDown(UINT nFlags, CPoint point)
+{
+	CRect rect;
+	DWORD code;
+
+	if ( !m_bSelCodeMode )
+		return;
+
+	m_PreViewBox.GetClientRect(rect);
+	m_PreViewBox.ClientToScreen(rect);
+	ScreenToClient(rect);
+
+	if ( !rect.PtInRect(point) )
+		return;
+	
+	if ( m_SelBlock < 0 )
+		return;
+
+	if ( ((point.y - rect.top) * m_ScrollPage / rect.Height() + m_ScrollPos) >= m_ScrollMax )
+		return;
+
+	code = m_UniBlockTab[m_SelBlock].code;
+	code += (point.x - rect.left) * 16 / rect.Width();
+	code += ((point.y - rect.top) * m_ScrollPage / rect.Height() + m_ScrollPos) * 16;
+
+	m_SelCodeEnd = code;
+
+	if ( m_SelCodeSta == (-1) )
+		m_SelCodeSta = code;
+
+	if ( m_SelCodeEnd < m_SelCodeSta )
+		m_SelCodeSta = m_SelCodeEnd;
+
+	m_PreViewBox.Invalidate(FALSE);
+}
+
+BOOL CBlockDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
+{
+	int n;
+
+	m_WheelDelta += zDelta;
+
+	if ( (m_WheelDelta / 40) == 0 )
+		return CDialogExt::OnMouseWheel(nFlags, zDelta, pt);
+
+	m_ScrollPos -= (m_WheelDelta / 40);
+	m_WheelDelta %= 40;
+
+	if ( m_ScrollPos < 0 ) {
+		if ( --m_SelBlock < 0 )
+			m_SelBlock = 0;
+		if ( (n = m_BlockList.GetSelectionMark()) >= 0 )
+			m_BlockList.SetItemState(n, 0, LVIS_FOCUSED | LVIS_SELECTED);
+		m_BlockList.SetSelectionMark(m_SelBlock);
+		m_BlockList.SetItemState(m_SelBlock, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+		m_BlockList.EnsureVisible(m_SelBlock, FALSE);
+		m_ScrollPos = 0;
+	} else if ( m_ScrollPos >= (m_ScrollMax - (m_ScrollPage / 2)) ) {
+		if ( ++m_SelBlock >= (int)m_UniBlockTab.GetSize() )
+			m_SelBlock = (int)m_UniBlockTab.GetSize() - 1;
+		if ( (n = m_BlockList.GetSelectionMark()) >= 0 )
+			m_BlockList.SetItemState(n, 0, LVIS_FOCUSED | LVIS_SELECTED);
+		m_BlockList.SetSelectionMark(m_SelBlock);
+		m_BlockList.SetItemState(m_SelBlock, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+		m_BlockList.EnsureVisible(m_SelBlock, FALSE);
+		m_ScrollPos = 0;
+	}
+
+	m_PreViewBox.Invalidate(FALSE);
+
+	return CDialogExt::OnMouseWheel(nFlags, zDelta, pt);
 }

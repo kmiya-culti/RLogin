@@ -545,6 +545,7 @@ static const CTextRam::CSIEXTTAB fc_DcsExtTab[] = {
 //	{				('+' << 8) | 'p',		&CTextRam::fc_POP		},	// XTSTCAP Set Termcap/Terminfo Data (xterm, experimental)
 	{				('+' << 8) | 'q',		&CTextRam::fc_XTRQCAP	},	// XTRQCAP Request Termcap/Terminfo String (xterm, experimental)
 	{				('#' << 8) | 'm',		&CTextRam::fc_RLMML		},	// RLMML RLogin Music Macro Language
+	{				('#' << 8) | 'u',		&CTextRam::fc_RLUCSIZE	},	// RLUCSIZE RLogin Unicode cell size define
 	{							   0,		NULL } };
 
 static const CTextRam::PROCTAB fc_TekTab[] = {
@@ -782,7 +783,7 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("XTWINOPS"),			&CTextRam::fc_XTWINOPS,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
 };
 
-#define	DCSNAMETABMAX	12
+#define	DCSNAMETABMAX	13
 static CTextRam::ESCNAMEPROC fc_DcsNameTab[] = {
 	{	_T("DECDLD"),	&CTextRam::fc_DECDLD,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
 	{	_T("DECDMAC"),	&CTextRam::fc_DECDMAC,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
@@ -795,6 +796,7 @@ static CTextRam::ESCNAMEPROC fc_DcsNameTab[] = {
 	{	_T("DECUDK"),	&CTextRam::fc_DECUDK,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
 	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	PROCTYPE_DCS,	TRACE_OUT	},
 	{	_T("RLMML"),	&CTextRam::fc_RLMML,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
+	{	_T("RLUCSIZE"),	&CTextRam::fc_RLUCSIZE,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
 	{	_T("XTRQCAP"),	&CTextRam::fc_XTRQCAP,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
 };
 
@@ -4625,6 +4627,67 @@ void CTextRam::fc_RLMML(DWORD ch)
 
 	fc_POP(ch);
 }
+void CTextRam::fc_RLUCSIZE(DWORD ch)
+{
+	LPCTSTR str;
+	CString ptn;
+	CCodeFlag *pTemp;
+
+#ifdef	UNICODE
+	CBuffer tmp;
+	m_IConv.RemoteToStr(m_SendCharSet[m_KanjiMode], &m_OscPara, &tmp);
+	str = (LPCWSTR)tmp;
+#else
+	str = (LPCSTR)m_OscPara;
+#endif
+
+	switch(GetAnsiPara(0, 0, 0)) {
+	case 0:
+		if ( *str == _T('\0') )
+			m_UniCodeFlag = m_DefUniCodeFlag;
+		else
+			m_UniCodeFlag.GetString(str, FALSE);
+		break;
+	case 1:
+		m_UniCodeFlag.GetString(str, TRUE);
+		break;
+
+	case 2:
+		m_UniCodeFlag.GetString(str, FALSE, this);
+		break;
+	case 3:
+		m_UniCodeFlag.GetString(str, TRUE, this);
+		break;
+
+	case 4:
+		while ( m_CodeFlagStack.GetCount() >= STACKMAX ) {
+			pTemp = m_CodeFlagStack.RemoveTail();
+			delete pTemp;
+		}
+		pTemp = new CCodeFlag;
+		*pTemp = m_UniCodeFlag;
+		m_CodeFlagStack.AddHead(pTemp);
+		m_UniCodeFlag.GetString(str, FALSE);
+		break;
+	case 5:
+		if ( m_CodeFlagStack.IsEmpty() ) {
+			m_UniCodeFlag = m_DefUniCodeFlag;
+		} else {
+			pTemp = m_CodeFlagStack.RemoveHead();
+			m_UniCodeFlag = *pTemp;
+			delete pTemp;
+		}
+		m_UniCodeFlag.GetString(str, TRUE);
+		break;
+
+	case 9:
+		m_UniCodeFlag.SetString(ptn);
+		UNGETSTR(_T("%s#u%s%s"), m_RetChar[RC_DCS], ptn, m_RetChar[RC_ST]);
+		break;
+	}
+
+	fc_POP(ch);
+}
 
 //////////////////////////////////////////////////////////////////////
 // fc OSC
@@ -8227,6 +8290,9 @@ void CTextRam::fc_XTPUSHSGR(DWORD ch)
 	}
 
 	if ( mask != 0 ) {
+		while ( (n = (int)m_SgrStack.GetSize()) >= STACKMAX )
+			m_SgrStack.RemoveAt(n - 1);
+
 		data.attr = m_AttNow.std.attr & mask & ATT_MASK;
 		data.mask = mask;
 		if ( (mask & ATT_FCOL) != 0 ) {
@@ -8403,9 +8469,8 @@ void CTextRam::fc_C25LCT(DWORD ch)
 void CTextRam::fc_TTIMESV(DWORD ch)
 {
 	//	CSI ('<' << 16) | 's',		TTIMESV IME の開閉状態を保存する。
-	m_AnsiPara.RemoveAll();
-	m_AnsiPara.Add(TO_IMECTRL + 8000);
-	fc_DECSRET('s');
+
+	m_ImeStatus = (IsOptEnable(TO_IMECTRL) ? 1 : 0);
 }
 void CTextRam::fc_TTIMEST(DWORD ch)
 {
@@ -8421,7 +8486,14 @@ void CTextRam::fc_TTIMERS(DWORD ch)
 	//	CSI ('<' << 16) | 'r',		TTIMERS IME の開閉状態を復元する。
 	m_AnsiPara.RemoveAll();
 	m_AnsiPara.Add(TO_IMECTRL + 8000);
-	fc_DECSRET('r');
+	switch(m_ImeStatus) {
+	case 0:
+		fc_DECSRET('l');
+		break;
+	case 1:
+		fc_DECSRET('h');
+		break;
+	}
 }
 void CTextRam::fc_XTRMTITLE(DWORD ch)
 {

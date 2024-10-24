@@ -33,7 +33,7 @@ void CDefParamDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogExt::DoDataExchange(pDX);
 
-	for ( int n = 0 ; n < 6 ; n++ )
+	for ( int n = 0 ; n < 7 ; n++ )
 		DDX_Check(pDX, IDC_DEFPAMCHECK1 + n, m_Check[n]);
 
 	DDX_Control(pDX, IDC_MSGICON, m_MsgIcon);
@@ -125,12 +125,13 @@ BOOL CDefParamDlg::OnInitDialog()
 
 	m_MsgIcon.SetIcon(::LoadIcon(NULL, icon));
 
-	m_Check[0] = (m_InitFlag & UMOD_ANSIOPT) != 0 ? TRUE : FALSE;
-	m_Check[1] = (m_InitFlag & UMOD_MODKEY)  != 0 ? TRUE : FALSE;
-	m_Check[2] = (m_InitFlag & UMOD_COLTAB)  != 0 ? TRUE : FALSE;
-	m_Check[3] = (m_InitFlag & UMOD_BANKTAB) != 0 ? TRUE : FALSE;
-	m_Check[4] = (m_InitFlag & UMOD_DEFATT)  != 0 ? TRUE : FALSE;
-	m_Check[5] = (m_InitFlag & UMOD_CARET)   != 0 ? TRUE : FALSE;
+	m_Check[0] = (m_InitFlag & UMOD_ANSIOPT)  != 0 ? TRUE : FALSE;
+	m_Check[1] = (m_InitFlag & UMOD_MODKEY)   != 0 ? TRUE : FALSE;
+	m_Check[2] = (m_InitFlag & UMOD_COLTAB)   != 0 ? TRUE : FALSE;
+	m_Check[3] = (m_InitFlag & UMOD_BANKTAB)  != 0 ? TRUE : FALSE;
+	m_Check[4] = (m_InitFlag & UMOD_DEFATT)   != 0 ? TRUE : FALSE;
+	m_Check[5] = (m_InitFlag & UMOD_CARET)    != 0 ? TRUE : FALSE;
+	m_Check[6] = (m_InitFlag & UMOD_CODEFLAG) != 0 ? TRUE : FALSE;
 
 	UpdateData(FALSE);
 
@@ -144,12 +145,13 @@ void CDefParamDlg::OnOK()
 {
 	UpdateData(TRUE);
 
-	if ( m_Check[0] ) m_InitFlag |= UMOD_ANSIOPT; else m_InitFlag &= ~UMOD_ANSIOPT;
-	if ( m_Check[1] ) m_InitFlag |= UMOD_MODKEY;  else m_InitFlag &= ~UMOD_MODKEY;
-	if ( m_Check[2] ) m_InitFlag |= UMOD_COLTAB;  else m_InitFlag &= ~UMOD_COLTAB;
-	if ( m_Check[3] ) m_InitFlag |= UMOD_BANKTAB; else m_InitFlag &= ~UMOD_BANKTAB;
-	if ( m_Check[4] ) m_InitFlag |= UMOD_DEFATT;  else m_InitFlag &= ~UMOD_DEFATT;
-	if ( m_Check[5] ) m_InitFlag |= UMOD_CARET;   else m_InitFlag &= ~UMOD_CARET;
+	if ( m_Check[0] ) m_InitFlag |= UMOD_ANSIOPT;  else m_InitFlag &= ~UMOD_ANSIOPT;
+	if ( m_Check[1] ) m_InitFlag |= UMOD_MODKEY;   else m_InitFlag &= ~UMOD_MODKEY;
+	if ( m_Check[2] ) m_InitFlag |= UMOD_COLTAB;   else m_InitFlag &= ~UMOD_COLTAB;
+	if ( m_Check[3] ) m_InitFlag |= UMOD_BANKTAB;  else m_InitFlag &= ~UMOD_BANKTAB;
+	if ( m_Check[4] ) m_InitFlag |= UMOD_DEFATT;   else m_InitFlag &= ~UMOD_DEFATT;
+	if ( m_Check[5] ) m_InitFlag |= UMOD_CARET;    else m_InitFlag &= ~UMOD_CARET;
+	if ( m_Check[6] ) m_InitFlag |= UMOD_CODEFLAG; else m_InitFlag &= ~UMOD_CODEFLAG;
 
 	CDialogExt::OnOK();
 }

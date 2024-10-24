@@ -8,6 +8,7 @@
 #include <afxmt.h>
 #include "RegEx.h"
 #include "ScriptDlg.h"
+#include "DialogExt.h"
 
 #define	VALTYPE_INT			0
 #define	VALTYPE_DOUBLE		1
@@ -309,10 +310,10 @@ typedef struct _ScriptDebug {
 	DWORD	spos, epos;
 } ScriptDebug;
 
-class CTempWnd : public CWnd
+class CTempWnd : public CDialogExt
 {
 public:
-	CTempWnd();
+	CTempWnd(UINT nIDTemplate = NULL, CWnd* pParent = NULL);
 	virtual ~CTempWnd();
 
 public:
@@ -325,11 +326,12 @@ public:
 protected:
 	virtual void PostNcDestroy();
 	virtual BOOL OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
+//	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnClose();
+	afx_msg LRESULT OnGetFont(WPARAM, LPARAM);
 	DECLARE_MESSAGE_MAP()
 };
 

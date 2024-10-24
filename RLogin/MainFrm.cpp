@@ -40,6 +40,7 @@ CPaneFrame::CPaneFrame(class CMainFrame *pMain, HWND hWnd, class CPaneFrame *pOw
 	m_pServerEntry = NULL;
 	m_bReqSize = FALSE;
 	m_TabIndex = (-1);
+	m_bFoucsReq = FALSE;
 
 	if ( m_pOwn != NULL )
 		m_Frame = m_pOwn->m_Frame;
@@ -620,6 +621,7 @@ void CPaneFrame::SetBuffer(CBuffer *buf, BOOL bEntry)
 			m_pServerEntry = NULL;
 		}
 		if ( bEntry && m_hWnd != NULL ) {
+			CChildFrame *pActiveChild = (CChildFrame *)(((CMainFrame *)::AfxGetMainWnd())->MDIGetActive());
 			CChildFrame *pWnd = (CChildFrame *)(CWnd::FromHandlePermanent(m_hWnd));
 			if ( pWnd != NULL ) {
 				CRLoginDoc *pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument());
@@ -634,7 +636,9 @@ void CPaneFrame::SetBuffer(CBuffer *buf, BOOL bEntry)
 #if	_MSC_VER >= _MSC_VER_VS10
 					pDoc->ClearPathName();
 #endif
-					tmp.Format("%d\t0\t1\t%d\t", m_Style, ((CMainFrame *)::AfxGetMainWnd())->GetTabIndex(pWnd));
+					tmp.Format("%d\t0\t1\t%d\t%d\t", m_Style, 
+						((CMainFrame *)::AfxGetMainWnd())->GetTabIndex(pWnd),
+						(pActiveChild != NULL && pActiveChild->m_hWnd == pWnd->m_hWnd ? 1 : 0));
 				}
 			}
 		}
@@ -693,6 +697,7 @@ class CPaneFrame *CPaneFrame::GetBuffer(class CMainFrame *pMain, class CPaneFram
 			pPane->m_pServerEntry = new CServerEntry;
 			pPane->m_pServerEntry->GetBuffer(*buf);
 			pPane->m_TabIndex = (stra.GetSize() > 3 ? stra.GetVal(3) : (-1));
+			pPane->m_bFoucsReq = (stra.GetSize() > 4 ? (BOOL)stra.GetVal(4) : FALSE);
 		}
 		return pPane;
 	}
@@ -824,6 +829,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 
 	ON_COMMAND(ID_FILE_ALL_LOAD, OnFileAllLoad)
 	ON_COMMAND(ID_FILE_ALL_SAVE, OnFileAllSave)
+	ON_COMMAND(ID_FILE_ALL_LAST, OnFileAllLast)
 
 	ON_COMMAND(ID_PANE_WSPLIT, OnPaneWsplit)
 	ON_COMMAND(ID_PANE_HSPLIT, OnPaneHsplit)
@@ -945,6 +951,7 @@ CMainFrame::CMainFrame()
 	m_Frame.SetRectEmpty();
 	m_pTrackPane = NULL;
 	m_LastPaneFlag = FALSE;
+	m_pLastPaneFoucs = NULL;
 	m_TimerSeqId = TIMERID_TIMEREVENT;
 	m_pTimerUsedId = NULL;
 	m_pTimerFreeId = NULL;
@@ -1798,10 +1805,15 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 		Entry.m_DocType = DOCTYPE_MULTIFILE;
 		delete pPane->m_pServerEntry;
 		pPane->m_pServerEntry = NULL;
+		if ( pPane->m_bFoucsReq )
+			m_pLastPaneFoucs = pTemp;
 		if ( m_pTopPane->GetEntry() != NULL )
 			PostMessage(WM_COMMAND, ID_FILE_NEW, 0);
-		else
+		else {
 			m_LastPaneFlag = FALSE;
+			if ( m_pLastPaneFoucs != NULL )
+				PostMessage(WM_COMMAND, ID_FILE_ALL_LAST, 0);
+		}
 		return TRUE;
 	}
 	m_LastPaneFlag = FALSE;
@@ -3479,9 +3491,16 @@ void CMainFrame::OnFileAllLoad()
 
 	if ( m_pTopPane->GetEntry() != NULL ) {
 		m_LastPaneFlag = TRUE;
+		m_pLastPaneFoucs = NULL;
 		AfxGetApp()->AddToRecentFileList(m_AllFilePath);
 		PostMessage(WM_COMMAND, ID_FILE_NEW, 0);
 	}
+}
+void CMainFrame::OnFileAllLast()
+{
+	if ( m_pLastPaneFoucs != NULL )
+		MDIActivate(m_pLastPaneFoucs);
+	m_pLastPaneFoucs = NULL;
 }
 
 BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)

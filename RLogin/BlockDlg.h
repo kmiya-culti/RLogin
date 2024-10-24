@@ -34,6 +34,10 @@ public:
 	int m_ScrollPos;
 	int m_ScrollMax;
 	int m_ScrollPage;
+	int m_WheelDelta;
+	BOOL m_bSelCodeMode;
+	DWORD m_SelCodeSta;
+	DWORD m_SelCodeEnd;
 
 public:
 	void InitList();
@@ -52,4 +56,7 @@ public:
 	afx_msg void OnEditCopyAll();
 	afx_msg void OnEditPasteAll();
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
+	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 };

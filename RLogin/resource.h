@@ -509,6 +509,7 @@
 #define ID_VIEW_QUICKBAR                1046
 #define ID_VIEW_TABDLGBAR               1047
 #define ID_VIEW_VOICEBAR                1048
+#define ID_FILE_ALL_LAST                1049
 #define IDC_ALGO_LIST1                  2000
 #define IDC_ALGO_LIST2                  2001
 #define IDC_ALGO_LIST3                  2002
@@ -625,6 +626,7 @@
 #define IDC_DEFPAMCHECK5                2102
 #define IDC_DEFPAMCHECK6                2103
 #define IDC_DELAYLINE                   2104
+#define IDC_DEFPAMCHECK7                2104
 #define IDC_DELENTRY                    2105
 #define IDC_DELAYRECV                   2105
 #define IDC_DELAYCRLF                   2106
@@ -1103,6 +1105,7 @@
 #define IDC_TABBACKCOL                  2538
 #define IDC_TABBACKGRAD                 2539
 #define IDC_EDITKEY                     2540
+#define IDC_CODEFLAG                    2541
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1257,7 +1260,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        173
 #define _APS_NEXT_COMMAND_VALUE         5158
-#define _APS_NEXT_CONTROL_VALUE         2541
+#define _APS_NEXT_CONTROL_VALUE         2542
 #define _APS_NEXT_SYMED_VALUE           679
 #endif
 #endif

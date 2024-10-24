@@ -2305,7 +2305,7 @@ void CRLoginDoc::UpdateOption(COptDlg *pOptDlg)
 	if ( (pOptDlg->m_ModFlag & UMOD_TABCOLOR) != 0 )
 		((CMainFrame *)::AfxGetMainWnd())->TabBarUpdate();
 
-	if ( (pOptDlg->m_ModFlag & (UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT | UMOD_CARET)) != 0 )
+	if ( (pOptDlg->m_ModFlag & (UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT | UMOD_CARET | UMOD_CODEFLAG)) != 0 )
 		pOptDlg->m_ModFlag = m_TextRam.InitDefParam(TRUE, pOptDlg->m_ModFlag);
 
 	UpdateAllViews(NULL, (pOptDlg->m_ModFlag & UMOD_RESIZE) != 0 ? UPDATE_RESIZE : UPDATE_INITPARA, NULL);

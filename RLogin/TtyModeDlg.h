@@ -129,3 +129,43 @@ protected:
 	afx_msg void OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
 };
+
+/////////////////////////////////////////////////////////////////////////////
+// CCodeFlagDlg
+
+class CCodeFlagDlg : public CTtyModeDlg
+{
+	DECLARE_DYNAMIC(CCodeFlagDlg)
+
+public:
+	CCodeFlagDlg();
+	virtual ~CCodeFlagDlg();
+
+public:
+	class COptDlg *m_pSheet;
+	BOOL m_bUpdate;
+	CCodeFlag m_CodeFlag;
+
+public:
+	void GetCode(int nItem, DWORD &low, DWORD &high);
+	void UpdateMemo(int nItem);
+	void InitList();
+
+protected:
+	virtual BOOL OnInitDialog();
+	virtual void OnOK();
+
+protected:
+	DECLARE_MESSAGE_MAP()
+	afx_msg void OnEditNew();
+	afx_msg void OnEditUpdate();
+	afx_msg void OnEditDelete();
+	afx_msg void OnEditCopyAll();
+	afx_msg void OnEditPasteAll();
+	afx_msg void OnEditDelAll();
+	afx_msg void OnUpdateEditCopy(CCmdUI *pCmdUI);
+	afx_msg void OnUpdateEditPaste(CCmdUI *pCmdUI);
+	afx_msg void OnUpdateEditEnable(CCmdUI *pCmdUI);
+	afx_msg void OnUpdateEditDisable(CCmdUI *pCmdUI);
+	afx_msg void OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult);
+};

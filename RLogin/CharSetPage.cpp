@@ -13,6 +13,7 @@
 #include "FontParaDlg.h"
 #include "IConvDlg.h"
 #include "InitAllDlg.h"
+#include "TtyModeDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -88,6 +89,7 @@ BEGIN_MESSAGE_MAP(CCharSetPage, CTreePage)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_FONTLIST, &CCharSetPage::OnLvnItemchangedFontlist)
 	ON_WM_DRAWITEM()
 	ON_BN_CLICKED(IDC_CHECK1, &CCharSetPage::OnBnClickedCheck1)
+	ON_BN_CLICKED(IDC_CODEFLAG, &CCharSetPage::OnBnClickedCodeflag)
 END_MESSAGE_MAP()
 
 void CCharSetPage::InitList()
@@ -164,6 +166,7 @@ static const INITDLGTAB ItemTab[] = {
 	{ IDC_FONTNAME,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
 	{ IDC_FONTSAMPLE,	ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
 	{ IDC_CHECK1,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_CODEFLAG,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
 
 	{ IDC_FONTLIST,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_BTM },
 
@@ -185,6 +188,7 @@ static const INITDLGTAB ItemTab[] = {
 
 	{ IDC_TITLE10,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_TITLE11,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
+	{ IDC_TITLE12,		ITM_LEFT_PER | ITM_RIGHT_PER | ITM_BTM_TOP },
 
 	{ 0,				0 },
 };
@@ -211,6 +215,8 @@ void CCharSetPage::DoInit()
 
 	for ( int n = 0 ; n < 4 ; n++ )
 		m_SendCharSet[n] = m_pSheet->m_pTextRam->m_SendCharSet[n];
+
+	m_CodeFlag = m_pSheet->m_pTextRam->m_UniCodeFlag;
 
 	InitList();
 	UpdateData(FALSE);
@@ -290,6 +296,8 @@ BOOL CCharSetPage::OnApply()
 		m_pSheet->m_pTextRam->m_SendCharSet[n] = m_SendCharSet[n];
 
 	m_List.SaveColumn(_T("CharSetPage"));
+
+	m_pSheet->m_pTextRam->m_UniCodeFlag = m_CodeFlag;
 
 	return TRUE;
 }
@@ -679,4 +687,19 @@ void CCharSetPage::OnBnClickedCheck1()
 {
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+
+void CCharSetPage::OnBnClickedCodeflag()
+{
+	CCodeFlagDlg dlg;
+
+	dlg.m_CodeFlag = m_CodeFlag;
+	dlg.m_pSheet = m_pSheet;
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	m_CodeFlag = dlg.m_CodeFlag;
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_CODEFLAG;
 }

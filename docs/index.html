@@ -10,54 +10,13 @@ TD {
 				
 				
 				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-		background-color : #ffffff;
-font-size : 90%;
+		background-color : #ffffff; font-size : 90%; 
 }
 .BOX{		
 				
 				
 				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-		background-color : silver;
+		background-color : silver; 
 }
 -->
 </STYLE>
@@ -72,8 +31,8 @@ font-size : 90%;
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.29.8)</TD>
-            <TD width="20%" align="right">2024/09/24</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.29.9)</TD>
+            <TD width="20%" align="right">2024/10/25</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -183,6 +142,7 @@ font-size : 90%;
                     <LI><A href="faq.html#SSHAGEANT">SSHエージェントを利用</A>
                     <LI><A href="faq.html#WINCOL">外観の色設定</A>
                     <LI><A href="faq.html#FONTVIEW">フォントの表示品質</A>
+                    <LI><A href="faq.html#UCSIZE">UTF-8の文字サイズ変更</A>
                   </OL>
                   </TD>
                 </TR>
@@ -483,6 +443,20 @@ font-size : 90%;
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2024/10/25</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.9/">2.29.9</A></TD>
+            <TD>ファイルのドラッグアンドドロップSCPで異常終了するのを修正<BR>
+            Scriptのダイアログ関数をHIDPI・ダークモードに対応<BR>
+            DCSに<A href="ctrlcode.html#RLUCSIZE">RLUCSIZE</A>でUnicodeの文字サイズを指定するを追加<BR>
+            フォントオプションにUNICODE文字サイズ上書きを追加<BR>
+            すべての状態を保存でフォーカス情報を含めるように変更<BR>
+            マウスホイールの動作をより汎用的に変更<BR>
+            カラー絵文字に変換するコードの範囲を変更<BR>
+            文字コード変換(EUC/SJIS)のエラー処理を修正<BR>
+            カーソル行をぷるるんをスクリーン・ベルコードのJigglyに移動<BR>
+            openssl-3.4.0に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2024/09/24</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.8/">2.29.8</A></TD>
             <TD>SSH2のkexにmlkem768x25519-sha256を追加<BR>
@@ -520,16 +494,6 @@ font-size : 90%;
             openssl-3.3.1に更新</TD>
           </TR>
           <TR>
-            <TD align="center">2024/05/20</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.4/">2.29.4</A></TD>
-            <TD>タブバー常時表示で接続が無いと負荷が高いバグを修正<BR>
-            登録されたホスト鍵の削除で古い形式と誤認識するバグを修正<BR>
-            ダイアログサイズの復元で縦サイズの計算ミスを修正<BR>
-            リスト・ツリーコントロールなどの選択時の色を変更<BR>
-            ディセーブル時のコントロールの表示方法を変更<BR>
-            ALT+'-'で何もしないように修正</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -553,13 +517,13 @@ font-size : 90%;
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.3.2.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.4.0.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.3.2 openssl-3.3.2-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.4.0 openssl-3.4.0-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -644,7 +608,7 @@ font-size : 90%;
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.3.2 3 Sep 2024<BR>
+            <P>OpenSSL 3.4.0 22 Oct 2024<BR>
             Copyright (c) 1998-2024 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -4101,7 +4065,36 @@ function TekClock2() {
                 </TR>
                 <TR>
                   <TD align="center">ベルコード(07)…</TD>
-                  <TD>None/Sound/Visual/Bothから選択します</TD>
+                  <TD>ベルコード(07)を受信した場合の動作を選択します<BR>
+                  <TABLE cellpadding="3">
+                    <TBODY>
+                      <TR>
+                        <TD>None</TD>
+                        <TD>何もしない</TD>
+                      </TR>
+                      <TR>
+                        <TD>Sound</TD>
+                        <TD>Windows のビープ音を鳴らす</TD>
+                      </TR>
+                      <TR>
+                        <TD>Visual</TD>
+                        <TD>画面を反転して点滅する</TD>
+                      </TR>
+                      <TR>
+                        <TD>Visual+Sound</TD>
+                        <TD>画面反転とビープ音を同時に行う</TD>
+                      </TR>
+                      <TR>
+                        <TD>Jiggly</TD>
+                        <TD>カーソル行をぷるるんする</TD>
+                      </TR>
+                      <TR>
+                        <TD>Jiggly+Sound</TD>
+                        <TD>ぷるるんとビープ音を同時に行う</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
                 </TR>
                 <TR>
                   <TD align="center">文字カーソル…</TD>
@@ -4327,7 +4320,7 @@ function TekClock2() {
                 </TR>
                 <TR>
                   <TD colspan="2">UNICODE仕様書のEastAsianWidth.txtでAタイプ(Ambiguous)で定義された文字の表示幅を設定します。フォントによりかなり違いがあります<BR>
-                  参照：<A href="faq.html#LINECHAR" style="font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">罫線が表示されない</A></TD>
+                  参照：<A href="faq.html#LINECHAR" style="font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">罫線が表示されない</A>　<A href="ctrlcode.html#UNICODE">UTF-8表示仕様</A></TD>
                 </TR>
                 <TR>
                   <TD align="center" width="10%" rowspan="2">8437</TD>
@@ -4505,14 +4498,6 @@ function TekClock2() {
                 </TR>
                 <TR>
                   <TD colspan="2">エスケープシーケンスのSOS/PM/APCでバッファリングしたデータをファイルに保存するようにします</TD>
-                </TR>
-                <TR>
-                  <TD align="center" rowspan="2">494</TD>
-                  <TD>カーソル行をぷるるん</TD>
-                  <TD>全画面を点滅</TD>
-                </TR>
-                <TR>
-                  <TD colspan="2"><A href="#SCREENOPT">スクリーンのオプション設定</A>の「ベルコード(07)による動作を選択」で「Visual/Both」を選択した場合の動作を変更します。デフォルトは、「全画面を点滅」で端末画面を一時的に反転表示して点滅させます。このオプションをチェックして「カーソル行をぷるるん」にするとカーソルのある行だけを左右に細かく揺らします</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -5083,6 +5068,11 @@ function TekClock2() {
                   <TD>デフォルトフォントの変更時やフォントリスト選択時に、そのフォントのサンプルを表示します</TD>
                 </TR>
                 <TR>
+                  <TD align="center">UNICODEフォント…</TD>
+                  <TD>文字セットがUTF-8の時に使用するUNICODEフォントセットでEastAsianWidth.txtで規定された文字サイズを変更することができます。ただしサーバー側のアプリケーションとの連携が必至なので安易に変更すると文字列編集などで表示が崩れるので注意です<BR>
+                  参照<A href="faq.html#UCSIZE"> UTF-8の文字サイズ変更</A> <A href="ctrlcode.html#RLUCSIZE">RLUCSIZE</A></TD>
+                </TR>
+                <TR>
                   <TD align="center">フォントリスト</TD>
                   <TD>ISO2022に従ったフォントセットのリストです<BR>
                   <TABLE class="BOX" cellspacing="1">
@@ -5137,7 +5127,7 @@ function TekClock2() {
             ※GL/GR/G0,G1,G2,G3は、ISO-2022にしたがったエスケープシーケンスで動的に変化します<BR>
             ※Bank94のCode&quot;0&quot;は、VT100グラフィックキャラクターセットとして使用していますがWindowsフォントとして標準では、存在しません。TeraTermに付属する「Tera
             Special」などのフォントが別途必要です</TD>
-            <TD valign="top" align="left"><IMG src="image002.jpg" width="609" height="536" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image002.jpg" width="611" height="538" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5550,7 +5540,11 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image045.jpg" width="714" height="460" border="0"></TD>
+            <TD valign="top"><IMG src="image045.jpg" width="714" height="460" border="0"><BR>
+            <BR>
+            <BR>
+            「UNICODEフォントセットの文字サイズ上書き」で右クリックで表示されるポップアップメニュー「新規作成」「項目編集」でもこのダイアログが表示されます。その場合は、フォントサンプルを左クリックでスタートコード、右クリックでエンドコードの指定ができます<BR>
+            <IMG src="image068.jpg" width="714" height="460" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

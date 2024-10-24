@@ -1092,7 +1092,7 @@ void CFifoRcp::RcpUpLoad()
 	LONGLONG param[2];
 
 	if ( m_pProgDlg != NULL && m_pProgDlg->m_hWnd != NULL )
-		m_pProgDlg->PostMessage(WM_PROGUPDATE, PROG_UPDATE_FILENAME, (LPARAM)(LPCTSTR)m_PathName);
+		m_pProgDlg->SendMessage(WM_PROGUPDATE, PROG_UPDATE_FILENAME, (LPARAM)(LPCTSTR)m_PathName);
 
 	if ( _tstati64(m_PathName, &stat) || (fp = _tfopen(m_PathName, _T("rb"))) == NULL ) {
 		line.Format("file open error %d", GetLastError());
@@ -1127,7 +1127,7 @@ void CFifoRcp::RcpUpLoad()
 		m_pProgDlg->m_UpdatePost = TRUE;
 		param[0] = stat.st_size;
 		param[1] = 0;
-		m_pProgDlg->PostMessage(WM_PROGUPDATE, PROG_UPDATE_RANGE, (LPARAM)param);
+		m_pProgDlg->SendMessage(WM_PROGUPDATE, PROG_UPDATE_RANGE, (LPARAM)param);
 	}
 
 	for ( size = stat.st_size ; size > 0 ; size -= len ) {
@@ -1151,7 +1151,7 @@ void CFifoRcp::RcpUpLoad()
 			if ( !m_pProgDlg->m_UpdatePost ) {
 				m_pProgDlg->m_UpdatePost = TRUE;
 				param[0] = stat.st_size - size;
-				m_pProgDlg->PostMessage(WM_PROGUPDATE, PROG_UPDATE_POS, (LPARAM)param);
+				m_pProgDlg->SendMessage(WM_PROGUPDATE, PROG_UPDATE_POS, (LPARAM)param);
 			}
 		}
 	}
@@ -1170,7 +1170,7 @@ ERRRET:
 		fclose(fp);
 
 	if ( m_pProgDlg != NULL && m_pProgDlg->m_hWnd != NULL )
-		m_pProgDlg->PostMessage(WM_PROGUPDATE, PROG_UPDATE_DESTORY, (LPARAM)(LPCTSTR)MbsToTstr(line));
+		m_pProgDlg->SendMessage(WM_PROGUPDATE, PROG_UPDATE_DESTORY, (LPARAM)(LPCTSTR)MbsToTstr(line));
 
 	SendFdCommand(FIFO_STDOUT, FIFO_CMD_MSGQUEIN, FIFO_QCMD_RCPNEXT, (line.IsEmpty() ? TRUE : FALSE));
 }
@@ -1261,7 +1261,7 @@ void CFifoRcp::RcpDownLoad()
 			MakePath(PathList.GetHead(), name, path);
 
 			if ( m_pProgDlg != NULL && m_pProgDlg->m_hWnd != NULL )
-				m_pProgDlg->PostMessage(WM_PROGUPDATE, PROG_UPDATE_FILENAME, (LPARAM)(LPCTSTR)path);
+				m_pProgDlg->SendMessage(WM_PROGUPDATE, PROG_UPDATE_FILENAME, (LPARAM)(LPCTSTR)path);
 
 			if ( (fp = _tfopen(path, _T("wb"))) == NULL ) {
 				line.Format("file open error %d", GetLastError());
@@ -1272,7 +1272,7 @@ void CFifoRcp::RcpDownLoad()
 				m_pProgDlg->m_UpdatePost = TRUE;
 				param[0] = st_size;
 				param[1] = 0;
-				m_pProgDlg->PostMessage(WM_PROGUPDATE, PROG_UPDATE_RANGE, (LPARAM)param);
+				m_pProgDlg->SendMessage(WM_PROGUPDATE, PROG_UPDATE_RANGE, (LPARAM)param);
 			}
 
 			for ( size = st_size ; size > 0 ; size -= len ) {
@@ -1297,7 +1297,7 @@ void CFifoRcp::RcpDownLoad()
 					if ( !m_pProgDlg->m_UpdatePost ) {
 						m_pProgDlg->m_UpdatePost = TRUE;
 						param[0] = st_size - size;
-						m_pProgDlg->PostMessage(WM_PROGUPDATE, PROG_UPDATE_POS, (LPARAM)param);
+						m_pProgDlg->SendMessage(WM_PROGUPDATE, PROG_UPDATE_POS, (LPARAM)param);
 					}
 				}
 			}
@@ -1330,5 +1330,5 @@ ERRRET:
 		fclose(fp);
 
 	if ( m_pProgDlg != NULL && m_pProgDlg->m_hWnd != NULL )
-		m_pProgDlg->PostMessage(WM_PROGUPDATE, PROG_UPDATE_DESTORY, (LPARAM)(LPCTSTR)MbsToTstr(line));
+		m_pProgDlg->SendMessage(WM_PROGUPDATE, PROG_UPDATE_DESTORY, (LPARAM)(LPCTSTR)MbsToTstr(line));
 }

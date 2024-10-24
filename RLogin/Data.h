@@ -21,6 +21,7 @@ int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void 
 BOOL IsZeroMemory(void *ptr, int len);
 BOOL IsDigits(LPCTSTR p);
 BOOL InStrStr(LPCTSTR str, LPCTSTR ptn);
+LPCTSTR StrToHex(LPCTSTR p, DWORD &val);
 
 #define	CBUFINITSIZE	32
 #define	CBUFNIMALLOC	256
@@ -1286,6 +1287,32 @@ public:
 	BOOL LoadResBitmap(int nId, int dpiX, int dpiY, COLORREF backCol);
 	BOOL CopyBitmap(CBitmap *pSrcBitmap);
 	BOOL CreateMaskBitmap(CBitmap *pSrcBitmap, COLORREF backCol);
+};
+
+class CCodeFlag : public CObject
+{
+	typedef struct _CODETAB {
+		DWORD	low;
+		DWORD	high;
+		DWORD	flag;
+	} CODETAB;
+
+public:
+	CArray<CODETAB, CODETAB &> m_Data;
+
+public:
+	void Alignment();
+	void Add(DWORD low, DWORD high, DWORD flag);
+	inline void RemoveAll() { m_Data.RemoveAll(); }
+	inline int GetSize() { return (int)m_Data.GetSize(); }
+	inline CODETAB & GetAt(int n) { return m_Data[n]; }
+
+	DWORD Find(DWORD code);
+	void GetString(LPCTSTR str, BOOL bAdd = FALSE, class CTextRam *pTextRam = NULL);
+	void SetString(CString &str, BOOL bTabSep = FALSE);
+
+	int Compare(CCodeFlag &dis);
+	const CCodeFlag & operator = (CCodeFlag &data);
 };
 
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

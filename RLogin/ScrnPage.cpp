@@ -154,9 +154,12 @@ void CScrnPage::DoInit()
 	m_FontSize.Empty();
 	InitFontSize();
 
-	// TO_RLADBELL/TO_RLVSBELL	0=Sound, 1=None,  2=Both,   3=Visual
-	// m_VisualBell				0=None,  1=Sound, 2=Visual, 3=Both
-	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2) ^ 1;
+	// TO_RLADBELL=1 ? None : Sound
+	// TO_RLVSBELL=1 ? (TO_RLVBELLLINE=1 ? Jiggly : Visual) : None
+	// m_VisualBell	0=None, 1=Sound, 2=Visual, 3=Sound+Visual, 4=Jiggly, 5=Sound+Jiggly
+	m_VisualBell = (m_pSheet->m_pTextRam->IsOptEnable(TO_RLADBELL) ? 000 : 001);
+	if ( m_pSheet->m_pTextRam->IsOptEnable(TO_RLVSBELL) )
+		m_VisualBell |= (m_pSheet->m_pTextRam->IsOptEnable(TO_RLVBELLLINE) ? 004 : 002);
 
 	if ( (m_TypeCaret = m_pSheet->m_pTextRam->m_TypeCaret) > 0 )
 		m_TypeCaret--;
@@ -235,9 +238,39 @@ BOOL CScrnPage::OnApply()
 	m_pSheet->m_pTextRam->m_FontSize = m_pSheet->m_pTextRam->m_DefFontSize;
 	m_pSheet->m_pTextRam->m_DefFontHw   = m_FontHw + 10;
 
-	// m_VisualBell				0=None,  1=Sound, 2=Visual, 3=Both
-	// TO_RLADBELL/TO_RLVSBELL	0=Sound, 1=None,  2=Both,   3=Visual
-	m_pSheet->m_pTextRam->SetOptValue(TO_RLADBELL, 2, m_VisualBell ^ 1);
+	// m_VisualBell	0=None, 1=Sound, 2=Visual, 3=Sound+Visual, 4=Jiggly, 5=Sound+Jiggly
+	// TO_RLADBELL=1 ? None : Sound
+	// TO_RLVSBELL=1 ? (TO_RLVBELLLINE=1 ? Jiggly : Visual) : None
+	switch(m_VisualBell) {
+	case 0:		// None
+		m_pSheet->m_pTextRam->EnableOption(TO_RLADBELL);
+		m_pSheet->m_pTextRam->DisableOption(TO_RLVSBELL);
+		break;
+	case 1:		// Sound
+		m_pSheet->m_pTextRam->DisableOption(TO_RLADBELL);
+		m_pSheet->m_pTextRam->DisableOption(TO_RLVSBELL);
+		break;
+	case 2:		// Visual
+		m_pSheet->m_pTextRam->EnableOption(TO_RLADBELL);
+		m_pSheet->m_pTextRam->EnableOption(TO_RLVSBELL);
+		m_pSheet->m_pTextRam->DisableOption(TO_RLVBELLLINE);
+		break;
+	case 3:		// Sound+Visual
+		m_pSheet->m_pTextRam->DisableOption(TO_RLADBELL);
+		m_pSheet->m_pTextRam->EnableOption(TO_RLVSBELL);
+		m_pSheet->m_pTextRam->DisableOption(TO_RLVBELLLINE);
+		break;
+	case 4:		// Jiggly
+		m_pSheet->m_pTextRam->EnableOption(TO_RLADBELL);
+		m_pSheet->m_pTextRam->EnableOption(TO_RLVSBELL);
+		m_pSheet->m_pTextRam->EnableOption(TO_RLVBELLLINE);
+		break;
+	case 5:		// Sound+Jiggly
+		m_pSheet->m_pTextRam->DisableOption(TO_RLADBELL);
+		m_pSheet->m_pTextRam->EnableOption(TO_RLVSBELL);
+		m_pSheet->m_pTextRam->EnableOption(TO_RLVBELLLINE);
+		break;
+	}
 
 	m_pSheet->m_pTextRam->m_TypeCaret = m_TypeCaret + 1;
 	m_pSheet->m_pTextRam->m_CaretColor = m_CaretColor;

@@ -1897,6 +1897,7 @@ CTextRam::CTextRam()
 	m_TabTextColor = AppColorTable[0][APPCOL_BARTEXT];
 	m_TabBackColor = AppColorTable[0][APPCOL_BARHIGH];
 	m_UpdateCurX = m_UpdateCurY = (-1);
+	m_ImeStatus = (-1);
 
 	m_ColStackUsed = 0;
 	m_ColStackLast = 0;
@@ -2020,13 +2021,19 @@ CTextRam::~CTextRam()
 	if ( m_StsParam.m_TabMap != NULL )
 		delete [] m_StsParam.m_TabMap;
 
-	CMDHIS *pCmdHis;
-	while ( !m_CommandHistory.IsEmpty() && (pCmdHis = m_CommandHistory.RemoveHead()) != NULL )
+	while ( !m_CommandHistory.IsEmpty() ) {
+		CMDHIS *pCmdHis = m_CommandHistory.RemoveHead();
 		delete pCmdHis;
+	}
 
 	for ( int n = 0 ; n < 10 ; n++ ) {
 		if ( m_ColStackTab[n] != NULL )
 			delete m_ColStackTab[n];
+	}
+
+	while ( !m_CodeFlagStack.IsEmpty() ) {
+		CCodeFlag *pTemp = m_CodeFlagStack.RemoveHead();
+		delete pTemp;
 	}
 }
 
@@ -2799,6 +2806,9 @@ void CTextRam::Init()
 
 	m_SleepMode = SLEEPMODE_ACTIVE;
 
+	m_DefUniCodeFlag.RemoveAll();
+	m_UniCodeFlag.RemoveAll();
+
 	RESET(RESET_ALL);
 
 	// RESETでFALSEに設定される
@@ -2953,6 +2963,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("TabBackColor")].Add(GetRValue(m_TabBackColor));
 		index[_T("TabBackColor")].Add(GetGValue(m_TabBackColor));
 		index[_T("TabBackColor")].Add(GetBValue(m_TabBackColor));
+
+		m_DefUniCodeFlag.SetString(str);
+		index[_T("UniCodeFlag")] = str;
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -3244,6 +3257,11 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("TabBackColor"))) >= 0 && index[n].GetSize() >= 3 )
 			m_TabBackColor = RGB((int)index[n][0], (int)index[n][1], (int)index[n][2]);
 
+		if ( (n = index.Find(_T("UniCodeFlag"))) >= 0 ) {
+			m_DefUniCodeFlag.GetString(index[n]);
+			m_UniCodeFlag = m_DefUniCodeFlag;
+		}
+
 		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -3511,6 +3529,11 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 		index[_T("TabBackColor")].Add(GetGValue(m_TabBackColor));
 		index[_T("TabBackColor")].Add(GetBValue(m_TabBackColor));
 	}
+
+	if ( m_DefUniCodeFlag.Compare(orig.m_DefUniCodeFlag) != 0 ) {
+		m_DefUniCodeFlag.SetString(str);
+		index[_T("UniCodeFlag")] = str;
+	}
 }
 void CTextRam::SetArray(CStringArrayExt &stra)
 {
@@ -3632,6 +3655,9 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	
 	stra.AddVal(m_TabTextColor);
 	stra.AddVal(m_TabBackColor);
+
+	m_DefUniCodeFlag.SetString(str);
+	stra.Add(str);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -3880,6 +3906,11 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		m_TabTextColor = stra.GetVal(82);
 	if ( stra.GetSize() > 83 )
 		m_TabBackColor = stra.GetVal(83);
+
+	if ( stra.GetSize() > 84 ) {
+		m_DefUniCodeFlag.GetString(stra.GetAt(84));
+		m_UniCodeFlag = m_DefUniCodeFlag;
+	}
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -5955,18 +5986,14 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		x = box.left + prop.pView->m_CharWidth  * pFontNode->m_OffsetW / 100;
 		y = box.top  - prop.pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? prop.pView->m_CharHeight : 0);
 
-		if ( !IsOptEnable(TO_RLUNIAHF) ) {
-			sz = pDC->GetTextExtent(prop.pText, prop.tlen);
-			if ( box.Width() < sz.cx ) {
-				if ( prop.csz == 2 && (box.Width() * 50 / sz.cx) == 25 ) {	// 50-51%
-					// 全角のサイズ指定を半角で行う場合の救済処置
-					pFontCache = pFontNode->GetFont(width * box.Width() / sz.cx, height, style, prop.font, this);
-					pDC->SelectObject(pFontCache->m_pFont);
-				} else {
-					goto DRAWCHAR;
-				}
-			}
-		}
+		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
+		if ( prop.csz == 2 && (box.Width() * 50 / sz.cx) == 25 ) {	// 50-51%
+			// 全角のサイズ指定を半角で行う場合の救済処置
+			pFontCache = pFontNode->GetFont(width * box.Width() / sz.cx, height, style, prop.font, this);
+			pDC->SelectObject(pFontCache->m_pFont);
+		} else if ( box.Width() < sz.cx && !IsOptEnable(TO_RLUNIAHF) )
+			goto DRAWCHAR;
+
 		pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, prop.pText, prop.tlen, prop.pSpace);
 
 	} else if ( type == 2 ) {
@@ -7179,7 +7206,7 @@ int CTextRam::InitDefParam(BOOL bCheck, int modFlag)
 		dlg.m_InitFlag = modFlag;
 		dlg.m_pTextRam = this;
 		if ( dlg.DoModal() != IDOK )
-			return (modFlag & ~(UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT | UMOD_CARET));
+			return (modFlag & ~(UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT | UMOD_CARET | UMOD_CODEFLAG));
 		modFlag = dlg.m_InitFlag;
 	}
 
@@ -7202,6 +7229,9 @@ int CTextRam::InitDefParam(BOOL bCheck, int modFlag)
 		m_DefTypeCaret  = m_TypeCaret;
 		m_DefCaretColor = m_CaretColor;
 	}
+
+	if ( (modFlag & UMOD_CODEFLAG) != 0 )
+		m_DefUniCodeFlag = m_UniCodeFlag;
 	
 	return modFlag;
 }
@@ -7361,7 +7391,7 @@ BOOL CTextRam::CallReceiveChar(DWORD ch, LPCTSTR name)
 	return (m_MediaCopyMode == MEDIACOPY_RELAY ? TRUE : FALSE);
 }
 
-int CTextRam::UnicodeCharFlag(DWORD code)
+int CTextRam::UnicodeTabFind(DWORD code)
 {
 	int n, b, m;
 
@@ -7370,13 +7400,43 @@ int CTextRam::UnicodeCharFlag(DWORD code)
 	while ( b <= m ) {
 		n = (b + m) / 2;
 		if ( code == UniCharTab[n].code )
-			return UniCharTab[n].flag;
+			return n;
 		else if ( code > UniCharTab[n].code )
 			b = n + 1;
 		else
 			m = n - 1;
 	}
-	return UniCharTab[b - 1].flag;
+	return (b - 1);
+}
+BOOL CTextRam::UnicodeSizeCheck(DWORD low, DWORD high, int sz)
+{
+	int nl = UnicodeTabFind(low);
+	int nh = UnicodeTabFind(high);
+	int as = IsOptEnable(TO_RLUNIAWH) ? 1 : 2;
+
+	for ( ; nl <= nh ; nl++ ) {
+		int ns = ((UniCharTab[nl].flag & UNI_WID) != 0 ? 2 : ((UniCharTab[nl].flag & UNI_AMB) != 0 ? as : 1));
+		if ( sz != ns )
+			return FALSE;
+	}
+
+	return TRUE;
+}
+int CTextRam::UnicodeBaseFlag(DWORD code)
+{
+	return UniCharTab[UnicodeTabFind(code)].flag;
+}
+int CTextRam::UnicodeCharFlag(DWORD code)
+{
+	int cf = UnicodeBaseFlag(code);
+	int uf = (int)m_UniCodeFlag.Find(code);
+
+	if ( (uf & (UNI_NAR | UNI_WID | UNI_AMB)) != 0 )
+		cf &= ~(UNI_NAR | UNI_WID | UNI_AMB);
+
+	cf |= uf;
+
+	return cf;
 }
 int CTextRam::UnicodeWidth(DWORD code)
 {
@@ -7643,6 +7703,14 @@ DWORD CTextRam::UCS4toUCS2(DWORD code)
 		code = (((code & 0xFFC00L) << 6) | (code & 0x3FF)) | 0xD800DC00L;
 	}
 	return code;
+}
+void CTextRam::UCS2ToWStr(DWORD code, CStringW &str)
+{
+	if ( (code & 0xFFFF0000) != 0 ) {
+		str = (WCHAR)(code >> 16);
+		str += (WCHAR)code;
+	} else
+		str = (WCHAR)code;
 }
 void CTextRam::UCS4ToWStr(DWORD code, CStringW &str)
 {
@@ -8115,6 +8183,10 @@ void CTextRam::RESET(int mode)
 
 		if ( m_StsMode == (STSMODE_ENABLE | STSMODE_INSCREEN) )
 			EnableOption(TO_DECOM);
+
+		m_CodeFlagStack.RemoveAll();
+		m_OptStack.RemoveAll();
+		m_ImeStatus = (-1);
 	}
 
 	if ( mode & RESET_XTOPT ) {
@@ -9552,6 +9624,13 @@ void CTextRam::PUTADD(int x, int y, DWORD ch)
 		return;
 
 	vp = GETVRAM(x, y);
+
+	if ( ch == 0x20E3 ) {	// 20E3;COMBINING ENCLOSING KEYCAP;Me;0;NSM;;;;;N;;;;;
+		LPCWSTR sp = (LPCWSTR)(*vp);
+		if ( *sp == 0x0023 || *sp == 0x002A || (*sp >= 0x0030 && *sp <= 0x0039) )
+			vp->m_Vram.attr |= ATT_EMOJI;
+	}
+
 	*vp += (DWORD)ch;
 	vp->m_Atime = m_Atime;
 
@@ -9567,6 +9646,9 @@ void CTextRam::PUTADD(int x, int y, DWORD ch)
 }
 void CTextRam::ANSIOPT(int opt, int bit)
 {
+	OPTSTACK tmp;
+	POSITION pos;
+
 	if ( bit < 0 || bit > 511 )
 		return;
 
@@ -9578,14 +9660,27 @@ void CTextRam::ANSIOPT(int opt, int bit)
 		DisableOption(bit);
 		break;
 	case 'r':
-		DisableOption(bit);
-		if ( IS_ENABLE(m_SaveParam.m_AnsiOpt, bit) )
-			EnableOption(bit);
+		pos = m_OptStack.GetHeadPosition();
+		while ( pos != NULL ) {
+			tmp = m_OptStack.GetAt(pos);
+			if ( tmp.bit == bit ) {
+				m_OptStack.RemoveAt(pos);
+				if ( tmp.value )
+					EnableOption(bit);
+				else
+					DisableOption(bit);
+				break;
+			}
+			m_OptStack.GetNext(pos);
+		}
 		break;
 	case 's':
-		m_SaveParam.m_AnsiOpt[bit / 32] &= ~(1 << (bit % 32));
-		if ( IsOptEnable(bit) )
-			m_SaveParam.m_AnsiOpt[bit / 32] |= (1 << (bit % 32));
+		// 各オプションごとなのでSTACKMAX=20を多めに設定	20*10=200
+		while ( m_OptStack.GetCount() >= (STACKMAX * 10) )
+			m_OptStack.RemoveTail();
+		tmp.bit = bit;
+		tmp.value = IsOptEnable(bit) ? TRUE : FALSE;
+		m_OptStack.AddHead(tmp);
 		break;
 	}
 }

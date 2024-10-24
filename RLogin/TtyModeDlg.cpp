@@ -4,9 +4,14 @@
 #include "stdafx.h"
 #include "RLogin.h"
 #include "MainFrm.h"
+#include "RLoginDoc.h"
+#include "RLoginView.h"
 #include "Data.h"
+#include "OPtDlg.h"
 #include "TextRam.h"
 #include "TtyModeDlg.h"
+#include "InitAllDlg.h"
+#include "BlockDlg.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CTtyModeDlg ダイアログ
@@ -1029,4 +1034,345 @@ void CAppColDlg::OnSettingChange(UINT uFlags, LPCTSTR lpszSection)
 		memcpy(m_ColTab, AppColorTable, sizeof(m_ColTab));
 		InitList();
 	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CCodeFlagDlg
+
+IMPLEMENT_DYNAMIC(CCodeFlagDlg, CTtyModeDlg)
+
+CCodeFlagDlg::CCodeFlagDlg()
+{
+	m_bUpdate = FALSE;
+}
+CCodeFlagDlg::~CCodeFlagDlg()
+{
+}
+
+BEGIN_MESSAGE_MAP(CCodeFlagDlg, CTtyModeDlg)
+	ON_COMMAND(ID_EDIT_NEW, &CCodeFlagDlg::OnEditNew)
+	ON_COMMAND(ID_EDIT_UPDATE, &CCodeFlagDlg::OnEditUpdate)
+	ON_COMMAND(ID_EDIT_DELETE, &CCodeFlagDlg::OnEditDelete)
+	ON_COMMAND(ID_EDIT_COPY, &CCodeFlagDlg::OnEditCopyAll)
+	ON_COMMAND(ID_EDIT_PASTE, &CCodeFlagDlg::OnEditPasteAll)
+	ON_COMMAND(ID_EDIT_DELALL, &CCodeFlagDlg::OnEditDelAll)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_NEW, &CCodeFlagDlg::OnUpdateEditEnable)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, &CCodeFlagDlg::OnUpdateEditEnable)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, &CCodeFlagDlg::OnUpdateEditDisable)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, &CCodeFlagDlg::OnUpdateEditEnable)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, &CCodeFlagDlg::OnUpdateEditCopy)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_PASTE, &CCodeFlagDlg::OnUpdateEditPaste)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_DELALL, &CCodeFlagDlg::OnUpdateEditEnable)
+	ON_NOTIFY(LVN_ITEMCHANGED, IDC_MODE_LIST, &CCodeFlagDlg::OnLvnItemchangedList)
+END_MESSAGE_MAP()
+
+static const LV_COLUMN InitUniListTab[4] = {
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  80, _T("Start"),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  80, _T("End"),		0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  30, _T("Size"),		0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_LEFT,  200, _T("Memo"),		0, 0 },
+};
+
+void CCodeFlagDlg::GetCode(int nItem, DWORD &low, DWORD &high)
+{
+	CString tmp;
+	LPCTSTR p;
+
+	tmp = m_List.GetItemText(nItem, 0);
+	p = tmp;
+	if ( _tcsncicmp(p, _T("U+"), 2) == 0 || _tcsncicmp(p, _T("U-"), 2) == 0 || _tcsncicmp(p, _T("0x"), 2) == 0 )
+		p += 2;
+	if ( (*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')) || (*p >= _T('a') && *p <= _T('f')) ) {
+		p = StrToHex(p, low);
+	} else {
+		if ( (p[0] & 0xFC00) == 0xD800 && (p[1] & 0xFC00) == 0xDC00 )
+			low = CTextRam::UCS2toUCS4(((DWORD)p[0] << 16) | (DWORD)p[1]);
+		else
+			low = (DWORD)*p;
+	}
+
+	tmp = m_List.GetItemText(nItem, 1);
+	p = tmp;
+	if ( _tcsncicmp(p, _T("U+"), 2) == 0 || _tcsncicmp(p, _T("U-"), 2) == 0 || _tcsncicmp(p, _T("0x"), 2) == 0 )
+		p += 2;
+	if ( (*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')) || (*p >= _T('a') && *p <= _T('f')) ) {
+		p = StrToHex(p, high);
+	} else {
+		if ( (p[0] & 0xFC00) == 0xD800 && (p[1] & 0xFC00) == 0xDC00 )
+			high = CTextRam::UCS2toUCS4(((DWORD)p[0] << 16) | (DWORD)p[1]);
+		else
+			high = (DWORD)*p;
+	}
+
+	if ( high == 0 )
+		high = low;
+}
+void CCodeFlagDlg::UpdateMemo(int nItem)
+{
+	DWORD code, low = 0, high = 0;
+	CString tmp, com;
+
+	GetCode(nItem, low, high);
+
+	tmp.Format(_T("U+%06X"), low);
+	m_List.SetItemText(nItem, 0, tmp);
+
+	tmp.Format(_T("U+%06X"), high);
+	m_List.SetItemText(nItem, 1, tmp);
+
+	if ( low > high ) {
+		DWORD n = low;
+		low = high;
+		high = n;
+	}
+
+	code = low;
+	tmp.Empty();
+	for ( int i = 0 ; code <= high && i < 5 ; i++ ) {
+		if ( code >= 0x0020 )
+			CTextRam::UCS4ToWStr(code++, com);
+		tmp += com;
+	}
+	if ( code <= high ) {
+		tmp += _T("...");
+		if ( high >= 0x0020 )
+			CTextRam::UCS4ToWStr(high, com);
+		tmp += com;
+	}
+	m_List.SetItemText(nItem, 3, tmp);
+}
+void CCodeFlagDlg::InitList()
+{
+	int n;
+	CString tmp, com;
+
+	m_List.DeleteAllItems();
+	m_bUpdate = TRUE;
+
+	for ( n = 0 ; n < m_CodeFlag.GetSize() ; n++ ) {
+		tmp.Format(_T("U+%06X"), CTextRam::UCS2toUCS4(m_CodeFlag.GetAt(n).low));
+		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, tmp, 0, 0, 0, n);
+
+		tmp.Format(_T("U+%06X"), CTextRam::UCS2toUCS4(m_CodeFlag.GetAt(n).high));
+		m_List.SetItemText(n, 1, tmp);
+
+		if ( (m_CodeFlag.GetAt(n).flag & UNI_NAR) != 0 )
+			tmp = _T('1');
+		else if ( (m_CodeFlag.GetAt(n).flag & UNI_WID) != 0 )
+			tmp = _T('2');
+		else if ( (m_CodeFlag.GetAt(n).flag & UNI_AMB) != 0 )
+			tmp = _T('A');
+
+		if ( (m_CodeFlag.GetAt(n).flag & UNI_EMOJI) != 0 )
+			tmp += _T('E');
+		if ( (m_CodeFlag.GetAt(n).flag & UNI_GRP) != 0 )
+			tmp += _T('G');
+		m_List.SetItemText(n, 2, tmp);
+
+		UpdateMemo(n);
+	}
+
+	m_bUpdate = FALSE;
+}
+
+BOOL CCodeFlagDlg::OnInitDialog()
+{
+	CDialogExt::OnInitDialog();
+
+	InitItemOffset(ItemTab);
+
+	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT);
+	m_List.InitColumn(_T("UniFlagDlg"), InitUniListTab, 4);
+	m_List.m_EditSubItem = 0x07;		// 0000 0111
+	m_List.SetPopUpMenu(IDR_POPUPMENU, 11);
+
+	InitList();
+
+	SetWindowText(_T("Unicode Cell Size Edit"));
+
+	AddHelpButton(_T("faq.html#UCSIZE"));
+
+	return TRUE;
+}
+
+void CCodeFlagDlg::OnOK()
+{
+	int n;
+	CString tmp;
+
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		tmp += m_List.GetItemText(n, 0);
+		tmp += _T("-");
+		tmp += m_List.GetItemText(n, 1);
+		tmp += _T("=");
+		tmp += m_List.GetItemText(n, 2);
+		tmp += _T(",");
+	}
+	m_CodeFlag.GetString(tmp);
+
+	CDialogExt::OnOK();
+}
+
+void CCodeFlagDlg::OnEditNew()
+{
+	CBlockDlg dlg;
+	int pos = m_List.GetItemCount();
+	CString tmp;
+
+	ASSERT(m_pSheet != NULL);
+	ASSERT(m_pSheet->m_pTextRam != NULL);
+
+	dlg.m_bSelCodeMode = TRUE;
+	dlg.m_CodeSet   = SET_UNICODE;
+	dlg.m_FontNum   = 0;
+	dlg.m_pFontNode = &m_pSheet->m_pTextRam->m_FontTab[SET_UNICODE];
+	dlg.m_pFontTab  = &m_pSheet->m_pTextRam->m_FontTab;
+	dlg.m_pTextRam  = m_pSheet->m_pTextRam;
+
+	if ( dlg.DoModal() != IDOK || dlg.m_SelCodeSta == (-1) || dlg.m_SelCodeSta > dlg.m_SelCodeEnd )
+		return;
+
+	tmp.Format(_T("U+%06X"), dlg.m_SelCodeSta);
+	m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, pos, tmp, 0, 0, 0, (-1));
+
+	tmp.Format(_T("U+%06X"), dlg.m_SelCodeEnd);
+	m_List.SetItemText(pos, 1, tmp);
+
+	m_List.SetItemText(pos, 2, _T("2"));
+
+	UpdateMemo(pos);
+}
+void CCodeFlagDlg::OnEditUpdate()
+{
+	int pos;
+	DWORD low = 0, high = 0;
+	CBlockDlg dlg;
+	CString tmp;
+
+	ASSERT(m_pSheet != NULL);
+	ASSERT(m_pSheet->m_pTextRam != NULL);
+
+	if ( (pos = m_List.GetSelectionMark()) < 0 )
+		return;
+
+	GetCode(pos, low, high);
+
+	dlg.m_bSelCodeMode = TRUE;
+	dlg.m_SelCodeSta = low;
+	dlg.m_SelCodeEnd = high;
+	dlg.m_CodeSet   = SET_UNICODE;
+	dlg.m_FontNum   = 0;
+	dlg.m_pFontNode = &m_pSheet->m_pTextRam->m_FontTab[SET_UNICODE];
+	dlg.m_pFontTab  = &m_pSheet->m_pTextRam->m_FontTab;
+	dlg.m_pTextRam  = m_pSheet->m_pTextRam;
+
+	if ( dlg.DoModal() != IDOK || dlg.m_SelCodeSta == (-1) || dlg.m_SelCodeSta > dlg.m_SelCodeEnd )
+		return;
+
+	tmp.Format(_T("U+%06X"), dlg.m_SelCodeSta);
+	m_List.SetItemText(pos, 0, tmp);
+
+	tmp.Format(_T("U+%06X"), dlg.m_SelCodeEnd);
+	m_List.SetItemText(pos, 1, tmp);
+
+	UpdateMemo(pos);
+}
+void CCodeFlagDlg::OnEditDelete()
+{
+	int pos;
+
+	if ( (pos = m_List.GetSelectionMark()) < 0 )
+		return;
+
+	m_List.DeleteItem(pos);
+}
+void CCodeFlagDlg::OnEditCopyAll()
+{
+	int n;
+	CString tmp;
+	CCodeFlag work;
+
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		tmp += m_List.GetItemText(n, 0);
+		tmp += _T("-");
+		tmp += m_List.GetItemText(n, 1);
+		tmp += _T("=");
+		tmp += m_List.GetItemText(n, 2);
+		tmp += _T(",");
+	}
+
+	work.GetString(tmp);
+	work.SetString(tmp, TRUE);
+
+	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(tmp);
+}
+void CCodeFlagDlg::OnEditPasteAll()
+{
+	CString tmp;
+
+	if ( !((CMainFrame *)::AfxGetMainWnd())->CopyClipboardData(tmp) )
+		return;
+
+	m_CodeFlag.GetString(tmp);
+
+	InitList();
+}
+void CCodeFlagDlg::OnEditDelAll()
+{
+	CInitAllDlg dlg;
+	CTextRam TextRam;
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	switch(dlg.m_InitType) {
+	case 0:		// Init Default Entry
+		TextRam.Serialize(FALSE);
+		break;
+
+	case 1:		// Init Program Default
+		TextRam.Init();
+		break;
+
+	case 2:		// Copy Entry option
+		ASSERT(dlg.m_pInitEntry != NULL);
+		{
+			CBuffer tmp(dlg.m_pInitEntry->m_ProBuffer.GetPtr(), dlg.m_pInitEntry->m_ProBuffer.GetSize());
+			TextRam.Serialize(FALSE, tmp);
+		}
+		break;
+	}
+
+	m_CodeFlag = TextRam.m_DefUniCodeFlag;
+	InitList();
+}
+
+void CCodeFlagDlg::OnUpdateEditCopy(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_List.GetItemCount() > 0 ? TRUE : FALSE);
+}
+void CCodeFlagDlg::OnUpdateEditPaste(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(IsClipboardFormatAvailable(CF_UNICODETEXT) ? TRUE : FALSE);
+}
+void CCodeFlagDlg::OnUpdateEditEnable(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(TRUE);
+}
+void CCodeFlagDlg::OnUpdateEditDisable(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(FALSE);
+}
+
+void CCodeFlagDlg::OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
+
+	if ( !m_bUpdate && (pNMLV->uChanged & LVIF_TEXT) != 0 && pNMLV->iSubItem >= 0 && pNMLV->iSubItem <= 1 ) {
+		m_bUpdate = TRUE;
+		UpdateMemo(pNMLV->iItem);
+		m_bUpdate = FALSE;
+	}
+
+	*pResult = 0;
 }

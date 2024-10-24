@@ -4426,6 +4426,11 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 					   (int)base->GetAt(_T("Size"))[_T("cx")], (int)base->GetAt(_T("Size"))[_T("cy")]);
 			rect.right += rect.left; rect.bottom += rect.top;
 
+			rect.left   = MulDiv(rect.left,   SCREEN_DPI_X, DEFAULT_DPI_X);
+			rect.right  = MulDiv(rect.right,  SCREEN_DPI_X, DEFAULT_DPI_X);
+			rect.top    = MulDiv(rect.top,    SCREEN_DPI_Y, DEFAULT_DPI_Y);
+			rect.bottom = MulDiv(rect.bottom, SCREEN_DPI_Y, DEFAULT_DPI_Y);
+
 			pWnd = (CTempWnd *)(void *)base->GetAt(_T("pWnd"));
 			if ( pWnd != NULL ) pWnd->DestroyWindow();
 
@@ -4439,8 +4444,18 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 						AfxGetApp()->LoadCursor(IDC_ARROW), (HBRUSH)(COLOR_WINDOW)),
 					(LPCTSTR)base->GetAt(_T("WindowText")),
 					WS_POPUP  | WS_CAPTION | WS_SYSMENU | WS_BORDER,	// WS_VISIBLE
-					rect, NULL, NULL, NULL) )
+					rect, AfxGetMainWnd(), NULL, NULL) ) {
 				(*acc) = (int)1;
+
+				CRect client;
+				pWnd->GetClientRect(client);
+				base->GetAt(_T("Size"))[_T("fx")] = (int)(rect.Width() - client.Width());
+				base->GetAt(_T("Size"))[_T("fy")] = (int)(rect.Height() - client.Height());
+				rect.right += (rect.Width() - client.Width());
+				rect.bottom += (rect.Height() - client.Height());
+				pWnd->SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+			}
+
 		}
 		break;
 	case 3:	// dialog.close()
@@ -4459,8 +4474,13 @@ int CScript::Dialog(int cmd, CScriptValue &local)
 					   (int)base->GetAt(_T("Size"))[_T("cx")], (int)base->GetAt(_T("Size"))[_T("cy")]);
 			rect.right += rect.left; rect.bottom += rect.top;
 
-			int cx = rect.Width();
-			int cy = rect.Height();
+			rect.left   = MulDiv(rect.left,   SCREEN_DPI_X, DEFAULT_DPI_X);
+			rect.right  = MulDiv(rect.right,  SCREEN_DPI_X, DEFAULT_DPI_X);
+			rect.top    = MulDiv(rect.top,    SCREEN_DPI_Y, DEFAULT_DPI_Y);
+			rect.bottom = MulDiv(rect.bottom, SCREEN_DPI_Y, DEFAULT_DPI_Y);
+
+			int cx = rect.Width()  + (int)base->GetAt(_T("Size"))[_T("fx")];
+			int cy = rect.Height() + (int)base->GetAt(_T("Size"))[_T("fy")];
 
 			if ( (pWnd = AfxGetMainWnd()) == NULL )
 				break;
@@ -7459,7 +7479,7 @@ void CScript::ScriptSystemInit(LPCTSTR path, LPCTSTR prog, LPCTSTR work)
 //////////////////////////////////////////////////////////////////////
 // CTempWnd
 
-CTempWnd::CTempWnd()
+CTempWnd::CTempWnd(UINT nIDTemplate, CWnd* pParent) : CDialogExt(nIDTemplate, pParent)
 {
 	m_pScript = NULL;
 	m_pValue  = NULL;
@@ -7468,9 +7488,10 @@ CTempWnd::~CTempWnd()
 {
 }
 
-BEGIN_MESSAGE_MAP(CTempWnd, CWnd)
+BEGIN_MESSAGE_MAP(CTempWnd, CDialogExt)
 	ON_WM_CREATE()
 	ON_WM_CLOSE()
+	ON_MESSAGE(WM_GETFONT, OnGetFont)
 END_MESSAGE_MAP()
 
 void CTempWnd::PostNcDestroy()
@@ -7499,7 +7520,7 @@ void CTempWnd::PostNcDestroy()
 }
 int CTempWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
-	if (CWnd::OnCreate(lpCreateStruct) == -1)
+	if (CDialogExt::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
 	if ( m_pValue == NULL )
@@ -7510,9 +7531,15 @@ int CTempWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CScriptValue *sp = &(m_pValue->GetAt(_T("Child")));
 	CScriptValue *dp;
 
-	if ( (n = (int)m_pValue->GetAt(_T("FontPoint"))) < 10 )
-		n = 90;
-	m_Font.CreatePointFont(MulDiv(n, SCREEN_DPI_Y, SYSTEM_DPI_Y), (LPCTSTR)(m_pValue->GetAt(_T("FontName"))));
+	m_FontName = (LPCTSTR)(m_pValue->GetAt(_T("FontName")));
+	if ( m_FontName.IsEmpty() )
+		m_FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
+
+	m_FontSize = (int)m_pValue->GetAt(_T("FontPoint"));
+	if ( m_FontSize < 10 )
+		m_FontSize = ::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9) * 10;
+
+	m_Font.CreatePointFont(MulDiv(m_FontSize, SCREEN_DPI_Y, SYSTEM_DPI_Y), m_FontName);
 	SetFont(&m_Font, FALSE);
 
 	for ( n = 0 ; n < sp->GetSize() ; n++ ) {
@@ -7524,6 +7551,12 @@ int CTempWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		CRect rect((int)dp->GetAt(_T("Size"))[_T("sx")], (int)dp->GetAt(_T("Size"))[_T("sy")],
 				   (int)dp->GetAt(_T("Size"))[_T("cx")], (int)dp->GetAt(_T("Size"))[_T("cy")]);
 		rect.right += rect.left; rect.bottom += rect.top;
+
+		rect.left   = MulDiv(rect.left,   SCREEN_DPI_X, DEFAULT_DPI_X);
+		rect.right  = MulDiv(rect.right,  SCREEN_DPI_X, DEFAULT_DPI_X);
+		rect.top    = MulDiv(rect.top,    SCREEN_DPI_Y, DEFAULT_DPI_Y);
+		rect.bottom = MulDiv(rect.bottom, SCREEN_DPI_Y, DEFAULT_DPI_Y);
+
 		LPCTSTR text = dp->GetAt(_T("Text"));
 		int style = WS_CHILD | WS_VISIBLE;
 		int state = dp->GetAt(_T("Check"));
@@ -7602,7 +7635,11 @@ int CTempWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 }
 void CTempWnd::OnClose()
 {
-	CWnd::OnClose();
+	CDialogExt::OnClose();
+}
+LRESULT CTempWnd::OnGetFont(WPARAM, LPARAM)
+{
+	return (m_Font.GetSafeHandle() != NULL ? (LRESULT)m_Font.GetSafeHandle() : Default());
 }
 void CTempWnd::FuncCall(int nID)
 {
@@ -7698,15 +7735,15 @@ BOOL CTempWnd::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* p
 	}
 
 SKIP:
-	return CWnd::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
+	return CDialogExt::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
 }
-BOOL CTempWnd::PreTranslateMessage(MSG* pMsg)
-{
-    if( IsDialogMessage(pMsg) )
-        return TRUE;
-    else
-		return CWnd::PreTranslateMessage(pMsg);
-}
+//BOOL CTempWnd::PreTranslateMessage(MSG* pMsg)
+//{
+//    if( IsDialogMessage(pMsg) )
+//        return TRUE;
+//    else
+//		return CDialogExt::PreTranslateMessage(pMsg);
+//}
 
 //////////////////////////////////////////////////////////////////////
 // CScriptCmdUI

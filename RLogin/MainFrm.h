@@ -47,6 +47,7 @@ public:
 	CStatic m_NullWnd;
 	CServerEntry *m_pServerEntry;
 	int m_TabIndex;
+	BOOL m_bFoucsReq;
 
 	void Attach(HWND hWnd);
 	void CreatePane(int Style, HWND hWnd);
@@ -168,6 +169,7 @@ public:
 	CPaneFrame *m_pTopPane;
 	CRect m_Frame;
 	BOOL m_LastPaneFlag;
+	CWnd *m_pLastPaneFoucs;
 	CBuffer m_AllFileBuf;
 	CString m_AllFilePath;
 	int m_TimerSeqId;
@@ -466,6 +468,7 @@ protected:
 
 	afx_msg void OnFileAllLoad();
 	afx_msg void OnFileAllSave();
+	afx_msg void OnFileAllLast();
 	afx_msg void OnBroadcast();
 	afx_msg void OnUpdateBroadcast(CCmdUI *pCmdUI);
 	afx_msg void OnToolcust();

@@ -5,13 +5,8 @@
 <TITLE>スクリプト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
-		background-color : #ffffff;
-		font-size : 90%;
-}
-.BOX{		
-		background-color : silver;
-}
+TD { background-color : #ffffff; font-size : 90%; }
+.BOX{ background-color : silver; }
 -->
 </STYLE>
 </HEAD>
@@ -2640,7 +2635,7 @@ tekflush();</PRE>
             <TD valign="top">dialog ( <I>name, size , [child],<BR>
             [point], [face]</I> )</TD>
             <TD valign="top">ダイアログ変数を返す。<BR>
-            nameは、ウィンドウタイトルsizeは、[ x, y, width, height ]の配列で位置とサイズを指定。<BR>
+            nameは、ウィンドウタイトルsizeは、[ x, y, width, height ]の配列で位置とサイズを指定(2.29.9よりウィンドウサイズからクライアントサイズに変更。HIDPI時は、96dpiからの換算に変更）。<BR>
             childは、下記のaddと同じ引数を配列で指定できます。<BR>
             point,faceは、ダイアログで使用するフォントを指定します。<BR>
             point 1/10ポイント(90)<BR>

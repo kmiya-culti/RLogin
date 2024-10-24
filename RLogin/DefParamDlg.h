@@ -17,7 +17,7 @@ public:
 
 public:
 	int m_InitFlag;
-	BOOL m_Check[6];
+	BOOL m_Check[7];
 	CStatic m_MsgIcon;
 	class CTextRam *m_pTextRam;
 

@@ -1693,7 +1693,8 @@ LRESULT CDialogExt::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 	m_ZoomDiv.cy = OldRect.Height();
 
 	if ( (pFont = GetFont()) != NULL ) {
-		pFont->GetLogFont(&LogFont);
+		if ( pFont != NULL )
+			pFont->GetLogFont(&LogFont);
 
 		if ( m_DpiFont.GetSafeHandle() != NULL )
 			m_DpiFont.DeleteObject();

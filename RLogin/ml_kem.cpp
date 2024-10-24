@@ -134,16 +134,16 @@ static void do_xof(uint8_t *output, size_t outlen, const uint8_t *input, size_t 
 	EVP_MD_CTX *mdctx;
 
 	if ( (mdctx = EVP_MD_CTX_new()) == NULL )
-		AfxThrowMemoryException();
+		throw __FUNCTION__;
 
 	if ( EVP_DigestInit_ex(mdctx, md, NULL) <= 0 )
-		AfxThrowUserException();
+		throw __FUNCTION__;
 
 	if ( EVP_DigestUpdate(mdctx, input, inplen) <= 0 )
-		AfxThrowUserException();
+		throw __FUNCTION__;
 
 	if ( EVP_DigestFinalXOF(mdctx, output, outlen) <= 0 )
-		AfxThrowUserException();
+		throw __FUNCTION__;
 
 	EVP_MD_CTX_free(mdctx);
 }
@@ -151,27 +151,27 @@ static void do_xof(uint8_t *output, size_t outlen, const uint8_t *input, size_t 
 void shake128_inc_init(OQS_SHA3_shake128_inc_ctx *state)
 {
 	if ( (state->ctx = malloc(sizeof(intrn_shake128_inc_ctx))) == NULL )
-		AfxThrowMemoryException();
+		throw __FUNCTION__;
 
 	intrn_shake128_inc_ctx *s = (intrn_shake128_inc_ctx *)state->ctx;
 
 	if ( (s->mdctx = EVP_MD_CTX_new()) == NULL )
-		AfxThrowMemoryException();
+		throw __FUNCTION__;
 
 	s->n_out = 0;
 	
 	if ( EVP_DigestInit_ex(s->mdctx, EVP_shake128(), NULL) <= 0 )
-		AfxThrowUserException();
+		throw __FUNCTION__;
 }
 void shake128_inc_absorb(OQS_SHA3_shake128_inc_ctx *state, const uint8_t *input, size_t inplen)
 {
 	intrn_shake128_inc_ctx *s = (intrn_shake128_inc_ctx *)state->ctx;
 
 	if ( s == NULL )
-		AfxThrowMemoryException();
+		throw __FUNCTION__;
 
 	if ( EVP_DigestUpdate(s->mdctx, input, inplen) <= 0 )
-		AfxThrowUserException();
+		throw __FUNCTION__;
 }
 void shake128_inc_finalize(OQS_SHA3_shake128_inc_ctx *state)
 {
@@ -182,14 +182,18 @@ void shake128_inc_squeeze(uint8_t *output, size_t outlen, OQS_SHA3_shake128_inc_
 	intrn_shake128_inc_ctx *s = (intrn_shake128_inc_ctx *)state->ctx;
 
 	if ( s == NULL )
-		AfxThrowMemoryException();
+		throw __FUNCTION__;
 
 	if ( EVP_DigestSqueeze(s->mdctx, output, outlen) <= 0 )
-		AfxThrowUserException();
+		throw __FUNCTION__;
 }
 void shake128_inc_ctx_release(OQS_SHA3_shake128_inc_ctx *state)
 {
 	intrn_shake128_inc_ctx *s = (intrn_shake128_inc_ctx *)state->ctx;
+
+	if ( s == NULL )
+		throw __FUNCTION__;
+
 	EVP_MD_CTX_free(s->mdctx);
 	free(s); // IGNORE free-check
 }
@@ -198,12 +202,12 @@ void shake128_inc_ctx_reset(OQS_SHA3_shake128_inc_ctx *state)
 	intrn_shake128_inc_ctx *s = (intrn_shake128_inc_ctx *)state->ctx;
 
 	if ( s == NULL )
-		AfxThrowMemoryException();
+		throw __FUNCTION__;
 
 	EVP_MD_CTX_reset(s->mdctx);
 
 	if ( EVP_DigestInit_ex(s->mdctx, EVP_shake128(), NULL) <= 0 )
-		AfxThrowUserException();
+		throw __FUNCTION__;
 
 	s->n_out = 0;
 }
@@ -215,27 +219,27 @@ void shake128(uint8_t *output, size_t outlen, const uint8_t *input, size_t inple
 void shake256_inc_init(OQS_SHA3_shake256_inc_ctx *state)
 {
 	if ( (state->ctx = malloc(sizeof(intrn_shake256_inc_ctx))) == NULL )
-		AfxThrowMemoryException();
+		throw __FUNCTION__;
 
 	intrn_shake256_inc_ctx *s = (intrn_shake256_inc_ctx *)state->ctx;
 
 	if ( (s->mdctx = EVP_MD_CTX_new()) == NULL )
-		AfxThrowMemoryException();
+		throw __FUNCTION__;
 
 	s->n_out = 0;
 
 	if ( EVP_DigestInit_ex(s->mdctx, EVP_shake256(), NULL) <= 0 )
-		AfxThrowUserException();
+		throw __FUNCTION__;
 }
 void shake256_inc_absorb(OQS_SHA3_shake256_inc_ctx *state, const uint8_t *input, size_t inplen)
 {
 	intrn_shake256_inc_ctx *s = (intrn_shake256_inc_ctx *)state->ctx;
 
 	if ( s == NULL )
-		AfxThrowMemoryException();
+		throw __FUNCTION__;
 
 	if ( EVP_DigestUpdate(s->mdctx, input, inplen) <= 0 )
-		AfxThrowUserException();
+		throw __FUNCTION__;
 }
 void shake256_inc_finalize(OQS_SHA3_shake256_inc_ctx *state)
 {
@@ -246,17 +250,17 @@ void shake256_inc_squeeze(uint8_t *output, size_t outlen, OQS_SHA3_shake256_inc_
 	intrn_shake256_inc_ctx *s = (intrn_shake256_inc_ctx *)state->ctx;
 
 	if ( s == NULL )
-		AfxThrowMemoryException();
+		throw __FUNCTION__;
 
 	if ( EVP_DigestSqueeze(s->mdctx, output, outlen) <= 0 )
-		AfxThrowUserException();
+		throw __FUNCTION__;
 }
 void shake256_inc_ctx_release(OQS_SHA3_shake256_inc_ctx *state)
 {
 	intrn_shake256_inc_ctx *s = (intrn_shake256_inc_ctx *)state->ctx;
 
 	if ( s == NULL )
-		AfxThrowMemoryException();
+		throw __FUNCTION__;
 
 	EVP_MD_CTX_free(s->mdctx);
 	free(s); // IGNORE free-check
@@ -266,12 +270,12 @@ void shake256_inc_ctx_reset(OQS_SHA3_shake256_inc_ctx *state)
 	intrn_shake256_inc_ctx *s = (intrn_shake256_inc_ctx *)state->ctx;
 
 	if ( s == NULL )
-		AfxThrowMemoryException();
+		throw __FUNCTION__;
 
 	EVP_MD_CTX_reset(s->mdctx);
 
 	if ( EVP_DigestInit_ex(s->mdctx, EVP_shake256(), NULL) <= 0 )
-		AfxThrowUserException();
+		throw __FUNCTION__;
 
 	s->n_out = 0;
 }

@@ -24,6 +24,7 @@
 #define	DEFCOLTAB		0				// Black=0, Amber=1, Green=2, Sian=3, White=4, Solarized=5, Pastel=6
 #define	CMDHISMAX		200
 #define	HISLISTMAX		30
+#define	STACKMAX		20
 
 #define	TEK_WIN_WIDTH	4096
 #define	TEK_WIN_HEIGHT	3072
@@ -1072,6 +1073,8 @@ public:	// Options
 	COLORREF m_ImeCaretColor;
 	COLORREF m_TabTextColor;
 	COLORREF m_TabBackColor;
+	CCodeFlag m_DefUniCodeFlag;
+	CCodeFlag m_UniCodeFlag;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -1185,6 +1188,7 @@ public:
 	BOOL m_bIntTimer;
 	int m_IntCounter;
 	int m_MediaCopyMode;
+	int m_ImeStatus;
 
 	WORD m_BankTab[5][4];
 	int m_BankNow;
@@ -1368,6 +1372,9 @@ public:
 	void OnClose();
 	void CallReceiveLine(int y);
 	BOOL CallReceiveChar(DWORD ch, LPCTSTR name = NULL);
+	int UnicodeTabFind(DWORD code);
+	BOOL UnicodeSizeCheck(DWORD low, DWORD high, int sz);
+	int UnicodeBaseFlag(DWORD code);
 	int UnicodeCharFlag(DWORD code);
 	int UnicodeWidth(DWORD code);
 	void SetRetChar(BOOL f8);
@@ -1382,6 +1389,7 @@ public:
 	static void MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len);
 	static DWORD UCS2toUCS4(DWORD code);
 	static DWORD UCS4toUCS2(DWORD code);
+	static void UCS2ToWStr(DWORD code, CStringW &str);
 	static void UCS4ToWStr(DWORD code, CStringW &str);
 	static DWORD UnicodeNomal(DWORD code1, DWORD code2);
 	static void UnicodeNomalStr(LPCWSTR p, int len, CBuffer &out);
@@ -1427,7 +1435,17 @@ public:
 	void PUT2BYTE(DWORD ch, int md, int at = 0, LPCWSTR str = NULL);
 	void PUTADD(int x, int y, DWORD ch);
 	void INSMDCK(int len);
+
+	typedef struct _OPTSTACK {
+		int			bit;
+		BOOL		value;
+	} OPTSTACK;
+
+	CList<OPTSTACK, OPTSTACK &> m_OptStack;
+	CList<CCodeFlag *, CCodeFlag *> m_CodeFlagStack;
+
 	void ANSIOPT(int opt, int bit);
+
 	CTextSave *GETSAVERAM(int fMode);
 	void SETSAVERAM(CTextSave *pSave);
 	void SAVERAM();
@@ -1836,6 +1854,7 @@ public:
 	void fc_DECSTUI(DWORD ch);
 	void fc_XTRQCAP(DWORD ch);
 	void fc_RLMML(DWORD ch);
+	void fc_RLUCSIZE(DWORD ch);
 	void fc_OSCEXE(DWORD ch);
 	void fc_OSCNULL(DWORD ch);
 

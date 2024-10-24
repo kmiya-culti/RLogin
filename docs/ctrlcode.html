@@ -1,4 +1,3 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <HTML>
 <HEAD>
 <META http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -7,8 +6,7 @@
 <STYLE type="text/css">
 <!--
 TD {
-		background-color : #ffffff;
-		font-size : 90%;
+		background-color : #ffffff; font-size : 90%;
 }
 .BOX{
 		background-color : silver;
@@ -4190,8 +4188,8 @@ TD {
               </TBODY>
             </TABLE>
             例　termcapのCo（色数）を調べる<BR>
-            送信 &quot;\033P+q436f\033\134&quot;<BR>
-            受信 &quot;\033P+r436f=323536\033\134&quot;</TD>
+            送信 &quot;\033P+q436f\033\\&quot;<BR>
+            受信 &quot;\033P+r436f=323536\033\\&quot;</TD>
           </TR>
           <TR>
             <TD width="120">DCS <FONT size="-1"><I>Pn</I></FONT> #m <FONT size="-1"><I>MML</I></FONT> ST</TD>
@@ -4446,6 +4444,38 @@ TD {
               </TBODY>
             </TABLE>
             </TD>
+          </TR>
+          <TR>
+            <TD>DCS <FONT size="-1"><I>Pn</I></FONT> #u <FONT size="-1"><I>p..</I></FONT> ST</TD>
+            <TD align="center">RLUCSIZE *3</TD>
+            <TD><A name="RLUCSIZE"></A>Unicodeの文字サイズを指定する<BR>
+            参照 <A href="faq.html#UCSIZE">UTF-8の文字サイズ変更</A><BR>
+            <TABLE cellpadding="1" width="100%">
+              <TBODY>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn1</I></FONT> = [0],1,2,9</TD>
+                  <TD>0 新規設定（p..無しで初期化）<BR>
+                  1 追加設定<BR>
+                  2 新規に差異のある設定<BR>
+                  3 追加で差異のある設定<BR>
+                  4 スタックに保存して新規設定<BR>
+                  5 スタックから復帰して追加設定<BR>
+                  9 現在の設定をDCSで返す</TD>
+                </TR>
+                <TR>
+                  <TD><I>p..</I></TD>
+                  <TD>Start[-End]=Size[,]<BR>
+                  StartからEndまでのUnicodeをSizeに指定し&quot;,&quot;区切りで複数設定<BR>
+                  Start/Endは、&quot;U+XXXX&quot;の16進数で指定(&quot;U+&quot;は無くても良い)<BR>
+                  Sizeは、&quot;1&quot;で1セル、&quot;2&quot;で2セル、&quot;A&quot;で<A href="#RLAMBCHM">8428拡張オプション</A>に従ったサイズ<BR>
+                  Start+End=Size[,]<BR>
+                  区切りを&quot;+&quot;でEndをStartからのオフセット値（16進数）で指定<BR>
+                  &quot;U+002600-U+0027BF=2&quot;と&quot;2600+1BF=2&quot;は、同じになります</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            例 &quot;※⅏⌘&quot;と&quot;☀☁☂☃☄...➿&quot;を2セルサイズに指定<BR>
+            <FONT size="-1">echo -en &quot;\033P#uU+00203B=2,U+00214F=2,U+002318=2,U+002600-U+0027BF=2\033\\&quot;</FONT></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -4778,7 +4808,7 @@ TD {
             <TD>画面のスタックが有効</TD>
           </TR>
           <TR>
-            <TD align="center" width="70">8428</TD>
+            <TD align="center" width="70"><A name="RLAMBCHM"></A>8428</TD>
             <TD align="center" width="120">RLAMBCHM *3</TD>
             <TD width="360">Aタイプを半角で表示</TD>
             <TD width="360">Aタイプを全角で表示</TD>
@@ -5200,7 +5230,8 @@ TD {
             <TD>設定 DECSET （CSI ? 8428 h) Aタイプを半角で表示<BR>
             解除 DECRST （CSI ? 8428 l) Aタイプを全角で表示<BR>
             EastAsianWidth.txtでAタイプ(Ambiguous)で定義された文字の表示幅を設定します。<BR>
-            表示に使用するフォントにより見た目が異なりますが、それなりに幅を調整して表示します。</TD>
+            表示に使用するフォントにより見た目が異なりますが、それなりに幅を調整して表示します。<BR>
+            ※2.29.9より<A href="#RLUCSIZE">RLUCSIZE</A>により任意文字を任意サイズに指定するDCSを追加しました</TD>
           </TR>
           <TR>
             <TD>8448拡張オプション</TD>

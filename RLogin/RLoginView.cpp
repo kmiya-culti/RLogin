@@ -280,10 +280,11 @@ CRLoginView::CRLoginView()
 	m_BlinkFlag = 0;
 	m_ImageFlag = 0;
 	m_MouseEventFlag = FALSE;
-	m_WheelDelta = 0;
+	m_WheelOfs = 0;
 	m_WheelTimer = 0;
 	m_WheelClock = 0;
 	m_WheelzDelta = 0;
+	m_bWheelBuzy = FALSE;
 	m_pGhost = NULL;
 	m_GoziView  = FALSE;
 #if   USE_GOZI == 1 || USE_GOZI == 2
@@ -2221,18 +2222,18 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		break;
 
 	case VTMID_WHEELMOVE:		// Wheel Timer
-		if ( (m_HisOfs += m_WheelDelta) < 0 ) {
+		if ( (m_HisOfs += m_WheelOfs) < 0 ) {
 			m_HisOfs = 0;
-			m_WheelDelta = 0;
+			m_WheelOfs = 0;
 		} else if ( m_HisOfs > pDoc->m_TextRam.m_HisLen - m_Lines ) {
 			m_HisOfs = pDoc->m_TextRam.m_HisLen - m_Lines;
-			m_WheelDelta = 0;
-		} else if ( m_WheelDelta < 0 )
-			m_WheelDelta += 1;
+			m_WheelOfs = 0;
+		} else if ( m_WheelOfs < 0 )
+			m_WheelOfs += 1;
 		else
-			m_WheelDelta -= 1;
+			m_WheelOfs -= 1;
 
-		if ( m_WheelDelta == 0 ) {
+		if ( m_WheelOfs == 0 ) {
 			KillTimer(nIDEvent);
 			m_WheelTimer = 0;
 		}
@@ -2624,20 +2625,33 @@ void CRLoginView::PopUpMenu(CPoint point)
 
 BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) 
 {
-	int n;
 	int pos, ofs;
 	CRLoginDoc *pDoc = GetDocument();
-	clock_t now, msec;
 	CKeyNode *pNode;
 
 	if ( (nFlags & MK_SHIFT) != 0 ) {
 		((CRLoginApp *)::AfxGetApp())->SendBroadCastMouseWheel(nFlags & ~MK_SHIFT, zDelta, pt);
 		return TRUE;
 	}
+
+	if ( m_bWheelBuzy && (clock() - m_WheelClock) >= 100 ) {
+		m_WheelzDelta = 0;
+		m_bWheelBuzy = FALSE;
+	}
+
+	//TRACE("OnMouseWheel %x %d+%d %d,%d %d\n", nFlags, m_WheelzDelta, zDelta, pt.x, pt.y, clock() - m_WheelClock);
+
+	m_WheelzDelta += (int)zDelta;
+	m_WheelClock = clock();
+
+	if ( (m_WheelzDelta / WHEEL_DELTA) == 0 )
+		return TRUE;
+
 	if ( (nFlags & MK_CONTROL) != 0 ) {
 		if ( pDoc->m_TextRam.IsOptEnable(TO_RLFONT) ) {
-			if ( (pDoc->m_TextRam.m_FontSize += (zDelta / WHEEL_DELTA)) < 2 )
+			if ( (pDoc->m_TextRam.m_FontSize += (m_WheelzDelta / WHEEL_DELTA)) < 2 )
 				pDoc->m_TextRam.m_FontSize = 2;
+			m_WheelzDelta %= WHEEL_DELTA;
 			pDoc->UpdateAllViews(NULL, UPDATE_RESIZE, NULL);
 		}
 		return TRUE;
@@ -2645,30 +2659,12 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 
 	KillScrollTimer();
 
-	now = clock();
-	msec = (now - m_WheelClock) * 1000 / CLOCKS_PER_SEC;	// msec
+	ofs = m_WheelzDelta * pDoc->m_TextRam.m_WheelSize / WHEEL_DELTA;
 
-	if ( m_WheelClock == 0 || msec > 1000 ) {				// > 1sec
-		m_WheelClock = now;
-		m_WheelzDelta = 0;
-
-	} else if ( msec < 10 ) {								// < 10ms
-		m_WheelzDelta += zDelta;
-
-	} else {
-		m_WheelzDelta += zDelta;
-		n = m_WheelzDelta * 30 / msec;						// 30ms
-		if ( abs(n) > abs(zDelta) )
-			zDelta = n;
-		if ( msec > 200 ) {									// > 200ms
-			m_WheelClock = now;
-			m_WheelzDelta = 0;
-		}
-	}
-
-	ofs = zDelta * pDoc->m_TextRam.m_WheelSize / (WHEEL_DELTA / 2);
-
-	//TRACE("OnMouseWheel %x, %d(%d), (%d,%d)\n", nFlags, zDelta, ofs, pt.x, pt.y);
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLMOSWHL) )
+		m_WheelzDelta %= WHEEL_DELTA;
+	else
+		m_bWheelBuzy = TRUE;
 
 	if ( pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag ) {
 		int x, y;
@@ -2685,33 +2681,18 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 		}
 
 	} else {
+		if ( (pos = m_HisOfs + ofs) < 0 )
+			pos = 0;
+		else if ( pos > (pDoc->m_TextRam.m_HisLen - m_Lines) )
+			pos = pDoc->m_TextRam.m_HisLen - m_Lines;
 
-		if ( m_WheelTimer != 0 ) {
-			//if ( m_WheelDelta > 0 ) {
-			//	if ( ofs < 0 )
-			//		m_WheelDelta = ofs;
-			//	else
-			//		m_WheelDelta += ofs;
-			//} else if ( m_WheelDelta < 0 ) {
-			//	if ( ofs > 0 )
-			//		m_WheelDelta = ofs;
-			//	else
-			//		m_WheelDelta += ofs;
-			//} else
-				m_WheelDelta = ofs;
-		} else {
+		if ( pos != m_HisOfs ) {
+			m_HisOfs = pos;
+			OnUpdate(this, UPDATE_INVALIDATE, NULL);
+
 			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLMOSWHL) && abs(ofs) > 5 ) {
-				m_WheelDelta = ofs;
+				m_WheelOfs = ofs;
 				m_WheelTimer = SetTimer(VTMID_WHEELMOVE, 100, NULL);			// 100ms
-			} else {
-				if ( (pos = m_HisOfs + ofs) < 0 )
-					pos = 0;
-				else if ( pos > (pDoc->m_TextRam.m_HisLen - m_Lines) )
-					pos = pDoc->m_TextRam.m_HisLen - m_Lines;
-				if ( pos != m_HisOfs ) {
-					m_HisOfs = pos;
-					OnUpdate(this, UPDATE_INVALIDATE, NULL);
-				}
 			}
 		}
 	}

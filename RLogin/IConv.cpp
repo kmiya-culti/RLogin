@@ -394,6 +394,7 @@ BOOL CIConv::IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out)
 			out->Apend((LPBYTE)pOutBuf, (int)(nOutMax - nOuPos));
 
 		nInLen -= (nInTry - nInPos);
+		in->Consume((int)(nInTry - nInPos));
 
 		if ( res == (-1) && errno == E2BIG ) {
 			delete [] pOutBuf;
@@ -414,16 +415,15 @@ void CIConv::StrToRemote(LPCTSTR to, CBuffer *in, CBuffer *out)
 	bIn.Apend(in->GetPtr(), in->GetSize());
 	CTextRam::MsToIconvUniStr(to, (LPWSTR)bIn.GetPtr(), bIn.GetSize() / sizeof(WCHAR));
 
-	if ( IConvBuf(_T("UTF-16LE"), to, &bIn, out) )
-		return;
-
-	// iconv error recovery
-	LPCWSTR p = (LPCWSTR)in->GetPtr();
-	int len = in->GetSize() / sizeof(WCHAR);
-
-	out->Clear();
-	for ( int n = 0 ; n < len ; n++, p++ )
-		out->PutByte((*p & 0x80) == 0 ? (BYTE)*p : '?');
+	while ( (bIn.GetSize() / sizeof(WCHAR)) > 0 ) {
+		if ( !IConvBuf(_T("UTF-16LE"), to, &bIn, out) ) {
+			if ( (bIn.GetSize() / sizeof(WCHAR)) <= 0 )
+				break;
+			// iconv error recovery
+			bIn.Consume(sizeof(WCHAR));
+			out->PutByte('?');
+		}
+	}
 }
 void CIConv::StrToRemote(LPCTSTR to, LPCTSTR in, CStringA &out)
 {

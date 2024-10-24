@@ -109,6 +109,24 @@ BOOL InStrStr(LPCTSTR str, LPCTSTR ptn)
 
 	return TRUE;
 }
+LPCTSTR StrToHex(LPCTSTR p, DWORD &val)
+{
+	val = 0;
+
+	while ( *p != _T('\0') ) {
+		if ( *p >= _T('0') && *p <= _T('9') )
+			val = val * 16 + (*p - _T('0'));
+		else if ( *p >= _T('A') && *p <= _T('F') )
+			val = val * 16 + (*p - _T('A') + 10);
+		else if ( *p >= _T('a') && *p <= _T('f') )
+			val = val * 16 + (*p - _T('a') + 10);
+		else
+			break;
+		p++;
+	}
+
+	return p;
+}
 
 //////////////////////////////////////////////////////////////////////
 // CBits
@@ -4335,7 +4353,7 @@ FONTSIZETAB *CFontChacheNode::FontSizeCheck(LPCTSTR pFontName)
 	//	LogFont.lfFaceName, LogFont.lfWidth, LogFont.lfHeight,
 	//	Metric.tmHeight, Metric.tmAscent, Metric.tmDescent, Metric.tmInternalLeading,
 	//	Metric.tmAveCharWidth, Metric.tmMaxCharWidth,
-	//	bFixed, sz.cx, sz.cy, sz.cx * 100 / Metric.tmAveCharWidth * 9),
+	//	pTab->bFixed, sz.cx, sz.cy, sz.cx * 100 / Metric.tmAveCharWidth * 9,
 	//  Metric.tmInternalLeading * 100 / Metric.tmHeight);
 
 	//		---- ---+---+
@@ -12207,3 +12225,278 @@ BOOL CBitmapEx::CreateMaskBitmap(CBitmap *pSrcBitmap, COLORREF backCol)
 
 	return TRUE;
 }
+
+//////////////////////////////////////////////////////////////////////
+// CCodeFlag
+
+void CCodeFlag::Alignment()
+{
+	int n;
+
+	for ( n = 0 ; n < (int)(m_Data.GetSize() - 1) ; n++ ) {
+		if ( m_Data[n].flag == m_Data[n + 1].flag && (m_Data[n].high + 1) == m_Data[n + 1].low ) {
+			m_Data[n].high = m_Data[n + 1].high;
+			m_Data.RemoveAt(n + 1);
+			n--;
+		}
+	}
+}
+void CCodeFlag::Add(DWORD low, DWORD high, DWORD flag)	// low, high = UCS4
+{
+	int n;
+	CODETAB tmp;
+
+	low  = CTextRam::UCS4toUCS2(low);
+	high = CTextRam::UCS4toUCS2(high);
+
+	for ( n = 0 ; n < (int)m_Data.GetSize() ; n++ ) {
+		if ( high < m_Data[n].low ) {
+			// l==h
+			//     l==h  l==h l==h
+			tmp.low  = low;
+			tmp.high = high;
+			tmp.flag = flag;
+			m_Data.InsertAt(n, tmp);
+			return;
+
+		} else if ( low <= m_Data[n].low ) {
+			if ( high < m_Data[n].high ) {
+				//   l==h
+				//     l==h  l==h l==h
+				tmp.low  = low;
+				tmp.high = high;
+				tmp.flag = flag;
+				m_Data.InsertAt(n, tmp);
+				n++;
+
+				m_Data[n].low  = high + 1;
+				return;
+
+			} else {
+				//   l=====h
+				//     l==h  l==h l==h
+				m_Data.RemoveAt(n);
+				n--;
+			}
+
+		} else if ( low <= m_Data[n].high ) {
+			if ( high < m_Data[n].high ) {
+				//       l=h
+				//     l=====h l==h l==h
+				tmp.low  = m_Data[n].low;
+				tmp.high = low - 1;
+				tmp.flag = m_Data[n].flag;
+				m_Data.InsertAt(n, tmp);
+				n++;
+
+				tmp.low  = low;
+				tmp.high = high;
+				tmp.flag = flag;
+				m_Data.InsertAt(n, tmp);
+				n++;
+
+				m_Data[n].low = high + 1;
+				return;
+
+			} else {
+				//       l====h
+				//     l==h  l==h l==h
+				m_Data[n].high = low - 1;
+			}
+		}
+
+		//          l==h
+		//     l==h  l==h l==h
+	}
+
+	//                  l==h
+	//   l==h  l==h l==h
+	tmp.high = high;
+	tmp.low = low;
+	tmp.flag = flag;
+	m_Data.Add(tmp);
+}
+DWORD CCodeFlag::Find(DWORD code)	// code == UCS2
+{
+	int n, b, m;
+
+	b = 0;
+	m = (int)m_Data.GetSize() - 1;
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( code >= m_Data[n].low && code <= m_Data[n].high )
+			return m_Data[n].flag;
+		else if ( code > m_Data[n].high )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+	return 0;
+}
+void CCodeFlag::GetString(LPCTSTR p, BOOL bAdd, class CTextRam *pTextRam)
+{
+	// U+01234-U+0123F=1,U+01240-U+0124F=2,U+01250-U+0125F=A,
+
+	if ( !bAdd )
+		RemoveAll();
+
+	while ( *p != _T('\0') ) {
+		DWORD low = 0, high = 0, flag = 0;
+
+		while ( *p != _T('\0') && *p <= _T(' ') )
+			p++;
+		if ( *p == _T('#') ) {
+			while ( *p != _T('\0') && *p != _T('\n') )
+				p++;
+			continue;
+		}
+		if ( _tcsncicmp(p, _T("U+"), 2) == 0 || _tcsncicmp(p, _T("U-"), 2) == 0 || _tcsncicmp(p, _T("0x"), 2) == 0 )
+			p += 2;
+		p = StrToHex(p, low);
+
+		while ( *p != _T('\0') && *p == _T(' ') )
+			p++;
+		if ( *p == _T('\t') || *p == _T('-') || *p == _T('.') ) {
+			p++;
+			while ( *p == _T('-') || *p == _T('.') )
+				p++;
+			while ( *p != _T('\0') && *p == _T(' ') )
+				p++;
+			if ( _tcsncicmp(p, _T("U+"), 2) == 0 || _tcsncicmp(p, _T("U-"), 2) == 0 || _tcsncicmp(p, _T("0x"), 2) == 0 )
+				p += 2;
+			p = StrToHex(p, high);
+		} else if ( *p == _T('+') ) {
+			while ( *p == _T('+') )
+				p++;
+			while ( *p != _T('\0') && *p == _T(' ') )
+				p++;
+			p = StrToHex(p, high);
+			high = low + high;
+		}
+		if ( high == 0 )
+			high = low;
+
+		if ( low > high ) {
+			DWORD n = low;
+			low = high;
+			high = n;
+		}
+
+		while ( *p != _T('\0') && *p == _T(' ') )
+			p++;
+		if ( *p == _T('=') || *p == _T('\t') ) {
+			for ( p++ ; *p != _T('\0') ; p++ ) {
+				if ( *p == _T('1') || *p == _T('N') || *p == _T('n') )
+					flag = (flag & (UNI_EMOJI | UNI_GRP)) | UNI_NAR;
+				else if ( *p == _T('2') || *p == _T('W') || *p == _T('w') )
+					flag = (flag & (UNI_EMOJI | UNI_GRP)) | UNI_WID;
+				else if ( *p == _T('0') || *p == _T('A') || *p == _T('a') )
+					flag = (flag & (UNI_EMOJI | UNI_GRP)) | UNI_AMB;
+				else if ( *p == _T('E') || *p == _T('e') )
+					flag |= UNI_EMOJI;
+				else if ( *p == _T('G') || *p == _T('g') )
+					flag |= UNI_GRP;
+				else if ( *p == _T(',') || *p < _T(' ') )
+					break;
+			}
+		}
+
+		while ( *p != _T('\0') && *p == _T(' ') )
+			p++;
+		if ( *p == _T(',') ) {
+			while ( *p != _T('\0') && (*p == _T(',') || *p == _T(' ')) )
+				p++;
+		} else {
+			while ( *p != _T('\0') && (*p == _T('\t') || *p >= _T(' ')) )
+				p++;
+		}
+
+		if ( flag != 0 && pTextRam != NULL &&
+				pTextRam->UnicodeSizeCheck(CTextRam::UCS4toUCS2(low), CTextRam::UCS4toUCS2(high), 
+					((flag & UNI_WID) != 0 ? 2 : ((flag & UNI_AMB) != 0 ? (pTextRam->IsOptEnable(TO_RLUNIAWH) ? 1 : 2) : 1))) )
+			continue;
+
+		if ( flag != 0 )
+			Add(low, high, flag);
+		else if ( low != 0 && low <= high )
+			Add(low, high, UNI_WID);
+	}
+
+	Alignment();
+}
+void CCodeFlag::SetString(CString &str, BOOL bTabSep)
+{
+	// U+01234-U+0123F=1,U+01240-U+0124F=2,U+01250-U+0125F=A,
+
+	CString tmp;
+
+	str.Empty();
+
+	for ( int n = 0 ; n < (int)m_Data.GetSize() ; n++ ) {
+		tmp.Format(_T("U+%06X%cU+%06X%c"), 
+			CTextRam::UCS2toUCS4(m_Data[n].low),  (bTabSep ? _T('\t') : _T('-')),
+			CTextRam::UCS2toUCS4(m_Data[n].high), (bTabSep ? _T('\t') : _T('=')));
+
+		if ( (m_Data[n].flag & UNI_NAR) != 0 )
+			tmp += _T('1');
+		else if ( (m_Data[n].flag & UNI_WID) != 0 )
+			tmp += _T('2');
+		else if ( (m_Data[n].flag & UNI_AMB) != 0 )
+			tmp += _T('A');
+
+		if ( (m_Data[n].flag & UNI_EMOJI) != 0 )
+			tmp += _T('E');
+		if ( (m_Data[n].flag & UNI_GRP) != 0 )
+			tmp += _T('G');
+
+		if ( bTabSep ) {
+			CString com;
+			DWORD code = CTextRam::UCS2toUCS4(m_Data[n].low);
+			DWORD endc = CTextRam::UCS2toUCS4(m_Data[n].high);
+			tmp += _T('\t');
+			for ( int i = 0 ; code <= endc && i < 5 ; i++ ) {
+				if ( code >= 0x0020 )
+					CTextRam::UCS4ToWStr(code++, com);
+				tmp += com;
+			}
+			if ( code <= endc ) {
+				tmp += _T("...");
+				if ( m_Data[n].high >= 0x0020 )
+					CTextRam::UCS2ToWStr(m_Data[n].high, com);
+				tmp += com;
+			}
+		}
+
+		if ( !str.IsEmpty() )
+			str += (bTabSep ? _T("\r\n") : _T(","));
+		str += tmp;
+	}
+}
+int CCodeFlag::Compare(CCodeFlag &dis)
+{
+	int c;
+
+	if ( (c = (int)m_Data.GetSize() - (int)dis.m_Data.GetSize()) != 0 )
+		return c;
+		
+	for ( int n = 0 ; n < (int)m_Data.GetSize() ; n++ ) {
+		if ( (c = (int)m_Data[n].low - (int)dis.m_Data[n].low) != 0 )
+			return c;
+		if ( (c = (int)m_Data[n].high - (int)dis.m_Data[n].high) != 0 )
+			return c;
+		if ( (c = (int)m_Data[n].flag - (int)dis.m_Data[n].flag) != 0 )
+			return c;
+	}
+
+	return 0;
+}
+const CCodeFlag & CCodeFlag::operator = (CCodeFlag &data)
+{
+	RemoveAll();
+
+	for ( int n = 0 ; n < (int)data.m_Data.GetSize() ; n++ )
+		m_Data.Add(data.m_Data[n]);
+
+	return *this;
+}
+

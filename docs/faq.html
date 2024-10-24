@@ -5,25 +5,8 @@
 <TITLE>RLogin使い方説明</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
-				
-				
-				
-				
-				
-				
-		background-color : #ffffff;
-font-size : 90%;
-}
-.BOX{
-				
-				
-				
-				
-				
-				
-		background-color : silver;
-}
+TD {background-color : #ffffff; font-size : 90%;}
+.BOX{background-color : silver;}
 -->
 </STYLE>
 </HEAD>
@@ -1607,9 +1590,9 @@ function OnClickOk(id) {
             <BR>
             たしかにアプリケーションでLANG=UTF-8の場合に文字バンク切り替えを使用するよりダイレクトにUnicodeで罫線を表示したほうが互換性などを考えると合理的に思えます。日本語のフォントを主体で考えると今回のように問題になりますが、世界的には、標準になりそうな気がしました。<BR>
             <BR>
-            したがってRLoginの2.21.2から8428（Aタイプを半角で表示/Aタイプを全角で表示）をデフォルトONに変更し罫線などの文字を半角で表示するようにしました。SJISなどと互換性が必要な表示が必要な方は、ご注意ください。特に日本語フォントを使用した場合には、右上の例のように「αβγ・・・」の表示が崩れます。（時代の流れが変わったと思います・・・）<BR>
+            したがってRLoginの2.21.2から8428（Aタイプを半角で表示/Aタイプを全角で表示）をデフォルトONに変更し罫線などの文字を半角で表示するようにしました。SJISなどと互換性が必要な方は、ご注意ください。特に日本語フォントを使用した場合には、右上の例のように「αβγ・・・」の表示が崩れます。（時代の流れが変わったと思います）<BR>
             <BR>
-            ※漢字コードがUTF-8の環境でEUCやSJISの文書を正しい文字幅で表示したい場合はUTF-8に変換(nkf -W)するより<B>ISO-2022-JPに変換</B>(nkf -J)したほうが正しい文字幅になります。</TD>
+            ※漢字コードがUTF-8の環境でEUCやSJISの文書を正しい文字幅で表示したい場合はUTF-8に変換(nkf -w)するより<B>ISO-2022-JPに変換</B>(nkf -j)したほうが正しい文字幅になります。</TD>
             <TD valign="top">SJISなどの罫線を含む日本語文書をUTF-8で正しく表示するには、<BR>
             8428をOFF(Aタイプを全角で表示)にする必要があります。<BR>
             <IMG src="image257.jpg" width="323" height="107" border="0"><BR>
@@ -2295,6 +2278,65 @@ Decode: zlib + chacha20-poly1305@openssh.com<BR>
             <TD width="600" valign="top" align="left"><B>Consolas</B><BR>
             これも上記と同じすべてベクトルフォントのようですがアンチエリアスで太目に感じます。こちらも欧文フォントなのでフォント置換しないように設定するがよいでしょうがUTF-8で使用する場合は、あまり関係しませんのでフォント置換しない設定にする必要は、ありません</TD>
             <TD><IMG src="image293.png" width="518" height="104" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+     <TR>
+      <TD>
+      <HR>
+      <P><B><A name="UCSIZE"></A>5.25 UTF-8の文字サイズ変更</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top" align="left">文字セットがUTF-8の場合に文字の表示幅であるセルサイズを1セル（半角）2セル（全角）で決定する必要がありますがUnicodeでは、明確なサイズ指定がありません（フォントデザインや言語により考え方が違う）唯一、EastAsianWidth.txtに文字サイズに関する設定がありますが、非常に曖昧な表現になり混乱が残っています。端末とサーバー側のアプリケーション(tmuxやvimなど・・・）で共通の規格が必要ですが、先のEastAsianWidth.txtでは、実際のフォントデザインと一致していないのが現実です。そこでアプリケーション側から端末に文字サイズを指定する機能<A href="ctrlcode.html#RLUCSIZE">RLUCSIZE</A>を提案したいと思います。<A href="ctrlcode.html#RLAMBCHM">8428拡張オプション</A>と合わせて使用すれば、アプリケーション側から任意の文字を任意のサイズで表示することができます。また逆にアプリケーションが端末にEastAsianWidth.txtから外れたサイズの文字を問い合わせすることも出来ます。<BR>
+            <BR>
+            また、<A href="index.html#CHAROPT">フォントのオプション設定</A>のUNICODEフォントセットの文字サイズ上書きで右記の設定画面で各エントリーごとに初期値を指定することができます。安易に設定するとサーバー側アプリケーションとの連携が崩れるので注意が必要ですが、半角全角の違和感を抑制することができます。<BR>
+            <BR>
+            この設定を新たに編集するのは、大変ですが、右クリックで右記の編集メニューが表示されクリップボード経由で設定できますので他テキストエディタなどを活用してください（クリップボードには、タブ区切りの文字列でコピーされます）<BR>
+            </TD>
+            <TD colspan="2"><IMG src="image294.jpg" width="511" height="395" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" align="left" width="600">            実際のフォントデザインとして日本語フォントで<A href="ctrlcode.html#RLAMBCHM">8428拡張オプション</A>を解除してAタイプを全角で表示にすると非常に多数のEastAsianWidth.txtの設定に違和感を感じます。ラテン１補助U+00A0-ラテン文字拡張BU+0180などは、部分的にAの設定があり全角表示に違和感を感じます。SHIFTJISやEUC-JPからUTF-8に変換を優先するとそのようになります。この違和感をこの文字サイズ設定で抑制するのは、非常に困難で特定の文字を1セルの半角にするとSHIFTJIS変換で違和感になり2セルにするとほとんどの文字を全角で表示することになります。ちなみにこのAタイプですが、Unicode設定時にJIS漢字との互換性を無理矢理入れたような感じでJIS漢字に無い文字などで<A href="UniAddAType.txt">Aタイプに指定していない文字</A>（ローマ数字のⅺⅻや⓪など）が多数あります。「<A href="#LINECHAR">罫線が表示されない</A>」で示していますがSHIFTJISなどからの変換は、ISO-2022-JPを利用することを薦めています</TD>
+            <TD valign="top"><A href="ctrlcode.html#RLAMBCHM">8428拡張オプション</A>を設定（Aタイプを半角)<BR>
+            <IMG src="image295.jpg" width="282" height="210" border="0"></TD>
+            <TD valign="top"><A href="ctrlcode.html#RLAMBCHM">8428拡張オプション</A>を解除（Aタイプを全角)<BR>
+            <IMG src="image296.jpg" width="282" height="210" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" align="left" width="600"><A href="ctrlcode.html#RLAMBCHM">8428拡張オプション</A>を設定（Aタイプを半角)して違和感のある文字をこのUNICODEフォントセットの<A href="UniAddWType.txt">文字サイズ上書きで設定した場合の例</A>です。ただし上記でも示していますがサーバー側のアプリケーションと差異ができるので文字編集などを行うと表示が崩れます。vimなどでは、個別に設定できるようですがbashなどのLANG環境変数によるlocaleを使用するアプリケーションでは、個別設定が困難です。そこでvimだけ右記の設定を自動で行う<A href="UniAddVimRc.txt">vimrcの例</A>です。vimでは、右記の文字サイズで表示しますがvimを終了すれば設定前の状態に戻ります<BR>
+            <PRE style="background-color : #cccccc;padding-top : 5pt;padding-left : 5pt;padding-right : 5pt;padding-bottom : 5pt;width : 590px;overflow : auto;">&quot; RLogin
+:set ambiwidth=single
+call setcellwidths([[0x0214F,0x0214F,2],[0x02318,0x02318,2],[0x02328,0x02328,2],[0x023CF,0x023CF,2],[0x023ED,0x023EF,2],[0x023F1,0x023F2,2],[0x023F8,0x023FA,2],[0x02460,0x024FF,2],[0x02600,0x027BF,2],[0x1F300,0x1F9FF,2]])
+
+let &amp;t_ti .= &quot;\e[?8428s\e[?8428h\eP4#u214F=2,2318=2,2328=2,23CF=2,23ED-23EF=2,23F1-23F2=2,23F8-23FA=2,2460-24FF=2,2600-27BF=2,1F300-1F9FF=2\e\\&quot;
+let &amp;t_te .= &quot;\e[?8428r\eP5#u\e\\&quot;
+</PRE>
+            </TD>
+            <TD valign="top"><A href="ctrlcode.html#RLAMBCHM">8428拡張オプション</A>を設定（Aタイプを半角)<BR>
+            <IMG src="image297.jpg" width="252" height="204" border="0"></TD>
+            <TD valign="top">このオプションの設定例<BR>
+            <IMG src="image298.jpg" width="252" height="204" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" align="left" width="600">サーバー側のLANG環境変数によるlocaleを参照するwcwidth()関数で返されるサイズをチェックして差異のあるコードのみを登録するプログラムを作成しました。<A href="wcwidth.c">wcwidth.c</A>このプログラムをコンパイルして実行すると<A href="ctrlcode.html#RLUCSIZE">RLUCSIZE</A>で自動登録されます。ログイン時に実行するとbashなどで行編集時の乱れを抑制することができます。ほとんどの場合<A href="ctrlcode.html#RLAMBCHM">8428拡張オプション</A>を設定（Aタイプを半角)がlocaleのデフォルトだと思いますが違う場合は、設定されるコードが多くなります。<BR>
+            <BR>
+            また、上記のオプション・フォント・UNICODEフォントセットの文字サイズ上書きで設定された内容を確認でき、そのエントリーのデフォルトで保存する場合は、OKボタンでオプションを閉じると確認されます。<BR>
+            <BR>
+            右記にちょっと古いOSでの結果を示します。参照したEastAsianWidth.txtのバージョンが違うようで特定の文字サイズが異なるようです。（ちなみにucd-16.0.0から&quot;2630..2637
+            ; W # So [8] TRIGRAM FOR HEAVEN..TRIGRAM FOR EARTH&quot;に変更されました）</TD>
+            <TD valign="top" colspan="2">uname -a<BR>
+            FreeBSD 12.3-RELEASE-p11 GENERIC amd64<BR>
+            cc -O wcwidth.c<BR>
+            LANG=ja_JP.UTF-8; a.out<BR>
+            <IMG src="image299.jpg" width="511" height="395" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

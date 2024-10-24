@@ -900,10 +900,16 @@ LRESULT CListCtrlExt::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 
 BOOL CListCtrlExt::OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pResult)
 {
-	NMHDR *pHdr = (NMHDR *)lParam;
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(lParam);
 
-	if ( message == WM_NOTIFY && pHdr->code == LVN_COLUMNCLICK && !m_bSort )
+	if ( message == WM_NOTIFY && pNMLV->hdr.code == LVN_COLUMNCLICK && !m_bSort )
 		return FALSE;
+
+#ifdef	_M_IX86
+	// VirtualBoxã‚ÌWindowsXP‚Å‚È‚º‚©Ä•`‰æ‚³‚ê‚È‚¢EEE
+	if ( message == WM_NOTIFY && pNMLV->hdr.code == LVN_ITEMCHANGED && pNMLV->iItem == 0 && CRLoginApp::IsWinVerCheck(_WIN32_WINNT_WINXP, VER_LESS_EQUAL) )
+		Invalidate(FALSE);
+#endif
 
 	return CListCtrl::OnChildNotify(message, wParam, lParam, pResult);
 }

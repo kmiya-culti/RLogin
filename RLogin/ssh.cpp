@@ -832,11 +832,15 @@ void Cssh::OnRecvSocket(void* lpBuf, int nBufLen, int nFlags)
 		}
 
 	} catch(LPCWSTR pMsg) {
-		msg.Format(_T("ssh Receive '%s'"), UniToTstr(pMsg));
+		msg.Format(_T("catch Execption '%s'"), UniToTstr(pMsg));
 	} catch(LPCSTR pMsg) {
-		msg.Format(_T("ssh Receive '%s'"), MbsToTstr(pMsg));
+		msg.Format(_T("catch Execption '%s'"), MbsToTstr(pMsg));
+	} catch(CMemoryException *) {
+		msg.Format(_T("catch Memory Execption"));
+	} catch(CUserException *) {
+		msg.Format(_T("catch User Execption"));
 	} catch(...) {
-		msg.Format(_T("ssh Receive '%s'"), _T("unkown"));
+		msg.Format(_T("ssh Unkown Execption"));
 	}
 
 	int n;

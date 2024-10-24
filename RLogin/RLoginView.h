@@ -77,10 +77,11 @@ public:
 	int m_BlinkFlag;
 	int m_ImageFlag;
 	BOOL m_MouseEventFlag;
-	int m_WheelDelta;
+	int m_WheelOfs;
 	INT_PTR m_WheelTimer;
 	clock_t m_WheelClock;
 	int m_WheelzDelta;
+	BOOL m_bWheelBuzy;
 	BOOL m_ScrollOut;
 	BOOL m_ClipUpdateLine;
 	CBitmap m_TekBitmap;
