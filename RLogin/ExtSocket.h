@@ -219,4 +219,10 @@ public:
 	inline class CRLoginApp *GetApp() { return (class CRLoginApp *)AfxGetApp(); }
 	inline void SetRecvBufSize(int size) { m_RecvBufSize = size; }
 	inline BOOL IsSyncMode() { return (m_pFifoSync != NULL ? TRUE : FALSE); }
+
+	CString m_WorkStr;
+	CStringA m_WorkMbs;
+
+	inline LPCTSTR LocalStr(LPCSTR str) { return m_pFifoMid->DocMsgLocalStr(str, m_WorkStr); }
+	inline LPCSTR RemoteStr(LPCTSTR str) { return m_pFifoMid->DocMsgRemoteStr(str, m_WorkMbs); }
 };

@@ -5493,7 +5493,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	int c, o;
 	CPen cPen[5], *oPen;
 	LOGBRUSH LogBrush;
-	CPoint point[7], secp[7];
+	CPoint point[16];
 	CRect box(rect), tmp;
 	int bd_size = prop.pView->m_CharHeight / 16;
 	static const DWORD PenExtTab[3][4]  = {	{ 3, 1, 3, 1 }, { 2, 1, 2, 1 },	{ 1, 1, 1, 1 } };
@@ -5504,6 +5504,9 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 
 #undef	BD_SIZE
 #define	BD_SIZE	bd_size
+	
+	if ( prop.pView->m_CharHeight <= 7 )
+		fc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
 
 	LogBrush.lbColor = fc;
 	LogBrush.lbStyle = BS_SOLID;
@@ -5819,13 +5822,23 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 			}
 
 #ifdef	USE_PARENTHESIS
-		} else if ( prop.pText[a] >= 0x239B && prop.pText[a] <= 0x23AD ) {		// U+00239B-0023AD		⎛⎜⎝⎞⎟⎠	⎡⎢⎣⎤⎥⎦	⎧⎨⎩⎪⎫⎬⎭
-			c = prop.pText[a] - 0x239B;
-			for ( int b = 0 ; b < 7 ; b++ ) {
-				point[b].x = box.left + box.Width() * KakoTab[c][b][0] / 100;
-				point[b].y = box.top + box.Height() * KakoTab[c][b][1] / 100;
+		} else if ( prop.pText[a] >= PARENTHESIS_START && prop.pText[a] <= PARENTHESIS_END ) {		// U+00239B-0023AD		⎛⎜⎝⎞⎟⎠	⎡⎢⎣⎤⎥⎦	⎧⎨⎩⎪⎫⎬⎭
+			c = prop.pText[a] - PARENTHESIS_START;
+			int count = 0;
+			for ( int b = 0 ; b < 16 ; b++ ) {
+				if ( KakoTab[c][b][0] == PTS_SEP ) {
+					pDC->Polyline(point, count);
+					count = 0;
+					continue;
+				} else if ( KakoTab[c][b][0] == PTS_END ) {
+					pDC->Polyline(point, count);
+					break;
+				}
+
+				point[count].x = box.left + box.Width() * KakoTab[c][b][0] / 100;
+				point[count].y = box.top + box.Height() * KakoTab[c][b][1] / 100;
+				count++;
 			}
-			pDC->Polyline(point, 7);
 #endif
 		}
 
@@ -9463,7 +9476,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		vp->m_Vram.bank = (WORD)block;
 
 #ifdef	USE_PARENTHESIS
-	if ( ((ch >= 0x2500 && ch <= 0x259F) || (ch >= 0x239B && ch <= 0x23AD)) && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
+	if ( ((ch >= 0x2500 && ch <= 0x259F) || (ch >= PARENTHESIS_START && ch <= PARENTHESIS_END)) && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
 #else
 	if ( ch >= 0x2500 && ch <= 0x259F && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
 #endif
@@ -9754,8 +9767,6 @@ CTextSave *CTextRam::GETSAVERAM(int fMode)
 	pSave->m_bRtoL    = m_bRtoL;
 	pSave->m_bJoint   = m_bJoint;
 
-	memcpy(pSave->m_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
-
 	pSave->m_BankGL = m_BankGL;
 	pSave->m_BankGR = m_BankGR;
 	pSave->m_BankSG = m_BankSG;
@@ -9776,6 +9787,8 @@ CTextSave *CTextRam::GETSAVERAM(int fMode)
 
 		pSave->m_DispCaret = m_DispCaret;
 		pSave->m_TypeCaret = m_TypeCaret;
+
+		memcpy(pSave->m_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 
 		//m_TitleStack
 		//m_Macro[MACROMAX]
@@ -9818,8 +9831,6 @@ void CTextRam::SETSAVERAM(CTextSave *pSave)
 	m_LastAttr = pSave->m_LastAttr;
 	m_LastStr  = pSave->m_LastStr;
 
-	memcpy(m_AnsiOpt, pSave->m_AnsiOpt, sizeof(DWORD) * 12);	// 0 - 384
-
 	m_BankGL = pSave->m_BankGL;
 	m_BankGR = pSave->m_BankGR;
 	m_BankSG = pSave->m_BankSG;
@@ -9840,6 +9851,9 @@ void CTextRam::SETSAVERAM(CTextSave *pSave)
 
 		m_DispCaret = pSave->m_DispCaret;
 		m_TypeCaret = pSave->m_TypeCaret;
+
+		// bAllに移動 2024/10/31
+		memcpy(m_AnsiOpt, pSave->m_AnsiOpt, sizeof(DWORD) * 12);	// 0 - 384
 
 		//m_TitleStack
 		//m_Macro[MACROMAX]

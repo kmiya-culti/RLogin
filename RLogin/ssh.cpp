@@ -2982,7 +2982,7 @@ void Cssh::SendMsgServiceRequest(LPCSTR str)
 int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 {
 	int skip, len;
-	CBuffer tmp(-1), blob(-1), sig(-1);
+	CBuffer tmp(-1), blob(-1), hkey(-1), sig(-1);
 	CString wrk;
 	CPassDlg dlg;
 	CStringA meta;
@@ -3030,9 +3030,50 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				m_pIdKey->SetBlob(&blob);
 
 				len = tmp.GetSize();
-				tmp.PutStr("publickey");
 
 				if ( m_pIdKey->Init(m_pDocument->m_ServerEntry.m_PassName) ) {
+#ifdef	USE_OPENSSH_HOSTBOUND
+					// SSH2_MSG_GLOBAL_REQUESTの"hostkeys-00@openssh.com"がこの認証後に来るようなのでホスト鍵が変更されると
+					// fatal: userauth_pubkey: publickey-hostbound-v00@openssh.com packet contained wrong host key [preauth]
+					// で強制終了されてしまう・・・使用しないほうが無難のような気がする
+					// 試験的にここに実装したがoffered時や複数鍵の場合などの対応を考えるとホスト鍵の選択場所を考えたほうが良い
+					// 先のホスト鍵の変更時などを考慮するとオプション扱い（変更されるとログオンできない）が良いかもしれない
+					BOOL bHostBound = FALSE;
+
+					if ( m_ExtInfo.Find(_T("publickey-hostbound@openssh.com")) >= 0 ) {
+						CStringArrayExt entry;
+
+						wrk.Format(_T("%s:%d"), (LPCTSTR)m_HostName, m_HostPort);
+						theApp.GetProfileStringArray(_T("KnownHosts"), wrk, entry);
+
+						for ( int i = 0 ; i < entry.GetSize() ; i++ ) {
+							CIdKey key;
+							if ( key.ReadPublicKey(entry[i]) && m_VProp[PROP_HOST_KEY_ALGS].Compare(key.GetName(TRUE, FALSE)) == 0 ) {
+								bHostBound = TRUE;
+								key.SetBlob(&hkey, TRUE);
+								break;
+							}
+						}
+					}
+
+					tmp.PutStr(bHostBound ? "publickey-hostbound-v00@openssh.com" : "publickey");
+					tmp.Put8Bit(1);
+					tmp.PutStr(TstrToMbs(m_pIdKey->GetName(TRUE, FALSE)));
+					tmp.PutBuf(blob.GetPtr(), blob.GetSize());
+
+					if ( bHostBound )
+						tmp.PutBuf(hkey.GetPtr(), hkey.GetSize());
+
+					if ( !m_pIdKey->Sign(&sig, tmp.GetPtr(), tmp.GetSize(), GetSigAlgs()) ) {
+						tmp.ConsumeEnd(tmp.GetSize() - len);
+						continue;
+					}
+
+					tmp.PutBuf(sig.GetPtr(), sig.GetSize());
+
+					AddAuthLog(_T("%s(%s)"), (bHostBound ? _T("publickey-hostbound") : _T("publickey")), m_pIdKey->GetName(TRUE, TRUE));
+#else
+					tmp.PutStr("publickey");
 					tmp.Put8Bit(1);
 					tmp.PutStr(TstrToMbs(m_pIdKey->GetName(TRUE, FALSE)));
 					tmp.PutBuf(blob.GetPtr(), blob.GetSize());
@@ -3045,7 +3086,9 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 					tmp.PutBuf(sig.GetPtr(), sig.GetSize());
 
 					AddAuthLog(_T("publickey(%s)"), m_pIdKey->GetName(TRUE, TRUE));
+#endif
 				} else {
+					tmp.PutStr("publickey");
 					tmp.Put8Bit(0);
 					tmp.PutStr(TstrToMbs(m_pIdKey->GetName(TRUE, FALSE)));
 					tmp.PutBuf(blob.GetPtr(), blob.GetSize());
@@ -4423,6 +4466,7 @@ int Cssh::SSH2MsgExtInfo(CBuffer *bp)
 
 	int n, count;
 	CStringA name, value;
+	CString nameT;
 
 	count = bp->Get32Bit();
 	for ( n = 0 ; n < count ; n++ ) {
@@ -4440,7 +4484,8 @@ int Cssh::SSH2MsgExtInfo(CBuffer *bp)
 		} else
 			bp->GetStr(value);
 
-		m_ExtInfo[MbsToTstr(name)] = MbsToTstr(value);
+		nameT = LocalStr(name);
+		m_ExtInfo[nameT] = LocalStr(value);
 	}
 
 	return 0;
@@ -4655,7 +4700,7 @@ int Cssh::SSH2MsgUserAuthGssapiProcess(CBuffer *bp, int type)
 	case SSH2_MSG_USERAUTH_GSSAPI_ERROR:
 		bp->GetStr(msg);
 		bp->GetStr(lang);
-		str.Format(_T("SSH2 Gssapi Receive Error\n%s"), MbsToTstr(msg));
+		str.Format(_T("SSH2 Gssapi Receive Error\n%s"), LocalStr(msg));
 		::AfxMessageBox(str, MB_ICONERROR);
 		goto RETRYAUTH;
 	}
@@ -5340,6 +5385,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 	case SSH2_MSG_KEXDH_REPLY:
 //	case SSH2_MSG_KEX_DH_GEX_GROUP:
 //	case SSH2_MSG_KEX_ECDH_REPLY:
+//	case SSH2_MSG_KEX_HYBRID_REPLY:
 		if ( (m_SSH2Status & SSH2_STAT_HAVEPROP) == 0 )
 			goto DISCONNECT;
 		switch(m_DhMode) {

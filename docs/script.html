@@ -5,8 +5,14 @@
 <TITLE>スクリプト</TITLE>
 <STYLE type="text/css">
 <!--
-TD { background-color : #ffffff; font-size : 90%; }
-.BOX{ background-color : silver; }
+TD {
+				
+		background-color : #ffffff; font-size : 90%; 
+}
+.BOX{
+				
+		background-color : silver; 
+}
 -->
 </STYLE>
 </HEAD>
@@ -1908,8 +1914,7 @@ sclose();</PRE>
           </TR>
           <TR>
             <TD valign="top">file ( <I>filename, [iconv]</I> )</TD>
-            <TD valign="top">ファイルを配列に読み込み行数を返します<BR>
-            ※iconvは,2.29.3から有効です</TD>
+            <TD valign="top">ファイルを配列に読み込み行数を返します<BR>iconv指定無しでは、文字コードを自動で選択しますが、誤判定の可能性があります。</TD>
             <TD valign="top">int<BR>
             array</TD>
             <TD valign="top">len = file(&quot;test.txt&quot;);<BR>
@@ -1918,36 +1923,7 @@ sclose();</PRE>
           </TR>
           <TR>
             <TD valign="top">savefile ( <I>filename</I>, <I>val, [iconv]</I>, <I>[crlf]</I> )</TD>
-            <TD valign="top"><FONT color="#c0c0c0">配列をファイルに書き込みます</FONT></TD>
-            <TD valign="top"></TD>
-            <TD valign="top">savefile(&quot;Text.txt&quot;, data, &quot;UTF-8&quot;, 2);</TD>
-            <TD valign="top"></TD>
-          </TR>
-          <TR>
-            <TD valign="top">loadjson ( <I>filename</I> , <I>[iconv]</I> )</TD>
-            <TD valign="top">JSON形式のファイルを変数に読み込みます</TD>
-            <TD valign="top">array</TD>
-            <TD valign="top">data = lodadjson(&quot;Data.json&quot;);</TD>
-            <TD valign="top"></TD>
-          </TR>
-          <TR>
-            <TD valign="top">savejson ( <I>filename</I>, <I>val, [iconv]</I>, <I>[crlf]</I> )</TD>
-            <TD valign="top">変数をJSON形式のファイルに書き込みます</TD>
-            <TD valign="top"></TD>
-            <TD valign="top">savejson(&quot;Data.json&quot;, data);</TD>
-            <TD valign="top"></TD>
-          </TR>
-          <TR>
-            <TD valign="top">loadxml ( <I>filename</I> , <I>[iconv]</I>)</TD>
-            <TD valign="top">XML形式のファイルを変数に読み込みます。iconv指定無しでは、文字コードを自動で選択しますが、誤判定の可能性があります。&quot;Well-Formed
-            XML Document&quot;としての対応でDTDを無視しますのでご注意ください</TD>
-            <TD valign="top">array</TD>
-            <TD valign="top">data = lodadxml(&quot;Data.xml&quot;);</TD>
-            <TD valign="top"></TD>
-          </TR>
-          <TR>
-            <TD valign="top">savexml ( <I>filename</I>, <I>val, [iconv]</I>, <I>[crlf]</I> )</TD>
-            <TD valign="top">変数をXML形式のファイルに書き込みます<BR>
+            <TD valign="top">配列をファイルに書き込みます<BR>
             <TABLE cellpadding="1">
               <TBODY>
                 <TR>
@@ -1975,6 +1951,34 @@ sclose();</PRE>
               </TBODY>
             </TABLE>
             </TD>
+            <TD valign="top"></TD>
+            <TD valign="top">savefile(&quot;Text.txt&quot;, data, &quot;UTF-8&quot;, 2);</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">loadjson ( <I>filename</I> , <I>[iconv]</I> )</TD>
+            <TD valign="top">JSON形式のファイルを変数に読み込みます</TD>
+            <TD valign="top">array</TD>
+            <TD valign="top">data = lodadjson(&quot;Data.json&quot;);</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">savejson ( <I>filename</I>, <I>val, [iconv]</I>, <I>[crlf]</I> )</TD>
+            <TD valign="top">変数をJSON形式でファイルに書き込みます</TD>
+            <TD valign="top"></TD>
+            <TD valign="top">savejson(&quot;Data.json&quot;, data);</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">loadxml ( <I>filename</I> , <I>[iconv]</I>)</TD>
+            <TD valign="top">XML形式のファイルを変数に読み込みます。&quot;Well-Formed XML Document&quot;としての対応でDTDを無視しますのでご注意ください</TD>
+            <TD valign="top">array</TD>
+            <TD valign="top">data = lodadxml(&quot;Data.xml&quot;);</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">savexml ( <I>filename</I>, <I>val, [iconv]</I>, <I>[crlf]</I> )</TD>
+            <TD valign="top">変数をXML形式でファイルに書き込みます</TD>
             <TD valign="top"></TD>
             <TD valign="top">savexml(&quot;Data.xml&quot;, data, &quot;UTF-8&quot;, 2);</TD>
             <TD valign="top"></TD>
@@ -2017,14 +2021,14 @@ sclose();</PRE>
             <TD valign="top">basename ( <I>pathname</I> )</TD>
             <TD valign="top">パス名からファイル名を返します</TD>
             <TD valign="top">str</TD>
-            <TD valign="top">echo(basename(&quot;c:\hello\world.txt&quot;));</TD>
+            <TD valign="top">echo(basename(&quot;c:\\hello\\world.txt&quot;));</TD>
             <TD valign="top">world.txt</TD>
           </TR>
           <TR>
             <TD valign="top">dirname ( <I>pathname</I> )</TD>
             <TD valign="top">パス名からディレクトリ名を返します</TD>
             <TD valign="top">str</TD>
-            <TD valign="top">echo(dirname(&quot;c:\hello\world.txt&quot;));</TD>
+            <TD valign="top">echo(dirname(&quot;c:\\hello\\world.txt&quot;));</TD>
             <TD valign="top">c:\hello</TD>
           </TR>
           <TR>

@@ -1805,11 +1805,11 @@ BOOL CExtSocket::ProxyFunc()
 						if ( name.CompareNoCase(":status") == 0 )
 							m_ProxyCode = atoi(value);
 						else if ( name.CompareNoCase("authorization") == 0 )
-							m_ProxyAuth.SetArray(MbsToTstr(value));
+							m_ProxyAuth.SetArray(LocalStr(value));
 						else if ( name.CompareNoCase("WWW-Authenticate") == 0 )
-							m_ProxyAuth.SetArray(MbsToTstr(value));
+							m_ProxyAuth.SetArray(LocalStr(value));
 						else if ( name.CompareNoCase("Proxy-Authenticate") == 0 )
-							m_ProxyAuth.SetArray(MbsToTstr(value));
+							m_ProxyAuth.SetArray(LocalStr(value));
 					}
 
 					switch(m_ProxyCode) {
@@ -1992,11 +1992,11 @@ BOOL CExtSocket::ProxyFunc()
 						if ( name.Compare(":status") == 0 )
 							m_ProxyCode = atoi(value);
 						else if ( name.CompareNoCase("authorization") == 0 )
-							m_ProxyAuth.SetArray(MbsToTstr(value));
+							m_ProxyAuth.SetArray(LocalStr(value));
 						else if ( name.CompareNoCase("WWW-Authenticate") == 0 )
-							m_ProxyAuth.SetArray(MbsToTstr(value));
+							m_ProxyAuth.SetArray(LocalStr(value));
 						else if ( name.CompareNoCase("Proxy-Authenticate") == 0 )
-							m_ProxyAuth.SetArray(MbsToTstr(value));
+							m_ProxyAuth.SetArray(LocalStr(value));
 					}
 
 					switch(m_ProxyCode) {

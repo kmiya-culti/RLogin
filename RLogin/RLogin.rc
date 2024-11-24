@@ -734,7 +734,7 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,210,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.29.9 (2024/10/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.30.0 (2024/11/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2024 Culti",IDC_STATIC,44,17,189,8
     LTEXT           "OpenSSL 3.4.0 22 Oct 2024",IDC_STATIC,44,50,189,8
     LTEXT           "Copyright (c) 1998-2024 The OpenSSL Project",IDC_STATIC,44,60,189,8
@@ -2314,8 +2314,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,29,9,0
- PRODUCTVERSION 2,29,9,0
+ FILEVERSION 2,30,0,0
+ PRODUCTVERSION 2,30,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2332,12 +2332,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.29.9.0"
+            VALUE "FileVersion", "2.30.0.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.29.9.0"
+            VALUE "ProductVersion", "2.30.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4530,7 +4530,7 @@ STRINGTABLE
 BEGIN
     IDS_FILEDLGRLOGIN       "RLogin File (*.rlg)|*.rlg|All Files (*.*)|*.*||"
     IDS_FILEDLGSCRIPT       "Script File (*.txt)|*.txt|All Files (*.*)|*.*||"
-    IDS_FILEDLGTEKIMAGE     "GIF File (*.gif)|*.gif|JPEG File (*.jpg)|*.jpg|PNG File (*.png)|*.png|BMP File (*.bmp)|*.bmp|DXF File (*.dxf)|*.dxf|TEK File (*.tek)|*.tek||"
+    IDS_FILEDLGTEKIMAGE     "GIF File (*.gif)|*.gif|JPEG File (*.jpg)|*.jpg|PNG File (*.png)|*.png|BMP File (*.bmp)|*.bmp|DXF File (*.dxf)|*.dxf|TEK File (*.tek)|*.tek|SVG File (*.svg)|*.svg||"
     IDS_FILEDLGTEKIMAGE2    "DXF File (*.dxf)|*.dxf|TEK File (*.tek)|*.tek||"
     IDS_IDKEYCREATE         "SSH鍵の作成"
     IDS_IDKEYCREATECOM      "パスフレーズは、非常に重要です。作成時に設定するパスフレーズは、ファイルに保存する場合やサーバー接続で使用する場合にも入力が必要になります。"

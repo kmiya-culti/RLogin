@@ -112,6 +112,11 @@
 #define	SSH2_MSG_KEXRSA_SECRET				31
 #define	SSH2_MSG_KEXRSA_DONE				32
 
+/* mlkem768x25519-sha256 */
+
+#define	SSH2_MSG_KEX_HYBRID_INIT			30
+#define	SSH2_MSG_KEX_HYBRID_REPLY			31
+
 /* transport layer: OpenSSH extensions */
 
 #define SSH2_MSG_PING						192

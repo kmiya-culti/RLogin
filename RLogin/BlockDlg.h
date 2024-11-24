@@ -38,6 +38,8 @@ public:
 	BOOL m_bSelCodeMode;
 	DWORD m_SelCodeSta;
 	DWORD m_SelCodeEnd;
+	int m_LastSelBlock;
+	CString m_DefFontName;
 
 public:
 	void InitList();

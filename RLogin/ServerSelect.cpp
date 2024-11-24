@@ -646,6 +646,7 @@ void CServerSelect::OnNewEntry()
 
 	Entry.m_Group = m_Group;
 	CRLoginDoc::LoadDefOption(*m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
+	m_pTextRam->m_KanjiMode = Entry.m_KanjiCode;
 
 	dlg.m_pEntry    = &Entry;
 	dlg.m_pTextRam  = m_pTextRam;

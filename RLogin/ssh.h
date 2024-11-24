@@ -972,13 +972,6 @@ public:
 	virtual void GetStatus(CString &str);
 	virtual void ResetOption();
 
-public:
-	CString m_WorkStr;
-	CStringA m_WorkMbs;
-
-	inline LPCTSTR LocalStr(LPCSTR str) { return m_pFifoMid->DocMsgLocalStr(str, m_WorkStr); }
-	inline LPCSTR RemoteStr(LPCTSTR str) { return m_pFifoMid->DocMsgRemoteStr(str, m_WorkMbs); }
-
 	void FifoCmdSendPacket(int type, CBuffer *bp);
 	void PostSendPacket(int type, CBuffer *bp);
 

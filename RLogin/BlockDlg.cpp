@@ -31,6 +31,8 @@ CBlockDlg::CBlockDlg(CWnd* pParent /*=NULL*/)
 	m_bSelCodeMode = FALSE;
 	m_SelCodeSta = (-1);
 	m_SelCodeEnd = (-1);
+	m_LastSelBlock = (-1);
+	m_DefFontName.Empty();
 }
 CBlockDlg::~CBlockDlg()
 {
@@ -105,6 +107,7 @@ void CBlockDlg::DrawPreView(HDC hDC)
 	LOGFONT logfont;
 	CFont font, *pOldFont;
 	CPen pen, *pOldPen;
+	WORD Indices[8];
 
 	if ( m_pTextRam != NULL ) {
 		bc = m_pTextRam->m_ColTab[m_pTextRam->m_DefAtt.std.bcol];
@@ -150,7 +153,11 @@ void CBlockDlg::DrawPreView(HDC hDC)
 	logfont.lfHeight	= height;
 	logfont.lfCharSet	= m_pFontNode->m_CharSet;
 	logfont.lfQuality   = m_pFontNode->m_Quality;
-	_tcsncpy(logfont.lfFaceName, (!m_pFontNode->m_FontName[m_FontNum].IsEmpty() ? m_pFontNode->m_FontName[m_FontNum] : (m_pTextRam == NULL ? _T("") : m_pTextRam->m_DefFontName[m_FontNum])), sizeof(logfont.lfFaceName) / sizeof(TCHAR));
+
+	if ( m_bSelCodeMode && !m_DefFontName.IsEmpty() )
+		_tcsncpy(logfont.lfFaceName, m_DefFontName, sizeof(logfont.lfFaceName) / sizeof(TCHAR));
+	else
+		_tcsncpy(logfont.lfFaceName, (!m_pFontNode->m_FontName[m_FontNum].IsEmpty() ? m_pFontNode->m_FontName[m_FontNum] : (m_pTextRam == NULL ? _T("") : m_pTextRam->m_DefFontName[m_FontNum])), sizeof(logfont.lfFaceName) / sizeof(TCHAR));
 
 	font.CreateFontIndirect(&logfont);
 	pOldFont = pDC->SelectObject(&font);
@@ -195,6 +202,11 @@ void CBlockDlg::DrawPreView(HDC hDC)
 			else
 				str.Empty();
 			str += (WCHAR)(ucs);
+
+			if ( GetGlyphIndices(pDC->GetSafeHdc(), str, str.GetLength(), Indices, GGI_MARK_NONEXISTING_GLYPHS) != GDI_ERROR && Indices[0] != 0xFFFF )
+				pDC->SetTextColor(fc);
+			else
+				pDC->SetTextColor(hc);
 
 			sz = pDC->GetTextExtent(str);
 			pDC->TextOut(x + (width * cwid / 2 - sz.cx) / 2, y + (height - sz.cy) / 2, str);
@@ -246,19 +258,25 @@ BOOL CBlockDlg::OnInitDialog()
 
 	InitList();
 
-	if ( m_bSelCodeMode && m_SelCodeSta != (-1) ) {
-		for ( m_SelBlock = 0 ; m_SelBlock < m_UniBlockTab.GetSize() ; m_SelBlock++ ) {
-			if ( m_SelCodeSta < m_UniBlockTab[m_SelBlock].code )
-				break;
+	if ( m_bSelCodeMode ) {
+		if ( m_SelCodeSta != (-1) ) {
+			for ( m_SelBlock = 0 ; m_SelBlock < m_UniBlockTab.GetSize() ; m_SelBlock++ ) {
+				if ( m_SelCodeSta < m_UniBlockTab[m_SelBlock].code )
+					break;
+			}
+			m_SelBlock--;
+		} else if ( m_LastSelBlock != (-1) )
+			m_SelBlock = m_LastSelBlock;
+
+		if ( m_SelBlock >= 0 ) {
+			if ( (n = m_BlockList.GetSelectionMark()) >= 0 )
+				m_BlockList.SetItemState(n, 0, LVIS_FOCUSED | LVIS_SELECTED);
+			m_BlockList.SetSelectionMark(m_SelBlock);
+			m_BlockList.SetItemState(m_SelBlock, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+			m_BlockList.EnsureVisible(m_SelBlock, FALSE);
+			m_ScrollPos = 0;
+			m_PreViewBox.Invalidate(FALSE);
 		}
-		m_SelBlock--;
-		if ( (n = m_BlockList.GetSelectionMark()) >= 0 )
-			m_BlockList.SetItemState(n, 0, LVIS_FOCUSED | LVIS_SELECTED);
-		m_BlockList.SetSelectionMark(m_SelBlock);
-		m_BlockList.SetItemState(m_SelBlock, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
-		m_BlockList.EnsureVisible(m_SelBlock, FALSE);
-		m_ScrollPos = 0;
-		m_PreViewBox.Invalidate(FALSE);
 	}
 
 	SetSaveProfile(_T("BlockDlg"));
@@ -545,21 +563,36 @@ BOOL CBlockDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	if ( m_ScrollPos < 0 ) {
 		if ( --m_SelBlock < 0 )
 			m_SelBlock = 0;
-		if ( (n = m_BlockList.GetSelectionMark()) >= 0 )
-			m_BlockList.SetItemState(n, 0, LVIS_FOCUSED | LVIS_SELECTED);
-		m_BlockList.SetSelectionMark(m_SelBlock);
-		m_BlockList.SetItemState(m_SelBlock, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
-		m_BlockList.EnsureVisible(m_SelBlock, FALSE);
-		m_ScrollPos = 0;
+
+		CRect frame;
+		m_PreViewBox.GetClientRect(frame);
+
+		DWORD code = m_UniBlockTab[m_SelBlock].code;
+		DWORD next = ((m_SelBlock + 1) < m_UniBlockTab.GetSize() ? m_UniBlockTab[m_SelBlock + 1].code : (UNICODE_MAX + 1));
+		int height = frame.Width()  / 16 - 2;
+
+		m_ScrollMax  = (next - code) / 16;
+		m_ScrollPage = frame.Height() / (height + 2);
+		if ( (m_ScrollPos = m_ScrollMax - m_ScrollPage) < 0 )
+			m_ScrollPos = 0;
+
 	} else if ( m_ScrollPos >= (m_ScrollMax - (m_ScrollPage / 2)) ) {
 		if ( ++m_SelBlock >= (int)m_UniBlockTab.GetSize() )
 			m_SelBlock = (int)m_UniBlockTab.GetSize() - 1;
-		if ( (n = m_BlockList.GetSelectionMark()) >= 0 )
-			m_BlockList.SetItemState(n, 0, LVIS_FOCUSED | LVIS_SELECTED);
+
+		m_ScrollPos = 0;
+	}
+
+	if ( (n = m_BlockList.GetSelectionMark()) >= 0 && n != m_SelBlock ) {
+		int savePos = m_ScrollPos;
+
+		m_BlockList.SetItemState(n, 0, LVIS_FOCUSED | LVIS_SELECTED);
+
 		m_BlockList.SetSelectionMark(m_SelBlock);
 		m_BlockList.SetItemState(m_SelBlock, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
 		m_BlockList.EnsureVisible(m_SelBlock, FALSE);
-		m_ScrollPos = 0;
+
+		m_ScrollPos = savePos;
 	}
 
 	m_PreViewBox.Invalidate(FALSE);

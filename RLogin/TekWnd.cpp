@@ -98,6 +98,9 @@ void CTekWnd::OnTekSave()
 	} else if ( dlg.GetFileExt().CompareNoCase(_T("tek")) == 0 ) {
 		SaveTek(dlg.GetPathName());
 		return;
+	} else if ( dlg.GetFileExt().CompareNoCase(_T("svg")) == 0 ) {
+		SaveSvg(dlg.GetPathName());
+		return;
 	}
 
 	if ( !image.Create(rect.Width(), rect.Height(), 24) )
@@ -235,6 +238,141 @@ BOOL CTekWnd::SaveTek(LPCTSTR file)
 	fclose(fp);
 	return TRUE;
 }
+BOOL CTekWnd::SaveSvg(LPCTSTR file)
+{
+	FILE *fp;
+	CTextRam::TEKNODE *tp;
+	CString str;
+	CIConv iconv;
+	CStringA mbs, xpos, ypos, tmp;
+	int count;
+	static const int PenWidthTab[]   = { 1, 2  };
+	static const char *PenStyle[]    = { "none","1,1", "3,1,1,1","2,1","4,2","4,1,1,1,1,1","6,1,1,1","6,3" };
+	static const COLORREF ColorTab[] = {	RGB(128, 128, 128), RGB(  0,   0,   0), RGB(192, 0, 0), RGB(0, 192, 0), RGB(0, 0, 192), RGB(0, 192, 192), RGB(192, 0, 192), RGB(192, 192, 0),
+											RGB(192, 192, 192), RGB( 64,  64,  64), RGB( 96, 0, 0), RGB(0,  96, 0), RGB(0, 0,  96), RGB(0,  96,  96), RGB( 96, 0,  96), RGB( 96,  96, 0) };
+	static const int TekFontSize[]   = { 88, 81, 53, 48, 71, 68, 64, 59 }; 
+	static const int TekFontWidth[]  = { 55, 51, 34, 31, 46, 43, 41, 37 };
+
+#define	SVG_DIV		4.0
+
+	if ( (fp = _tfopen(file, _T("wt"))) == NULL )
+		return FALSE;
+
+	fprintf(fp, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
+	fprintf(fp, "<svg xmlns=\"http://www.w3.org/2000/svg\" x=\"%d\" y=\"%d\" width=\"%g\" height=\"%g\">\n", 
+		0, 0, TEK_WIN_WIDTH / SVG_DIV, TEK_WIN_HEIGHT / SVG_DIV);
+
+	for ( tp = m_pTextRam->m_Tek_Top ; tp != NULL ; tp = tp->next ) {
+		switch(tp->md) {
+		case 0:	// Line
+			mbs.Empty();
+			if ( tp->next != NULL && tp->md == tp->next->md && tp->st == tp->next->st ) {
+				if ( tp->sx == tp->next->ex && tp->sy == tp->next->ey ) {
+					//						tp->sx,sy			tp->ex,ey
+					//	tp->next->sx,sy		tp->next->ex,ey
+					tmp.Format("%g,%g ", tp->ex / SVG_DIV, (TEK_WIN_HEIGHT - tp->ey) / SVG_DIV);
+					mbs += tmp;
+					count = 1;
+
+					do {
+						tp = tp->next;
+						tmp.Format("%g,%g ", tp->ex / SVG_DIV, (TEK_WIN_HEIGHT - tp->ey) / SVG_DIV);
+						mbs += tmp;
+						if ( ++count > 8 ) {
+							mbs += "\n\t";
+							count = 0;
+						}
+					} while ( tp->next != NULL && tp->md == tp->next->md && tp->st == tp->next->st && tp->sx == tp->next->ex && tp->sy == tp->next->ey );
+
+					tmp.Format("%g,%g ", tp->sx / SVG_DIV, (TEK_WIN_HEIGHT - tp->sy) / SVG_DIV);
+					mbs += tmp;
+
+				} else if ( tp->ex == tp->next->sx && tp->ey == tp->next->sy ) {
+					//	tp->sx,sy			tp->ex,ey
+					//						tp->next->sx,sy		tp->next->ex,ey
+					tmp.Format("%g,%g ", tp->sx / SVG_DIV, (TEK_WIN_HEIGHT - tp->sy) / SVG_DIV);
+					mbs += tmp;
+					count = 1;
+
+					do {
+						tp = tp->next;
+						tmp.Format("%g,%g ", tp->sx / SVG_DIV, (TEK_WIN_HEIGHT - tp->sy) / SVG_DIV);
+						mbs += tmp;
+						if ( ++count > 8 ) {
+							mbs += "\n\t";
+							count = 0;
+						}
+					} while ( tp->next != NULL && tp->md == tp->next->md && tp->st == tp->next->st && tp->ex == tp->next->sx && tp->ey == tp->next->sy );
+
+					tmp.Format("%g,%g ", tp->ex / SVG_DIV, (TEK_WIN_HEIGHT - tp->ey) / SVG_DIV);
+					mbs += tmp;
+				}
+			}
+
+			if ( mbs.IsEmpty() ) {
+				fprintf(fp, "<line x1=\"%g\" y1=\"%g\" x2=\"%g\" y2=\"%g\" stroke=\"#%02X%02X%02X\" stroke-dasharray=\"%s\" stroke-width=\"%g\" />\n",
+					tp->sx / SVG_DIV, (TEK_WIN_HEIGHT - tp->sy) / SVG_DIV, tp->ex / SVG_DIV, (TEK_WIN_HEIGHT- tp->ey) / SVG_DIV,
+					GetRValue(ColorTab[(tp->st / 8) % 16]), GetGValue(ColorTab[(tp->st / 8) % 16]), GetBValue(ColorTab[(tp->st / 8) % 16]),
+					PenStyle[tp->st % 8],
+					PenWidthTab[tp->st / 128] / SVG_DIV);
+			} else {
+				fprintf(fp, "<polyline fill=\"none\" stroke=\"#%02X%02X%02X\" stroke-dasharray=\"%s\" stroke-miterlimit=\"%g\" points=\"%s\"/>\n",
+					GetRValue(ColorTab[(tp->st / 8) % 16]), GetGValue(ColorTab[(tp->st / 8) % 16]), GetBValue(ColorTab[(tp->st / 8) % 16]),
+					PenStyle[tp->st % 8],
+					PenWidthTab[tp->st / 128] / SVG_DIV,
+					mbs);
+			}
+			break;
+
+		case 1:	// Text
+			count = 0;
+			mbs.Empty();
+			xpos.Empty();
+			ypos.Format("%g", (TEK_WIN_HEIGHT - tp->sy) / SVG_DIV);
+
+			for ( ; ; ) {
+				if ( (tp->ch & 0xFFFF0000) != 0 )
+					str = (WCHAR)(tp->ch >> 16);
+				str = (WCHAR)(tp->ch & 0xFFFF);
+				iconv.StrToRemote(_T("UTF-8"), str, tmp);
+				mbs.Insert(0, tmp);
+
+				tmp.Format("%g%s", tp->sx / SVG_DIV, (xpos.IsEmpty() ? "" : " "));
+				xpos.Insert(0, tmp);
+
+				if ( tp->next != NULL && tp->md == tp->next->md && tp->st == tp->next->st && tp->ex == tp->next->ex &&
+					 tp->ex == 0   && tp->sy == tp->next->sy && (tp->sx - TekFontWidth[tp->st & 7]) == tp->next->sx )
+					tp = tp->next;
+				else
+					break;
+			}
+
+			tmp.Empty();
+			for ( LPCSTR p = mbs ; *p != '\0' ; p++ ) {
+				if ( (BYTE)*p <= ' ' || strchr("<>&'\"\x7F", *p) != NULL ) {
+					CStringA wrk;
+					wrk.Format("&#%d;", *p);
+					tmp += wrk;
+				} else
+					tmp += *p;
+			}
+
+			fprintf(fp, "<text x=\"%s\" y=\"%s\" dy=\"%g\" font-family=\"monospace\" font-size=\"%g\" fill=\"#%02X%02X%02X\" rotate=\"%d\">%s</text>\n",
+				xpos, ypos, TekFontSize[tp->st & 7] / -8.0 / SVG_DIV,
+				TekFontSize[tp->st & 7] / SVG_DIV,
+				GetRValue(ColorTab[(tp->st >> 3) & 0x0F]), GetGValue(ColorTab[(tp->st >> 3) & 0x0F]), GetBValue(ColorTab[(tp->st >> 3) & 0x0F]),
+				(360 - tp->ex) % 360,
+				tmp);
+			break;
+		}
+	}
+
+	fprintf(fp, "</svg>\n");
+
+	fclose(fp);
+	return TRUE;
+}
+
 void CTekWnd::OnTekClear()
 {
 	m_pTextRam->TekClear();

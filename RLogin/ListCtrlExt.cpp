@@ -12,6 +12,8 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+//#define	LISTCTRL_FORCUS_DRAW		1
+
 /////////////////////////////////////////////////////////////////////////////
 // CHeaderCtrlExt
 
@@ -905,10 +907,15 @@ BOOL CListCtrlExt::OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRE
 	if ( message == WM_NOTIFY && pNMLV->hdr.code == LVN_COLUMNCLICK && !m_bSort )
 		return FALSE;
 
-#ifdef	_M_IX86
+#ifdef	LISTCTRL_FORCUS_DRAW
+	if ( message == WM_NOTIFY && pNMLV->hdr.code == LVN_ITEMCHANGED )
+		Invalidate(FALSE);
+#else
+  #ifdef	_M_IX86
 	// VirtualBoxã‚ÌWindowsXP‚Å‚È‚º‚©Ä•`‰æ‚³‚ê‚È‚¢EEE
 	if ( message == WM_NOTIFY && pNMLV->hdr.code == LVN_ITEMCHANGED && pNMLV->iItem == 0 && CRLoginApp::IsWinVerCheck(_WIN32_WINNT_WINXP, VER_LESS_EQUAL) )
 		Invalidate(FALSE);
+  #endif
 #endif
 
 	return CListCtrl::OnChildNotify(message, wParam, lParam, pResult);
@@ -1095,8 +1102,13 @@ void CListCtrlExt::OnPaint()
 				}
 			}
 
+#ifdef	LISTCTRL_FORCUS_DRAW
+			if ( bSel && markItem == item )
+				dc.DrawFocusRect(srct);
+#else
 			if ( !bFourcs && bSel && markItem == item )
 				dc.DrawFocusRect(srct);
+#endif
 
 			flag &= ~002;
 		}

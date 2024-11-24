@@ -1044,6 +1044,8 @@ IMPLEMENT_DYNAMIC(CCodeFlagDlg, CTtyModeDlg)
 CCodeFlagDlg::CCodeFlagDlg()
 {
 	m_bUpdate = FALSE;
+	m_LastSelBlock = (-1);
+	m_DefFontName.Empty();
 }
 CCodeFlagDlg::~CCodeFlagDlg()
 {
@@ -1053,13 +1055,14 @@ BEGIN_MESSAGE_MAP(CCodeFlagDlg, CTtyModeDlg)
 	ON_COMMAND(ID_EDIT_NEW, &CCodeFlagDlg::OnEditNew)
 	ON_COMMAND(ID_EDIT_UPDATE, &CCodeFlagDlg::OnEditUpdate)
 	ON_COMMAND(ID_EDIT_DELETE, &CCodeFlagDlg::OnEditDelete)
+	ON_COMMAND(ID_EDIT_DUPS, &CCodeFlagDlg::OnEditDups)
 	ON_COMMAND(ID_EDIT_COPY, &CCodeFlagDlg::OnEditCopyAll)
 	ON_COMMAND(ID_EDIT_PASTE, &CCodeFlagDlg::OnEditPasteAll)
 	ON_COMMAND(ID_EDIT_DELALL, &CCodeFlagDlg::OnEditDelAll)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_NEW, &CCodeFlagDlg::OnUpdateEditEnable)
-	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, &CCodeFlagDlg::OnUpdateEditEnable)
-	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, &CCodeFlagDlg::OnUpdateEditDisable)
-	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, &CCodeFlagDlg::OnUpdateEditEnable)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, &CCodeFlagDlg::OnUpdateEditSelect)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, &CCodeFlagDlg::OnUpdateEditSelect)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, &CCodeFlagDlg::OnUpdateEditSelect)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, &CCodeFlagDlg::OnUpdateEditCopy)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_PASTE, &CCodeFlagDlg::OnUpdateEditPaste)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELALL, &CCodeFlagDlg::OnUpdateEditEnable)
@@ -1131,12 +1134,16 @@ void CCodeFlagDlg::UpdateMemo(int nItem)
 	for ( int i = 0 ; code <= high && i < 5 ; i++ ) {
 		if ( code >= 0x0020 )
 			CTextRam::UCS4ToWStr(code++, com);
+		else
+			com = _T('?');
 		tmp += com;
 	}
 	if ( code <= high ) {
 		tmp += _T("...");
 		if ( high >= 0x0020 )
 			CTextRam::UCS4ToWStr(high, com);
+		else
+			com = _T('?');
 		tmp += com;
 	}
 	m_List.SetItemText(nItem, 3, tmp);
@@ -1228,9 +1235,13 @@ void CCodeFlagDlg::OnEditNew()
 	dlg.m_pFontNode = &m_pSheet->m_pTextRam->m_FontTab[SET_UNICODE];
 	dlg.m_pFontTab  = &m_pSheet->m_pTextRam->m_FontTab;
 	dlg.m_pTextRam  = m_pSheet->m_pTextRam;
+	dlg.m_LastSelBlock = m_LastSelBlock;
+	dlg.m_DefFontName = m_DefFontName;
 
 	if ( dlg.DoModal() != IDOK || dlg.m_SelCodeSta == (-1) || dlg.m_SelCodeSta > dlg.m_SelCodeEnd )
 		return;
+
+	m_LastSelBlock = dlg.m_SelBlock;
 
 	tmp.Format(_T("U+%06X"), dlg.m_SelCodeSta);
 	m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, pos, tmp, 0, 0, 0, (-1));
@@ -1265,9 +1276,12 @@ void CCodeFlagDlg::OnEditUpdate()
 	dlg.m_pFontNode = &m_pSheet->m_pTextRam->m_FontTab[SET_UNICODE];
 	dlg.m_pFontTab  = &m_pSheet->m_pTextRam->m_FontTab;
 	dlg.m_pTextRam  = m_pSheet->m_pTextRam;
+	dlg.m_DefFontName = m_DefFontName;
 
 	if ( dlg.DoModal() != IDOK || dlg.m_SelCodeSta == (-1) || dlg.m_SelCodeSta > dlg.m_SelCodeEnd )
 		return;
+
+	m_LastSelBlock = dlg.m_SelBlock;
 
 	tmp.Format(_T("U+%06X"), dlg.m_SelCodeSta);
 	m_List.SetItemText(pos, 0, tmp);
@@ -1279,12 +1293,58 @@ void CCodeFlagDlg::OnEditUpdate()
 }
 void CCodeFlagDlg::OnEditDelete()
 {
+	int n;
+
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) != 0 )
+			m_List.DeleteItem(n--);
+	}
+}
+void CCodeFlagDlg::OnEditDups()
+{
 	int pos;
+	DWORD low = 0, high = 0;
+	CBlockDlg dlg;
+	CString tmp, csz;
+
+	ASSERT(m_pSheet != NULL);
+	ASSERT(m_pSheet->m_pTextRam != NULL);
 
 	if ( (pos = m_List.GetSelectionMark()) < 0 )
 		return;
 
-	m_List.DeleteItem(pos);
+	GetCode(pos, low, high);
+	csz = m_List.GetItemText(pos, 2);
+	m_List.SetItemState(pos, 0, LVIS_SELECTED);
+
+	dlg.m_bSelCodeMode = TRUE;
+	dlg.m_SelCodeSta = low;
+	dlg.m_SelCodeEnd = high;
+	dlg.m_CodeSet   = SET_UNICODE;
+	dlg.m_FontNum   = 0;
+	dlg.m_pFontNode = &m_pSheet->m_pTextRam->m_FontTab[SET_UNICODE];
+	dlg.m_pFontTab  = &m_pSheet->m_pTextRam->m_FontTab;
+	dlg.m_pTextRam  = m_pSheet->m_pTextRam;
+	dlg.m_DefFontName = m_DefFontName;
+
+	if ( dlg.DoModal() != IDOK || dlg.m_SelCodeSta == (-1) || dlg.m_SelCodeSta > dlg.m_SelCodeEnd )
+		return;
+
+	m_LastSelBlock = dlg.m_SelBlock;
+
+	pos++;
+
+	tmp.Format(_T("U+%06X"), dlg.m_SelCodeSta);
+	m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, pos, tmp, 0, 0, 0, (-1));
+
+	tmp.Format(_T("U+%06X"), dlg.m_SelCodeEnd);
+	m_List.SetItemText(pos, 1, tmp);
+
+	m_List.SetItemText(pos, 2, csz);
+
+	UpdateMemo(pos);
+
+	m_List.SetSelectMarkItem(pos);
 }
 void CCodeFlagDlg::OnEditCopyAll()
 {
@@ -1362,6 +1422,10 @@ void CCodeFlagDlg::OnUpdateEditEnable(CCmdUI *pCmdUI)
 void CCodeFlagDlg::OnUpdateEditDisable(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(FALSE);
+}
+void CCodeFlagDlg::OnUpdateEditSelect(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_List.GetSelectionMark() >= 0 ? TRUE : FALSE);
 }
 
 void CCodeFlagDlg::OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult)

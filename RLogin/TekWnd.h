@@ -16,6 +16,7 @@ public:
 	void GinMouse(int ch, int x, int y);
 	BOOL SaveDxf(LPCTSTR file);
 	BOOL SaveTek(LPCTSTR file);
+	BOOL SaveSvg(LPCTSTR file);
 
 	CTekWnd(class CTextRam *pTextRam, CWnd *pWnd);
 	virtual ~CTekWnd();

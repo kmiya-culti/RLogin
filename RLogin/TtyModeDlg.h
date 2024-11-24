@@ -145,6 +145,8 @@ public:
 	class COptDlg *m_pSheet;
 	BOOL m_bUpdate;
 	CCodeFlag m_CodeFlag;
+	int m_LastSelBlock;
+	CString m_DefFontName;
 
 public:
 	void GetCode(int nItem, DWORD &low, DWORD &high);
@@ -160,6 +162,7 @@ protected:
 	afx_msg void OnEditNew();
 	afx_msg void OnEditUpdate();
 	afx_msg void OnEditDelete();
+	afx_msg void OnEditDups();
 	afx_msg void OnEditCopyAll();
 	afx_msg void OnEditPasteAll();
 	afx_msg void OnEditDelAll();
@@ -167,5 +170,6 @@ protected:
 	afx_msg void OnUpdateEditPaste(CCmdUI *pCmdUI);
 	afx_msg void OnUpdateEditEnable(CCmdUI *pCmdUI);
 	afx_msg void OnUpdateEditDisable(CCmdUI *pCmdUI);
+	afx_msg void OnUpdateEditSelect(CCmdUI *pCmdUI);
 	afx_msg void OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult);
 };

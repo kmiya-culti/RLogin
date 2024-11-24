@@ -538,7 +538,6 @@ void CCharSetPage::OnUpdateFontName()
 {
 	UpdateData(TRUE);
 
-	m_DefFontName;
 	m_DefFontTab[m_AltFont] = m_DefFontName;
 	m_ListIndex = (-1);
 
@@ -693,6 +692,9 @@ void CCharSetPage::OnBnClickedCodeflag()
 {
 	CCodeFlagDlg dlg;
 
+	UpdateData(TRUE);
+
+	dlg.m_DefFontName = m_DefFontName;
 	dlg.m_CodeFlag = m_CodeFlag;
 	dlg.m_pSheet = m_pSheet;
 

@@ -447,6 +447,7 @@ void COptDlg::OnDoInit()
 	switch(dlg.m_InitType) {
 	case 0:		// Init Default Entry
 		CRLoginDoc::LoadDefOption(*m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
+		m_pTextRam->m_KanjiMode = m_pEntry->m_KanjiCode;
 		break;
 
 	case 1:		// Init Program Default
@@ -455,11 +456,13 @@ void COptDlg::OnDoInit()
 		m_pKeyTab->Init();
 		m_pKeyMac->Init();
 		m_pParamTab->Init();
+		m_pTextRam->m_KanjiMode = m_pEntry->m_KanjiCode;
 		break;
 
 	case 2:		// Copy Entry option
 		ASSERT(dlg.m_pInitEntry != NULL);
 		CRLoginDoc::LoadOption(*(dlg.m_pInitEntry), *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
+		m_pTextRam->m_KanjiMode = m_pEntry->m_KanjiCode = dlg.m_pInitEntry->m_KanjiCode;
 		break;
 	}
 

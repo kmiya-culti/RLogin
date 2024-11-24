@@ -10,9 +10,15 @@ TD {
 				
 				
 				
+				
+				
+				
 		background-color : #ffffff; font-size : 90%; 
 }
 .BOX{		
+				
+				
+				
 				
 				
 				
@@ -31,8 +37,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.29.9)</TD>
-            <TD width="20%" align="right">2024/10/25</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.0)</TD>
+            <TD width="20%" align="right">2024/11/25</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -443,6 +449,16 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2024/11/25</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.0/">2.30.0</A></TD>
+            <TD>UNICODEのブロック設定で実在しない文字を暗い表示に変更<BR>
+            UNICODEのブロックリストをucd-16.0.0のデータに更新<BR>
+            プロキシー設定のHTTP関連でMBS変換をACPから修正<BR>
+            画面保存・復帰でオプションを含まないように変更<BR>
+            Unicodeの括弧文字の範囲を拡大してデータ形式を変更<BR>
+            tekウィンドウのファイル保存にSVG形式を追加</TD>
+          </TR>
+          <TR>
             <TD align="center">2024/10/25</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.9/">2.29.9</A></TD>
             <TD>ファイルのドラッグアンドドロップSCPで異常終了するのを修正<BR>
@@ -483,15 +499,6 @@ TD {
             <TD>Visual Studio 2022のコード分析を実施し問題のある部分を修正<BR>
             SSHの複数チャンネルオープン時に接続を閉じると処理が重複するのを修正<BR>
             ファイルアップ・ダウンにauto/intel hex/s-record/tek hexを追加</TD>
-          </TR>
-          <TR>
-            <TD align="center">2024/06/21</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.5/">2.29.5</A></TD>
-            <TD>Assign Key Stringに対象キーでコードを入力する機能を追加<BR>
-            Editcコントロールで編集すると表示が重なるバグを修正<BR>
-            ProxyのSSLを別スレッドでポーリングするように変更<BR>
-            SSHポートフォワードのListen socketエラー処理を修正<BR>
-            openssl-3.3.1に更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -2003,7 +2010,7 @@ TD {
                       </TR>
                       <TR>
                         <TD>ish</TD>
-                        <TD>ishでエンコードされたファイル</TD>
+                        <TD><A href="https://ja.wikipedia.org/wiki/Ish">ish</A>でエンコードされたファイル</TD>
                       </TR>
                       <TR>
                         <TD>intel hex</TD>
@@ -5340,6 +5347,8 @@ function TekClock2() {
           <TR>
             <TD width="530" valign="top">文字セットがUTF-8の時にUnicode Block単位で使用するフォントセットを選択することができます。かなりややこしいですがUTF-8時に表示されない文字などを変更することができます<BR>
             <BR>
+            ※2.30.0から表示しているフォントに含まれない文字（WindowsのフォントLink機能で置換された文字）を暗く表示するようにしました<BR>
+            <BR>
             文字セットがUTF-8の場合、U+00-7FはGL、U+80-FFはGRに従って表示するフォントセットが選択されますがU+100-10FFFFはUNICODEフォントセットを使用します。このブロック選択で特定の範囲のUNICODEを指定のフォントセットの設定に置換して表示するようにすることができます。(Unicode
             Block Fontsetでは、U+00 Basic Latin,0x80 Latan-1 Supplementも便利上表示していますが結果的に置換されません）<BR>
             <BR>
@@ -6070,7 +6079,7 @@ function TekClock2() {
                 <TR>
                   <TD width="30%" align="center">ファイルに保存</TD>
                   <TD>1024x768のGIF/JPEG/PNG/BMPのビットマップに変換して保存します。(W2k用バイナリでは、選択できません）<BR>
-                  暫定的にベクトルイメージとしてDXF/TEKファイルに保存することもできます</TD>
+                  ベクトルイメージとしてDXF/TEK/SVGファイルに保存することもできます</TD>
                 </TR>
                 <TR>
                   <TD align="center">閉じる</TD>
