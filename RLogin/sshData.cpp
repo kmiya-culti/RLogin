@@ -124,6 +124,7 @@ static const struct _CipherTab {
 	{ SSH2_AEAD_CHACHAPOLY,		_T("AEAD_CHACHA20_POLY1305"),			(const EVP_CIPHER *(*)())EVP_chacha20_poly1305,	16,	32,	12, 16, 0	},	// RFC 8103
 
 	{ SSH2_CHACHA20_POLY1305,	_T("chacha20-poly1305@openssh.com"),	(const EVP_CIPHER *(*)())evp_chachapoly_256,	16,	64,	 0, 16, 0	},
+	{ SSH2_CHACHA20_POLY1305,	_T("chacha20-poly1305"),				(const EVP_CIPHER *(*)())evp_chachapoly_256,	16,	64,	 0, 16, 0	},	// draft-ietf-sshm-chacha20-poly1305-00
 
 	{ 0, NULL, NULL }
 };
@@ -711,6 +712,7 @@ static const struct _MacTab {
 	{ _T("AEAD_AES_256_CCM"),				(const EVP_MD *((*)()))NULL,			 0,	FALSE, -1, -1, FALSE, TRUE },	// RFC 5647
 
 	{ _T("chacha20-poly1305@openssh.com"),	(const EVP_MD *((*)()))NULL,			 0,	FALSE, -1, -1, FALSE, TRUE },
+	{ _T("chacha20-poly1305"),				(const EVP_MD *((*)()))NULL,			 0,	FALSE, -1, -1, FALSE, TRUE },	// draft-ietf-sshm-chacha20-poly1305-00
 	{ _T("AEAD_CHACHA20_POLY1305"),			(const EVP_MD *((*)()))NULL,			 0,	FALSE, -1, -1, FALSE, TRUE },
 
 	{ _T("none"),							(const EVP_MD *((*)()))NULL,			 0,	FALSE, -1, -1, FALSE, FALSE },	// RFC 4253

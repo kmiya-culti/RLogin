@@ -316,6 +316,7 @@
     <ClCompile Include="MidiData.cpp" />
     <ClCompile Include="ml_kem.cpp" />
     <ClCompile Include="ml_kem_1024.cpp" />
+    <ClCompile Include="ml_kem_512.cpp" />
     <ClCompile Include="ModKeyPage.cpp" />
     <ClCompile Include="MousePage.cpp" />
     <ClCompile Include="MsgChkDlg.cpp" />

@@ -2120,9 +2120,12 @@ void Cssh::ChannelPolling(int id)
 	if ( (pChan->m_Status & (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE)) != (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE) )
 		return;
 
-//	TRACE("WindowAdjust #%d %d - %d\n", id, pChan->m_LocalComs, m_pFifoMid->GetDataSize(IdToFdOut(id)));
+	if ( (len = m_pFifoMid->GetDataSize(IdToFdOut(id))) < 0 )	// EOF = (-1)
+		return;
 
-	if ( (len = pChan->m_LocalComs - m_pFifoMid->GetDataSize(IdToFdOut(id))) >= (pChan->m_LocalWind * 3 / 4) ) {
+//	TRACE("WindowAdjust #%d %d - %d\n", id, pChan->m_LocalComs, len);
+
+	if ( (len = pChan->m_LocalComs - len) >= (pChan->m_LocalWind * 3 / 4) ) {
 		tmp.Clear();
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_WINDOW_ADJUST);
 		tmp.Put32Bit(pChan->m_RemoteID);
@@ -2935,6 +2938,30 @@ ENDOF:
 	if ( ctx != NULL )
 		EVP_PKEY_CTX_free(ctx);
 }
+void Cssh::SendMsgKexMlKemInit()
+{
+	CBuffer tmp(-1);
+	size_t len = 0;
+
+	m_HybridClientPubkey.Clear();
+	m_HybridClientSeckey.Clear();
+
+	switch(m_DhMode) {
+	case DHMODE_MLKEM512H256:
+		mlkem512_keypair(m_HybridClientPubkey.PutSpc(mlkem512_PUBLICKEYBYTES), m_HybridClientSeckey.PutSpc(mlkem512_SECRETKEYBYTES));
+		break;
+	case DHMODE_MLKEM768H256:
+		mlkem768_keypair(m_HybridClientPubkey.PutSpc(mlkem768_PUBLICKEYBYTES), m_HybridClientSeckey.PutSpc(mlkem768_SECRETKEYBYTES));
+		break;
+	case DHMODE_MLKEM1024H384:
+		mlkem1024_keypair(m_HybridClientPubkey.PutSpc(mlkem1024_PUBLICKEYBYTES), m_HybridClientSeckey.PutSpc(mlkem1024_SECRETKEYBYTES));
+		break;
+	}
+
+	tmp.Put8Bit(SSH2_MSG_KEX_ECDH_INIT);
+	tmp.PutBuf(m_HybridClientPubkey.GetPtr(), m_HybridClientPubkey.GetSize());
+	SendPacket2(&tmp);
+}
 void Cssh::SendMsgNewKeys()
 {
 	CBuffer tmp;
@@ -3726,6 +3753,9 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_MLKEM768X25519,_T("mlkem768x25519-sha256")						},	// draft-kampanakis-curdle-ssh-pq-ke-04
 		{ DHMODE_MLKEM768N256,	_T("mlkem768nistp256-sha256")					},	// draft-kampanakis-curdle-ssh-pq-ke-04
 		{ DHMODE_MLKEM1024N384,	_T("mlkem1024nistp384-sha384")					},	// draft-kampanakis-curdle-ssh-pq-ke-04
+		{ DHMODE_MLKEM512H256,	_T("ml-kem-512-sha256")							},	// draft-harrison-mlkem-ssh-00
+		{ DHMODE_MLKEM768H256,	_T("ml-kem-768-sha256")							},	// draft-harrison-mlkem-ssh-00
+		{ DHMODE_MLKEM1024H384,	_T("ml-kem-1024-sha384")						},	// draft-harrison-mlkem-ssh-00
 		{ 0,					NULL											},
 	};
 
@@ -4289,6 +4319,58 @@ ENDRET:
 		BN_clear_free(shared_secret);
 
 	return ret;
+}
+int Cssh::SSH2MsgKexMlKemReply(CBuffer *bp)
+{
+	CBuffer tmp(-1), sign(-1), addb(-1), skey(-1);
+	CBuffer server_public(-1), shared_key(-1);
+	const EVP_MD *evp_md = EVP_sha256();
+
+	bp->GetBuf(&tmp);
+	addb.PutBuf(tmp.GetPtr(), tmp.GetSize());
+
+	if ( !m_HostKey.GetBlob(&tmp) )
+		return (-1);
+
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, this) )
+		return (-1);
+
+	bp->GetBuf(&server_public);
+	bp->GetBuf(&sign);
+
+	switch(m_DhMode) {
+	case DHMODE_MLKEM512H256:
+		evp_md = EVP_sha256();
+		if ( server_public.GetSize() < mlkem512_CIPHERTEXTBYTES )
+			return (-1);
+		if ( mlkem512_dec(shared_key.PutSpc(mlkem512_BYTES), server_public.GetPtr(), m_HybridClientSeckey.GetPtr()) != 0 )
+			return (-1);
+		break;
+	case DHMODE_MLKEM768H256:
+		evp_md = EVP_sha256();
+		if ( server_public.GetSize() < mlkem768_CIPHERTEXTBYTES )
+			return (-1);
+		if ( mlkem768_dec(shared_key.PutSpc(mlkem768_BYTES), server_public.GetPtr(), m_HybridClientSeckey.GetPtr()) != 0 )
+			return (-1);
+		break;
+	case DHMODE_MLKEM1024H384:
+		evp_md = EVP_sha384();
+		if ( server_public.GetSize() < mlkem1024_CIPHERTEXTBYTES )
+			return (-1);
+		if ( mlkem1024_dec(shared_key.PutSpc(mlkem1024_BYTES), server_public.GetPtr(), m_HybridClientSeckey.GetPtr()) != 0 )
+			return (-1);
+		break;
+	}
+
+	addb.PutBuf(m_HybridClientPubkey.GetPtr(), m_HybridClientPubkey.GetSize());
+	addb.PutBuf(server_public.GetPtr(), server_public.GetSize());
+
+	skey.PutBuf(shared_key.GetPtr(), shared_key.GetSize());
+
+	if ( HostVerifyKey(&sign, &addb, &skey, evp_md) )
+		return (-1);
+
+	return 0;
 }
 int Cssh::SSH2MsgKexRsaPubkey(CBuffer *bp)
 {
@@ -5378,6 +5460,11 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		case DHMODE_MLKEM768X25519:
 			SendMsgKexCurveInit();
 			break;
+		case DHMODE_MLKEM512H256:
+		case DHMODE_MLKEM768H256:
+		case DHMODE_MLKEM1024H384:
+			SendMsgKexMlKemInit();
+			break;
 		default:
 			goto DISCONNECT;
 		}
@@ -5423,6 +5510,15 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		case DHMODE_SNT761X25519:
 		case DHMODE_MLKEM768X25519:
 			if ( SSH2MsgKexCurveReply(bp) )
+				goto DISCONNECT;
+			m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
+			m_SSH2Status |= SSH2_STAT_HAVEKEYS;
+			SendMsgNewKeys();
+			break;
+		case DHMODE_MLKEM512H256:
+		case DHMODE_MLKEM768H256:
+		case DHMODE_MLKEM1024H384:
+			if ( SSH2MsgKexMlKemReply(bp) )
 				goto DISCONNECT;
 			m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
 			m_SSH2Status |= SSH2_STAT_HAVEKEYS;

@@ -297,6 +297,7 @@ void CExtSocket::SetRecvSyncMode(BOOL mode)
 			return;
 
 		m_pFifoSync = new CFifoSync(m_pDocument, this);
+		m_pFifoSync->m_nBufSize = FIFO_BUFSIZE * 2;
 		m_pFifoSync->TunnelReadWrite(FIFO_EXTIN);
 
 		CFifoBase::Link(m_pFifoSync, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);

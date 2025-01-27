@@ -739,6 +739,9 @@ public:
 #define	DHMODE_MLKEM768N256				17
 #define DHMODE_MLKEM1024N384			18
 #define	DHMODE_MLKEM768X25519			19
+#define	DHMODE_MLKEM512H256				20
+#define DHMODE_MLKEM768H256				21
+#define	DHMODE_MLKEM1024H384			22
 
 #define	AUTH_MODE_NONE					0
 #define	AUTH_MODE_PUBLICKEY				1
@@ -765,6 +768,11 @@ public:
 #define sntrup761_SECRETKEYBYTES		1763
 #define sntrup761_CIPHERTEXTBYTES		1039
 #define sntrup761_BYTES					32
+
+#define mlkem512_PUBLICKEYBYTES			800
+#define mlkem512_SECRETKEYBYTES			1632
+#define mlkem512_CIPHERTEXTBYTES		768
+#define mlkem512_BYTES					32
 
 #define mlkem768_PUBLICKEYBYTES			1184
 #define mlkem768_SECRETKEYBYTES			2400
@@ -1029,6 +1037,7 @@ public:
 	void SendMsgKexDhGexRequest();
 	int SendMsgKexEcdhInit();
 	void SendMsgKexCurveInit();
+	void SendMsgKexMlKemInit();
 	void SendMsgNewKeys();
 
 	void SendMsgServiceRequest(LPCSTR str);
@@ -1059,6 +1068,7 @@ public:
 	int SSH2MsgKexDhGexReply(CBuffer *bp);
 	int SSH2MsgKexEcdhReply(CBuffer *bp);
 	int SSH2MsgKexCurveReply(CBuffer *bp);
+	int SSH2MsgKexMlKemReply(CBuffer *bp);
 	int SSH2MsgKexRsaPubkey(CBuffer *bp);
 	int SSH2MsgKexRsaDone(CBuffer *bp);
 
@@ -1189,3 +1199,7 @@ int mlkem768_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 int mlkem1024_keypair(uint8_t *pk, uint8_t *sk);
 int mlkem1024_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
 int mlkem1024_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
+// ml_kem_512.cpp
+int mlkem512_keypair(uint8_t *pk, uint8_t *sk);
+int mlkem512_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
+int mlkem512_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);

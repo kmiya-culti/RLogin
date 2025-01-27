@@ -273,8 +273,10 @@ RECHK:
 		len = 128;
 	else if ( ch == STX )
 		len = 1024;
-	else
+	else {
+		SendEcho(ch);
 		goto RECHK;
+	}
 
 	if ( (bk = Bufferd_Receive(10)) < 0 )
 		return bk;

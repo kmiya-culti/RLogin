@@ -361,15 +361,18 @@ public:
 	BOOL m_bNoSort;
 	BOOL m_bString;
 	BOOL m_bEmpty;
+	BOOL m_bChild;
+	BOOL m_bTabChk;
 	int m_Value;
 	CString m_nIndex;
 	CString m_String;
-	CArray<CStringIndex, CStringIndex &> m_Array;
 	CStringIndex *m_pOwner;
+	CArray<CStringIndex, CStringIndex &> m_Array;
 	CDWordArray m_TabData;
 
 	CStringIndex();
 	CStringIndex(BOOL bNoCase, BOOL bNoSort);
+	CStringIndex(CStringIndex &data);
 	~CStringIndex();
 
 	const CStringIndex & operator = (CStringIndex &data);
@@ -385,12 +388,12 @@ public:
 	inline int GetSize() { return (int)m_Array.GetSize(); }
 	inline void SetSize(int nIndex) { m_Array.SetSize(nIndex); }
 	inline LPCTSTR GetIndex() { return m_nIndex; }
-	inline void RemoveAll() { m_Array.RemoveAll(); m_bEmpty = TRUE; }
-	inline void RemoveAt(int index) { m_Array.RemoveAt(index); }
-	inline int Add(LPCTSTR str) { CStringIndex tmp(m_bNoCase, m_bNoSort); tmp = str; return (int)m_Array.Add(tmp); }
-	inline int Add(int value) { CStringIndex tmp(m_bNoCase, m_bNoSort); tmp = value; return (int)m_Array.Add(tmp); }
-	inline int Add(CStringIndex &data) { int n = (int)m_Array.Add(data); return n; }
-	inline CStringIndex & Add() { CStringIndex tmp(m_bNoCase, m_bNoSort); int n = (int)m_Array.Add(tmp); return m_Array[n]; }
+	inline void RemoveAll() { m_Array.RemoveAll(); m_bEmpty = TRUE; m_bTabChk = FALSE; }
+	inline void RemoveAt(int index) { m_Array.RemoveAt(index); m_bTabChk = FALSE; }
+	inline int Add(LPCTSTR str) { CStringIndex tmp(m_bNoCase, m_bNoSort); tmp = str; m_bTabChk = FALSE; return (int)m_Array.Add(tmp); }
+	inline int Add(int value) { CStringIndex tmp(m_bNoCase, m_bNoSort); tmp = value; m_bTabChk = FALSE; return (int)m_Array.Add(tmp); }
+	inline int Add(CStringIndex &data) { int n = (int)m_Array.Add(data); m_bTabChk = FALSE; return n; }
+	inline CStringIndex & Add() { CStringIndex tmp(m_bNoCase, m_bNoSort); int n = (int)m_Array.Add(tmp); m_bTabChk = FALSE; return m_Array[n]; }
 	inline void SetNoCase(BOOL b) { m_bNoCase = b; }
 	inline void SetNoSort(BOOL b) { m_bNoSort = b; }
 

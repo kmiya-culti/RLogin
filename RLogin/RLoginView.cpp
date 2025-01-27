@@ -481,7 +481,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 			pOldBitMap = (CBitmap *)TempDC.SelectObject(&m_TekBitmap);
 
 			TempDC.FillSolidRect(frame, RGB(0, 0, 0));
-			pDoc->m_TextRam.TekDraw(&TempDC, frame);
+			pDoc->m_TextRam.TekDraw(&TempDC, frame, TRUE);
 
 		} else
 			pOldBitMap = (CBitmap *)TempDC.SelectObject(&m_TekBitmap);

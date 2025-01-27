@@ -1557,6 +1557,16 @@ static COLORREF RGBXYZ(double X, double Y, double Z)
 			 0.06351179790497788 * X - 0.20020501000496480 * Y + 0.81070942031648220 * Z);
 }
 
+BOOL CTextRam::ParseColorName(LPCTSTR name, COLORREF &rgb)
+{
+	int n;
+
+	if ( BinaryFind((void *)name, (void *)x11coltab, sizeof(struct _x11coltab), X11COLTABMAX, x11ColCmp, &n) ) {
+		rgb = x11coltab[n].code;
+		return TRUE;
+	}
+	return FALSE;
+}
 void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, DWORD ch)
 {
 	int n, r, g, b;

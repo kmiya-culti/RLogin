@@ -1926,7 +1926,7 @@ CTextRam::CTextRam()
 
 	m_MousePos.x = m_MousePos.y = 0;
 
-	m_Tek_Top = m_Tek_Free = NULL;
+	m_Tek_Top = m_Tek_Btm = m_Tek_Free = NULL;
 	m_pTekWnd = NULL;
 	m_pImageWnd = NULL;
 	m_bSixelColInit = FALSE;

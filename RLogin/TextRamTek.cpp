@@ -26,7 +26,7 @@ static char THIS_FILE[]=__FILE__;
 #define	TEK_FONT_WIDTH		TekFonts[m_Tek_Font & 7][0]
 #define	TEK_FONT_HEIGHT		TekFonts[m_Tek_Font & 7][1]
 
-static const int TekFonts[8][2] = {
+const int TekFonts[8][2] = {
 //		Width	Height
 	{	55,		88,		},   	// 74 cols 35 lines
 	{	51,		81,		},   	// 81 cols 38 lines
@@ -38,6 +38,12 @@ static const int TekFonts[8][2] = {
 	{	41,		64,		},		// 100 cols 48 lines
 	{	37,		59,		},		// 110 cols 52 lines
 };
+const DWORD TekPenExtTab[8][4]  = {	{ 8, 0, 8, 0 },	{ 1, 1, 1, 1 },	{ 1, 1, 3, 1 },	{ 2, 1, 2, 1 }, { 2, 2, 2, 2 },	{ 3, 1, 2, 1 },	{ 4, 2, 1, 2 },	{ 3, 2, 3, 2 }	};
+const int TekPenTypeTab[]       = { PS_SOLID,		PS_DOT,			PS_USERSTYLE,	PS_USERSTYLE,	PS_DASH,		PS_DASHDOTDOT,	PS_DASHDOT,		PS_USERSTYLE };
+const int TekPenWidthTab[]      = { 1, 2  };
+const COLORREF TekColorTab[]	= {	RGB(128, 128, 128), RGB(  0,   0,   0), RGB(192, 0, 0), RGB(0, 192, 0), RGB(0, 0, 192), RGB(0, 192, 192), RGB(192, 0, 192), RGB(192, 192, 0),
+									RGB(192, 192, 192), RGB( 64,  64,  64), RGB( 96, 0, 0), RGB(0,  96, 0), RGB(0, 0,  96), RGB(0,  96,  96), RGB( 96, 0,  96), RGB( 96,  96, 0) };
+
 #define	SINDIV	8192
 static const int SinTab[] = {
 	8192,	8191,	8187,	8181,	8172,	8161,	8147,	8131,	8112,	8091,
@@ -159,8 +165,9 @@ void CTextRam::TekForcus(BOOL fg)
 	}
 	TekFlush();
 }
-void CTextRam::TekDraw(CDC *pDC, CRect &frame)
+void CTextRam::TekDraw(CDC *pDC, CRect &frame, BOOL bOnView)
 {
+	int ox = 0, oy = 0;
 	int mv, dv;
 	TEKNODE *tp;
 	POINT po[2];
@@ -173,23 +180,41 @@ void CTextRam::TekDraw(CDC *pDC, CRect &frame)
 	LOGBRUSH LogBrush;
 	CFont font, *pOldFont;
 	CPen pen, *pOldPen;
-	static const DWORD PenExtTab[8][4]  = {	{ 8, 0, 8, 0 },	{ 1, 1, 1, 1 },	{ 1, 1, 3, 1 },	{ 2, 1, 2, 1 }, { 2, 2, 2, 2 },	{ 3, 1, 2, 1 },	{ 4, 2, 1, 2 },	{ 3, 2, 3, 2 }	};
-	static const int PenTypeTab[]       = { PS_SOLID,		PS_DOT,			PS_USERSTYLE,	PS_USERSTYLE,	PS_DASH,		PS_DASHDOTDOT,	PS_DASHDOT,		PS_USERSTYLE };
-	static const int PenWidthTab[]      = { 1, 2  };
-	static const COLORREF ColorTab[] = {	RGB(128, 128, 128), RGB(  0,   0,   0), RGB(192, 0, 0), RGB(0, 192, 0), RGB(0, 0, 192), RGB(0, 192, 192), RGB(192, 0, 192), RGB(192, 192, 0),
-											RGB(192, 192, 192), RGB( 64,  64,  64), RGB( 96, 0, 0), RGB(0,  96, 0), RGB(0, 0,  96), RGB(0,  96,  96), RGB( 96, 0,  96), RGB( 96,  96, 0) };
+	BOOL bFullScreen = FALSE;
 
 	memset(&LogBrush, 0, sizeof(LOGBRUSH));
 
-	mv = frame.Width();
-	dv = TEK_WIN_WIDTH;
+	if ( !bOnView && IsOptEnable(TO_RLGRPIND) )
+		bFullScreen = TRUE;
 
-	if ( IsOptEnable(TO_RLTEKINWND) && (frame.Height() * dv / mv) > TEK_WIN_HEIGHT ) {
-		mv = frame.Height();
-		dv = TEK_WIN_HEIGHT;
+	if ( bFullScreen ) {
+		if ( (frame.Width() * TEK_WIN_HEIGHT / TEK_WIN_WIDTH) < frame.Height() ) {
+			mv = frame.Width();
+			dv = TEK_WIN_WIDTH;
+			oy = TEK_WIN_HEIGHT * mv / dv;
+			oy = (frame.Height() - oy) / 2;
+		} else {
+			mv = frame.Height();
+			dv = TEK_WIN_HEIGHT;
+			ox = TEK_WIN_WIDTH * mv / dv;
+			ox = (frame.Width() - ox) / 2;
+		}
+
+	} else {
+		if ( (frame.Width() * TEK_WIN_HEIGHT / TEK_WIN_WIDTH) < frame.Height() ) {
+			mv = frame.Height();
+			dv = TEK_WIN_HEIGHT;
+			ox = TEK_WIN_WIDTH * mv /dv;
+			ox = (frame.Width() - ox) / 2;
+		} else {
+			mv = frame.Width();
+			dv = TEK_WIN_WIDTH;
+			oy = TEK_WIN_HEIGHT * mv /dv;
+			oy = (frame.Height() - oy) / 2;
+		}
 	}
 
-	pen.CreatePen(PenTypeTab[np], PenWidthTab[np], RGB(0, 0, 0));
+	pen.CreatePen(TekPenTypeTab[np], TekPenWidthTab[np], RGB(0, 0, 0));
 	font.CreateFont(0 - TekFonts[nf & 7][1] * mv / dv, 0, 0, 0, FW_DONTCARE, 0, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
 
 	pOldPen  = pDC->SelectObject(&pen);
@@ -197,7 +222,7 @@ void CTextRam::TekDraw(CDC *pDC, CRect &frame)
 	OldMode  = pDC->SetBkMode(TRANSPARENT);
 	OldAlign = pDC->SetTextAlign(TA_LEFT | TA_BOTTOM);
 
-	pDC->SetTextColor(ColorTab[(nf >> 3) & 0x0F]);
+	pDC->SetTextColor(TekColorTab[(nf >> 3) & 0x0F]);
 //	pDC->FillSolidRect(frame, RGB(255, 255, 255));
 
 	for ( tp = m_Tek_Top ; tp != NULL ; tp = tp->next ) {
@@ -206,18 +231,18 @@ void CTextRam::TekDraw(CDC *pDC, CRect &frame)
 			if ( np != tp->st ) {
 				np = tp->st;
 				pen.DeleteObject();
-				if ( PenTypeTab[np % 8] == PS_USERSTYLE ) {
-					LogBrush.lbColor = ColorTab[(np / 8) % 16];
+				if ( TekPenTypeTab[np % 8] == PS_USERSTYLE ) {
+					LogBrush.lbColor = TekColorTab[(np / 8) % 16];
 					LogBrush.lbStyle = BS_SOLID;
-					pen.CreatePen(PS_USERSTYLE, PenWidthTab[np / 128], &LogBrush, 4, PenExtTab[np % 8]);
+					pen.CreatePen(PS_USERSTYLE, TekPenWidthTab[np / 128], &LogBrush, 4, TekPenExtTab[np % 8]);
 				} else
-					pen.CreatePen(PenTypeTab[np % 8], PenWidthTab[np / 128], ColorTab[(np / 8) % 16]);
+					pen.CreatePen(TekPenTypeTab[np % 8], TekPenWidthTab[np / 128], TekColorTab[(np / 8) % 16]);
 				pDC->SelectObject(&pen);
 			}
-			po[0].x = frame.left   + tp->sx * mv / dv;
-			po[0].y = frame.bottom - tp->sy * mv / dv;
-			po[1].x = frame.left   + tp->ex * mv / dv;
-			po[1].y = frame.bottom - tp->ey * mv / dv;
+			po[0].x = frame.left   + tp->sx * mv / dv + ox;
+			po[0].y = frame.bottom - tp->sy * mv / dv - oy;
+			po[1].x = frame.left   + tp->ex * mv / dv + ox;
+			po[1].y = frame.bottom - tp->ey * mv / dv - oy;
 			pDC->Polyline(po, 2);
 			break;
 		case 1:	// Text
@@ -228,13 +253,13 @@ void CTextRam::TekDraw(CDC *pDC, CRect &frame)
 				font.CreateFont(0 - TekFonts[nf & 7][1] * mv / dv, 0, na * 10, 0, FW_DONTCARE, 0, 0, 0, DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
 				pDC->SelectObject(&font);
 			}
-			pDC->SetTextColor(ColorTab[(tp->st >> 3) & 0x0F]);
+			pDC->SetTextColor(TekColorTab[(tp->st >> 3) & 0x0F]);
 			if ( (tp->ch & 0xFFFF0000) != 0 )
 				tmp = (WCHAR)(tp->ch >> 16);
 			tmp = (WCHAR)(tp->ch & 0xFFFF);
 			::ExtTextOutW(pDC->m_hDC,
-				frame.left   + tp->sx * mv / dv,
-				frame.bottom - tp->sy * mv / dv,
+				frame.left   + tp->sx * mv / dv + ox,
+				frame.bottom - tp->sy * mv / dv - oy,
 				0, NULL, tmp, tmp.GetLength(), NULL);
 			break;
 		}
@@ -257,15 +282,50 @@ void CTextRam::TekFlush()
 
 //	TRACE("Tek Flush\n");
 }
-void CTextRam::TekClear(BOOL bFlush)
+CTextRam::TEKNODE *CTextRam::TekAlloc()
 {
 	TEKNODE *tp;
 
-	while ( (tp = m_Tek_Top) != NULL ) {
-		m_Tek_Top = tp->next;
-		tp->next = m_Tek_Free;
-		m_Tek_Free = tp;
+	if ( (tp = m_Tek_Free) != NULL )
+		m_Tek_Free = tp->next;
+	else
+		tp = new TEKNODE;
+
+	return tp;
+}
+void CTextRam::TekFree(TEKNODE *tp)
+{
+	tp->next = m_Tek_Free;
+	m_Tek_Free = tp;
+}
+void CTextRam::TekAdd(TEKNODE *tp)
+{
+	if ( m_Tek_Top == NULL || m_Tek_Btm == NULL ) {
+		tp->next = NULL;
+		m_Tek_Top = m_Tek_Btm = tp;
+	} else {
+		tp->next = NULL;
+		m_Tek_Btm->next = tp;
+		m_Tek_Btm = tp;
 	}
+}
+void CTextRam::TekClear(BOOL bFlush)
+{
+	int n;
+	TEKNODE *tp;
+
+	tp = m_Tek_Free;
+	for ( n = 0 ; tp != NULL ; n++ )
+		tp = tp->next;
+
+	for ( ; (tp = m_Tek_Top) != NULL ; n++ ) {
+		m_Tek_Top = tp->next;
+		if ( n < 100 )
+			TekFree(tp);
+		else
+			delete tp;
+	}
+	m_Tek_Btm = NULL;
 
 	if ( m_Tek_Ver == 4014 ) {
 		m_Tek_Font = 0x08;
@@ -283,12 +343,7 @@ void CTextRam::TekClear(BOOL bFlush)
 }
 void CTextRam::TekLine(int st, int sx, int sy, int ex, int ey)
 {
-	TEKNODE *tp;
-
-	if ( (tp = m_Tek_Free) != NULL )
-		m_Tek_Free = tp->next;
-	else
-		tp = new TEKNODE;
+	TEKNODE *tp = TekAlloc();
 
 	tp->md = 0;
 	tp->st = st;
@@ -297,8 +352,7 @@ void CTextRam::TekLine(int st, int sx, int sy, int ex, int ey)
 	tp->ex = ex;
 	tp->ey = ey;
 
-	tp->next = m_Tek_Top;
-	m_Tek_Top = tp;
+	TekAdd(tp);
 
 	if ( m_Tek_Flush )
 		TekFlush();
@@ -307,12 +361,7 @@ void CTextRam::TekLine(int st, int sx, int sy, int ex, int ey)
 }
 void CTextRam::TekText(int st, int sx, int sy, DWORD ch)
 {
-	TEKNODE *tp;
-
-	if ( (tp = m_Tek_Free) != NULL )
-		m_Tek_Free = tp->next;
-	else
-		tp = new TEKNODE;
+	TEKNODE *tp = TekAlloc();
 
 	tp->md = 1;
 	tp->st = st;
@@ -328,8 +377,7 @@ void CTextRam::TekText(int st, int sx, int sy, DWORD ch)
 	tp->ey = 0;
 	tp->ch = ch;
 
-	tp->next = m_Tek_Top;
-	m_Tek_Top = tp;
+	TekAdd(tp);
 
 	if ( m_Tek_Flush )
 		TekFlush();

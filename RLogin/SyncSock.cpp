@@ -312,10 +312,10 @@ void CSyncSock::DebugDump(LPBYTE buf, int len)
 {
 	CBuffer *pBuffer;
 
-	if ( m_pView != NULL ) {
+	if ( m_pViewWnd != NULL ) {
 		pBuffer = new CBuffer(len);
 		pBuffer->Apend(buf, len);
-		m_pView->PostMessage(WM_LOGWRITE, (WPARAM)1, (LPARAM)pBuffer);
+		m_pViewWnd->PostMessage(WM_LOGWRITE, (WPARAM)1, (LPARAM)pBuffer);
 	}
 }
 void CSyncSock::DebugMsg(LPCSTR fmt, ...)
@@ -328,9 +328,9 @@ void CSyncSock::DebugMsg(LPCSTR fmt, ...)
 	tmp.FormatV(fmt, arg);
 	va_end(arg);
 
-	if ( m_pView != NULL ) {
+	if ( m_pViewWnd != NULL ) {
 		pBuffer = new CBuffer((LPCSTR)tmp);
-		m_pView->PostMessage(WM_LOGWRITE, (WPARAM)0, (LPARAM)pBuffer);
+		m_pViewWnd->PostMessage(WM_LOGWRITE, (WPARAM)0, (LPARAM)pBuffer);
 	}
 }
 #endif
@@ -371,7 +371,7 @@ void CSyncSock::Bufferd_Clear()
 int CSyncSock::Bufferd_Receive(int sec, int msec)
 {
 	int n;
-	BYTE tmp[2048];
+	BYTE tmp[4096];
 
 	ASSERT(m_pDoc != NULL && m_pDoc->m_pSock != NULL);
 
@@ -379,12 +379,18 @@ int CSyncSock::Bufferd_Receive(int sec, int msec)
 		return (-2);
 
 	if ( m_RecvBuf.GetSize() <= 0 ) {
-		if ( (n = m_pDoc->m_pSock->SyncReceive(tmp, 2048, sec * 1000 + msec, &m_AbortFlag)) <= 0 )
+		if ( (n = m_pDoc->m_pSock->SyncReceive(tmp, 4096, sec * 1000 + msec, &m_AbortFlag)) <= 0 )
 			return (-2);	// TIME OUT
-		m_RecvBuf.Apend(tmp, n);
 
+		do {
+			m_RecvBuf.Apend(tmp, n);
+		} while ( (n = m_pDoc->m_pSock->SyncReceive(tmp, 4096, 0, &m_AbortFlag)) > 0 );
+
+#ifdef	USE_DEBUGLOG
+		n = m_RecvBuf.GetSize();
 		DebugMsg("Bufferd_Receive %d", n);
 		DebugDump(tmp, n < 16 ? n : 16);
+#endif
 	}
 
 	return m_RecvBuf.Get8Bit();

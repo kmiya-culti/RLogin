@@ -54,6 +54,7 @@ public:
 
 public:
 	BOOL m_bDarkMode;
+	CSize m_NowDpi;
 
 public:
 	void DrawSystemBar();

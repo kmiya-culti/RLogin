@@ -644,6 +644,9 @@ BEGIN
     END
     POPUP "編集(&E)"
     BEGIN
+        MENUITEM "コピー(&C)",                     ID_EDIT_COPY
+        MENUITEM "貼り付け(&P)",                    ID_EDIT_PASTE
+        MENUITEM SEPARATOR
         MENUITEM "画面をクリア(&C)",                  IDM_TEK_CLEAR
         MENUITEM "Tek/VTモード切換(&M)",             IDM_TEK_MODE
     END
@@ -734,8 +737,8 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,210,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.30.0 (2024/11/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 1998-2024 Culti",IDC_STATIC,44,17,189,8
+    LTEXT           "RLogin (%s) Version 2.30.1 (2025/01/27)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1998-2025 Culti",IDC_STATIC,44,17,189,8
     LTEXT           "OpenSSL 3.4.0 22 Oct 2024",IDC_STATIC,44,50,189,8
     LTEXT           "Copyright (c) 1998-2024 The OpenSSL Project",IDC_STATIC,44,60,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
@@ -2314,8 +2317,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,30,0,0
- PRODUCTVERSION 2,30,0,0
+ FILEVERSION 2,30,1,0
+ PRODUCTVERSION 2,30,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2332,12 +2335,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.30.0.0"
+            VALUE "FileVersion", "2.30.1.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.30.0.0"
+            VALUE "ProductVersion", "2.30.1.0"
         END
     END
     BLOCK "VarFileInfo"

@@ -16,6 +16,9 @@ IMPLEMENT_DYNAMIC(CFrameWndExt, CFrameWnd)
 CFrameWndExt::CFrameWndExt()
 {
 	m_bDarkMode = FALSE;
+
+	m_NowDpi.cx = SYSTEM_DPI_X;
+	m_NowDpi.cy = SYSTEM_DPI_Y;
 }
 CFrameWndExt::~CFrameWndExt()
 {
@@ -49,6 +52,9 @@ int CFrameWndExt::OnCreate(LPCREATESTRUCT lpCreateStruct)
 LRESULT CFrameWndExt::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 {
 	MoveWindow((RECT *)lParam, TRUE);
+
+	m_NowDpi.cx = LOWORD(wParam);
+	m_NowDpi.cy = HIWORD(wParam);
 
 	return TRUE;
 }

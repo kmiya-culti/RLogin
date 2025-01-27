@@ -374,4 +374,6 @@ void CStatusDlg::OnDropFiles(HDROP hDropInfo)
 
 		SetStatusText((LPCTSTR)text);
 	}
+
+	delete [] pFileName;
 }

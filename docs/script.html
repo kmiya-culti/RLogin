@@ -5,11 +5,11 @@
 <TITLE>スクリプト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
+TD {		
 				
 		background-color : #ffffff; font-size : 90%; 
 }
-.BOX{
+.BOX{		
 				
 		background-color : silver; 
 }
@@ -1835,7 +1835,7 @@ sclose();</PRE>
             </TD>
             <TD valign="top">fp</TD>
             <TD valign="top" rowspan="15">
-            <PRE style="font-size : 8pt;">if ( (fp=fopen(&quot;C:\\Tmp\\Hello.txt&quot;, &quot;w&quot;)) ) {
+            <PRE style="font-size : 8pt;">if ((fp=fopen(&quot;C:\\Tmp\\Hello.txt&quot;, &quot;w&quot;))){
     fputs(&quot;Hello World\n&quot;, fp);
     fclose(fp);
 }</PRE>
@@ -1952,7 +1952,7 @@ sclose();</PRE>
             </TABLE>
             </TD>
             <TD valign="top"></TD>
-            <TD valign="top">savefile(&quot;Text.txt&quot;, data, &quot;UTF-8&quot;, 2);</TD>
+            <TD valign="top"><FONT size="-1">savefile(&quot;Text.txt&quot;, data, &quot;UTF-8&quot;, 2);</FONT></TD>
             <TD valign="top"></TD>
           </TR>
           <TR>
@@ -1980,7 +1980,7 @@ sclose();</PRE>
             <TD valign="top">savexml ( <I>filename</I>, <I>val, [iconv]</I>, <I>[crlf]</I> )</TD>
             <TD valign="top">変数をXML形式でファイルに書き込みます</TD>
             <TD valign="top"></TD>
-            <TD valign="top">savexml(&quot;Data.xml&quot;, data, &quot;UTF-8&quot;, 2);</TD>
+            <TD valign="top"><FONT size="-1">savexml(&quot;Data.xml&quot;, data, &quot;UTF-8&quot;, 2);</FONT></TD>
             <TD valign="top"></TD>
           </TR>
           <TR>
@@ -2021,14 +2021,14 @@ sclose();</PRE>
             <TD valign="top">basename ( <I>pathname</I> )</TD>
             <TD valign="top">パス名からファイル名を返します</TD>
             <TD valign="top">str</TD>
-            <TD valign="top">echo(basename(&quot;c:\\hello\\world.txt&quot;));</TD>
+            <TD valign="top"><FONT size="-2">echo(basename(&quot;c:\\hello\\world.txt&quot;));</FONT></TD>
             <TD valign="top">world.txt</TD>
           </TR>
           <TR>
             <TD valign="top">dirname ( <I>pathname</I> )</TD>
             <TD valign="top">パス名からディレクトリ名を返します</TD>
             <TD valign="top">str</TD>
-            <TD valign="top">echo(dirname(&quot;c:\\hello\\world.txt&quot;));</TD>
+            <TD valign="top"><FONT size="-2">echo(dirname(&quot;c:\\hello\\world.txt&quot;));</FONT></TD>
             <TD valign="top">c:\hello</TD>
           </TR>
           <TR>
@@ -2064,7 +2064,7 @@ sclose();</PRE>
             <TD valign="top">shellexec ( <I>pathname , param , workdir</I> )</TD>
             <TD valign="top">プログラム・URLなどを実行します</TD>
             <TD valign="top">int</TD>
-            <TD valign="top">shellexec(&quot;http://www.yahoo.co.jp/&quot;);</TD>
+            <TD valign="top"><FONT size="-2">shellexec(&quot;http://www.yahoo.co.jp/&quot;);</FONT></TD>
             <TD valign="top"></TD>
           </TR>
         </TBODY>

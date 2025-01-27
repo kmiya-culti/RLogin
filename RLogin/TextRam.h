@@ -1006,6 +1006,13 @@ typedef struct _CmdHistory {
 	int habs;
 } CMDHIS;
 
+// TextRamTek.cpp
+extern const int TekFonts[8][2];
+extern const DWORD TekPenExtTab[8][4];
+extern const int TekPenTypeTab[8];
+extern const int TekPenWidthTab[2];
+extern const COLORREF TekColorTab[16];
+
 class CTextRam : public COptObject
 {
 public:	// Options
@@ -1534,6 +1541,7 @@ public:
 	void SetDcsNameCombo(CComboBox *pCombo);
 
 	void EscCsiDefName(LPCTSTR *esc, LPCTSTR *csi, LPCTSTR *dcs);
+	BOOL ParseColorName(LPCTSTR name, COLORREF &rgb);
 	void ParseColor(int cmd, int idx, LPCTSTR para, DWORD ch);
 	void ToHexStr(CBuffer &buf, CString &out);
 
@@ -1861,7 +1869,7 @@ public:
 	// TEK
 	typedef struct _TEKNODE {
 		struct _TEKNODE *next;
-		BYTE md, st, rv[2];
+		BYTE md, st;
 		short sx, sy, ex, ey;
 		DWORD ch;
 	} TEKNODE;
@@ -1883,6 +1891,7 @@ public:
 	int m_Tek_Pos;
 	BOOL m_Tek_Flush;
 	TEKNODE *m_Tek_Top;
+	TEKNODE *m_Tek_Btm;
 	TEKNODE *m_Tek_Free;
 	class CTekWnd *m_pTekWnd;
 
@@ -1891,7 +1900,10 @@ public:
 	void TekClose();
 	void TekForcus(BOOL fg);
 	void TekFlush();
-	void TekDraw(CDC *pDC, CRect &frame);
+	void TekDraw(CDC *pDC, CRect &frame, BOOL bOnView);
+	TEKNODE *TekAlloc();
+	void TekFree(TEKNODE *tp);
+	void TekAdd(TEKNODE *tp);
 	void TekClear(BOOL bFlush = TRUE);
 	void TekLine(int st, int sx, int sy, int ex, int ey);
 	void TekText(int st, int sx, int sy, DWORD ch);

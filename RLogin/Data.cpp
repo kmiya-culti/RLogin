@@ -5988,7 +5988,7 @@ void CServerEntryTab::SetSubMenu(CStringIndex *pIndex, CMenu *pMenu, int IdOfs)
 	CString str;
 	CMenu NewMenu[2];
 
-	pEntryCmpTab = this;
+	pEntryCmpTab = this;		// スレッド非対応になるので注意
 	qsort(pIndex->m_TabData.GetData(), pIndex->m_TabData.GetSize(), sizeof(DWORD), EntryCmp);
 
 	for ( n = 0 ; n < mx ; n++, i++ ) {
@@ -8102,7 +8102,7 @@ static LPCTSTR InitAlgo[12]= {
 	_T("zlib,none"),
 
 	_T("aes256-ctr,aes192-ctr,aes128-ctr,") \
-	_T("chacha20-poly1305@openssh.com,") \
+	_T("chacha20-poly1305@openssh.com,chacha20-poly1305,") \
 	_T("camellia256-ctr,camellia192-ctr,camellia128-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
@@ -8129,7 +8129,7 @@ static LPCTSTR InitAlgo[12]= {
 	_T("zlib@openssh.com,zlib,none"),
 
 	_T("aes256-ctr,aes192-ctr,aes128-ctr,") \
-	_T("chacha20-poly1305@openssh.com,") \
+	_T("chacha20-poly1305@openssh.com,chacha20-poly1305,") \
 	_T("camellia256-ctr,camellia192-ctr,camellia128-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
@@ -8158,6 +8158,7 @@ static LPCTSTR InitAlgo[12]= {
 	_T("curve25519-sha256,curve25519-sha256@libssh.org,curve448-sha512,") \
 	_T("ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,") \
 	_T("mlkem768x25519-sha256,mlkem768nistp256-sha256,mlkem1024nistp384-sha384,") \
+	_T("ml-kem-512-sha256,ml-kem-768-sha256,ml-kem-1024-sha384,") \
 	_T("sntrup761x25519-sha512@openssh.com,sntrup761x25519-sha512,") \
 	_T("diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,") \
 	_T("diffie-hellman-group16-sha512,diffie-hellman-group15-sha512,diffie-hellman-group17-sha512,diffie-hellman-group18-sha512,") \
@@ -9063,6 +9064,8 @@ CStringIndex::CStringIndex()
 	m_bNoSort = FALSE;
 	m_bString = TRUE;
 	m_bEmpty  = TRUE;
+	m_bChild  = FALSE;
+	m_bTabChk = FALSE;
 	m_Value = 0;
 	m_nIndex.Empty();
 	m_String.Empty();
@@ -9076,12 +9079,18 @@ CStringIndex::CStringIndex(BOOL bNoCase, BOOL bNoSort)
 	m_bNoSort = bNoSort;
 	m_bString = TRUE;
 	m_bEmpty  = TRUE;
+	m_bChild  = FALSE;
+	m_bTabChk = FALSE;
 	m_Value = 0;
 	m_nIndex.Empty();
 	m_String.Empty();
 	m_Array.RemoveAll();
 	m_pOwner = NULL;
 	m_TabData.RemoveAll();
+}
+CStringIndex::CStringIndex(CStringIndex &data)
+{
+	*this = data;
 }
 CStringIndex::~CStringIndex()
 {
@@ -9091,10 +9100,13 @@ const CStringIndex & CStringIndex::operator = (CStringIndex &data)
 	m_bNoCase = data.m_bNoCase;
 	m_bNoSort = data.m_bNoSort;
 	m_bString = data.m_bString;
+	m_bEmpty  = data.m_bEmpty;
+	m_bChild  = data.m_bChild;
+	m_bTabChk = data.m_bTabChk;
 	m_Value   = data.m_Value;
 	m_nIndex  = data.m_nIndex;
 	m_String  = data.m_String;
-	m_bEmpty  = data.m_bEmpty;
+	m_pOwner  = data.m_pOwner;
 
 	m_Array.RemoveAll();
 	for ( int n = 0 ; n < data.m_Array.GetSize() ; n++ )
@@ -9124,6 +9136,7 @@ CStringIndex & CStringIndex::operator [] (LPCTSTR str)
 			if ( (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str)) == 0 )
 				return m_Array[n];
 		}
+		m_bTabChk = FALSE;
 	} else {
 		if ( BinaryFind((void *)str, m_Array.GetData(), sizeof(CStringIndex), (int)m_Array.GetSize(), m_bNoCase ? StrIdxCmpNoCase : StrIdxCmp, &n) )
 			return m_Array[n];
@@ -9147,17 +9160,46 @@ BOOL CStringIndex::IsDupIndex(LPCTSTR str)
 }
 int CStringIndex::Find(LPCTSTR str)
 {
-	int n;
+	int n, i;
+	int b, m;
 
 	if ( m_bNoSort ) {
-		for ( n = 0 ; n < m_Array.GetSize() ; n++ ) {
-			if ( (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str)) == 0 )
-				return n;
+		int (*pFuncCmp)(LPCTSTR src, LPCTSTR dis) = (m_bNoCase ? _tcsicmp : _tcscmp);
+
+		if ( !m_bTabChk ) {
+			m_TabData.RemoveAll();				// CServerEntryTabでm_TabDataを別用途で使用している！
+			for ( n = 0 ; n < (int)m_Array.GetSize() ; n++ ) {
+				if ( m_Array[n].m_bChild )		// GetXmlFormatのみ設定している
+					continue;
+
+				b = 0;
+				m = (int)m_TabData.GetSize() - 1;
+				while ( b <= m ) {
+					i = (b + m) / 2;
+					if ( (*pFuncCmp)(m_Array[n].m_nIndex, m_Array[m_TabData[i]].m_nIndex) > 0 )
+						b = i + 1;
+					else
+						m = i - 1;
+				}
+				m_TabData.InsertAt(b, n);
+			}
+			m_bTabChk = TRUE;
 		}
-	} else {
-		if ( BinaryFind((void *)str, m_Array.GetData(), sizeof(CStringIndex), (int)m_Array.GetSize(), m_bNoCase ? StrIdxCmpNoCase : StrIdxCmp, &n) )
-			return n;
-	}
+
+		b = 0;
+		m = (int)m_TabData.GetSize() - 1;
+		while ( b <= m ) {
+			n = (b + m) / 2;
+			if ( (i = (*pFuncCmp)(str, m_Array[m_TabData[n]].m_nIndex)) == 0 )
+				return (int)(m_TabData[n]);
+			else if ( i > 0 )
+				b = n + 1;
+			else
+				m = n - 1;
+		}
+
+	} else if ( BinaryFind((void *)str, m_Array.GetData(), sizeof(CStringIndex), (int)m_Array.GetSize(), m_bNoCase ? StrIdxCmpNoCase : StrIdxCmp, &n) )
+		return n;
 
 	return (-1);
 }
@@ -10403,6 +10445,7 @@ void CStringIndex::SubXmlEscDec(LPCTSTR str, CString &out)
 					ch = ch * 16 + (*str - _T('a') + 10);
 				else
 					ch = ch * 16 + (*str - _T('0'));
+				str++;
 			}
 			out += ch;
 			if ( *str != _T(';') )
@@ -10412,7 +10455,7 @@ void CStringIndex::SubXmlEscDec(LPCTSTR str, CString &out)
 			str += 3;
 			ch = 0;
 			while ( *str >= _T('0') && *str <= _T('7') )
-				ch = ch * 8 + (*str - _T('0'));
+				ch = ch * 8 + (*(str++) - _T('0'));
 			out += ch;
 			if ( *str != _T(';') )
 				throw _T("xml escape char not &#o...;");
@@ -10421,7 +10464,7 @@ void CStringIndex::SubXmlEscDec(LPCTSTR str, CString &out)
 			str += 2;
 			ch = 0;
 			while ( *str >= _T('0') && *str <= _T('9') )
-				ch = ch * 10 + (*str - _T('0'));
+				ch = ch * 10 + (*(str++) - _T('0'));
 			out += ch;
 			if ( *str != _T(';') )
 				throw _T("xml escape char not &#...;");
@@ -10676,8 +10719,17 @@ BOOL CStringIndex::SubXmlElemnt(LPCTSTR &str)
 				str++;
 			break;
 		} else if ( *str == _T('<') ) {
+			if ( !text.IsEmpty() ) {
+				SubXmlEscDec(text, value);
+				text.Empty();
+				CStringIndex tmp(m_bNoCase, m_bNoSort);
+				tmp.m_bChild = TRUE;
+				tmp = (LPCTSTR)value;
+				Add(tmp);
+			}
 			CStringIndex tmp(m_bNoCase, m_bNoSort);
 			tmp.m_pOwner = m_pOwner;
+			tmp.m_bChild = TRUE;
 			if ( tmp.SubXmlElemnt(str) )
 				Add(tmp);
 			else if ( !tmp.IsEmpty() ) {	// <![CDATA[...]]>
@@ -10743,7 +10795,16 @@ BOOL CStringIndex::GetXmlFormat(LPCTSTR str)
 	try {
 		while ( *str != _T('\0') ) {
 			if ( *str == _T('<') ) {
+				if ( !text.IsEmpty() ) {
+					SubXmlEscDec(text, value);
+					text.Empty();
+					CStringIndex tmp(m_bNoCase, m_bNoSort);
+					tmp.m_bChild = TRUE;
+					tmp = (LPCTSTR)value;
+					Add(tmp);
+				}
 				CStringIndex tmp(m_bNoCase, m_bNoSort);
+				tmp.m_bChild = TRUE;
 				tmp.m_pOwner = &entity;
 				if ( tmp.SubXmlElemnt(str) )
 					Add(tmp);
@@ -10789,6 +10850,15 @@ BOOL CStringIndex::GetXmlFormat(LPCTSTR str)
 			} else
 				text += *(str++);
 		}
+		text += _T("'\r\n'");
+		end = str + 40;
+		while ( *str != _T('\0') && str <= end ) {
+			if ( *str < _T(' ') ) {
+				text += _T('.');
+				str++;
+			} else
+				text += *(str++);
+		}
 		text += _T("'\r\n");
 		text += msg;
 
@@ -10797,6 +10867,7 @@ BOOL CStringIndex::GetXmlFormat(LPCTSTR str)
 		return FALSE;
 
 	} catch(...) {
+		(*this) = _T("xml unkown error");
 		return FALSE;
 	}
 	return TRUE;

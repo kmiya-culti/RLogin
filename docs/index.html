@@ -13,9 +13,13 @@ TD {
 				
 				
 				
+				
+				
 		background-color : #ffffff; font-size : 90%; 
 }
 .BOX{		
+				
+				
 				
 				
 				
@@ -37,8 +41,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.0)</TD>
-            <TD width="20%" align="right">2024/11/25</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.1)</TD>
+            <TD width="20%" align="right">2025/01/27</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -358,7 +362,7 @@ TD {
         <TBODY>
           <TR>
             <TD width="600">動作環境としてWindows XP x32/Windows 7 x64/Windows 10 x64/Windows 11 x64にて確認しています<BR>
-            サーバーは、FreeBSD 12.3のrlogind, telnetd, sshd(openssh-9.6p1)を使用しています<BR>
+            サーバーは、FreeBSD 14.2のrlogind, telnetd, sshd(openssh-9.9p1)を使用しています<BR>
             <BR>
             「rlogin.zip」を解凍してRLogin.exeを適当な場所に置いて実行してください<BR>
             <BR>
@@ -449,6 +453,14 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2025/01/27</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.1/">2.30.1</A></TD>
+            <TD>tekウィンドウの編集にコピー・ペーストを追加<BR>
+            ssh2のkexsにml-kem-512/768/1024-sha256/384を暫定的に対応<BR>
+            ファイルアップ・ダウン時の受信処理を少し変更<BR>
+            tekウィンドウのSVG読み込み処理でsytleを部分的に対応</TD>
+          </TR>
+          <TR>
             <TD align="center">2024/11/25</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.0/">2.30.0</A></TD>
             <TD>UNICODEのブロック設定で実在しない文字を暗い表示に変更<BR>
@@ -492,13 +504,6 @@ TD {
             オプションのヒストリー・通信ログの設定が初期化されないバグを修正<BR>
             ListCtrlのInfoTipが正しく表示されないバグを修正<BR>
             2.29.6でHTTP/2のハフマン復号が出来なくなったバグを修正</TD>
-          </TR>
-          <TR>
-            <TD align="center">2024/07/22</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.6/">2.29.6</A></TD>
-            <TD>Visual Studio 2022のコード分析を実施し問題のある部分を修正<BR>
-            SSHの複数チャンネルオープン時に接続を閉じると処理が重複するのを修正<BR>
-            ファイルアップ・ダウンにauto/intel hex/s-record/tek hexを追加</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -6087,6 +6092,14 @@ function TekClock2() {
                 </TR>
                 <TR>
                   <TD colspan="2">編集メニュー</TD>
+                </TR>
+                <TR>
+                  <TD align="center">コピー</TD>
+                  <TD>1024x768のビットマップ画像とSVG形式のベクトルデータをクリップボードに設定します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">貼り付け</TD>
+                  <TD>SVG形式のベクトルデータがクリップボードにあれば、貼り付けます</TD>
                 </TR>
                 <TR>
                   <TD align="center">画面のクリア</TD>
