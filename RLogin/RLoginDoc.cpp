@@ -116,6 +116,7 @@ CRLoginDoc::CRLoginDoc()
 	m_bSleepDisable = FALSE;
 	m_SockSyncChar = (-1);
 	m_bPfdCheck = FALSE;
+	m_pFifoMonWnd = NULL;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -635,6 +636,9 @@ void CRLoginDoc::DeleteContents()
 {
 	if ( m_pStatusWnd != NULL )
 		m_pStatusWnd->DestroyWindow();
+
+	if ( m_pFifoMonWnd != NULL )
+		m_pFifoMonWnd->DestroyWindow();
 
 	if ( m_pMediaCopyWnd != NULL )
 		m_pMediaCopyWnd->DestroyWindow();
@@ -1512,7 +1516,7 @@ NEWLINE:
 		if ( nBufLen > 0 ) {
 			if ( m_TextRam.IsOptEnable(TO_RLLOGTIME) ) {
 				m_TextRam.GetCurrentTimeFormat(m_TextRam.m_TimeFormat, wrk);
-				mbs = wrk;
+				mbs = TstrToMbs(wrk);
 				m_pLogFile->Write((LPCSTR)mbs, mbs.GetLength());
 			}
 
@@ -1599,6 +1603,8 @@ void CRLoginDoc::LogDump(LPBYTE lpBuf, int nBufLen)
 }
 void CRLoginDoc::LogInit()
 {
+	::FormatErrorReset();
+
 	if ( m_TextRam.IsOptEnable(TO_RLHISDATE) && !m_TextRam.m_LogFile.IsEmpty() ) {
 		int n, num;
 		CString file, dirs, name, exts;
@@ -2502,6 +2508,15 @@ void CRLoginDoc::OnSocketstatus()
 	if ( m_pSock == NULL )
 		return;
 
+#ifdef	USE_FIFOMONITER
+	if ( m_pFifoMonWnd == NULL ) {
+		m_pFifoMonWnd = new CFifoMoniter;
+		m_pFifoMonWnd->m_pDocument = this;
+		m_pFifoMonWnd->Create(NULL, m_ServerEntry.m_EntryName);
+		m_pFifoMonWnd->ShowWindow(SW_SHOW);
+	} else
+		m_pFifoMonWnd->DestroyWindow();
+#else
 	if ( m_pStatusWnd == NULL ) {
 		CString status;
 		m_pSock->GetStatus(status);
@@ -2514,6 +2529,7 @@ void CRLoginDoc::OnSocketstatus()
 		m_pStatusWnd->SetStatusText(status);
 	} else
 		m_pStatusWnd->DestroyWindow();
+#endif
 }
 void CRLoginDoc::OnUpdateSocketstatus(CCmdUI *pCmdUI)
 {

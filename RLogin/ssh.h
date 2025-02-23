@@ -239,6 +239,11 @@ public:
 #define	IDKEY_AGEANT_WINSSH			2
 #define	IDKEY_AGEANT_PUTTYPIPE		3
 
+#define	IDKEY_NAME_SIMPLE			000
+#define	IDKEY_NAME_CERT				001
+#define	IDKEY_NAME_AGEANT			002
+#define	IDKEY_NAME_SIGN				004
+
 #define	SSHFP_KEY_RESERVED			0
 #define	SSHFP_KEY_RSA				1
 #define	SSHFP_KEY_DSA				2
@@ -390,14 +395,15 @@ public:
 	int CompPass(LPCTSTR pass);
 	int InitPass(LPCTSTR pass);
 
-	LPCTSTR GetName(BOOL bCert = TRUE, BOOL bExtname = FALSE);
+	LPCTSTR GetName(int nFlag = IDKEY_NAME_SIMPLE);
 	int GetTypeFromName(LPCTSTR name);
 	BOOL KnownHostsCheck(LPCTSTR dig);
 	int HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh = NULL);
 	int ChkOldCertHosts(LPCTSTR host);
 
 	int XmssSign(CBuffer *bp, LPBYTE buf, int len);
-	int Sign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg = NULL);
+	BOOL SignAlgCheck(LPCTSTR alg);
+	int Sign(CBuffer *bp, LPBYTE buf, int len);
 
 	int XmssVerify(CBuffer *sig, LPBYTE data, int datalen);
 	int Verify(CBuffer *bp, LPBYTE data, int datalen);
@@ -450,6 +456,10 @@ public:
 	int GetHeight();
 	void FingerPrint(CString &str, int digest = SSHFP_DIGEST_SHA256, int format = SSHFP_FORMAT_BASE64);
 	int DnsDigest(int hash, CBuffer &digest);
+	
+	int FileHash(LPCTSTR filename, const EVP_MD *md, u_char *hash);
+	BOOL FileSign(LPCTSTR filename, CBuffer *outbuf, LPCSTR nspc = NULL, LPCTSTR pass = NULL);
+	BOOL FileVerify(LPCTSTR filename, CBuffer *inbuf, LPCSTR nspc = NULL);
 
 	CIdKey();
 	~CIdKey();
@@ -611,7 +621,6 @@ public:
 	virtual void OnClose(int nFd, int nLastError);
 
 	BOOL IsLocked();
-	LPCTSTR GetRsaSignAlg(CIdKey *key, int flag);
 	CIdKey *GetIdKey(CIdKey *key, LPCTSTR pass);
 	void ReceiveBuffer(CBuffer *bp);
 };

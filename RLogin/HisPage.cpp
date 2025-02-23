@@ -182,6 +182,7 @@ void CHisPage::OnHisfileSel()
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
+	m_HisCombo.UpdateHis();
 	m_HisFile = dlg.GetPathName();
 	UpdateData(FALSE);
 
@@ -205,6 +206,7 @@ void CHisPage::OnAutoLogSel()
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
+	m_LogCombo.UpdateHis();
 	m_LogFile = dlg.GetPathName();
 	UpdateData(FALSE);
 
@@ -224,6 +226,7 @@ void CHisPage::OnTraceLogSel()
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
+	m_TraceCombo.UpdateHis();
 	m_TraceFile = dlg.GetPathName();
 	UpdateData(FALSE);
 

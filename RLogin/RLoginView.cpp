@@ -80,6 +80,8 @@ BOOL CViewDropTarget::DescToDrop(CWnd* pWnd, COleDataObject* pDataObject, HGLOBA
 	CSharedFile sf(GMEM_MOVEABLE | GMEM_ZEROINIT);
 	int doSub = 0;
 
+	::FormatErrorReset();
+
 	if ( (pGroupDesc = (FILEGROUPDESCRIPTOR *)::GlobalLock(hDescInfo)) == NULL )
 		return FALSE;
 

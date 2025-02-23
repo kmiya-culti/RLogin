@@ -490,22 +490,6 @@ BOOL CFifoAgent::IsLocked()
 
 	return FALSE;
 }
-LPCTSTR CFifoAgent::GetRsaSignAlg(CIdKey *key, int flag)
-{
-	if ( key == NULL || key->m_Type != IDKEY_RSA2 )
-		return NULL;
-
-	switch(flag & (SSH_AGENT_RSA_SHA2_256 | SSH_AGENT_RSA_SHA2_512)) {
-	case SSH_AGENT_RSA_SHA2_256:
-		return _T("rsa-sha2-256");
-	case SSH_AGENT_RSA_SHA2_512:
-		return _T("rsa-sha2-512");
-	case SSH_AGENT_RSA_SHA2_256 | SSH_AGENT_RSA_SHA2_512:
-		return (m_pDocument->m_ParamTab.m_RsaExt == 2 ? _T("rsa-sha2-512") : _T("rsa-sha2-256"));
-	}
-
-	return NULL;
-}
 CIdKey *CFifoAgent::GetIdKey(CIdKey *key, LPCTSTR pass)
 {
 	int n;
@@ -569,6 +553,7 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 				int flag;
 				CBuffer blob, data, sig;
 				CIdKey key, *pkey;
+				BOOL bSign = FALSE;
 
 				bp->GetBuf(&blob);
 				bp->GetBuf(&data);
@@ -576,7 +561,30 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 
 				key.GetBlob(&blob);
 
-				if ( (pkey = GetIdKey(&key, m_pDocument->m_ServerEntry.m_PassName)) != NULL && pkey->Sign(&sig, data.GetPtr(), data.GetSize(), GetRsaSignAlg(pkey, flag)) ) {
+				if ( (pkey = GetIdKey(&key, m_pDocument->m_ServerEntry.m_PassName)) != NULL ) {
+					int saveNid = pkey->m_RsaNid;
+					if ( (pkey->m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA1 || (pkey->m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA2 ) {
+						switch(flag & (SSH_AGENT_RSA_SHA2_256 | SSH_AGENT_RSA_SHA2_512)) {
+						case 0:
+							pkey->m_RsaNid = NID_sha1;
+							break;
+						case SSH_AGENT_RSA_SHA2_256:
+							pkey->m_RsaNid = NID_sha256;
+							break;
+						case SSH_AGENT_RSA_SHA2_512:
+							pkey->m_RsaNid = NID_sha512;
+							break;
+						case SSH_AGENT_RSA_SHA2_256 | SSH_AGENT_RSA_SHA2_512:
+							pkey->m_RsaNid = key.m_RsaNid;
+							break;
+						}
+					}
+					if ( pkey->Sign(&sig, data.GetPtr(), data.GetSize()) )
+						bSign = TRUE;
+					pkey->m_RsaNid = saveNid;
+				}
+
+				if ( bSign ) {
 					data.Clear();
 					data.Put8Bit(SSH_AGENT_SIGN_RESPONSE);
 					data.PutBuf(sig.GetPtr(), sig.GetSize());

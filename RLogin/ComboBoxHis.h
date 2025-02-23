@@ -41,6 +41,8 @@ public:
 	void AddHis(LPCTSTR str);
 	void RemoveAll();
 
+	inline void UpdateHis() { m_UpdateFlag |= COMBOHIS_UPDATE; }
+
 public:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 

@@ -26,6 +26,7 @@
 #include "Script.h"
 #include "ResTransDlg.h"
 #include "MsgChkDlg.h"
+#include "SshSigDlg.h"
 
 #include "direct.h"
 
@@ -34,6 +35,7 @@
 #include "openssl/conf.h"
 #include "internal/cryptlib.h"
 #include <openssl/crypto.h>
+#include <openssl/err.h>
 
 #include <afxcmn.h>
 #include <sphelper.h>
@@ -680,6 +682,7 @@ BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	ON_COMMAND(IDM_REGISTAPP, &CRLoginApp::OnRegistapp)
 	ON_UPDATE_COMMAND_UI(IDM_REGISTAPP, &CRLoginApp::OnUpdateRegistapp)
 	ON_COMMAND(IDM_SECPORICY, &CRLoginApp::OnSecporicy)
+	ON_COMMAND(IDM_SSHSIG, &CRLoginApp::OnSshSig)
 END_MESSAGE_MAP()
 
 
@@ -728,6 +731,10 @@ CRLoginApp::CRLoginApp()
 
 //////////////////////////////////////////////////////////////////////
 // 唯一の CRLoginApp オブジェクトです。
+
+#ifdef	_DEBUG
+	BOOL bBreak = TRUE;
+#endif
 
 	CRLoginApp theApp;
 	BOOL CompNameLenBugFix = TRUE;
@@ -1020,6 +1027,7 @@ static void AddErrorMessage(CString &str)
 {
 	LPVOID lpMessageBuffer;
 	DWORD err = ::GetLastError();
+	unsigned long oslerr = ERR_get_error();
 
 	if ( err != 0 ) {
 		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMessageBuffer, 0, NULL);
@@ -1031,6 +1039,18 @@ static void AddErrorMessage(CString &str)
 		str += _T("\n\n");
 		str += _tcserror(errno);
 	}
+
+	if ( oslerr != 0 ) {
+		str += _T("\n\n");
+		str += ERR_error_string(oslerr, NULL);
+	}
+}
+void FormatErrorReset()
+{
+	// エラーステータスをリセット
+	::SetLastError(0);
+	_set_errno(0);
+	ERR_clear_error();
 }
 LPCTSTR FormatErrorMessage(CString &str, LPCTSTR msg, ...)
 {
@@ -1066,9 +1086,7 @@ int DoitMessageBox(LPCTSTR lpszPrompt, UINT nType, CWnd *pParent)
 	dlg.m_nType = nType;
 	dlg.m_bNoChkEnable = FALSE;
 
-	// エラーステータスをリセット
-	::SetLastError(0);
-	_set_errno(0);
+	FormatErrorReset();
 
 	return (int)dlg.DoModal();
 }
@@ -4109,7 +4127,11 @@ void CRLoginApp::OnUpdateRegistapp(CCmdUI *pCmdUI)
 void CRLoginApp::OnSecporicy()
 {
 	CSecPolicyDlg dlg;
-
+	dlg.DoModal();
+}
+void CRLoginApp::OnSshSig()
+{
+	CSshSigDlg dlg;
 	dlg.DoModal();
 }
 

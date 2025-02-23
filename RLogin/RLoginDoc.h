@@ -123,6 +123,7 @@ public:
 	time_t m_CloseTime;
 	class CStatusDlg *m_pStatusWnd;
 	class CStatusDlg *m_pMediaCopyWnd;
+	class CFifoMoniter *m_pFifoMonWnd;
 	CWordArray m_OptFixCheck;
 	BOOL m_bSleepDisable;
 	int m_SockSyncChar;

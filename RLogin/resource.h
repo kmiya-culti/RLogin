@@ -75,6 +75,7 @@
 #define IDR_TOOLBAR2                    170
 #define IDD_CONVFILEDLG                 171
 #define IDD_MENUBAR                     172
+#define IDD_SSHSIGDLG                   173
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -572,9 +573,13 @@
 #define IDC_BUTTON2                     2056
 #define IDC_BUTTON3                     2057
 #define IDC_BUTTON4                     2058
+#define IDC_SSHSIG_INPORT               2058
 #define IDC_BUTTON5                     2059
+#define IDC_SSHSIG_EXPORT               2059
 #define IDC_BUTTON6                     2060
+#define IDC_SSHSIG_SIGN_COPY            2060
 #define IDC_CANCELBTN                   2061
+#define IDC_SSHSIG_SIGN_PAST            2061
 #define IDC_CEXT1                       2062
 #define IDC_CEXT2                       2063
 #define IDC_CHARBANK                    2064
@@ -1106,6 +1111,17 @@
 #define IDC_TABBACKGRAD                 2539
 #define IDC_EDITKEY                     2540
 #define IDC_CODEFLAG                    2541
+#define IDC_SSHSIG_DATAFILE             2542
+#define IDC_SSHSIG_DATAFILE_SEL         2543
+#define IDC_SSHSIG_KEYSEL1              2544
+#define IDC_SSHSIG_KEYSEL2              2545
+#define IDC_SSHSIG_KEYLIST              2546
+#define IDC_SSHSIG_KEYFILE              2547
+#define IDC_SSHSIG_KEYFILE_SEL          2548
+#define IDC_SSHSIG_NAMESPACE            2549
+#define IDC_SSHSIG_SIGN                 2550
+#define IDC_SSHSIG_VERIFY               2551
+#define IDC_SSHSIG_VERIFY_WITHKEY       2552
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1252,15 +1268,16 @@
 #define IDM_DOCKBARFIXED                5155
 #define IDM_DOCKBARINIT                 5156
 #define IDM_APPCOLEDIT                  5157
+#define IDM_SSHSIG                      5158
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        173
-#define _APS_NEXT_COMMAND_VALUE         5158
-#define _APS_NEXT_CONTROL_VALUE         2542
+#define _APS_NEXT_RESOURCE_VALUE        174
+#define _APS_NEXT_COMMAND_VALUE         5159
+#define _APS_NEXT_CONTROL_VALUE         2553
 #define _APS_NEXT_SYMED_VALUE           679
 #endif
 #endif

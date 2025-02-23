@@ -30,6 +30,10 @@ CFifoBuffer::CFifoBuffer()
 	m_nReadNumber = m_nWriteNumber = (-1);
 	m_pReadBase = m_pWriteBase = NULL;
 	m_bEndOf = FALSE;
+
+#ifdef	USE_FIFOMONITER
+	m_nBufMoniter = 0;
+#endif
 }
 CFifoBuffer::~CFifoBuffer()
 {
@@ -70,6 +74,12 @@ int CFifoBuffer::PutBuffer(LPBYTE pBuffer, int nBufLen)
 
 		memcpy(GetBtmPtr(), pBuffer, nBufLen);
 		m_nBufBtm += nBufLen;
+
+#ifdef	USE_FIFOMONITER
+		//if ( m_nBufMoniter < GetSize() )
+		//	m_nBufMoniter = GetSize();
+		m_nBufMoniter += nBufLen;
+#endif
 	}
 
 	ASSERT(m_pReadBase != NULL && m_nReadNumber >= 0);
@@ -735,6 +745,24 @@ int CFifoBase::DocMsgSetTimer(int msec, int mode, void *pParam)
 }
 
 ///////////////////////////////////////////////////////
+
+#ifdef	USE_FIFOMONITER
+int CFifoBase::GetFifoMoniter(int nFd)
+{
+	int len = (-1);
+	CFifoBuffer *pFifo;
+	
+	if ( (pFifo = GetFifo(nFd)) != NULL ) {
+		len = pFifo->m_nBufMoniter;
+		pFifo->m_nBufMoniter = 0;
+		RelFifo(pFifo);
+	}
+
+	return len;
+}
+#endif
+
+///////////////////////////////////////////////////////
 // CFifoBase	static
 
 //	LeftBase STDIN(0)--Read---m_bReadBase--FifoBuffer--m_bWriteBase--Write--STDOUT(1)RightBase
@@ -966,11 +994,19 @@ void CFifoBase::UnLink(CFifoBase *pMid, int nFd, BOOL bMid)
 		// STDOUT pWrite STDIN  pRead  EXTOUT pExtWrite STDIN
 
 		// pExtRead->pWrite
-		if ( pExtReadFifo->GetSize() > 0 )
+		if ( pExtReadFifo->GetSize() > 0 ) {
 			pWriteFifo->BackBuffer(pExtReadFifo->GetTopPtr(), pExtReadFifo->GetSize());
+#ifdef	USE_FIFOMONITER
+			pWriteFifo->m_nBufMoniter = pExtReadFifo->m_nBufMoniter;
+#endif
+		}
 		// pExtWrite->pRead
-		if ( pExtWriteFifo->GetSize() > 0 )
+		if ( pExtWriteFifo->GetSize() > 0 ) {
 			pReadFifo->PutBuffer(pExtWriteFifo->GetTopPtr(), pExtWriteFifo->GetSize());
+#ifdef	USE_FIFOMONITER
+			pReadFifo->m_nBufMoniter = pExtWriteFifo->m_nBufMoniter;
+#endif
+		}
 
 		pReadFifo->Unlock();
 		pWriteFifo->Unlock();
@@ -1729,6 +1765,8 @@ void CFifoSocket::ThreadEnd()
 }
 BOOL CFifoSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nFamily, int nSocketType)
 {
+	::FormatErrorReset();
+
 	if ( lpszHostAddress != NULL ) {
 		m_HostAddress = lpszHostAddress;
 		m_nHostPort   = nHostPort;
@@ -2807,12 +2845,11 @@ CFifoProxy::~CFifoProxy()
 void CFifoProxy::OnRead(int nFd)
 {
 	// ProxyCheck“à‚ÅCFifoProxy‚ðUnLink/Destroy‚·‚é‚Ì‚Å’ˆÓ
-	if ( nFd == FIFO_STDIN || nFd == FIFO_EXTIN )
-		m_pSock->ProxyCheck();
+	m_pSock->ProxyCheck();
 }
 void CFifoProxy::OnWrite(int nFd)
 {
-	ResetFdEvents(nFd, FD_WRITE);
+	m_pSock->ProxyCheck();
 }
 void CFifoProxy::OnConnect(int nFd)
 {

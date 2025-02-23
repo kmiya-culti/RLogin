@@ -145,7 +145,7 @@ void CTraceDlg::WriteString(int num)
 	CStringA mbs;
 
 	SetString(num, tmp);
-	mbs = tmp;
+	mbs = TstrToMbs(tmp);
 	m_File.Write(mbs, mbs.GetLength());
 }
 void CTraceDlg::DeleteAllItems()
@@ -529,7 +529,7 @@ void CCmdHisDlg::SetExitStatus(CMDHIS *pCmdHis)
 
 			if ( m_File.m_hFile != CFile::hFileNull ) {
 				SetString(n, str);
-				mbs = str;
+				mbs = TstrToMbs(str);
 				m_File.Write(mbs, mbs.GetLength() * sizeof(CHAR));
 			}
 
@@ -778,7 +778,7 @@ void CCmdHisDlg::OnTekSave()
 	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
 		str.Empty();
 		SetString(n, str);
-		mbs += str;
+		mbs += TstrToMbs(str);
 	}
 
 	m_File.SeekToEnd();

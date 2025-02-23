@@ -75,6 +75,10 @@ public:
 
 	BOOL m_bEndOf;
 
+#ifdef	USE_FIFOMONITER
+	int	m_nBufMoniter;
+#endif
+
 public:
 	CFifoBuffer();
 	~CFifoBuffer();
@@ -242,6 +246,10 @@ public:
 	void DodMsgStrPtr(int msg, LPCTSTR str);
 	void DocMsgCommand(int cmdId);
 	int DocMsgSetTimer(int msec, int mode, void *pParam);
+
+#ifdef	USE_FIFOMONITER
+	int GetFifoMoniter(int nFd);
+#endif
 	
 public:
 	static void Link(CFifoBase *pLeft, int lFd, CFifoBase *pRight, int rFd);

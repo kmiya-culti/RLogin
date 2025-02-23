@@ -4100,3 +4100,191 @@ void CHistogram::OnTimer(UINT_PTR nIDEvent)
 
 	CFrameWndExt::OnTimer(nIDEvent);
 }
+
+//////////////////////////////////////////////////////////////////////
+// CFifoMoniter
+
+CFifoMoniter::CFifoMoniter()
+{
+	m_pDocument = NULL;
+	m_pSocket = NULL;
+	ZeroMemory(m_Data, sizeof(m_Data));
+	m_Scale = 100;
+	m_bDataUpdate = FALSE;
+}
+CFifoMoniter::~CFifoMoniter()
+{
+}
+
+IMPLEMENT_DYNAMIC(CFifoMoniter, CFrameWndExt)
+
+BEGIN_MESSAGE_MAP(CFifoMoniter, CFrameWndExt)
+	ON_WM_CREATE()
+	ON_WM_PAINT()
+	ON_WM_TIMER()
+END_MESSAGE_MAP()
+
+BOOL CFifoMoniter::PreCreateWindow(CREATESTRUCT& cs)
+{
+	cs.cx = MulDiv(600, m_NowDpi.cx, DEFAULT_DPI_X);
+	cs.cy = MulDiv(400, m_NowDpi.cy, DEFAULT_DPI_Y);
+
+	return CFrameWndExt::PreCreateWindow(cs);
+}
+void CFifoMoniter::PostNcDestroy()
+{
+	if ( m_pDocument != NULL )
+		m_pDocument->m_pFifoMonWnd = NULL;
+
+	delete this;
+}
+int CFifoMoniter::OnCreate(LPCREATESTRUCT lpCreateStruct)
+{
+	if (CFrameWndExt::OnCreate(lpCreateStruct) == -1)
+		return -1;
+
+#ifdef	USE_FIFOMONITER
+	if ( m_pDocument != NULL || m_pDocument->m_pSock != NULL ) {
+		int nData[10];
+		m_pDocument->m_pSock->FifoMoniter(nData);
+	}
+
+	SetTimer(1024, 1000, NULL);		// 1sec
+#endif
+
+	return 0;
+}
+void CFifoMoniter::OnDraw(CDC *pDC)
+{
+	//		SSL				SSH			Dcoument
+	//	Socket		Proxy		Sync
+	//	IN		IN		IN		IN		IN
+	//	OUT		OUT		OUT		OUT		OUT
+	CRect frame, box[10];
+	CPen pen, *pOldPen;
+	CFont font, *pOldFont;
+	CString str;
+	CSize sz;
+	int max;
+	BOOL bLow = TRUE;
+
+	GetClientRect(frame);
+
+	font.CreateFont(MulDiv(10, m_NowDpi.cy, DEFAULT_DPI_Y), 0, 0, 0, FW_DONTCARE, 0, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
+	pOldFont = pDC->SelectObject(&font);
+	pDC->SetTextColor(RGB(0, 0, 0));
+	pDC->SetBkMode(TRANSPARENT);
+
+	pen.CreatePen(PS_SOLID, 1, RGB(32, 128, 32));
+	pOldPen = pDC->SelectObject(&pen);
+
+	pDC->FillSolidRect(frame, RGB(255, 255, 255));
+
+	for ( int n = 0 ; n < 10 ; n++ ) {
+		box[n].left   = 3 + (n % 5) * frame.Width() / 5;
+		box[n].top    = 3 + (n / 5) * frame.Height() / 2;
+		box[n].right  = box[n].left + (frame.Width() / 5 - 6);
+		box[n].bottom = box[n].top  + (frame.Height() / 2 - 6);
+
+		for ( int i = 0 ; i <= 10 ; i++ ) {
+			COLORREF col = ((i % 10) == 0 ? RGB(128, 128, 128) : RGB(235, 235, 235));
+			int x = box[n].left + i * box[n].Width() / 10;
+			int y = box[n].top  + i * box[n].Height() / 10;
+			int ofs = (i % 10) == 0 ? 0 : 1;
+
+			pDC->FillSolidRect(box[n].left + ofs, y, box[n].Width() - ofs * 2, 1, col);
+			pDC->FillSolidRect(x, box[n].top + ofs, 1, box[n].Height() - ofs * 2, col);
+		}
+
+		max = 0;
+		for ( int i = 0 ; i < FIFOMON_MAX ; i++ ) {
+			int x = box[n].right  - i * box[n].Width() / FIFOMON_MAX;
+			int y = box[n].bottom - (int)((LONGLONG)m_Data[i][n] * (LONGLONG)box[n].Height() / (LONGLONG)m_Scale);
+
+			if ( i == 0 )
+				pDC->MoveTo(x, y);
+			else
+				pDC->LineTo(x, y);
+
+			if ( m_Data[i][n] > (m_Scale / 10) )
+				bLow = FALSE;
+
+			if ( max < m_Data[i][n] )
+				max = m_Data[i][n];
+		}
+
+		if ( max >= (100 * 1024 * 1024) )
+			str.Format(_T("%dM"), max / (1024 * 1024) );
+		else if ( max >= (100 * 1024) )
+			str.Format(_T("%dK"), max / 1024);
+		else
+			str.Format(_T("%d"), max);
+		sz = pDC->GetTextExtent(str);
+
+		int x = box[n].right - sz.cx;
+		int y = box[n].bottom - (int)((LONGLONG)max * (LONGLONG)box[n].Height() / (LONGLONG)m_Scale);
+
+		if ( y > (box[n].bottom - sz.cy) )
+			y = box[n].bottom - sz.cy;
+
+		pDC->TextOut(x, y, str);
+	}
+
+	if ( bLow && (m_Scale /= 10) < 100 )
+		m_Scale = 100;
+
+	pDC->SelectObject(pOldFont);
+	pDC->SelectObject(pOldPen);
+}
+void CFifoMoniter::OnPaint()
+{
+	CPaintDC dc(this);
+	CRect frame;
+	CRect rect = dc.m_ps.rcPaint;
+
+	GetClientRect(frame);
+
+	if ( m_TempDC.GetSafeHdc() != NULL && (m_TempRect.Width() != frame.Width() || m_TempRect.Height() != frame.Height()) ) {
+		m_TempDC.SelectObject(m_pOldTempMap);
+		m_TempMap.DeleteObject();
+		m_TempDC.DeleteDC();
+	}
+
+	if ( m_TempDC.GetSafeHdc() == NULL ) {
+		m_TempDC.CreateCompatibleDC(NULL);
+		m_TempMap.CreateBitmap(frame.Width(), frame.Height(), m_TempDC.GetDeviceCaps(PLANES), m_TempDC.GetDeviceCaps(BITSPIXEL), NULL);
+		m_pOldTempMap = (CBitmap *)m_TempDC.SelectObject(&m_TempMap);
+		m_TempRect = frame;
+		m_bDataUpdate = TRUE;
+	}
+
+	if ( m_bDataUpdate ) {
+		OnDraw(&m_TempDC);
+		m_bDataUpdate = FALSE;
+	}
+
+	dc.BitBlt(rect.left, rect.top, rect.Width(), rect.Height(), &m_TempDC, rect.left, rect.top, SRCCOPY);
+}
+void CFifoMoniter::OnTimer(UINT_PTR nIDEvent)
+{
+#ifdef	USE_FIFOMONITER
+	if ( m_pDocument == NULL || m_pDocument->m_pSock == NULL )
+		return;
+
+	int nData[10];
+
+	m_pDocument->m_pSock->FifoMoniter(nData);
+
+	for ( int n = 0 ; n < 10 ; n++ ) {
+		memcpy(m_Data + 1, m_Data, sizeof(m_Data) - sizeof(m_Data[0]));
+		m_Data[0][n] = nData[n];
+		if ( m_Scale < nData[n] )
+			m_Scale = nData[n] * 12 / 10;
+	}
+
+	m_bDataUpdate = TRUE;
+	Invalidate(FALSE);
+#endif
+
+	CFrameWndExt::OnTimer(nIDEvent);
+}

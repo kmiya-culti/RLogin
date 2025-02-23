@@ -8297,7 +8297,7 @@ void CTextRam::UNGETSTR(LPCTSTR str, ...)
 				m_pDocument->m_TextRam.m_IConv.StrToRemote(m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode], in, out);
 				mbs += out;
 			} else
-				mbs += *str;
+				mbs += (CHAR)(*str);
 		}
 		m_pDocument->SocketSend((void *)(LPCSTR)mbs, mbs.GetLength());
 

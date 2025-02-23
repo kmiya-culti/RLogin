@@ -749,6 +749,8 @@ void CFileUpDown::DownLoad()
 	struct _stati64 st;
 	CBuffer tmp, work, line;
 
+	::FormatErrorReset();
+
 	if ( !CheckFileName(CHKFILENAME_SAVE, "", EXTFILEDLG_DOWNLOAD) )
 		return;
 
@@ -1539,6 +1541,8 @@ void CFileUpDown::UpLoad()
 	char buf[1024];
 
 RECHECK:
+	::FormatErrorReset();
+
 	if ( !CheckFileName(CHKFILENAME_OPEN | CHKFILENAME_MULTI, "", EXTFILEDLG_UPLOAD) )
 		return;
 

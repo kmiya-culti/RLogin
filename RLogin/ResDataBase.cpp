@@ -120,7 +120,7 @@ void CDlgInitData::Serialize(int mode, class CBuffer &buf)
 		buf.PutWord(m_ctrlID);
 		buf.PutWord(m_Message);
 
-		CStringA mbs(m_String);
+		CStringA mbs = TstrToMbs(m_String);
 		int len = (mbs.GetLength() + 1) * sizeof(CHAR);
 
 		buf.PutDword(len);
@@ -141,7 +141,7 @@ void CDlgInitData::Serialize(int mode, class CBuffer &buf)
 			CStringA mbs;
 			memcpy(mbs.GetBufferSetLength(len / sizeof(CHAR)), buf.GetPtr(), len);
 			buf.Consume(len);
-			m_String = mbs;
+			m_String = MbsToTstr(mbs);
 		}
 	}
 }

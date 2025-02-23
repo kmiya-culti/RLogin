@@ -473,6 +473,7 @@ protected:
 	afx_msg void OnKillfocusRemoteCwd();
 	afx_msg void OnEditCopy();
 	afx_msg void OnEditPaste();
+	afx_msg void OnSelectAll();
 	afx_msg void OnDblclkLocalList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnDblclkRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnColumnclickLocalList(NMHDR* pNMHDR, LRESULT* pResult);

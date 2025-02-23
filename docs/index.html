@@ -15,9 +15,17 @@ TD {
 				
 				
 				
+				
+				
+				
+				
 		background-color : #ffffff; font-size : 90%; 
 }
 .BOX{		
+				
+				
+				
+				
 				
 				
 				
@@ -41,8 +49,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.1)</TD>
-            <TD width="20%" align="right">2025/01/27</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.2)</TD>
+            <TD width="20%" align="right">2025/02/24</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -188,6 +196,7 @@ TD {
                     <LI><A href="#TOOLBAR">ツールバーのカスタマイズ</A>
                     <LI><A href="#RESOURCE">リソースをファイルに保存</A>
                     <LI><A href="#SFTPWIND">SFTPによるファイル転送</A>
+                    <LI><A href="#SSHSIG">ファイルの署名検証</A>
                   </OL>
                   </TD>
                 </TR>
@@ -453,6 +462,16 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2025/02/24</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.2/">2.30.2</A></TD>
+            <TD>SFTPにショートカットキーを追加<BR>
+            ProxyのHTTP2/3でオーバーフロー時の動作を修正<BR>
+            SSH2のrsa鍵のサイン方式選択を柔軟に修正<BR>
+            メニューのファイルにファイルの署名検証を追加<BR>
+            ACP文字変換内でLastErrorを待避するように変更<BR>
+            openssl-3.4.1に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2025/01/27</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.1/">2.30.1</A></TD>
             <TD>tekウィンドウの編集にコピー・ペーストを追加<BR>
@@ -496,16 +515,6 @@ TD {
             openssl-3.3.2に更新</TD>
           </TR>
           <TR>
-            <TD align="center">2024/08/23</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.7/">2.29.7</A></TD>
-            <TD>SFTPのプログレスバーをグラフ表示に変更<BR>
-            ファイルダウンロートのプログレスバーを修正<BR>
-            オプション設定の再利用しそうなエディットをヒストリ付きコンボに変更<BR>
-            オプションのヒストリー・通信ログの設定が初期化されないバグを修正<BR>
-            ListCtrlのInfoTipが正しく表示されないバグを修正<BR>
-            2.29.6でHTTP/2のハフマン復号が出来なくなったバグを修正</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -529,13 +538,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.4.0.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.4.1.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.4.0 openssl-3.4.0-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.4.1 openssl-3.4.1-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -620,8 +629,8 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.4.0 22 Oct 2024<BR>
-            Copyright (c) 1998-2024 The OpenSSL Project<BR>
+            <P>OpenSSL 3.4.1 11 Feb 2025<BR>
+            Copyright (c) 1998-2025 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
             <BR>
@@ -699,7 +708,7 @@ TD {
                   <TD align="left" colspan="5">ファイル(F)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="10" rowspan="14"></TD>
+                  <TD align="center" width="10" rowspan="15"></TD>
                   <TD valign="top" width="250">サーバーに接続(N)</TD>
                   <TD valign="top" width="450"><A href="#SERVERSEL">サーバーの選択・設定</A>ダイアログを表示し選択したサーバーに接続します</TD>
                   <TD valign="top" align="right" width="120"></TD>
@@ -787,6 +796,12 @@ TD {
                   <TD valign="top" width="450">スクリプトファイルを読み込んで実行します</TD>
                   <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top" width="180">$SCRIPT_EXEC</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">ファイルの署名検証(Z)</TD>
+                  <TD valign="top">SSH鍵を使用してファイルの署名検証を行います</TD>
+                  <TD valign="top" align="right"></TD>
+                  <TD valign="top">$FILE_SSHSIG</TD>
                 </TR>
                 <TR>
                   <TD valign="top" width="250">アプリケーションの終了(X)</TD>
@@ -6635,6 +6650,97 @@ function TekClock2() {
             <BR>
             ※2.19.8より左（ローカル）のみエクスプローラー経由のコピーや移動、開くなどの操作ができます。また右（リモート）でファイルをダブルクリックすると左（ローカル）にコピーしてから開くの動作を行うようにしました</TD>
             <TD align="left" valign="top"><IMG src="image043.jpg" width="614" height="365" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="SSHSIG"></A><B>4.9 ファイルの署名検証</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top" align="left">
+            <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">SSH鍵によるファイル署名</TD>
+                </TR>
+                <TR>
+                  <TD align="center">署名するファイル</TD>
+                  <TD>署名・検証したいファイルを設定します</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">鍵の選択</TD>
+                </TR>
+                <TR>
+                  <TD align="center">RLoginで管理…</TD>
+                  <TD><A href="#SSHKEYSET">認証キーの設定</A>で管理されている鍵で署名します</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">ファイル保存の鍵</TD>
+                  <TD>ファイルで保存された秘密鍵で署名します</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">オプション</TD>
+                </TR>
+                <TR>
+                  <TD align="center">名前空間…</TD>
+                  <TD>自身の管理用として識別する文字列です</TD>
+                </TR>
+                <TR>
+                  <TD align="center">指定された鍵…</TD>
+                  <TD>通常、検証に秘密鍵や名前空間は、必要ありませんが自身で署名した場合に確認することが出来ます</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">署名</TD>
+                </TR>
+                <TR>
+                  <TD align="center">…</TD>
+                  <TD>署名の実体の文字列です</TD>
+                </TR>
+                <TR>
+                  <TD align="center">インポート</TD>
+                  <TD>ファイルに保存された署名を読み込みます</TD>
+                </TR>
+                <TR>
+                  <TD align="center">エクスポート</TD>
+                  <TD>署名をファイルに保存します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">ペースト</TD>
+                  <TD>クリップボードから署名文字列を読み込みます</TD>
+                </TR>
+                <TR>
+                  <TD align="center">コピー</TD>
+                  <TD>署名をクリップボードに書き込みます</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">　</TD>
+                </TR>
+                <TR>
+                  <TD align="center">検証</TD>
+                  <TD>「署名するファイル」の署名であることを確認します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">署名</TD>
+                  <TD>「署名するファイル」の署名を作成します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">キャンセル</TD>
+                  <TD>このダイアログを終了します</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD align="left" valign="top"><IMG src="image106.jpg" width="580" height="550" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

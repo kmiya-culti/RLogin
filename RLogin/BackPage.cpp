@@ -210,6 +210,7 @@ void CBackPage::OnBitMapFileSel()
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
+	m_BitMapCombo.UpdateHis();
 	m_BitMapFile = dlg.GetPathName();
 	UpdateData(FALSE);
 

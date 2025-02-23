@@ -369,6 +369,7 @@ public:
 	afx_msg void OnRegistapp();
 	afx_msg void OnUpdateRegistapp(CCmdUI *pCmdUI);
 	afx_msg void OnSecporicy();
+	afx_msg void OnSshSig();
 	afx_msg void OnUpdateEmoji(WPARAM wParam, LPARAM lParam);
 	DECLARE_MESSAGE_MAP()
 };
@@ -418,6 +419,7 @@ extern HRESULT (__stdcall *ExGetDpiForMonitor)(HMONITOR hmonitor, MONITOR_DPI_TY
 typedef enum _PROCESS_DPI_AWARENESS { PROCESS_DPI_UNAWARE, PROCESS_SYSTEM_DPI_AWARE, PROCESS_PER_MONITOR_DPI_AWARE } PROCESS_DPI_AWARENESS;
 extern HRESULT (__stdcall *ExSetProcessDpiAwareness)(PROCESS_DPI_AWARENESS value);
 
+extern void FormatErrorReset();
 extern LPCTSTR FormatErrorMessage(CString &str, LPCTSTR msg, ...);
 extern int ThreadMessageBox(LPCTSTR msg, ...);
 extern int DoitMessageBox(LPCTSTR lpszPrompt, UINT nType = 0, CWnd *pParent = NULL);

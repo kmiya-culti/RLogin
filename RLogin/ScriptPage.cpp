@@ -147,6 +147,7 @@ void CScriptPage::OnBnClickedScriptSel()
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
+	m_ScriptCombo.UpdateHis();
 	m_ScriptFile = dlg.GetPathName();
 	UpdateData(FALSE);
 

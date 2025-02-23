@@ -16,6 +16,7 @@
 #include "AnyPastDlg.h"
 #include "TtyModeDlg.h"
 #include "Fifo.h"
+#include "Dbt.h"
 
 #include <afxglobals.h>
 
@@ -1472,7 +1473,7 @@ BOOL CMainFrame::PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf)
 	ASSERT(pInBuf->GetSize() < AGENT_MAX_MSGLEN);
 	memcpy(p, pInBuf->GetPtr(), pInBuf->GetSize());
 
-	mbs = mapname;
+	mbs = TstrToMbs(mapname);
 	cds.dwData = AGENT_COPYDATA_ID;
 	cds.cbData = mbs.GetLength() + 1;
 	cds.lpData = mbs.GetBuffer();
@@ -1577,7 +1578,7 @@ BOOL CMainFrame::AgeantInit()
 			for ( n = 0 ; n < mx ; n++ ) {
 				out.GetBuf(&blob);
 				out.GetStr(name);
-				key.m_Name = name;
+				key.m_Name = MbsToTstr(name);
 				key.m_bSecInit = TRUE;
 				key.m_AgeantType = ctype;
 				if ( !key.GetBlob(&blob) )

@@ -307,4 +307,35 @@ protected:
 	afx_msg void OnUpdateHistogram(CCmdUI *pCmdUI);
 };
 
+#define	FIFOMON_MAX		(10 * 60)
 
+class CFifoMoniter : public CFrameWndExt
+{
+	DECLARE_DYNAMIC(CFifoMoniter)
+
+public:
+	CRLoginDoc *m_pDocument;
+	class CExtSocket *m_pSocket;
+	int m_Data[FIFOMON_MAX][10];
+	int m_Scale;
+	CDC m_TempDC;
+	CBitmap m_TempMap, *m_pOldTempMap;
+	CRect m_TempRect;
+	BOOL m_bDataUpdate;
+
+	CFifoMoniter();
+	virtual ~CFifoMoniter();
+
+public:
+	void OnDraw(CDC *pDC);
+
+public:
+	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+	virtual void PostNcDestroy();
+
+protected:
+	DECLARE_MESSAGE_MAP()
+	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	afx_msg void OnPaint();
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
+};

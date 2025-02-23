@@ -320,7 +320,7 @@ int CZModem::XUpLoad()
     LONGLONG file_size;
     LONGLONG now_pos = 0L;
 
-    SetXonXoff(FALSE);
+	SetXonXoff(FALSE);
 
 	if ( !CheckFileName(CHKFILENAME_OPEN, "") )
 		goto CANRET;

@@ -978,6 +978,8 @@ void CSFtp::Send(LPBYTE buf, int len)
 }
 void CSFtp::OnConnect()
 {
+	::FormatErrorReset();
+
 	CBuffer tmp;
 	tmp.Put32Bit(0);
 	tmp.Put8Bit(SSH2_FXP_INIT);
@@ -1013,6 +1015,14 @@ int CSFtp::ReceiveBuffer(CBuffer *bp)
 			Close();
 			return FALSE;
 		}
+#if 0
+		CStringA str, ver;
+		while ( bp->GetSize() > 8 ) {
+			bp->GetStr(str);
+			bp->GetStr(ver);
+			TRACE("%s=%s\n", str, ver);
+		}
+#endif
 	} else {
 		m_CmdQueSema.Lock();
 		POSITION pos = m_CmdQue.GetHeadPosition();
@@ -3076,6 +3086,7 @@ BEGIN_MESSAGE_MAP(CSFtp, CDialogExt)
 	ON_COMMAND(IDM_SFTP_UIDGID, &CSFtp::OnSftpUidgid)
 	ON_COMMAND(ID_EDIT_PASTE, &CSFtp::OnEditPaste)
 	ON_COMMAND(ID_EDIT_COPY, &CSFtp::OnEditCopy)
+	ON_COMMAND(ID_EDIT_SELECT_ALL, &CSFtp::OnSelectAll)
 
 	ON_BN_CLICKED(IDC_LOCAL_UP, OnLocalUp)
 	ON_BN_CLICKED(IDC_REMOTE_UP, OnRemoteUp)
@@ -3352,12 +3363,20 @@ BOOL CSFtp::OnInitDialog()
 
 	SetTimer(SFTP_TIMERID, 3000, NULL);
 
+	AddShortCutKey(IDC_LOCAL_LIST,	'A',		MASK_CTRL,	0,	ID_EDIT_SELECT_ALL);
 	AddShortCutKey(IDC_LOCAL_LIST,	'C',		MASK_CTRL,	0,	ID_EDIT_COPY);
+	AddShortCutKey(IDC_LOCAL_LIST,	'N',		MASK_CTRL,	0,	IDM_SFTP_MKDIR);
 	AddShortCutKey(IDC_LOCAL_LIST,	'V',		MASK_CTRL,	0,	ID_EDIT_PASTE);
 	AddShortCutKey(IDC_LOCAL_LIST,	VK_DELETE,	0,			0,	IDM_SFTP_DELETE);
-
+	AddShortCutKey(IDC_LOCAL_LIST,	VK_F2,		0,			0,	IDM_SFTP_RENAME);
+	AddShortCutKey(IDC_LOCAL_LIST,	VK_F5,		0,			0,	IDM_SFTP_REFLESH);
+	
+	AddShortCutKey(IDC_REMOTE_LIST,	'A',		MASK_CTRL,	0,	ID_EDIT_SELECT_ALL);
+	AddShortCutKey(IDC_REMOTE_LIST,	'N',		MASK_CTRL,	0,	IDM_SFTP_MKDIR);
 	AddShortCutKey(IDC_REMOTE_LIST,	'V',		MASK_CTRL,	0,	ID_EDIT_PASTE);
 	AddShortCutKey(IDC_REMOTE_LIST,	VK_DELETE,	0,			0,	IDM_SFTP_DELETE);
+	AddShortCutKey(IDC_REMOTE_LIST,	VK_F2,		0,			0,	IDM_SFTP_RENAME);
+	AddShortCutKey(IDC_REMOTE_LIST,	VK_F5,		0,			0,	IDM_SFTP_REFLESH);
 
 	return TRUE;
 }
@@ -3915,7 +3934,7 @@ void CSFtp::OnSftpDelete()
 				if ( len++ <= 0 )
 					tmp = m_LocalNode[i].m_file;
 				else if ( len < 3 ) {
-					tmp += ",";
+					tmp += _T(",");
 					tmp += m_LocalNode[i].m_file;
 				} else
 					tmp.Format(CStringLoad(IDS_FILECOUNTMSG), len);
@@ -3942,7 +3961,7 @@ void CSFtp::OnSftpDelete()
 				if ( len++ <= 0 )
 					tmp = m_RemoteNode[i].m_file;
 				else if ( len < 3 ) {
-					tmp += ",";
+					tmp += _T(",");
 					tmp += m_RemoteNode[i].m_file;
 				} else
 					tmp.Format(CStringLoad(IDS_FILECOUNTMSG), len);
@@ -4203,15 +4222,20 @@ HCURSOR CSFtp::OnQueryDragIcon()
 
 void CSFtp::OnTimer(UINT_PTR nIDEvent) 
 {
-	if ( m_UpdateCheckMode ) {	// Local
-		struct _stati64 st;
-		if ( !_tstati64(m_LocalCurDir, &st) && m_LocalCurTime < st.st_mtime && !m_DoExec )
-			LocalSetCwd(m_LocalCurDir);
-	} else {					// Remote
-		if ( !m_RemoteCurDir.IsEmpty() && m_CmdQue.IsEmpty() && m_WaitQue.IsEmpty() && !m_DoExec )
-			RemoteMtimeCwd(m_RemoteCurDir);
+	switch(nIDEvent) {
+	case SFTP_TIMERID:
+		if ( m_UpdateCheckMode ) {	// Local
+			struct _stati64 st;
+			if ( !_tstati64(m_LocalCurDir, &st) && m_LocalCurTime < st.st_mtime && !m_DoExec )
+				LocalSetCwd(m_LocalCurDir);
+		} else {					// Remote
+			if ( !m_RemoteCurDir.IsEmpty() && m_CmdQue.IsEmpty() && m_WaitQue.IsEmpty() && !m_DoExec )
+				RemoteMtimeCwd(m_RemoteCurDir);
+		}
+		m_UpdateCheckMode ^= 1;
+		break;
 	}
-	m_UpdateCheckMode ^= 1;
+
 	CDialogExt::OnTimer(nIDEvent);
 }
 
@@ -4316,6 +4340,22 @@ void CSFtp::OnEditPaste()
 	DropFiles(pWnd->GetSafeHwnd(), hData, DROPEFFECT_COPY);
 
 	CloseClipboard();
+}
+void CSFtp::OnSelectAll()
+{
+	CWnd *pWnd = GetFocus();
+
+	if ( pWnd == NULL )
+		return;
+
+	if ( pWnd->GetSafeHwnd() == m_LocalList.GetSafeHwnd() ) {
+		for ( int n = 0 ; n < m_LocalList.GetItemCount() ; n++ )
+			m_LocalList.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
+
+	} else if ( pWnd->GetSafeHwnd() == m_RemoteList.GetSafeHwnd() ) {
+		for ( int n = 0 ; n < m_RemoteList.GetItemCount() ; n++ )
+			m_RemoteList.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
+	}
 }
 
 LRESULT CSFtp::OnDpiChanged(WPARAM wParam, LPARAM lParam)

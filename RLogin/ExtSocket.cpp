@@ -228,10 +228,12 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 
 	if ( m_ProxyStatus != PRST_NONE ) {
 		m_pFifoProxy = new CFifoProxy(m_pDocument, this);
+		m_pFifoProxy->m_nBufSize = m_RecvBufSize;
 		CFifoBase::Link(m_pFifoProxy, FIFO_STDIN, m_pFifoMid, FIFO_STDIN);
 	}
 	if ( m_SSL_mode != 0 ) {
 		m_pFifoSSL = new CFifoSSL(m_pDocument, this);
+		m_pFifoSSL->m_nBufSize = m_RecvBufSize;
 		CFifoBase::Link(m_pFifoSSL, FIFO_STDIN, (m_pFifoProxy != NULL ? m_pFifoProxy : m_pFifoMid), FIFO_STDIN);
 	}
 
@@ -657,7 +659,7 @@ void CExtSocket::GetPeerName(SOCKET fd, CString &host, int *port)
 	inlen = sizeof(in);
 	getpeername(fd, (struct sockaddr *)&in, &inlen);
 	getnameinfo((struct sockaddr *)&in, inlen, name, sizeof(name), serv, sizeof(serv), NI_NUMERICHOST | NI_NUMERICSERV);
-	host = name;
+	host = MbsToTstr(name);
 	*port = atoi(serv);
 }
 void CExtSocket::GetSockName(SOCKET fd, CString &host, int *port)
@@ -672,7 +674,7 @@ void CExtSocket::GetSockName(SOCKET fd, CString &host, int *port)
 	inlen = sizeof(in);
 	getsockname(fd, (struct sockaddr *)&in, &inlen);
 	getnameinfo((struct sockaddr *)&in, inlen, name, sizeof(name), serv, sizeof(serv), NI_NUMERICHOST | NI_NUMERICSERV);
-	host = name;
+	host = MbsToTstr(name);
 	*port = atoi(serv);
 }
 void CExtSocket::GetHostName(struct sockaddr *addr, int addrlen, CString &host)
@@ -682,7 +684,7 @@ void CExtSocket::GetHostName(struct sockaddr *addr, int addrlen, CString &host)
 	memset(name, 0, sizeof(name));
 	memset(serv, 0, sizeof(serv));
 	getnameinfo(addr, (socklen_t)addrlen, name, sizeof(name), serv, sizeof(serv), NI_NUMERICHOST | NI_NUMERICSERV);
-	host = name;
+	host = MbsToTstr(name);
 }
 int CExtSocket::GetPortNum(LPCTSTR str)
 {
@@ -1204,13 +1206,13 @@ BOOL CExtSocket::ProxyReadLine()
 BOOL CExtSocket::ProxyReadBuff(int len)
 {
 	int n;
-	BYTE buf[256];
+	BYTE buf[1024];
 
 	ASSERT(m_pFifoProxy != NULL);
 
 	while ( m_ProxyBuff.GetSize() < len ) {
-		if ( (n = len - m_ProxyBuff.GetSize()) > 256 )
-			n = 256;
+		if ( (n = len - m_ProxyBuff.GetSize()) > 1024 )
+			n = 1024;
 		if ( (n = m_pFifoProxy->Read(FIFO_STDIN, buf, n)) < 0 ) {
 			m_ProxyLastError = (m_pFifoProxy->m_nLastError != 0 ? m_pFifoProxy->m_nLastError : WSAECONNRESET);
 			m_ProxyStatus = PRST_NONE;
@@ -1698,7 +1700,7 @@ BOOL CExtSocket::ProxyFunc()
 			A1.Put16Bit(HTTP2_SETTINGS_MAX_CONCURRENT_STREAMS);
 			A1.Put32Bit(100);
 			A1.Put16Bit(HTTP2_SETTINGS_INITIAL_WINDOW_SIZE);
-			A1.Put32Bit(HTTP2_CLIENT_WINDOW_SIZE);
+			A1.Put32Bit(HTTP2_DEFAULT_WINDOW_SIZE);
 			m_pFifoProxy->Write(FIFO_STDOUT, (LPBYTE)"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n", 24);
 			m_pHttp2Ctx->SendHPackFrame(HTTP2_TYPE_SETTINGS, 0, 0, A1.GetPtr(), A1.GetSize());
 
@@ -1707,20 +1709,42 @@ BOOL CExtSocket::ProxyFunc()
 			break;
 		case PRST_HTTP2_TUNNEL:
 			{
-				BYTE buf[4096];
-				while ( (n = m_pFifoProxy->Peek(FIFO_EXTIN, buf, 4096)) > 0 ) {
-					if ( m_pHttp2Ctx->IsEndOfStream() ) {
-						m_ProxyLastError = WSAECONNABORTED;
-						m_ProxyStatus = PRST_NONE;
+				if ( !m_pFifoProxy->IsFdEvents(FIFO_EXTIN, FD_READ) && m_pFifoProxy->GetDataSize(FIFO_STDOUT) < (m_pFifoProxy->m_nBufSize * 2) )
+					m_pFifoProxy->SetFdEvents(FIFO_EXTIN, FD_READ);
+
+				if ( m_pFifoProxy->IsFdEvents(FIFO_EXTIN, FD_READ) ) {
+					BYTE buf[4096];
+					while ( (n = m_pFifoProxy->Peek(FIFO_EXTIN, buf, 4096)) > 0 ) {
+						if ( m_pHttp2Ctx->IsEndOfStream() ) {
+							m_ProxyLastError = WSAECONNABORTED;
+							m_ProxyStatus = PRST_NONE;
+							break;
+						}
+						if ( n > m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_STREAM_SERVER] )
+							n = m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_STREAM_SERVER];
+						if ( n > 0 ) {
+							m_pFifoProxy->Consume(FIFO_EXTIN, n);
+							m_pHttp2Ctx->SendHPackFrame(HTTP2_TYPE_DATA, 0, HTTP2_NOW_STREAMID, buf, n);
+							m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_STREAM_SERVER] -= n;
+
+							if ( m_pFifoProxy->GetDataSize(FIFO_STDOUT) >= (m_pFifoProxy->m_nBufSize * 4) ) {
+								m_pFifoProxy->ResetFdEvents(FIFO_EXTIN, FD_READ);
+								break;
+							}
+						} else
+							break;
+					}
+				}
+
+				if ( m_pFifoProxy->IsFdEvents(FIFO_STDIN, FD_READ) ) {
+					if ( m_pFifoProxy->GetDataSize(FIFO_EXTOUT) >= (m_pFifoProxy->m_nBufSize * 4) ) {
+						m_pFifoProxy->ResetFdEvents(FIFO_STDIN, FD_READ);
 						break;
 					}
-					if ( n > m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_STREAM_SERVER] )
-						n = m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_STREAM_SERVER];
-					if ( n > 0 ) {
-						m_pFifoProxy->Consume(FIFO_EXTIN, n);
-						m_pHttp2Ctx->SendHPackFrame(HTTP2_TYPE_DATA, 0, HTTP2_NOW_STREAMID, buf, n);
-						m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_STREAM_SERVER] -= n;
-					} else
+				} else {
+					if ( m_pFifoProxy->GetDataSize(FIFO_EXTOUT) < (m_pFifoProxy->m_nBufSize * 2) )
+						m_pFifoProxy->SetFdEvents(FIFO_STDIN, FD_READ);
+					else
 						break;
 				}
 			}
@@ -1732,6 +1756,7 @@ BOOL CExtSocket::ProxyFunc()
 			{
 				int length, type, flag;
 				DWORD sid;
+
 				if ( (n = m_pFifoProxy->GetDataSize(FIFO_STDIN)) > 0 )
 					ProxyReadBuff(m_ProxyBuff.GetSize() + n);
 				if ( !m_pHttp2Ctx->GetHPackFrame(&m_ProxyBuff, length, type, flag, sid) )
@@ -1749,14 +1774,15 @@ BOOL CExtSocket::ProxyFunc()
 				buf.Apend(m_ProxyBuff.GetPtr(), length);
 				m_ProxyBuff.Consume(length);
 
-				if ( (m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_TOTAL_CLIENT] -= (9 + length)) <= 0 ) {
+				if ( (m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_TOTAL_CLIENT] -= length) < (HTTP2_DEFAULT_WINDOW_SIZE / 2) ) {
+					int len = HTTP2_TOTAL_WINDOW_SIZE - m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_TOTAL_CLIENT];
 					A1.Clear();
-					A1.Put32Bit(HTTP2_CLIENT_WINDOW_SIZE);
+					A1.Put32Bit(len);
 					m_pHttp2Ctx->SendHPackFrame(HTTP2_TYPE_WINDOW_UPDATE, 0, 0, A1.GetPtr(), A1.GetSize());
-					m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_TOTAL_CLIENT] += HTTP2_CLIENT_WINDOW_SIZE;
+					m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_TOTAL_CLIENT] += len;
 				}
 
-				TRACE("RecvHPackFrame %d, %02x, #%d, %d\n", type, flag, sid, length);
+				// TRACE("RecvHPackFrame %d, %02x, #%d, %d\n", type, flag, sid, length);
 
 				switch(type) {
 				case HTTP2_TYPE_DATA:
@@ -1769,6 +1795,8 @@ BOOL CExtSocket::ProxyFunc()
 						break;
 					}
 
+					ASSERT(sid == m_pHttp2Ctx->m_ProxyStreamId);
+
 					if ( m_ProxyStatus == PRST_HTTP2_TUNNEL ) {
 						if ( buf.GetSize() > 0 )
 							m_pFifoProxy->Write(FIFO_EXTOUT, buf.GetPtr(), buf.GetSize());
@@ -1776,11 +1804,12 @@ BOOL CExtSocket::ProxyFunc()
 							m_pHttp2Ctx->SetEndOfStream(sid);
 					}
 
-					if ( (m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_STREAM_CLIENT] -= length) <= HTTP2_CLIENT_FLOWOFF_SIZE ) {
+					if ( (m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_STREAM_CLIENT] -= length) < (HTTP2_DEFAULT_WINDOW_SIZE / 2) ) {
+						int len = HTTP2_DEFAULT_WINDOW_SIZE - m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_STREAM_CLIENT];
 						A1.Clear();
-						A1.Put32Bit(HTTP2_DEFAULT_WINDOW_SIZE);
+						A1.Put32Bit(len);
 						m_pHttp2Ctx->SendHPackFrame(HTTP2_TYPE_WINDOW_UPDATE, 0, HTTP2_NOW_STREAMID, A1.GetPtr(), A1.GetSize());
-						m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_STREAM_CLIENT] += HTTP2_DEFAULT_WINDOW_SIZE;
+						m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_STREAM_CLIENT] += len;
 					}
 					break;
 				case HTTP2_TYPE_HEADERS:
@@ -1922,8 +1951,9 @@ BOOL CExtSocket::ProxyFunc()
 					if ( sid == 0 ) {
 						m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_TOTAL_SERVER] += n;
 						m_pHttp2Ctx->SendHPackFrameQueBuffer();
-					} else if ( sid == m_pHttp2Ctx->m_ProxyStreamId )
+					} else if ( sid == m_pHttp2Ctx->m_ProxyStreamId ) {
 						m_pHttp2Ctx->m_Http2WindowBytes[HTTP2_STREAM_SERVER] += n;
+					}
 					break;
 				default:
 					m_pDocument->m_ErrorPrompt.Format(_T("http/2 type error %d"), type);
@@ -1959,10 +1989,34 @@ BOOL CExtSocket::ProxyFunc()
 		case PRST_HTTP3_TUNNEL:
 			{
 				BYTE buf[4096];
-				while ( (n = m_pFifoProxy->Peek(FIFO_EXTIN, buf, 4096)) > 0 ) {
-					m_pHttp3Ctx->SendQPackFrame(HTTP3_TYPE_DATA, buf, n);
-					m_pFifoProxy->Consume(FIFO_EXTIN, n);
+
+				if ( !m_pFifoProxy->IsFdEvents(FIFO_EXTIN, FD_READ) && m_pFifoProxy->GetDataSize(FIFO_STDOUT) < (m_pFifoProxy->m_nBufSize * 2) )
+					m_pFifoProxy->SetFdEvents(FIFO_EXTIN, FD_READ);
+
+				if ( m_pFifoProxy->IsFdEvents(FIFO_EXTIN, FD_READ) ) {
+					while ( (n = m_pFifoProxy->Peek(FIFO_EXTIN, buf, 4096)) > 0 ) {
+						m_pHttp3Ctx->SendQPackFrame(HTTP3_TYPE_DATA, buf, n);
+						m_pFifoProxy->Consume(FIFO_EXTIN, n);
+
+						if ( m_pFifoProxy->GetDataSize(FIFO_STDOUT) >= (m_pFifoProxy->m_nBufSize * 4) ) {
+							m_pFifoProxy->ResetFdEvents(FIFO_EXTIN, FD_READ);
+							break;
+						}
+					}
 				}
+
+				if ( m_pFifoProxy->IsFdEvents(FIFO_STDIN, FD_READ) ) {
+					if ( m_pFifoProxy->GetDataSize(FIFO_EXTOUT) >= (m_pFifoProxy->m_nBufSize * 4) ) {
+						m_pFifoProxy->ResetFdEvents(FIFO_STDIN, FD_READ);
+						break;
+					}
+				} else {
+					if ( m_pFifoProxy->GetDataSize(FIFO_EXTOUT) < (m_pFifoProxy->m_nBufSize * 2) )
+						m_pFifoProxy->SetFdEvents(FIFO_STDIN, FD_READ);
+					else
+						break;
+				}
+
 			}
 			// no break;
 		case PRST_HTTP3_CONNECT:
@@ -2067,3 +2121,51 @@ BOOL CExtSocket::ProxyFunc()
 	}
 	return FALSE;
 }
+
+///////////////////////////////////////////
+
+#ifdef	USE_FIFOMONITER
+void CExtSocket::FifoMoniter(int nList[10])
+{
+	// FifoSocket  FifoSSL		  FifoProxy		 FifoMid		FifoSync	   FifoDocument
+	//	   STDOUT->STDIN  EXTOUT->STDIN  EXTOUT->STDIN  EXTOUT->STDIN  EXTOUT->STDIN
+	//      STDIN<-STDOUT  EXTIN<-STDOUT  EXTIN<-STDOUT  EXTIN<-STDOUT  EXTIN<-STDOUT
+
+	if ( m_pFifoLeft != NULL ) {
+		nList[0] = m_pFifoLeft->GetFifoMoniter(FIFO_STDOUT);
+		nList[5] = m_pFifoLeft->GetFifoMoniter(FIFO_STDIN);
+	} else {
+		nList[0] = 0;
+		nList[5] = 0;
+	}
+
+	if ( m_pFifoSSL != NULL ) {
+		nList[1] = m_pFifoSSL->GetFifoMoniter(FIFO_EXTOUT);
+		nList[6] = m_pFifoSSL->GetFifoMoniter(FIFO_EXTIN);
+	} else {
+		nList[1] = 0;
+		nList[6] = 0;
+	}
+
+	if ( m_pFifoProxy != NULL ) {
+		nList[2] = m_pFifoProxy->GetFifoMoniter(FIFO_EXTOUT);
+		nList[7] = m_pFifoProxy->GetFifoMoniter(FIFO_EXTIN);
+	} else {
+		nList[2] = 0;
+		nList[7] = 0;
+	}
+
+	if ( m_pFifoSync != NULL ) {
+		nList[3] = m_pFifoSync->GetFifoMoniter(FIFO_STDIN);
+		nList[8] = m_pFifoSync->GetFifoMoniter(FIFO_STDOUT);
+		nList[4] = m_pFifoSync->GetFifoMoniter(FIFO_EXTOUT);
+		nList[9] = m_pFifoSync->GetFifoMoniter(FIFO_EXTIN);
+
+	} else if ( m_pFifoMid != NULL ) {
+		nList[3] = 0;
+		nList[8] = 0;
+		nList[4] = m_pFifoMid->GetFifoMoniter(FIFO_EXTOUT);
+		nList[9] = m_pFifoMid->GetFifoMoniter(FIFO_EXTIN);
+	}
+}
+#endif

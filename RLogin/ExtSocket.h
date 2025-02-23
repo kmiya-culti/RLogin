@@ -225,4 +225,8 @@ public:
 
 	inline LPCTSTR LocalStr(LPCSTR str) { return m_pFifoMid->DocMsgLocalStr(str, m_WorkStr); }
 	inline LPCSTR RemoteStr(LPCTSTR str) { return m_pFifoMid->DocMsgRemoteStr(str, m_WorkMbs); }
+
+#ifdef	USE_FIFOMONITER
+	void FifoMoniter(int nList[10]);
+#endif
 };

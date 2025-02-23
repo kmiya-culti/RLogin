@@ -720,7 +720,7 @@ CScriptValue::operator LPCSTR ()
 	case VALTYPE_STRING:
 		return (LPCSTR)m_Buf;
 	case VALTYPE_WSTRING:
-		tmp = (LPCWSTR)m_Buf;
+		tmp = UniToMbs((LPCWSTR)m_Buf);
 		m_Work.Clear();
 		m_Work.Apend((LPBYTE)(LPCSTR)tmp, tmp.GetLength());
 		return (LPCSTR)m_Work;
@@ -741,7 +741,7 @@ CScriptValue::operator LPCSTR ()
 		break;
 	case VALTYPE_LPDCHAR:
 		work = *((DCHAR *)(ThrowNullPtr(m_Value.m_Ptr)));
-		tmp = work;
+		tmp = UniToMbs(work);
 		m_Buf.Clear();
 		m_Buf.Apend((LPBYTE)(LPCSTR)tmp, tmp.GetLength());
 		break;
@@ -786,7 +786,7 @@ CScriptValue::operator LPCWSTR ()
 		m_Buf.Apend((LPBYTE)(LPCWSTR)tmp, tmp.GetLength());
 		break;
 	case VALTYPE_STRING:
-		tmp = (LPCSTR)m_Buf;
+		tmp = MbsToUni((LPCSTR)m_Buf);
 		m_Work.Clear();
 		m_Work.Apend((LPBYTE)(LPCWSTR)tmp, tmp.GetLength() * sizeof(WCHAR));
 		return (LPCWSTR)m_Work;
@@ -846,7 +846,7 @@ CScriptValue::operator LPCDSTR ()
 		tmp.Format(L"%I64d", m_Value.m_Int64);
 		break;
 	case VALTYPE_STRING:
-		tmp = (LPCSTR)m_Buf;
+		tmp = MbsToUni((LPCSTR)m_Buf);
 		break;
 	case VALTYPE_WSTRING:
 		tmp = (LPCWSTR)m_Buf;
@@ -1915,17 +1915,18 @@ LOOP:
 		}
 
 	} else if ( ch == '"' ) {
+		CStringW save;
 		while ( (ch = GetChar()) != EOF ) {
 			if ( ch == '"' )
 				break;
 			else if ( ch == '\\' )
-				buf.Put8Bit(LexEscape(GetChar(), NULL));
+				save += (WCHAR)LexEscape(GetChar(), NULL);
 			else {
-				tmp = (WCHAR)ch;
-				buf.Apend((LPBYTE)(LPCSTR)tmp, tmp.GetLength());
+				save += (WCHAR)ch;
 			}
 		}
-		m_LexTmp.SetBuf(buf.GetPtr(), buf.GetSize());
+		tmp = UniToMbs(save);
+		m_LexTmp.SetBuf((LPBYTE)(LPCSTR)tmp, tmp.GetLength());
 		ch = LEX_STRING;
 	}
 
@@ -3073,6 +3074,8 @@ int CScript::LoadFile(LPCTSTR filename)
 	int size;
 	LPTSTR ptr;
 	int pos;
+
+	::FormatErrorReset();
 
 	if ( (n = m_IncFile.Find(filename)) >= 0 )
 		return n;

@@ -258,6 +258,8 @@ void CSyncSock::DoProc(int cmd)
 	if ( m_ThreadMode != THREAD_NONE )
 		return;
 
+	::FormatErrorReset();
+
 	m_bInitDone = FALSE;
 	m_AbortFlag = FALSE;
 
@@ -371,7 +373,7 @@ void CSyncSock::Bufferd_Clear()
 int CSyncSock::Bufferd_Receive(int sec, int msec)
 {
 	int n;
-	BYTE tmp[4096];
+	BYTE tmp[8192];
 
 	ASSERT(m_pDoc != NULL && m_pDoc->m_pSock != NULL);
 
@@ -379,18 +381,13 @@ int CSyncSock::Bufferd_Receive(int sec, int msec)
 		return (-2);
 
 	if ( m_RecvBuf.GetSize() <= 0 ) {
-		if ( (n = m_pDoc->m_pSock->SyncReceive(tmp, 4096, sec * 1000 + msec, &m_AbortFlag)) <= 0 )
+		if ( (n = m_pDoc->m_pSock->SyncReceive(tmp, 8192, sec * 1000 + msec, &m_AbortFlag)) <= 0 )
 			return (-2);	// TIME OUT
 
-		do {
-			m_RecvBuf.Apend(tmp, n);
-		} while ( (n = m_pDoc->m_pSock->SyncReceive(tmp, 4096, 0, &m_AbortFlag)) > 0 );
+		m_RecvBuf.Apend(tmp, n);
 
-#ifdef	USE_DEBUGLOG
-		n = m_RecvBuf.GetSize();
 		DebugMsg("Bufferd_Receive %d", n);
 		DebugDump(tmp, n < 16 ? n : 16);
-#endif
 	}
 
 	return m_RecvBuf.Get8Bit();
@@ -601,7 +598,7 @@ void CSyncSock::FileClose(FILE *fp)
 	if ( m_bUseWrite && m_InBuf.GetSize() > 0 ) {
 		m_IConv.IConvSub(m_HostCode, _T("UTF-16LE"), &m_InBuf, &work);
 
-		mbs = (LPCWSTR)work;
+		mbs = UniToMbs((LPCWSTR)work);
 		m_OutBuf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
 
 		if ( (n = (int)fwrite(m_OutBuf.GetPtr(), 1, m_OutBuf.GetSize(), fp)) > 0 )
@@ -686,7 +683,7 @@ int CSyncSock::WriteFileFromHost(char *buf, int len, FILE *fp)
 			work.Clear();
 			m_IConv.IConvSub(m_HostCode, _T("UTF-16LE"), &m_InBuf, &work);
 
-			mbs = (LPCWSTR)work;
+			mbs = UniToMbs((LPCWSTR)work);
 			m_OutBuf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
 
 		} else if ( buf[n] != '\r' )

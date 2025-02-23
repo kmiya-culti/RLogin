@@ -6521,9 +6521,7 @@ void CTextRam::fc_XTWINOPS(DWORD ch)
 			if ( (m_XtOptFlag & XTOP_GETHEX) != 0 ) {
 				CBuffer buf;
 				buf.Base16Encode((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
-				mbs.Empty();
-				for ( LPCTSTR p = buf ; *p != _T('\0') ; )
-					mbs += *(p++);
+				mbs = TstrToMbs((LPCTSTR)buf);
 			}
 
 			tmp.Format("%s%c%s%s", TstrToMbs(m_RetChar[RC_OSC]), (n == 20 ? 'L':'l'), (LPCSTR)mbs, TstrToMbs(m_RetChar[RC_ST]));

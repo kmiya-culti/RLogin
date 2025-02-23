@@ -110,8 +110,10 @@ CHttp2Ctx::CHttp2Ctx(class CFifoProxy *pFifoProxy)
 	m_ProxyStreamId = (-1);
 	m_bEndofStream = FALSE;
 
-	m_Http2WindowBytes[HTTP2_TOTAL_SERVER] = m_Http2WindowBytes[HTTP2_STREAM_SERVER] = HTTP2_DEFAULT_WINDOW_SIZE;
-	m_Http2WindowBytes[HTTP2_TOTAL_CLIENT] = m_Http2WindowBytes[HTTP2_STREAM_CLIENT] = HTTP2_DEFAULT_WINDOW_SIZE;
+	m_Http2WindowBytes[HTTP2_TOTAL_SERVER]  = HTTP2_DEFAULT_WINDOW_SIZE;
+	m_Http2WindowBytes[HTTP2_TOTAL_CLIENT]  = HTTP2_DEFAULT_WINDOW_SIZE;
+	m_Http2WindowBytes[HTTP2_STREAM_SERVER] = HTTP2_DEFAULT_WINDOW_SIZE;
+	m_Http2WindowBytes[HTTP2_STREAM_CLIENT] = HTTP2_DEFAULT_WINDOW_SIZE;
 
 	for ( int n = 0 ; n < HPACK_FIELD_MAX ; n++ ) {
 		if ( m_StaticField.Find(hpack_field_tab[n].name) < 0 )
@@ -371,22 +373,25 @@ BOOL CHttp2Ctx::GetHPackFrame(class CBuffer *bp, int &length, int &type, int &fl
 }
 void CHttp2Ctx::SendHPackFrameQueBuffer()
 {
-	while ( m_Http2WindowBytes[HTTP2_TOTAL_SERVER] > 0 && !m_SendQue.IsEmpty() ) {
+	while ( !m_SendQue.IsEmpty() ) {
 		CBuffer *bp = (CBuffer *)m_SendQue.RemoveHead();
+		if ( m_Http2WindowBytes[HTTP2_TOTAL_SERVER] < (bp->GetSize() - 9) )
+			break;
 		m_pFifoProxy->Write(FIFO_STDOUT, bp->GetPtr(), bp->GetSize());
-		m_Http2WindowBytes[HTTP2_TOTAL_SERVER] -= bp->GetSize();
+		m_Http2WindowBytes[HTTP2_TOTAL_SERVER] -= (bp->GetSize() - 9);
 		delete bp;
 	}
 }
 void CHttp2Ctx::SendHPackFrameBuffer(CBuffer *bp)
 {
-	if ( m_Http2WindowBytes[HTTP2_TOTAL_SERVER] <= HTTP2_CLIENT_FLOWOFF_SIZE ) {
+	if ( m_Http2WindowBytes[HTTP2_TOTAL_SERVER] < (bp->GetSize() - 9) ) {
 		CBuffer *pQue = new CBuffer(bp->GetSize());
 		pQue->Apend(bp->GetPtr(), bp->GetSize());
 		m_SendQue.AddTail(pQue);
+
 	} else {
 		m_pFifoProxy->Write(FIFO_STDOUT, bp->GetPtr(), bp->GetSize());
-		m_Http2WindowBytes[HTTP2_TOTAL_SERVER] -= bp->GetSize();
+		m_Http2WindowBytes[HTTP2_TOTAL_SERVER] -= (bp->GetSize() - 9);
 	}
 }
 void CHttp2Ctx::SendHPackFrame(int type, int flag, int sid, BYTE *pBuf, int len)
@@ -397,7 +402,7 @@ void CHttp2Ctx::SendHPackFrame(int type, int flag, int sid, BYTE *pBuf, int len)
 		sid = m_ProxyStreamId;
 	else if ( sid == HTTP2_NEW_STREAMID ) {
 		m_ProxyStreamId += 2;
-		m_Http2WindowBytes[HTTP2_STREAM_CLIENT] = HTTP2_CLIENT_WINDOW_SIZE;
+		m_Http2WindowBytes[HTTP2_STREAM_CLIENT] = HTTP2_DEFAULT_WINDOW_SIZE;
 		m_Http2WindowBytes[HTTP2_STREAM_SERVER] = HTTP2_DEFAULT_WINDOW_SIZE;
 		sid = m_ProxyStreamId;
 		m_bEndofStream = FALSE;
@@ -411,7 +416,7 @@ void CHttp2Ctx::SendHPackFrame(int type, int flag, int sid, BYTE *pBuf, int len)
 	if ( pBuf != NULL && len > 0 )
 		tmp.Apend(pBuf, len);
 
-	TRACE("SendHPackFrame %d, %d, %d, %d\n", type, flag, sid, len);
+	// TRACE("SendHPackFrame %d, %d, %d, %d\n", type, flag, sid, len);
 
 	SendHPackFrameBuffer(&tmp);
 }

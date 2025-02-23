@@ -225,6 +225,8 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "プリンタの設定(&R)",                 ID_FILE_PRINT_SETUP
         MENUITEM SEPARATOR
+        MENUITEM "ファイルの署名検証(&Z)",               IDM_SSHSIG
+        MENUITEM SEPARATOR
         MENUITEM "最近使ったファイル",                   ID_FILE_MRU_FILE1
         MENUITEM SEPARATOR
         MENUITEM "アプリケーションの終了(&X)",             ID_APP_EXIT
@@ -307,6 +309,7 @@ BEGIN
             MENUITEM "&0 ファイルダウンロード",               IDM_SIMPLE_DOWNLOAD
         END
         MENUITEM "スクリプトの実行(&E)",                IDM_SCRIPT
+        MENUITEM "ファイルの署名検証(&Z)",               IDM_SSHSIG
         MENUITEM SEPARATOR
         MENUITEM "最近使ったファイル",                   ID_FILE_MRU_FILE1
         MENUITEM SEPARATOR
@@ -469,9 +472,9 @@ BEGIN
         MENUITEM "ファイルのアップロード(&U)",             IDM_SFTP_UPLOAD
         MENUITEM "ファイルのダウンロード(&D)",             IDM_SFTP_DOWNLOAD
         MENUITEM SEPARATOR
-        MENUITEM "フォルダの作成(&M)",                 IDM_SFTP_MKDIR
+        MENUITEM "フォルダの作成(&M)\tCtrl+N",         IDM_SFTP_MKDIR
         MENUITEM "ファイルの削除(&X)\tDel",            IDM_SFTP_DELETE
-        MENUITEM "ファイル名の変更(&N)",                IDM_SFTP_RENAME
+        MENUITEM "ファイル名の変更(&N)\tF2",            IDM_SFTP_RENAME
         MENUITEM "ファイル属性の変更(&A)",               IDM_SFTP_CHMOD
         MENUITEM SEPARATOR
         MENUITEM "ミラーアップロード(&S)",               IDM_SFTP_ALLUPLOAD
@@ -479,7 +482,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "uid/gidを名称に変換(&I)",           IDM_SFTP_UIDGID
         MENUITEM "ファイル転送の中止(&Z)",               IDM_SFTP_ABORT
-        MENUITEM "最新の情報に更新(&R)",                IDM_SFTP_REFLESH
+        MENUITEM "最新の情報に更新(&R)\tF5",            IDM_SFTP_REFLESH
     END
 END
 
@@ -737,10 +740,10 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,210,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.30.1 (2025/01/27)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.30.2 (2025/02/24)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2025 Culti",IDC_STATIC,44,17,189,8
-    LTEXT           "OpenSSL 3.4.0 22 Oct 2024",IDC_STATIC,44,50,189,8
-    LTEXT           "Copyright (c) 1998-2024 The OpenSSL Project",IDC_STATIC,44,60,189,8
+    LTEXT           "OpenSSL 3.4.1 11 Feb 2025",IDC_STATIC,44,50,189,8
+    LTEXT           "Copyright (c) 1998-2025 The OpenSSL Project",IDC_STATIC,44,60,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,80,189,8
     LTEXT           "zlib 1.3.1 (22 Jan 2024)",IDC_STATIC,44,94,189,8
@@ -2310,6 +2313,38 @@ FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
 END
 
+IDD_SSHSIGDLG DIALOGEX 0, 0, 330, 345
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "SSH鍵によるファイル署名"
+FONT 9, "MS UI Gothic", 400, 0, 0x80
+BEGIN
+    COMBOBOX        IDC_SSHSIG_DATAFILE,14,20,250,100,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "参照",IDC_SSHSIG_DATAFILE_SEL,268,19,50,14
+    CONTROL         "RLoginで管理している鍵",IDC_SSHSIG_KEYSEL1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,63,240,10
+    COMBOBOX        IDC_SSHSIG_KEYLIST,14,75,250,100,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "ファイル保存の鍵",IDC_SSHSIG_KEYSEL2,"Button",BS_AUTORADIOBUTTON,14,90,240,10
+    COMBOBOX        IDC_SSHSIG_KEYFILE,14,101,250,100,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "参照",IDC_SSHSIG_KEYFILE_SEL,268,100,50,14
+    COMBOBOX        IDC_SSHSIG_NAMESPACE,218,140,100,100,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "指定された鍵と名前空間を含めて検証を行う（自身で署名したかを確認します）",IDC_SSHSIG_VERIFY_WITHKEY,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,156,301,10
+    PUSHBUTTON      "ファイルからインポート",IDC_SSHSIG_INPORT,132,278,90,14
+    PUSHBUTTON      "ファイルにエクスポート",IDC_SSHSIG_EXPORT,228,278,90,14
+    PUSHBUTTON      "クリップボードからペースト",IDC_SSHSIG_SIGN_PAST,132,295,90,14
+    PUSHBUTTON      "クリップボードにコピー",IDC_SSHSIG_SIGN_COPY,228,295,90,14
+    PUSHBUTTON      "検証",IDC_SSHSIG_VERIFY,27,324,80,14
+    DEFPUSHBUTTON   "署名",IDOK,125,324,80,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,223,324,80,14
+    GROUPBOX        "署名するファイル",IDC_TITLE1,7,7,316,32
+    GROUPBOX        "鍵の選択",IDC_TITLE2,7,50,316,70
+    GROUPBOX        "オプション",IDC_TITLE3,7,129,316,44
+    GROUPBOX        "署名",IDC_TITLE4,7,183,316,133
+    EDITTEXT        IDC_SSHSIG_SIGN,14,194,302,80,ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL
+    LTEXT           "名前空間の指定（空白時は、RLoginになります）",IDC_TITLE5,14,142,198,8
+    LTEXT           "署名をファイルに読み書きします",IDC_TITLE6,14,280,118,8
+    LTEXT           "署名をクリップボードに読み書きします",IDC_TITLE7,14,297,118,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2317,8 +2352,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,30,1,0
- PRODUCTVERSION 2,30,1,0
+ FILEVERSION 2,30,2,0
+ PRODUCTVERSION 2,30,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2335,12 +2370,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.30.1.0"
+            VALUE "FileVersion", "2.30.2.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.30.1.0"
+            VALUE "ProductVersion", "2.30.2.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2905,6 +2940,14 @@ BEGIN
         RIGHTMARGIN, 153
         TOPMARGIN, 7
         BOTTOMMARGIN, 9
+    END
+
+    IDD_SSHSIGDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 323
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 338
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -5249,6 +5292,7 @@ BEGIN
     IDM_DOCKBARFIXED        "ドッキングバーを移動出来ないようにします\nバー位置を固定"
     IDM_DOCKBARINIT         "ドッキングバーをプログラム初期位置に戻します\nバー位置を初期化"
     IDM_APPCOLEDIT          "メニューやドッキングバーの背景色などを編集します\n各種ウィンドウの色設定"
+    IDM_SSHSIG              "SSH鍵によるファイルの署名・検証を行う\nファイル署名検証"
 END
 
 #endif    // 日本語 (日本) resources

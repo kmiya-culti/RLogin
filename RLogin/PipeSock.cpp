@@ -150,6 +150,8 @@ BOOL CFifoPipe::IsPipeName(LPCTSTR path)
 }
 BOOL CFifoPipe::Open(LPCTSTR pCommand)
 {
+	::FormatErrorReset();
+
 	if ( pCommand == NULL )
 		pCommand = m_Command;
 	else

@@ -686,7 +686,7 @@ void CKermit::SendAttr()
 
 	if ( (m_AttrFlag & KMT_ATTR_TIME) != 0 ) {
 		CTime t(m_FileTime);
-		tmp = t.Format(_T("%Y%m%d %H:%M:%S"));
+		tmp = TstrToMbs(t.Format(_T("%Y%m%d %H:%M:%S")));
 		str += '#';
 		str += (char)ToChar(tmp.GetLength());
 		str += tmp;

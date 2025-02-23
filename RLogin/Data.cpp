@@ -392,12 +392,16 @@ void CBuffer::RoundUp(int len)
 
 void CBuffer::SetMbsStr(LPCTSTR str)
 {
+#if 1
+	CStringA tmp = TstrToMbs(str);
+	*this += (LPCSTR)tmp;
+#else
     CStringA tmp;
-
 	while ( *str != _T('\0') ) {
 		tmp = *(str++);
 		*this += tmp;
 	}
+#endif
 }
 LPCSTR CBuffer::operator += (LPCSTR str)
 {
@@ -2557,7 +2561,7 @@ int CBuffer::KanjiCheck(int type)
 		return KANJI_EUC;
 	else if ( work.utf8_rs > 0.6 && work.utf8_rs > work.sjis_rs && work.utf8_rs > work.euc_rs && work.utf8_rs > work.utf7_rs )
 		return KANJI_UTF8;
-	else if ( work.utf7_rs > 0.9 && work.utf7_rs > work.sjis_rs && work.utf7_rs > work.euc_rs && work.utf7_rs > work.utf8_rs )
+	else if ( work.utf7_rs > 0.9 && work.sjis_rs < 0.5 && work.euc_rs < 0.5 && work.utf8_rs < 0.5 )
 		return KANJI_UTF7;
 	else if ( work.u32be_rs > 0.9 && work.u32be_rs > work.u16be_rs )
 		return KANJI_UTF32BE;
@@ -2585,13 +2589,13 @@ void CBuffer::KanjiConvert(int type)
 		for ( n = m_Ofs ; n < m_Len ; n++ ) {
 			mbs += (CHAR)m_Data[n];
 			if ( m_Data[n] == '\n' ) {
-				str = mbs;
+				str = MbsToTstr(mbs);
 				work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
 				mbs.Empty();
 			}
 		}
 		if ( !mbs.IsEmpty() ) {
-			str = mbs;
+			str = MbsToTstr(mbs);
 			work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
 		}
 		Swap(work);
@@ -2853,10 +2857,10 @@ void CStringArrayExt::SetString(CString &str, int sep)
 {
 	int n;
 
-	str = "";
+	str.Empty();
 	for ( n = 0 ; n < GetSize() ; n++ ) {
 		str += GetAt(n);
-		str += (char)sep;
+		str += (TCHAR)sep;
 	}
 }
 void CStringArrayExt::GetString(LPCTSTR str, int sep)
@@ -2917,7 +2921,7 @@ void CStringArrayExt::Serialize(CArchive& ar)
 	if ( ar.IsStoring() ) {
 		// TODO: この位置に保存用のコードを追加してください。
 		for ( n = 0 ; n < GetSize() ; n++ ) {
-			str = GetAt(n);
+			str = TstrToMbs(GetAt(n));
 			str += "\n";
 			ar.Write((LPCSTR)str, str.GetLength());
 		}
@@ -4858,15 +4862,15 @@ void CStrScript::EscapeStr(LPCWSTR str, CString &buf, BOOL reg)
 	for ( buf.Empty() ; *str != L'\0' ; str++ ) {
 		if ( *str <= L' ' || *str == L'\\' || *str == 0x7F ) {
 			switch(*str) {
-			case 0x07: buf += "\\a"; break;
-			case 0x08: buf += "\\b"; break;
-			case 0x09: buf += "\\t"; break;
-			case 0x0A: buf += "\\n"; break;
-			case 0x0B: buf += "\\v"; break;
-			case 0x0C: buf += "\\f"; break;
-			case 0x0D: buf += "\\r"; break;
-			case L' ':  buf += " ";   break;
-			case L'\\': buf += "\\\\"; break;
+			case 0x07: buf += _T("\\a"); break;
+			case 0x08: buf += _T("\\b"); break;
+			case 0x09: buf += _T("\\t"); break;
+			case 0x0A: buf += _T("\\n"); break;
+			case 0x0B: buf += _T("\\v"); break;
+			case 0x0C: buf += _T("\\f"); break;
+			case 0x0D: buf += _T("\\r"); break;
+			case L' ':  buf += _T(" ");   break;
+			case L'\\': buf += _T("\\\\"); break;
 			default:
 				tmp.Format(_T("\\%03o"), (CHAR)*str);
 				buf += tmp;
@@ -7318,7 +7322,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	152
+#define	CMDSKEYTABMAX	153
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -7353,6 +7357,7 @@ static const struct _CmdsKeyTab {
 	{	ID_FILE_OPEN,				L"$FILE_OPEN"		},
 	{	IDM_REOPENSOCK,				L"$FILE_RECONNECT"	},
 	{	ID_FILE_SAVE_AS,			L"$FILE_SAVE"		},
+	{	IDM_SSHSIG,					L"$FILE_SSHSIG"		},
 	{	IDM_SIMPLE_UPLOAD,			L"$FILE_UPLOAD"		},
 	{	IDM_KANJI_ASCII,			L"$KANJI_ASCII"		},
 	{	IDM_KANJI_EUC,				L"$KANJI_EUC"		},
@@ -7493,7 +7498,7 @@ void CKeyNodeTab::CmdsInit()
 			continue;
 		str = GetAt(n).GetMask();
 		if ( !str.IsEmpty() )
-			str += "+";
+			str += _T("+");
 		p = GetAt(n).GetCode();
 		if ( p[0] == _T('$') && (s = _tcschr(p, _T('('))) != NULL )
 			str += s[1];
@@ -8438,7 +8443,7 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 				m_IdKeyList.AddVal(pMain->m_IdKeyTab.GetAt(i).m_Uid);
 				continue;
 			}
-			key.m_Name = "";
+			key.m_Name.Empty();
 			key.SetPass(m_IdKeyStr[n + 2]);
 			pMain->m_IdKeyTab.AddEntry(key);
 			m_IdKeyList.AddVal(key.m_Uid);
@@ -9416,14 +9421,16 @@ void CStringIndex::SetPackStr(CStringA &mbs)
 		}
 
 	} else if ( m_bString ) {
+		CString wrk;
 		CStringA tmp;
 		LPCTSTR p = m_String;
 
 		mbs = '"';
 		while ( *p != _T('\0') ) {
 			if ( *p == _T('\\') || *p == _T('"') ) {
+				wrk = *(p++);
 				mbs += '\\';
-				mbs += *(p++);
+				mbs += TstrToMbs(wrk);
 			} else if ( (*p & 0xFF00) != 0 ) {
 				tmp = *p;
 				if ( tmp.IsEmpty() || tmp.Compare("?") == 0 || tmp.Compare("\\") == 0 )
@@ -9444,8 +9451,10 @@ void CStringIndex::SetPackStr(CStringA &mbs)
 					break;
 				}
 				p++;
-			} else
-				mbs += *(p++);
+			} else {
+				wrk = *(p++);
+				mbs += TstrToMbs(wrk);
+			}
 		}
 		mbs += '"';
 
@@ -9646,7 +9655,7 @@ BOOL CStringIndex::ReadString(CArchive& ar, CString &str)
 	if ( mbs.IsEmpty() )
 		return FALSE;
 
-	str = mbs.Trim(" \t\r\n");
+	str = MbsToTstr(mbs.Trim(" \t\r\n"));
 
 	return TRUE;
 }
@@ -9663,7 +9672,7 @@ BOOL CStringIndex::MsgStr(CString &str, LPCSTR base)
 		mbs = base;
 	if ( !mbs.IsEmpty() )
 		mbs += '.';
-	mbs += m_nIndex;
+	mbs += TstrToMbs(m_nIndex);
 
 	if ( GetSize() > 0 && !m_Array[0].m_nIndex.IsEmpty() ) {
 		for ( int n = 0 ; n < GetSize() ; n++ ) {
@@ -9677,7 +9686,7 @@ BOOL CStringIndex::MsgStr(CString &str, LPCSTR base)
 			mbs += '=';
 			mbs += tmp;
 			mbs += ";\r\n";
-			str += mbs;
+			str += MbsToTstr(mbs);
 		}
 	}
 
@@ -9703,7 +9712,7 @@ void CStringIndex::Serialize(CArchive& ar, LPCSTR base, int version)
 				mbs = base;
 			if ( !mbs.IsEmpty() )
 				mbs += '.';
-			mbs += m_nIndex;
+			mbs += TstrToMbs(m_nIndex);
 
 			if ( GetSize() > 0 && !m_Array[0].m_nIndex.IsEmpty() ) {
 				for ( int n = 0 ; n < GetSize() ; n++ )
@@ -10354,7 +10363,7 @@ void CStringIndex::AddQueryString(CStringA &mbs, LPCTSTR str, BOOL bUtf8)
 	if ( bUtf8 )
 		iconv.StrToRemote(_T("UTF-8"), str, tmp);
 	else
-		tmp = str;
+		tmp = TstrToMbs(str);
 
 	for ( LPCSTR p = tmp ; *p != '\0' ; p++ ) {
 		if ( *p < ' ' || *p >= 127 || !isalnum(*p) ) {

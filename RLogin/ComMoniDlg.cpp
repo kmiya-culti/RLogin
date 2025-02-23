@@ -253,6 +253,7 @@ BOOL CComMoniDlg::OnInitDialog()
 
 	SetCommError();
 	SetModemStatus();
+	::FormatErrorReset();
 
 	m_bActive = TRUE;
 
