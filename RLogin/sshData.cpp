@@ -2348,7 +2348,7 @@ LPCTSTR CIdKey::GetName(int nFlag)
 
 	m_Work.Empty();
 
-	if ( (nFlag & IDKEY_NAME_CERT) != 0 ) {
+	if ( (nFlag & IDKEY_NAME_AGEANT) != 0 ) {
 		if ( m_AgeantType == IDKEY_AGEANT_PUTTY || m_AgeantType == IDKEY_AGEANT_PUTTYPIPE )
 			m_Work += _T("Pageant:");
 		else if ( m_AgeantType == IDKEY_AGEANT_WINSSH )
