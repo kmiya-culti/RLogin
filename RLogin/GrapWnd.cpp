@@ -269,6 +269,7 @@ BEGIN_MESSAGE_MAP(CGrapWnd, CFrameWndExt)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, &CGrapWnd::OnUpdateEditCopy)
 	ON_COMMAND(IDM_HISTOGRAM, &CGrapWnd::OnHistogram)
 	ON_UPDATE_COMMAND_UI(IDM_HISTOGRAM, &CGrapWnd::OnUpdateHistogram)
+	ON_COMMAND(ID_FILE_PRINT, &CGrapWnd::OnFilePrint)
 END_MESSAGE_MAP()
 
 // CGrapWnd メッセージ ハンドラー
@@ -715,6 +716,71 @@ void CGrapWnd::OnHistogram()
 void CGrapWnd::OnUpdateHistogram(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_pActMap != NULL && m_pHistogram == NULL ? TRUE : FALSE);
+}
+
+void CGrapWnd::OnFilePrint()
+{
+	CDC dc, TempDC;
+	CBitmap *pOldBitMap;
+	CPoint po;
+    DOCINFO docinfo;
+	CPrintDialog dlg(FALSE, PD_ALLPAGES | PD_USEDEVMODECOPIES | PD_NOPAGENUMS | PD_HIDEPRINTTOFILE | PD_NOSELECTION, this);
+	CRect frame, margin, box;
+
+	//if ( dlg.DoModal() != IDOK )
+	if ( theApp.DoPrintDialog(&dlg) != IDOK )
+		return;
+
+	dc.Attach(dlg.CreatePrinterDC());
+
+    memset(&docinfo, 0, sizeof(DOCINFO));
+    docinfo.cbSize = sizeof(DOCINFO);
+	docinfo.lpszDocName = _T("Graphics Print");
+
+	margin.left   = 10;
+	margin.right  = 10;
+	margin.top    = 10;
+	margin.bottom = 10;
+
+	frame.left   = margin.left * 10 * dc.GetDeviceCaps(LOGPIXELSX) / 254;
+	frame.top    = margin.top  * 10 * dc.GetDeviceCaps(LOGPIXELSY) / 254;
+	frame.right  = dc.GetDeviceCaps(HORZRES) - margin.right  * 10 * dc.GetDeviceCaps(LOGPIXELSX) / 254;
+	frame.bottom = dc.GetDeviceCaps(VERTRES) - margin.bottom * 10 * dc.GetDeviceCaps(LOGPIXELSY) / 254;
+
+	dc.StartDoc(&docinfo);
+	dc.StartPage();
+
+	TempDC.CreateCompatibleDC(&dc);
+	pOldBitMap = (CBitmap *)TempDC.SelectObject(m_pActMap);
+	po = dc.GetBrushOrg();
+	dc.SetStretchBltMode(HALFTONE);
+
+	int cx = m_MaxX * m_AspX / ASP_DIV;
+	int cy = m_MaxY * m_AspY / ASP_DIV;
+
+	if ( (cx * frame.Height() / frame.Width()) > cy ) {
+		int n = frame.Width() * cy / cx;
+		box.left = frame.left;
+		box.right = frame.right;
+		box.top = frame.top + (frame.Height() - n) / 2;
+		box.bottom = box.top + n;
+	} else {
+		int n = frame.Height() * cx / cy;
+		box.left = frame.left + (frame.Width() - n) / 2;
+		box.right = box.left + n;
+		box.top = frame.top;
+		box.bottom = frame.bottom;
+	}
+
+	dc.StretchBlt(box.left, box.top, box.Width(), box.Height(), &TempDC, 0, 0, m_MaxX, m_MaxY, SRCCOPY);
+
+	TempDC.SelectObject(pOldBitMap);
+	dc.SetBrushOrg(po);
+
+	dc.EndPage();
+	dc.EndDoc();
+
+	dc.Detach();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2611,7 +2677,7 @@ int CGrapWnd::ParseString(LPCSTR &p, int cmd, int num)
 	CStringA str;
 
 	while ( *p != '\0' && *p != em )
-		str += (TCHAR)(*(p++));
+		str += (CHAR)(*(p++));
 	ch = GetChar(p);
 
 	switch(cmd) {

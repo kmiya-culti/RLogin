@@ -5356,7 +5356,6 @@ int CScript::Func10(int cmd, CScriptValue &local)
 
 	case 8:		// menu(id, str, func, pos)
 		{
-			CStringA mbs;
 			int id = (int)local[0];
 			if ( id < 0 || id >= 10 )
 				break;

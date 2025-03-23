@@ -99,6 +99,7 @@ void CIdkeySelDLg::InitList()
 
 	m_ListInit = TRUE;
 	m_List.DeleteAllItems();
+
 	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
 		if ( (pKey = m_pIdKeyTab->GetUid(m_Data[n])) == NULL )
 			continue;
@@ -111,6 +112,8 @@ void CIdkeySelDLg::InitList()
 		case IDKEY_ECDSA:   str = _T("ECDSA"); break;
 		case IDKEY_ED25519: str = _T("ED25519"); break;
 		case IDKEY_ED448:   str = _T("ED448"); break;
+		case IDKEY_ML_DSA:	str = _T("MLDSA"); break;
+		case IDKEY_SLH_DSA:	str = pKey->IsSlhDsaShake() ? (pKey->IsSlhDsaStype() ? _T("SLHSHAKES") : _T("SLHSHAKEF")) : (pKey->IsSlhDsaStype() ? _T("SLHSHA2S") : _T("SLHSHA2F")); break;
 		case IDKEY_XMSS:    str = _T("XMSS"); break;
 		case IDKEY_UNKNOWN: str = pKey->m_TypeName; break;
 		}
@@ -145,7 +148,12 @@ void CIdkeySelDLg::InitList()
 		m_List.SetItemData(n, n);
 		m_List.SetLVCheck(n, pKey->m_Flag);
 	}
-	m_List.SetItemState(m_EntryNum, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+
+	if ( m_EntryNum >= 0 ) {
+		m_List.SetItemState(m_EntryNum, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+		m_List.EnsureVisible(m_EntryNum, FALSE);
+	}
+
 	m_ListInit = FALSE;
 }
 void CIdkeySelDLg::SetBitsList()
@@ -188,6 +196,19 @@ void CIdkeySelDLg::SetBitsList()
 		pCombo->AddString(_T("20"));
 		pCombo->EnableWindow(TRUE);
 		if ( bits < 10 || bits > 20 ) bits = 10;
+	} else if ( m_Type.Compare(_T("MLDSA")) == 0 ) {
+		pCombo->AddString(_T("44"));
+		pCombo->AddString(_T("65"));
+		pCombo->AddString(_T("87"));
+		pCombo->EnableWindow(TRUE);
+		if ( bits < 44 || bits > 87 ) bits = 87;
+	} else if ( m_Type.Compare(_T("SLHSHA2S"))  == 0 || m_Type.Compare(_T("SLHSHA2F"))  == 0 ||
+			    m_Type.Compare(_T("SLHSHAKES")) == 0 || m_Type.Compare(_T("SLHSHAKEF")) == 0 ) {
+		pCombo->AddString(_T("128"));
+		pCombo->AddString(_T("192"));
+		pCombo->AddString(_T("256"));
+		pCombo->EnableWindow(TRUE);
+		if ( bits < 128 || bits > 256 ) bits = 256;
 	} else {
 		pCombo->EnableWindow(FALSE);
 	}
@@ -216,6 +237,8 @@ void CIdkeySelDLg::ProcKeyGenThead()
 {
 	m_GenStat.abort = 0;
 	m_GenIdKeyStat = m_GenIdKey.Generate(m_GenIdKeyType, m_GenIdKeyBits, m_GenIdKeyPass, &m_GenStat);
+	// m_GenIdKey.Generate‚ÅopensslŠÖ”‚ðŽg—p
+	OPENSSL_thread_stop();
 }
 void CIdkeySelDLg::EndofKeyGenThead()
 {
@@ -326,6 +349,16 @@ BOOL CIdkeySelDLg::OnInitDialog()
 
 	if ( (pWnd = GetDlgItem(IDCANCEL)) != NULL )
 		pWnd->GetWindowText(m_CancelStr);
+
+#if OPENSSL_VERSION_PREREQ(3, 5)
+	if ( (pWnd = GetDlgItem(IDC_IDKEY_TYPE)) != NULL ) {
+		((CComboBox *)pWnd)->AddString(_T("MLDSA"));		// draft-becker-cnsa2-ssh-profile-00
+		//((CComboBox *)pWnd)->AddString(_T("SLHSHA2S"));
+		((CComboBox *)pWnd)->AddString(_T("SLHSHA2F"));		// draft-josefsson-ssh-sphincs-00
+		//((CComboBox *)pWnd)->AddString(_T("SLHSHAKES"));
+		//((CComboBox *)pWnd)->AddString(_T("SLHSHAKEF"));
+	}
+#endif
 
 	SetBitsList();
 	UpdateData(FALSE);
@@ -479,7 +512,7 @@ void CIdkeySelDLg::OnIdkeyCopy()
 void CIdkeySelDLg::OnIdkeyInport() 
 {
 	CIdKey key;
-	CIdKeyFileDlg dlg;
+	CIdKeyFileDlg dlg(this);
 
 	dlg.m_OpenMode = IDKFDMODE_LOAD;
 	dlg.m_Title.LoadString(IDS_IDKEYFILELOAD);
@@ -505,7 +538,10 @@ void CIdkeySelDLg::OnIdkeyInport()
 	key.m_FilePath.Empty();
 
 	if ( !m_pIdKeyTab->AddEntry(key) ) {
-		::AfxMessageBox(CStringLoad(IDE_DUPIDKEYENTRY), MB_ICONINFORMATION);
+		CString msg, finger;
+		key.FingerPrint(finger, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
+		msg.Format(_T("%s\n\n%s(%d) %s\n%32.32s..."), CStringLoad(IDE_DUPIDKEYENTRY), key.GetName(), key.GetSize(), (LPCTSTR)key.m_Name, (LPCTSTR)finger);
+		::AfxMessageBox(msg, MB_ICONINFORMATION);
 		return;
 	}
 	m_Data.InsertAt(0, key.m_Uid);
@@ -522,7 +558,7 @@ void CIdkeySelDLg::OnIdkeyExport()
 
 	int n = (int)m_List.GetItemData(m_EntryNum);
 	CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
-	CIdKeyFileDlg dlg;
+	CIdKeyFileDlg dlg(this);
 	CStringLoad msg(IDS_IDKEYFILESAVECOM);
 	CString finger;
 
@@ -562,7 +598,7 @@ void CIdkeySelDLg::OnIdkeyExport()
 void CIdkeySelDLg::OnIdkeyCreate() 
 {
 	CWnd *pWnd;
-	CIdKeyFileDlg dlg;
+	CIdKeyFileDlg dlg(this);
 	CString tmp;
 
 	if ( m_KeyGenFlag != 0 ) {
@@ -591,6 +627,12 @@ void CIdkeySelDLg::OnIdkeyCreate()
 		m_GenIdKeyType = IDKEY_ED448;
 	else if ( m_Type.Compare(_T("XMSS")) == 0 )
 		m_GenIdKeyType = IDKEY_XMSS;
+	else if ( m_Type.Compare(_T("MLDSA")) == 0 )
+		m_GenIdKeyType = IDKEY_ML_DSA;
+	else if ( m_Type.Compare(_T("SLHSHA2F"))  == 0 || m_Type.Compare(_T("SLHSHA2S"))  == 0 ||
+			  m_Type.Compare(_T("SLHSHAKEF")) == 0 || m_Type.Compare(_T("SLHSHAKES")) == 0 )
+		m_GenIdKeyType = IDKEY_SLH_DSA;
+
 
 	if ( m_GenIdKeyType == IDKEY_ECDSA && (m_GenIdKeyBits < 256 || m_GenIdKeyBits > 521) ) {
 		if ( ::AfxMessageBox(CStringLoad(IDE_ECDSABITSIZEERR), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
@@ -604,6 +646,12 @@ void CIdkeySelDLg::OnIdkeyCreate()
 	} else if ( m_GenIdKeyType == IDKEY_XMSS && (m_GenIdKeyBits < 10 || m_GenIdKeyBits > 20) ) {
 		if ( ::AfxMessageBox(CStringLoad(IDE_XMSSBITSIZEERR), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 			return;
+	} else if ( m_GenIdKeyType == IDKEY_ML_DSA && (m_GenIdKeyBits < 44 || m_GenIdKeyBits > 87) ) {
+		::AfxMessageBox(_T("ml-dsa size error use 44/65/87"));
+		return;
+	} else if ( m_GenIdKeyType == IDKEY_SLH_DSA && (m_GenIdKeyBits < 128 || m_GenIdKeyBits > 256) ) {
+		::AfxMessageBox(_T("slh-dsa size error use 128/192/256"));
+		return;
 	}
 
 	dlg.m_OpenMode = IDKFDMODE_CREATE;
@@ -640,6 +688,11 @@ void CIdkeySelDLg::OnIdkeyCreate()
 	m_GenStat.abort = 0;
 	m_GenStat.type = m_GenIdKeyType;
 	m_GenStat.max = m_GenStat.pos = 0;
+
+	if ( m_Type.Compare(_T("SLHSHA2S")) == 0 || m_Type.Compare(_T("SLHSHAKES")) == 0 )
+		m_GenIdKeyBits |= 0x10000;
+	if ( m_Type.Compare(_T("SLHSHAKEF")) == 0 || m_Type.Compare(_T("SLHSHAKES")) == 0 )
+		m_GenIdKeyBits |= 0x20000;
 
 	StartKeyGenThead();
 }

@@ -1854,13 +1854,13 @@ BOOL CExtSocket::ProxyFunc()
 						if ( m_ProxyAuth.Find(_T("basic")) >= 0 ) {
 							A1.Clear();
 							m_pHttp2Ctx->PutHPackField(&A1, ":method", "CONNECT");
-							mbs.Format("%s:%d", TstrToMbs(m_ProxyHost), m_ProxyPort);
+							mbs.Format("%s:%d", TstrToUtf8(m_ProxyHost), m_ProxyPort);
 							m_pHttp2Ctx->PutHPackField(&A1, ":authority", mbs);
 							m_pHttp2Ctx->PutHPackField(&A1, "user-agent", "RLogin");
 							tmp.Format(_T("%s:%s"), (LPCTSTR)m_ProxyUser, (LPCTSTR)m_ProxyPass);
 							m_pFifoProxy->DocMsgRemoteStr(tmp, mbs); 
 							buf.Base64Encode((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
-							mbs.Format("basic %s", TstrToMbs((LPCTSTR)buf));
+							mbs.Format("basic %s", TstrToUtf8((LPCTSTR)buf));
 							m_pHttp2Ctx->PutHPackField(&A1, (m_ProxyCode == 407 ? "proxy-authorization" :"authorization"), mbs);
 
 							m_pHttp2Ctx->SendHPackFrame(HTTP2_TYPE_HEADERS, HTTP2_FLAG_END_HEADERS, HTTP2_NEW_STREAMID, A1.GetPtr(), A1.GetSize());
@@ -1871,7 +1871,7 @@ BOOL CExtSocket::ProxyFunc()
 								break;
 							A1.Clear();
 							m_pHttp2Ctx->PutHPackField(&A1, ":method", "CONNECT");
-							mbs.Format("%s:%d", TstrToMbs(m_ProxyHost), m_ProxyPort);
+							mbs.Format("%s:%d", TstrToUtf8(m_ProxyHost), m_ProxyPort);
 							m_pHttp2Ctx->PutHPackField(&A1, ":authority", mbs);
 							m_pHttp2Ctx->PutHPackField(&A1, "user-agent", "RLogin");
 							m_pFifoProxy->DocMsgRemoteStr(dig, mbs);
@@ -1920,7 +1920,7 @@ BOOL CExtSocket::ProxyFunc()
 						if ( m_ProxyStatus == PRST_HTTP2_REQUEST ) {
 							A1.Clear();
 							m_pHttp2Ctx->PutHPackField(&A1, ":method", "CONNECT");
-							mbs.Format("%s:%d", TstrToMbs(m_ProxyHost), m_ProxyPort);
+							mbs.Format("%s:%d", TstrToUtf8(m_ProxyHost), m_ProxyPort);
 							m_pHttp2Ctx->PutHPackField(&A1, ":authority", mbs);
 							m_pHttp2Ctx->PutHPackField(&A1, "user-agent", "RLogin");
 
@@ -1978,7 +1978,7 @@ BOOL CExtSocket::ProxyFunc()
 			A1.Clear();
 			m_pHttp3Ctx->PutHeaderBase(&A1);
 			m_pHttp3Ctx->PutQPackField(&A1, ":method", "CONNECT");
-			mbs.Format("%s:%d", TstrToMbs(m_ProxyHost), m_ProxyPort);
+			mbs.Format("%s:%d", TstrToUtf8(m_ProxyHost), m_ProxyPort);
 			m_pHttp3Ctx->PutQPackField(&A1, ":authority", mbs);
 			m_pHttp3Ctx->PutQPackField(&A1, "user-agent", "RLogin");
 			m_pHttp3Ctx->SendQPackFrame(HTTP3_TYPE_HEADERS, A1.GetPtr(), A1.GetSize());
@@ -2067,13 +2067,13 @@ BOOL CExtSocket::ProxyFunc()
 							A1.Clear();
 							m_pHttp3Ctx->PutHeaderBase(&A1);
 							m_pHttp3Ctx->PutQPackField(&A1, ":method", "CONNECT");
-							mbs.Format("%s:%d", TstrToMbs(m_ProxyHost), m_ProxyPort);
+							mbs.Format("%s:%d", TstrToUtf8(m_ProxyHost), m_ProxyPort);
 							m_pHttp3Ctx->PutQPackField(&A1, ":authority", mbs);
 							m_pHttp3Ctx->PutQPackField(&A1, "user-agent", "RLogin");
 							tmp.Format(_T("%s:%s"), (LPCTSTR)m_ProxyUser, (LPCTSTR)m_ProxyPass);
 							m_pFifoProxy->DocMsgRemoteStr(tmp, mbs); 
 							buf.Base64Encode((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
-							mbs.Format("basic %s", TstrToMbs((LPCTSTR)buf));
+							mbs.Format("basic %s", TstrToUtf8((LPCTSTR)buf));
 							m_pHttp3Ctx->PutQPackField(&A1, (m_ProxyCode == 407 ? "proxy-authorization" :"authorization"), mbs);
 
 							m_pHttp3Ctx->SendQPackFrame(HTTP3_TYPE_HEADERS, A1.GetPtr(), A1.GetSize());
@@ -2085,7 +2085,7 @@ BOOL CExtSocket::ProxyFunc()
 							A1.Clear();
 							m_pHttp3Ctx->PutHeaderBase(&A1);
 							m_pHttp3Ctx->PutQPackField(&A1, ":method", "CONNECT");
-							mbs.Format("%s:%d", TstrToMbs(m_ProxyHost), m_ProxyPort);
+							mbs.Format("%s:%d", TstrToUtf8(m_ProxyHost), m_ProxyPort);
 							m_pHttp3Ctx->PutQPackField(&A1, ":authority", mbs);
 							m_pHttp3Ctx->PutQPackField(&A1, "user-agent", "RLogin");
 							m_pFifoProxy->DocMsgRemoteStr(dig, mbs);

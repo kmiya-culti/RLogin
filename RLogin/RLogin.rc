@@ -643,6 +643,8 @@ BEGIN
     BEGIN
         MENUITEM "ファイルに保存(&S)",                 IDM_TEK_SAVE
         MENUITEM SEPARATOR
+        MENUITEM "印刷(&P)",                      ID_FILE_PRINT
+        MENUITEM SEPARATOR
         MENUITEM "閉じる(&X)",                     IDM_TEK_CLOSE
     END
     POPUP "編集(&E)"
@@ -666,6 +668,7 @@ BEGIN
         MENUITEM "ファイルに保存(&S)",                 IDM_TEK_SAVE
         MENUITEM SEPARATOR
         MENUITEM "ヒストグラムを表示",                   IDM_HISTOGRAM
+        MENUITEM "印刷(&P)",                      ID_FILE_PRINT
         MENUITEM SEPARATOR
         MENUITEM "閉じる(&X)",                     IDM_TEK_CLOSE
     END
@@ -740,7 +743,7 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,210,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.30.2 (2025/02/24)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.30.3 (2025/03/24)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2025 Culti",IDC_STATIC,44,17,189,8
     LTEXT           "OpenSSL 3.4.1 11 Feb 2025",IDC_STATIC,44,50,189,8
     LTEXT           "Copyright (c) 1998-2025 The OpenSSL Project",IDC_STATIC,44,60,189,8
@@ -817,7 +820,7 @@ STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "認証キー"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    EDITTEXT        IDC_IDKEYFILE,14,21,180,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_IDKEYFILE,14,21,180,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "...",IDC_IDKEYSEL,199,21,40,14
     EDITTEXT        IDC_PASSNAME,14,128,180,14,ES_PASSWORD | ES_AUTOHSCROLL
     CONTROL         "表示",IDC_PASSDISP,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,199,128,40,14
@@ -2313,36 +2316,37 @@ FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
 END
 
-IDD_SSHSIGDLG DIALOGEX 0, 0, 330, 345
+IDD_SSHSIGDLG DIALOGEX 0, 0, 330, 354
 STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "SSH鍵によるファイル署名"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    COMBOBOX        IDC_SSHSIG_DATAFILE,14,20,250,100,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_SSHSIG_DATAFILE,14,20,250,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "参照",IDC_SSHSIG_DATAFILE_SEL,268,19,50,14
     CONTROL         "RLoginで管理している鍵",IDC_SSHSIG_KEYSEL1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,63,240,10
-    COMBOBOX        IDC_SSHSIG_KEYLIST,14,75,250,100,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     CONTROL         "ファイル保存の鍵",IDC_SSHSIG_KEYSEL2,"Button",BS_AUTORADIOBUTTON,14,90,240,10
-    COMBOBOX        IDC_SSHSIG_KEYFILE,14,101,250,100,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_SSHSIG_KEYLIST,14,75,250,100,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_GROUP | WS_TABSTOP
+    COMBOBOX        IDC_SSHSIG_KEYFILE,14,101,250,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "参照",IDC_SSHSIG_KEYFILE_SEL,268,100,50,14
-    COMBOBOX        IDC_SSHSIG_NAMESPACE,218,140,100,100,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_SSHSIG_NAMESPACE,218,140,100,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
     CONTROL         "指定された鍵と名前空間を含めて検証を行う（自身で署名したかを確認します）",IDC_SSHSIG_VERIFY_WITHKEY,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,156,301,10
-    PUSHBUTTON      "ファイルからインポート",IDC_SSHSIG_INPORT,132,278,90,14
-    PUSHBUTTON      "ファイルにエクスポート",IDC_SSHSIG_EXPORT,228,278,90,14
-    PUSHBUTTON      "クリップボードからペースト",IDC_SSHSIG_SIGN_PAST,132,295,90,14
-    PUSHBUTTON      "クリップボードにコピー",IDC_SSHSIG_SIGN_COPY,228,295,90,14
-    PUSHBUTTON      "検証",IDC_SSHSIG_VERIFY,27,324,80,14
-    DEFPUSHBUTTON   "署名",IDOK,125,324,80,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,223,324,80,14
+    PUSHBUTTON      "ファイルからインポート",IDC_SSHSIG_INPORT,132,290,90,14
+    PUSHBUTTON      "ファイルにエクスポート",IDC_SSHSIG_EXPORT,228,290,90,14
+    PUSHBUTTON      "クリップボードからペースト",IDC_SSHSIG_SIGN_PAST,132,307,90,14
+    PUSHBUTTON      "クリップボードにコピー",IDC_SSHSIG_SIGN_COPY,228,307,90,14
+    PUSHBUTTON      "検証",IDC_SSHSIG_VERIFY,27,333,80,14
+    DEFPUSHBUTTON   "署名",IDOK,125,333,80,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,223,333,80,14
     GROUPBOX        "署名するファイル",IDC_TITLE1,7,7,316,32
     GROUPBOX        "鍵の選択",IDC_TITLE2,7,50,316,70
     GROUPBOX        "オプション",IDC_TITLE3,7,129,316,44
-    GROUPBOX        "署名",IDC_TITLE4,7,183,316,133
+    GROUPBOX        "署名",IDC_TITLE4,7,183,316,144
     EDITTEXT        IDC_SSHSIG_SIGN,14,194,302,80,ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL
     LTEXT           "名前空間の指定（空白時は、RLoginになります）",IDC_TITLE5,14,142,198,8
-    LTEXT           "署名をファイルに読み書きします",IDC_TITLE6,14,280,118,8
-    LTEXT           "署名をクリップボードに読み書きします",IDC_TITLE7,14,297,118,8
+    LTEXT           "署名をファイルに読み書きします",IDC_TITLE6,14,292,118,8
+    LTEXT           "署名をクリップボードに読み書きします",IDC_TITLE7,14,309,118,8
+    CONTROL         "",IDC_SSHSIG_PROG,"msctls_progress32",WS_BORDER,14,278,302,8
 END
 
 
@@ -2352,8 +2356,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,30,2,0
- PRODUCTVERSION 2,30,2,0
+ FILEVERSION 2,30,3,0
+ PRODUCTVERSION 2,30,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2370,12 +2374,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.30.2.0"
+            VALUE "FileVersion", "2.30.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.30.2.0"
+            VALUE "ProductVersion", "2.30.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2947,7 +2951,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 323
         TOPMARGIN, 7
-        BOTTOMMARGIN, 338
+        BOTTOMMARGIN, 347
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -5257,6 +5261,7 @@ BEGIN
     IDT_APPCOL_TITLE19      "CTRL選択時の背景色"
     IDT_APPCOL_TITLE20      "CTRL選択時の文字色"
     IDT_APPCOL_TITLE21      "CTRL選択済の背景色"
+    IDT_SSHSIG_CANCEL       "現在ファイルハッシュの計算中です\n計算処理を止めますか？"
 END
 
 STRINGTABLE

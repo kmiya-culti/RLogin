@@ -94,6 +94,7 @@ public:
 #define	TIMERID_STATUSCLR	1026
 #define	TIMERID_CLIPUPDATE	1027
 #define	TIMERID_IDLETIMER	1028
+#define	TIMERID_LASTCLIP	1029
 #define	TIMERID_TIMEREVENT	1100
 
 class CTimerObject : public CObject
@@ -127,7 +128,7 @@ public:
 };
 
 #define	CLIPOPENTHREADMAX	3		// クリップボードアクセススレッド多重起動数
-#define	CLIPOPENLASTMSEC	500		// 指定msec以内のクリップボードアップデートを無視する
+#define	CLIPOPENLASTMSEC	300		// 指定msec以内のクリップボードアップデートを無視する
 
 #define	SOCKPARAHASH		4
 #define	SOCKPARAMASK(fd)	(int)(((INT_PTR)fd / sizeof(INT_PTR)) & (SOCKPARAHASH - 1))
@@ -214,6 +215,7 @@ public:
 	BOOL m_UseBitmapUpdate;
 	UINT_PTR m_IdleTimer;
 	clock_t m_LastClipUpdate;
+	UINT_PTR m_LastClipTimer;
 	class CServerSelect *m_pServerSelect;
 	class CHistoryDlg *m_pHistoryDlg;
 	class CAnyPastDlg *m_pAnyPastDlg;
@@ -309,7 +311,7 @@ public:
 	void ClipBoradStr(LPCWSTR str, CString &tmp);
 	void SetClipBoardComboBox(CComboBox *pCombo);
 	void SetClipBoardMenu(UINT nId, CMenu *pMenu);
-	BOOL CopyClipboardData(CString &str);
+	BOOL CopyClipboardData(CString &str, BOOL *pRetry = NULL);
 	BOOL GetClipboardText(CString &str);
 	BOOL SetClipboardText(LPCTSTR str, LPCSTR rtf = NULL);
 	void AnyPastDlgClose(int DocSeqNumber);

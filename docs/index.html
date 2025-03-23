@@ -10,29 +10,9 @@ TD {
 				
 				
 				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
 		background-color : #ffffff; font-size : 90%; 
 }
 .BOX{		
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
 				
 				
 				
@@ -51,8 +31,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.2)</TD>
-            <TD width="20%" align="right">2025/02/26</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.3)</TD>
+            <TD width="20%" align="right">2025/03/26</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -464,9 +444,17 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
-            <TD align="center">次期試作版</TD>
+            <TD align="center">2025/03/24</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.3/">2.30.3</A></TD>
-            <TD>2.30.2でSSHエージェントが動作しないバグを修正</TD>
+            <TD>認証鍵のファイル選択をヒストリー形式にに変更<BR>
+            一部のメッセージボックスがメインウィンドウに戻るのを修正<BR>
+            ファイルの署名検証をスレッド処理に変更<BR>
+            COMの送信遅延の処理タイミングを修正<BR>
+            256色カラーパレットの初期値を修正<BR>
+            プリンタの設定で正しく保存されないバグを修正<BR>
+            Tek/Grapウィンドウのファイルメニューに印刷を追加<BR>
+            SSH鍵作成時のメモリーリークを修正<BR>
+            クリップボード取得のタイミングを最後の更新からに変更</TD>
           </TR>
           <TR>
             <TD align="center">2025/02/26</TD>
@@ -477,7 +465,7 @@ TD {
             メニューのファイルにファイルの署名検証を追加<BR>
             ACP文字変換内でLastErrorを待避するように変更<BR>
             openssl-3.4.1に更新<BR>
-            <FONT color="#ff0000">SSHエージェントが動作しないバグが見つかり更新しました</FONT></TD>
+            <FONT color="#ff0000">SSHエージェントが動作しないバグを修正して更新</FONT></TD>
           </TR>
           <TR>
             <TD align="center">2025/01/27</TD>
@@ -510,17 +498,6 @@ TD {
             文字コード変換(EUC/SJIS)のエラー処理を修正<BR>
             カーソル行をぷるるんをスクリーン・ベルコードのJigglyに移動<BR>
             openssl-3.4.0に更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2024/09/24</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.8/">2.29.8</A></TD>
-            <TD>SSH2のkexにmlkem768x25519-sha256を追加<BR>
-            Unicodeの罫線描画の線幅を可変するように変更<BR>
-            Unicodeの括弧文字の一部を独自描画に変更<BR>
-            sntrup761関数をopenssh-9.9の新しい物に更新<BR>
-            拡張機能にVisual Bellでカーソル行ぷるるんを追加<BR>
-            UTF-8の文字幅などをUnicode-16.0.0のデータに更新<BR>
-            openssl-3.3.2に更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -3538,7 +3515,119 @@ fi</PRE>
             </TABLE>
             <BR>
             ※すべての暗号アルゴリズムを検証していません<BR>
-            ※ECB/CFB/OFBは、テスト環境しか実装していません</TD>
+            ※ECB/CFB/OFBは、テスト環境しか実装していません<BR>
+            <BR>
+            ※認証鍵は、ed25519との速度比較でssh-rsa 4096は、54倍遅いとなります<BR>
+            ※ssh-slh-dsa-shakeなどは、テスト環境しか実装していません<BR>
+            <TABLE width="600" cellpadding="3" cellspacing="1" class="BOX">
+<TBODY>
+  <TR>
+                  <TD align="center">key</TD>
+                  <TD align="center">Sign</TD>
+                  <TD align="center">Verify</TD>
+                  <TD align="center">Authentication Key</TD>
+                  <TD align="center">Sign</TD>
+                  <TD align="center">Verify</TD>
+                </TR>
+  <TR>
+    <TD>ssh-rsa 1024</TD>
+                  <TD align="right">5 </TD>
+                  <TD align="right">1 </TD>
+                  <TD>ssh-slh-dsa-sha2-128f</TD>
+                  <TD align="right">463 </TD>
+                  <TD align="right">22 </TD>
+                </TR>
+  <TR>
+    <TD>ssh-rsa 2048</TD>
+                  <TD align="right">18 </TD>
+                  <TD align="right">1 </TD>
+                  <TD>ssh-slh-dsa-sha2-192f</TD>
+                  <TD align="right">749 </TD>
+                  <TD align="right">32 </TD>
+                </TR>
+  <TR>
+    <TD>ssh-rsa 4096</TD>
+                  <TD align="right">54 </TD>
+                  <TD align="right">2 </TD>
+                  <TD>ssh-slh-dsa-sha2-256f</TD>
+                  <TD align="right">1557 </TD>
+                  <TD align="right">33 </TD>
+                </TR>
+  <TR>
+    <TD>ssh-dss 1024</TD>
+                  <TD align="right">3 </TD>
+                  <TD align="right">2 </TD>
+                  <TD>ssh-slh-dsa-sha2-128s</TD>
+                  <TD align="right">9595 </TD>
+                  <TD align="right">7 </TD>
+                </TR>
+  <TR>
+    <TD>ssh-ed25519</TD>
+                  <TD align="right">1 </TD>
+                  <TD align="right">1 </TD>
+                  <TD>ssh-slh-dsa-sha2-192s</TD>
+                  <TD align="right">17032 </TD>
+                  <TD align="right">11 </TD>
+                </TR>
+  <TR>
+    <TD>ssh-ed448</TD>
+                  <TD align="right">9 </TD>
+                  <TD align="right">5 </TD>
+                  <TD>ssh-slh-dsa-sha2-256s</TD>
+                  <TD align="right">14954 </TD>
+                  <TD align="right">17 </TD>
+                </TR>
+  <TR>
+    <TD>ecdsa-sha2-nistp256</TD>
+                  <TD align="right">3 </TD>
+                  <TD align="right">2 </TD>
+                  <TD>ssh-slh-dsa-shake-128f</TD>
+                  <TD align="right">516 </TD>
+                  <TD align="right">24 </TD>
+                </TR>
+  <TR>
+    <TD>ecdsa-sha2-nistp384</TD>
+                  <TD align="right">13 </TD>
+                  <TD align="right">40 </TD>
+                  <TD>ssh-slh-dsa-shake-192f</TD>
+                  <TD align="right">825 </TD>
+                  <TD align="right">35 </TD>
+                </TR>
+  <TR>
+    <TD>ecdsa-sha2-nistp521</TD>
+                  <TD align="right">25 </TD>
+                  <TD align="right">45 </TD>
+                  <TD>ssh-slh-dsa-shake-256f</TD>
+                  <TD align="right">1697 </TD>
+                  <TD align="right">38 </TD>
+                </TR>
+  <TR>
+    <TD>ssh-mldsa44</TD>
+                  <TD align="right">10 </TD>
+                  <TD align="right">2 </TD>
+                  <TD>ssh-slh-dsa-shake-128s</TD>
+                  <TD align="right">10703 </TD>
+                  <TD align="right">9 </TD>
+                </TR>
+  <TR>
+    <TD>ssh-mldsa65</TD>
+                  <TD align="right">14 </TD>
+                  <TD align="right">3 </TD>
+                  <TD>ssh-slh-dsa-shake-192s</TD>
+                  <TD align="right">18429 </TD>
+                  <TD align="right">12 </TD>
+                </TR>
+  <TR>
+    <TD>ssh-mldsa87</TD>
+                  <TD align="right">18 </TD>
+                  <TD align="right">4 </TD>
+                  <TD>ssh-slh-dsa-shake-256s</TD>
+                  <TD align="right">16223 </TD>
+                  <TD align="right">18 </TD>
+                </TR>
+</TBODY>
+</TABLE>
+            </TD>
             <TD valign="top"><IMG src="image015.jpg" width="616" height="542" border="0"></TD>
           </TR>
         </TBODY>
@@ -3803,6 +3892,42 @@ fi</PRE>
                   <TD width="30%" align="center">作成</TD>
                   <TD>作成時にパスフレーズの設定が必要です<BR>
                   ※XMSSで20の場合は、鍵の作成に１時間程かかります</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            <BR>
+            <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">認証リスト内での右クリックによるポップアップメニュー</TD>
+                </TR>
+                <TR>
+                  <TD width="30%" align="center">優先順位…</TD>
+                  <TD>上記ボタンの上へ・下へと同じです</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">名前を編集する</TD>
+                  <TD>認証キーの名前を編集します</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">公開鍵をクリップ…</TD>
+                  <TD>上記ボタンの公開鍵と同じです</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">公開鍵をファイル…</TD>
+                  <TD>公開鍵をRFC 4716形式でファイルに保存します</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">署名された公開鍵…</TD>
+                  <TD>OpenSSHの署名された公開鍵ファイルを読み込みます</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">ファイルから…</TD>
+                  <TD>上記ボタンのインポート・エクスポートと同じです</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">最新の情報…</TD>
+                  <TD>認証キーリストを更新します</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -6110,6 +6235,10 @@ function TekClock2() {
                   ベクトルイメージとしてDXF/TEK/SVGファイルに保存することもできます</TD>
                 </TR>
                 <TR>
+                  <TD align="center">印刷</TD>
+                  <TD>プリンタに画像を出力して印刷します</TD>
+                </TR>
+                <TR>
                   <TD align="center">閉じる</TD>
                   <TD>表示を閉じます（画面は、クリアされません）</TD>
                 </TR>
@@ -6166,6 +6295,10 @@ function TekClock2() {
                 <TR>
                   <TD width="30%" align="center">ファイルに保存</TD>
                   <TD>1024x768のGIF/JPEG/PNG/BMPのビットマップに変換して保存します。(W2k用バイナリでは、選択できません）</TD>
+                </TR>
+                <TR>
+                  <TD align="center">印刷</TD>
+                  <TD>プリンタに画像を出力して印刷します</TD>
                 </TR>
                 <TR>
                   <TD align="center">閉じる</TD>
@@ -6748,7 +6881,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD align="left" valign="top"><IMG src="image106.jpg" width="580" height="550" border="0"></TD>
+            <TD align="left" valign="top"><IMG src="image106.jpg" width="580" height="563" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

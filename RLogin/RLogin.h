@@ -337,6 +337,9 @@ public:
 	CList<PostMsgQue *, PostMsgQue *> m_PostMsgQue;
 	void IdlePostMessage(HWND hWnd, UINT Msg, WPARAM wParam = 0, LPARAM lParam = 0);
 
+	CWnd *m_pSshSigDlgWnd;
+	void RemoveSshSigDlg(class CSshSigDlg *pWnd);
+
 	CRLoginApp();
 
 // オーバーライド

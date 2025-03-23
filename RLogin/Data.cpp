@@ -8101,6 +8101,12 @@ void CKeyMacTab::SetHisMenu(CMenu *pMenu)
 #define	META_CLEFIA_STRING	_T("")
 #endif
 
+#if OPENSSL_VERSION_PREREQ(3, 5)
+#define	META_MLDSA_STRING	_T("ssh-mldsa44,ssh-mldsa65,ssh-mldsa87,ssh-slh-dsa-sha2-256f,")
+#else
+#define	META_MLDSA_STRING	_T("")
+#endif
+
 static LPCTSTR InitAlgo[12]= {
 	_T("blowfish,3des,des"),
 	_T("crc32"),
@@ -8111,8 +8117,8 @@ static LPCTSTR InitAlgo[12]= {
 	_T("camellia256-ctr,camellia192-ctr,camellia128-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
-	_T("AEAD_AES_256_GCM,AEAD_AES_128_GCM,AEAD_AES_256_CCM,AEAD_AES_128_CCM,") \
 	_T("aes256-gcm@openssh.com,aes128-gcm@openssh.com,") \
+	_T("aes256-gcm,aes128-gcm,") \
 	_T("arcfour256,arcfour128,arcfour,") \
 	_T("aes256-cbc,aes192-cbc,aes128-cbc,") \
 	_T("camellia256-cbc,camellia192-cbc,camellia128-cbc,") \
@@ -8138,8 +8144,8 @@ static LPCTSTR InitAlgo[12]= {
 	_T("camellia256-ctr,camellia192-ctr,camellia128-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
-	_T("AEAD_AES_256_GCM,AEAD_AES_128_GCM,AEAD_AES_256_CCM,AEAD_AES_128_CCM,") \
 	_T("aes256-gcm@openssh.com,aes128-gcm@openssh.com,") \
+	_T("aes256-gcm,aes128-gcm,") \
 	_T("arcfour256,arcfour128,arcfour,") \
 	_T("aes256-cbc,aes192-cbc,aes128-cbc,") \
 	_T("camellia256-cbc,camellia192-cbc,camellia128-cbc,") \
@@ -8175,6 +8181,7 @@ static LPCTSTR InitAlgo[12]= {
 	_T("ssh-ed25519-cert-v01@openssh.com,ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,") \
 	_T("ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,") \
 	_T("ssh-ed25519,ssh-ed448,rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss,") \
+	META_MLDSA_STRING \
 	_T("ssh-xmss@openssh.com,ssh-xmss-cert-v01@openssh.com"),
 
 	_T("publickey,hostbased,gssapi-with-mic,password,keyboard-interactive"),
@@ -12580,3 +12587,158 @@ const CCodeFlag & CCodeFlag::operator = (CCodeFlag &data)
 	return *this;
 }
 
+//////////////////////////////////////////////////////////////////////
+// WstrToMbs/MbsToWstr
+
+WstrToMbs::WstrToMbs(LPCWSTR wstr)
+{
+	m_pStr = NULL;
+	*this = wstr;
+}
+WstrToMbs::~WstrToMbs()
+{
+	if ( m_pStr != NULL )
+		delete m_pStr;
+}
+const WstrToMbs & WstrToMbs:: operator = (WstrToMbs &data)
+{
+	int len = (int)strlen(data.m_pStr);
+
+	if ( m_pStr != NULL )
+		delete m_pStr;
+	m_pStr = new CHAR[len + 1];
+
+	strcpy((LPSTR)m_pStr, data.m_pStr);
+
+	return *this;
+}
+const WstrToMbs & WstrToMbs:: operator = (LPCWSTR wstr)
+{
+	UINT cp = _AtlGetConversionACP();
+	DWORD err = GetLastError();
+	int len = ::WideCharToMultiByte(cp, 0, wstr, -1, NULL, 0, NULL, NULL );
+	SetLastError(err);
+
+	if ( m_pStr != NULL )
+		delete m_pStr;
+	m_pStr = new CHAR[len];
+
+	::WideCharToMultiByte(cp, 0, wstr, -1, (LPSTR)m_pStr, len, NULL, NULL );
+
+	return *this;
+}
+
+MbsToWstr::MbsToWstr(LPCSTR str)
+{
+	m_pStr = NULL;
+	*this = str;
+}
+MbsToWstr::~MbsToWstr()
+{
+	if ( m_pStr != NULL )
+		delete m_pStr;
+}
+const MbsToWstr & MbsToWstr:: operator = (MbsToWstr &data)
+{
+	int len = (int)wcslen(data.m_pStr);
+
+	if ( m_pStr != NULL )
+		delete m_pStr;
+	m_pStr = new WCHAR[len + 1];
+
+	wcscpy((LPWSTR)m_pStr, data.m_pStr);
+
+	return *this;
+}
+const MbsToWstr & MbsToWstr:: operator = (LPCSTR str)
+{
+	UINT cp = _AtlGetConversionACP();
+	DWORD err = GetLastError();
+	int len = ::MultiByteToWideChar(cp, 0, str, -1, NULL, 0);
+	SetLastError(err);
+
+	if ( m_pStr != NULL )
+		delete m_pStr;
+	m_pStr = new WCHAR[len];
+
+	::MultiByteToWideChar(cp, 0, str, -1, (LPWSTR)m_pStr, len);
+
+	return *this;
+}
+
+//////////////////////////////////////////////////////////////////////
+// WstrToUtf8/Utf8ToWstr
+
+WstrToUtf8::WstrToUtf8(LPCWSTR wstr)
+{
+	m_pStr = NULL;
+	*this = wstr;
+}
+WstrToUtf8::~WstrToUtf8()
+{
+	if ( m_pStr != NULL )
+		delete m_pStr;
+}
+const WstrToUtf8 & WstrToUtf8:: operator = (WstrToUtf8 &data)
+{
+	int len = (int)strlen(data.m_pStr);
+
+	if ( m_pStr != NULL )
+		delete m_pStr;
+	m_pStr = new CHAR[len + 1];
+
+	strcpy((LPSTR)m_pStr, data.m_pStr);
+
+	return *this;
+}
+const WstrToUtf8 & WstrToUtf8:: operator = (LPCWSTR wstr)
+{
+	DWORD err = GetLastError();
+	int len = ::WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL );
+	SetLastError(err);
+
+	if ( m_pStr != NULL )
+		delete m_pStr;
+	m_pStr = new CHAR[len];
+
+	::WideCharToMultiByte(CP_UTF8, 0, wstr, -1, (LPSTR)m_pStr, len, NULL, NULL );
+
+	return *this;
+}
+
+Utf8ToWstr::Utf8ToWstr(LPCSTR str)
+{
+	m_pStr = NULL;
+	*this = str;
+}
+Utf8ToWstr::~Utf8ToWstr()
+{
+	if ( m_pStr != NULL )
+		delete m_pStr;
+}
+const Utf8ToWstr & Utf8ToWstr:: operator = (Utf8ToWstr &data)
+{
+	int len = (int)wcslen(data.m_pStr);
+
+	if ( m_pStr != NULL )
+		delete m_pStr;
+	m_pStr = new WCHAR[len + 1];
+
+	wcscpy((LPWSTR)m_pStr, data.m_pStr);
+
+	return *this;
+}
+const Utf8ToWstr & Utf8ToWstr:: operator = (LPCSTR str)
+{
+	DWORD err = GetLastError();
+	int len = ::MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
+	SetLastError(err);
+
+	if ( m_pStr != NULL )
+		delete m_pStr;
+	m_pStr = new WCHAR[len];
+
+	::MultiByteToWideChar(CP_UTF8, 0, str, -1, (LPWSTR)m_pStr, len);
+
+	return *this;
+}

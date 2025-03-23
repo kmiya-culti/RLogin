@@ -114,6 +114,8 @@ static const struct _CipherTab {
 
 	{ SSH2_AEAD_AES128GCM,		_T("aes128-gcm@openssh.com"),			(const EVP_CIPHER *(*)())EVP_aes_128_gcm,		16,	16,	12, 16, 0	},
 	{ SSH2_AEAD_AES256GCM,		_T("aes256-gcm@openssh.com"),			(const EVP_CIPHER *(*)())EVP_aes_256_gcm,		16,	32,	12, 16, 0	},
+	{ SSH2_AEAD_AES128GCM,		_T("aes128-gcm"),						(const EVP_CIPHER *(*)())EVP_aes_128_gcm,		16,	16,	12, 16, 0	},	// draft-miller-sshm-aes-gcm-00
+	{ SSH2_AEAD_AES256GCM,		_T("aes256-gcm"),						(const EVP_CIPHER *(*)())EVP_aes_256_gcm,		16,	32,	12, 16, 0	},	// draft-miller-sshm-aes-gcm-00
 
 	{ SSH2_AEAD_AES128GCM,		_T("AEAD_AES_128_GCM"),					(const EVP_CIPHER *(*)())EVP_aes_128_gcm,		16,	16,	12, 16, 0	},	// RFC 5647
 	{ SSH2_AEAD_AES256GCM,		_T("AEAD_AES_256_GCM"),					(const EVP_CIPHER *(*)())EVP_aes_256_gcm,		16,	32,	12, 16, 0	},	// RFC 5647
@@ -704,6 +706,8 @@ static const struct _MacTab {
 
 	{ _T("aes128-gcm@openssh.com"),			(const EVP_MD *((*)()))NULL,			 0,	FALSE, -1, -1, FALSE, TRUE },	// RFC 5647
 	{ _T("aes256-gcm@openssh.com"),			(const EVP_MD *((*)()))NULL,			 0,	FALSE, -1, -1, FALSE, TRUE },	// RFC 5647
+	{ _T("aes128-gcm"),						(const EVP_MD *((*)()))NULL,			 0,	FALSE, -1, -1, FALSE, TRUE },	// draft-miller-sshm-aes-gcm-00
+	{ _T("aes256-gcm"),						(const EVP_MD *((*)()))NULL,			 0,	FALSE, -1, -1, FALSE, TRUE },	// draft-miller-sshm-aes-gcm-00
 
 	{ _T("AEAD_AES_128_GCM"),				(const EVP_MD *((*)()))NULL,			 0,	FALSE, -1, -1, FALSE, TRUE },	// RFC 5647
 	{ _T("AEAD_AES_256_GCM"),				(const EVP_MD *((*)()))NULL,			 0,	FALSE, -1, -1, FALSE, TRUE },	// RFC 5647
@@ -1561,6 +1565,7 @@ CIdKey::CIdKey()
 	m_AgeantType = IDKEY_AGEANT_NONE;
 	m_PublicKey.m_bZero = TRUE;
 	m_PrivateKey.m_bZero = TRUE;
+	m_Nid = NID_undef;
 }
 CIdKey::~CIdKey()
 {
@@ -1758,10 +1763,12 @@ const CIdKey & CIdKey::operator = (CIdKey &data)
 		break;
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
-		if ( !Create(data.m_Type) )
-			break;
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
 		m_PublicKey  = data.m_PublicKey;
 		m_PrivateKey = data.m_PrivateKey;
+		m_Type = data.m_Type;
+		m_Nid = data.m_Nid;
 		break;
 	case IDKEY_XMSS:
 		m_XmssKey = data.m_XmssKey;
@@ -1795,6 +1802,27 @@ static const struct _NIDListTab {
 	{	NID_secp521r1,			_T("nistp521"),		521	},
 	{	NID_sect571k1,			_T("nistt571"),		571	},	// RECOMMENDED
 	{	0,						NULL,				0	},
+}, DsaNidTab[] = {
+#if OPENSSL_VERSION_PREREQ(3, 5)
+	{	NID_ML_DSA_44,			_T("44"),			44	},
+	{	NID_ML_DSA_65,			_T("65"),			65	},
+	{	NID_ML_DSA_87,			_T("87"),			87	},
+
+	{	NID_SLH_DSA_SHA2_128s,	_T("sha2-128s"),	128	| 0x10000 },
+	{	NID_SLH_DSA_SHA2_128f,	_T("sha2-128f"),	128 },
+	{	NID_SLH_DSA_SHA2_192s,	_T("sha2-192s"),	192 | 0x10000 },
+	{	NID_SLH_DSA_SHA2_192f,	_T("sha2-192f"),	192 },
+	{	NID_SLH_DSA_SHA2_256s,	_T("sha2-256s"),	256 | 0x10000 },
+	{	NID_SLH_DSA_SHA2_256f,	_T("sha2-256f"),	256 },
+
+	{	NID_SLH_DSA_SHAKE_128s,	_T("shake-128s"),	128	| 0x30000 },
+	{	NID_SLH_DSA_SHAKE_128f,	_T("shake-128f"),	128	| 0x20000 },
+	{	NID_SLH_DSA_SHAKE_192s,	_T("shake-192s"),	192	| 0x30000 },
+	{	NID_SLH_DSA_SHAKE_192f,	_T("shake-192f"),	192	| 0x20000 },
+	{	NID_SLH_DSA_SHAKE_256s,	_T("shake-256s"),	256	| 0x30000 },
+	{	NID_SLH_DSA_SHAKE_256f,	_T("shake-256f"),	256	| 0x20000 },
+#endif
+	{	NID_undef,				_T("undef"),		0	},
 };
 
 int CIdKey::GetIndexNid(int nid)
@@ -1954,6 +1982,70 @@ int CIdKey::EdFromPkeyRaw(const EVP_PKEY *pkey)
 
 	return TRUE;
 }
+LPCTSTR CIdKey::GetDsaName(int nid)
+{
+	int n;
+	for ( n = 0 ; DsaNidTab[n].nid != NID_undef ; n++ ) {
+		if ( DsaNidTab[n].nid == nid )
+			break;
+	}
+	return DsaNidTab[n].name;
+}
+int CIdKey::GetDsaNid(LPCTSTR name, int type)
+{
+	int n;
+	for ( n = 0 ; DsaNidTab[n].nid != NID_undef ; n++ ) {
+		if ( _tcscmp(name, DsaNidTab[n].name) == 0 )
+			break;
+	}
+	switch(type) {
+	case IDKEY_ML_DSA:
+		if ( n < 0 && n > 2 )
+			return NID_undef;
+		break;
+	case IDKEY_SLH_DSA:
+		if ( n < 3 && n > 14 )
+			return NID_undef;
+		break;
+	}
+	return DsaNidTab[n].nid;
+}
+int CIdKey::GetDsaSize(int nid)
+{
+	int n;
+	for ( n = 0 ; DsaNidTab[n].nid != NID_undef ; n++ ) {
+		if ( DsaNidTab[n].nid == nid )
+			break;
+	}
+	return (DsaNidTab[n].bits & 0xFFFF);
+}
+int CIdKey::GetDsaPkey(int bits)
+{
+	int n;
+	for ( n = 0 ; DsaNidTab[n].nid != NID_undef ; n++ ) {
+		if ( DsaNidTab[n].bits == bits )
+			break;
+	}
+	return DsaNidTab[n].nid;
+}
+BOOL CIdKey::IsSlhDsaStype()
+{
+	int n;
+	for ( n = 0 ; DsaNidTab[n].nid != NID_undef ; n++ ) {
+		if ( DsaNidTab[n].nid == m_Nid )
+			break;
+	}
+	return ((DsaNidTab[n].bits & 0x10000) != 0 ? TRUE : FALSE);
+}
+BOOL CIdKey::IsSlhDsaShake()
+{
+	int n;
+	for ( n = 0 ; DsaNidTab[n].nid != NID_undef ; n++ ) {
+		if ( DsaNidTab[n].nid == m_Nid )
+			break;
+	}
+	return ((DsaNidTab[n].bits & 0x20000) != 0 ? TRUE : FALSE);
+}
 int CIdKey::Create(int type)
 {
 	m_Type = IDKEY_NONE;
@@ -1990,6 +2082,8 @@ int CIdKey::Create(int type)
 		break;
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
 		m_Type = type;
 		m_PublicKey.Clear();
 		m_PrivateKey.Clear();
@@ -2012,7 +2106,7 @@ static int GenCallBack(EVP_PKEY_CTX *ctx)
 	GENSTATUS *gs = (GENSTATUS *)EVP_PKEY_CTX_get_app_data(ctx);
 
 	// RSA
-	//	0...1...2
+	//	0...1...20
 	//	0...1...2
 	//	0...1......3
 	//	0...1...2
@@ -2084,6 +2178,11 @@ int CIdKey::Generate(int type, int bits, LPCTSTR pass, GENSTATUS *gs)
 	case IDKEY_ED448:
 		id = EVP_PKEY_ED448;
 		break;
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
+		if ( (id = GetDsaPkey(bits)) == NID_undef )
+			return FALSE;
+		break;
 	case IDKEY_XMSS:
 		if ( bits <= 10 )
 			name = "XMSS-SHA2_10_256";
@@ -2145,6 +2244,23 @@ int CIdKey::Generate(int type, int bits, LPCTSTR pass, GENSTATUS *gs)
 
 	case EVP_PKEY_ED25519:
 	case EVP_PKEY_ED448:
+#if OPENSSL_VERSION_PREREQ(3, 5)
+	case EVP_PKEY_ML_DSA_44:
+	case EVP_PKEY_ML_DSA_65:
+	case EVP_PKEY_ML_DSA_87:
+	case EVP_PKEY_SLH_DSA_SHA2_128S:
+	case EVP_PKEY_SLH_DSA_SHA2_128F:
+	case EVP_PKEY_SLH_DSA_SHA2_192S:
+	case EVP_PKEY_SLH_DSA_SHA2_192F:
+	case EVP_PKEY_SLH_DSA_SHA2_256S:
+	case EVP_PKEY_SLH_DSA_SHA2_256F:
+	case EVP_PKEY_SLH_DSA_SHAKE_128S:
+	case EVP_PKEY_SLH_DSA_SHAKE_128F:
+	case EVP_PKEY_SLH_DSA_SHAKE_192S:
+	case EVP_PKEY_SLH_DSA_SHAKE_192F:
+	case EVP_PKEY_SLH_DSA_SHAKE_256S:
+	case EVP_PKEY_SLH_DSA_SHAKE_256F:
+#endif
 		if ( EVP_PKEY_keygen_init(ctx) <= 0 )
 			goto ERRRET;
 		break;
@@ -2227,6 +2343,7 @@ int CIdKey::Close()
 	m_CertBlob.Clear();
 	m_PublicKey.Clear();
 	m_PrivateKey.Clear();
+	m_Nid = NID_undef;
 
 	return FALSE;
 }
@@ -2235,10 +2352,10 @@ int CIdKey::ComperePublic(CIdKey *pKey)
 	int ret = (-1);
 	BN_CTX *bnctx = NULL;
 
-	if ( m_Type != pKey->m_Type )
+	if ( (m_Type & IDKEY_TYPE_MASK) != (pKey->m_Type & IDKEY_TYPE_MASK) )
 		return (-1);
 
-	switch(m_Type) {
+	switch(m_Type & IDKEY_TYPE_MASK) {
 	case IDKEY_RSA1:
 	case IDKEY_RSA2:
 		if ( m_Rsa == NULL || pKey->m_Rsa == NULL )
@@ -2300,6 +2417,8 @@ int CIdKey::ComperePublic(CIdKey *pKey)
 		break;
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
 		if ( m_PublicKey.GetSize() == 0 || m_PublicKey.GetSize() != pKey->m_PublicKey.GetSize() )
 			break;
 		if ( memcmp(m_PublicKey.GetPtr(), pKey->m_PublicKey.GetPtr(), m_PublicKey.GetSize()) != 0 )
@@ -2395,6 +2514,14 @@ LPCTSTR CIdKey::GetName(int nFlag)
 	case IDKEY_ED448:
 		m_Work += _T("ssh-ed448");
 		break;
+	case IDKEY_ML_DSA:
+		m_Work += _T("ssh-mldsa");			// draft-sfluhrer-ssh-mldsa-00
+		m_Work += GetDsaName(m_Nid);
+		break;
+	case IDKEY_SLH_DSA:
+		m_Work += _T("ssh-slh-dsa-");		// draft-josefsson-ssh-sphincs-00
+		m_Work += GetDsaName(m_Nid);
+		break;
 	case IDKEY_XMSS:
 		if ( (nFlag & IDKEY_NAME_CERT) != 0 && m_Cert != 0 )
 			m_Work += _T("ssh-xmss");
@@ -2423,16 +2550,25 @@ int CIdKey::GetTypeFromName(LPCTSTR name)
 {
 	int type = IDKEY_NONE;
 	int cert = 0;
+	int len = (int)_tcslen(name);
+	LPCTSTR last;
 	CString tmp;
-	LPCTSTR last = name + _tcslen(name) - 21;
 
 	//  123456789012345678901
 	//  -cert-v0?@openssh.com
+	if ( (last = name + len - 21) >= name ) {
+		if ( _tcscmp(last, _T("-cert-v00@openssh.com")) == 0 )
+			cert = IDKEY_CERTV00;
+		else if ( _tcscmp(last, _T("-cert-v01@openssh.com")) == 0 )
+			cert = IDKEY_CERTV01;
+	}
 
-	if ( last >= name && _tcscmp(last, _T("-cert-v00@openssh.com")) == 0 )
-		cert = IDKEY_CERTV00;
-	else if ( last >= name && _tcscmp(last, _T("-cert-v01@openssh.com")) == 0 )
-		cert = IDKEY_CERTV01;
+	//  12345
+	//  -cert			draft-miller-ssh-cert-00
+	if ( cert == 0 && (last = name + len - 5) >= name ) {
+		if ( _tcscmp(last, _T("-cert")) == 0 )
+			cert = IDKEY_CERTV01;
+	}
 
 	if ( cert != 0 ) {
 		while ( name < last )
@@ -2465,6 +2601,10 @@ int CIdKey::GetTypeFromName(LPCTSTR name)
 		type = IDKEY_ED25519;
 	else if ( _tcscmp(name, _T("ssh-ed448")) == 0 )
 		type = IDKEY_ED448;
+	else if ( _tcsncmp(name, _T("ssh-mldsa"), 9) == 0 && (m_Nid = GetDsaNid(name + 9, IDKEY_ML_DSA)) != NID_undef )
+		type = IDKEY_ML_DSA;
+	else if ( _tcsncmp(name, _T("ssh-slh-dsa-"), 12) == 0 && (m_Nid = GetDsaNid(name + 12, IDKEY_SLH_DSA)) != NID_undef )
+		type = IDKEY_SLH_DSA;
 	else if ( _tcscmp(name, _T("ssh-xmss")) == 0 || _tcscmp(name, _T("ssh-xmss@openssh.com")) == 0 )
 		type = IDKEY_XMSS;
 	else if ( *name != _T('\0') ) {
@@ -2959,7 +3099,12 @@ int CIdKey::Verify(CBuffer *bp, LPBYTE data, int datalen)
 	BIGNUM *r = NULL;
 	BIGNUM *s = NULL;
 	u_char *sigbuf = NULL;
+	CBuffer tmp(bp->GetPtr(), bp->GetSize());
 
+	if ( tmp.GetSize() < 4 )
+		return FALSE;
+
+	bp = &tmp;
 	bp->GetStr(keytype);
 
 	if ( (GetTypeFromName(MbsToTstr(keytype)) & IDKEY_TYPE_MASK) != (m_Type & IDKEY_TYPE_MASK) )
@@ -3038,6 +3183,8 @@ int CIdKey::Verify(CBuffer *bp, LPBYTE data, int datalen)
 
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
 		evp_md = NULL;
 		break;
 
@@ -3209,6 +3356,8 @@ int CIdKey::GetBlob(CBuffer *bp)
 
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
 		if ( !Create(type & IDKEY_TYPE_MASK) )
 			return FALSE;
 		m_PublicKey.Clear();
@@ -3308,6 +3457,8 @@ int CIdKey::SetBlob(CBuffer *bp, BOOL bCert)
 		break;
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
 		bp->PutBuf(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
 		break;
 	case IDKEY_XMSS:
@@ -3414,6 +3565,8 @@ int CIdKey::GetPrivateBlob(CBuffer *bp)
 
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
 		if ( !Create(type & IDKEY_TYPE_MASK) )
 			return FALSE;
 
@@ -3506,6 +3659,8 @@ int CIdKey::SetPrivateBlob(CBuffer *bp)
 		break;
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
 		bp->PutBuf(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
 		bp->Put32Bit(m_PrivateKey.GetSize() + m_PublicKey.GetSize());
 		bp->Apend(m_PrivateKey.GetPtr(), m_PrivateKey.GetSize());
@@ -3771,13 +3926,16 @@ int CIdKey::InitPass(LPCTSTR pass)
 {
 	int n;
 	CString str;
-	CEditDlg dlg;
+	CEditDlg dlg(CWnd::GetActiveWindow());
 
 	if ( m_Type == IDKEY_NONE )
 		return FALSE;
 
 	if ( pass != NULL && Init(pass) )
 		return TRUE;
+
+	if ( m_Type == IDKEY_UNKNOWN )
+		return FALSE;
 
 	dlg.m_bPassword = TRUE;
 	dlg.m_Edit = (pass != NULL ? pass : _T(""));
@@ -3904,6 +4062,8 @@ int CIdKey::WritePublicKey(CString &str, BOOL bAddUser)
 	case IDKEY_ECDSA:
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
 	case IDKEY_XMSS:
 	case IDKEY_UNKNOWN:
 		if ( !SetBlob(&tmp, bAddUser ? TRUE : FALSE) )
@@ -4022,6 +4182,15 @@ int CIdKey::ReadPrivateKey(LPCTSTR str, LPCTSTR pass, BOOL bHost)
 			return FALSE;
 		break;
 
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
+		m_Nid = tmp.Get32Bit();
+		m_PublicKey.Clear();
+		tmp.GetBuf(&m_PublicKey);
+		m_PrivateKey.Clear(); 
+		tmp.GetBuf(&m_PrivateKey);
+		break;
+
 	case IDKEY_XMSS:
 		if ( !m_XmssKey.SetBufSize(tmp.Get32Bit()) )
 			return FALSE;
@@ -4088,6 +4257,13 @@ int CIdKey::WritePrivateKey(CString &str, LPCTSTR pass)
 		tmp.Put32Bit(m_PrivateKey.GetSize() + m_PublicKey.GetSize());
 		tmp.Apend(m_PrivateKey.GetPtr(), m_PrivateKey.GetSize());
 		tmp.Apend(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
+		break;
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
+		tmp.Put8Bit(m_Type);
+		tmp.Put32Bit(m_Nid);
+		tmp.PutBuf(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
+		tmp.PutBuf(m_PrivateKey.GetPtr(), m_PrivateKey.GetSize());
 		break;
 	case IDKEY_XMSS:
 		tmp.Put8Bit(m_Type);
@@ -5089,7 +5265,7 @@ int CIdKey::SavePuttyKey(FILE *fp, LPCTSTR pass, int ver)
 	BYTE hash[EVP_MAX_MD_SIZE];
 	const EVP_MD *md_mac;
 
-	switch(m_Type) {
+	switch(m_Type & IDKEY_TYPE_MASK) {
 	case IDKEY_RSA2:
 		{
 			BIGNUM const *n = NULL, *e = NULL, *d = NULL, *p = NULL, *q = NULL, *iqmp = NULL;
@@ -5248,7 +5424,7 @@ EVP_PKEY *CIdKey::GetEvpPkey(int mode)
 {
 	EVP_PKEY *pkey = NULL;
 
-	switch(m_Type) {
+	switch(m_Type & IDKEY_TYPE_MASK) {
 	case IDKEY_RSA2:
 		if ( (pkey = EVP_PKEY_new()) == NULL || EVP_PKEY_set1_RSA(pkey, m_Rsa) == 0 )
 			goto ERRENDOF;
@@ -5287,6 +5463,19 @@ EVP_PKEY *CIdKey::GetEvpPkey(int mode)
 			break;
 		}
 		break;
+
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
+		switch(mode) {
+		case GETPKEY_PUBLICKEY:
+			pkey = EVP_PKEY_new_raw_public_key(m_Nid, NULL, m_PublicKey.GetPtr(), m_PublicKey.GetSize());
+			break;
+		case GETPKEY_PRIVATEKEY:
+		case GETPKEY_KEYPAIR:
+			pkey = EVP_PKEY_new_raw_private_key(m_Nid, NULL, m_PrivateKey.GetPtr(), m_PrivateKey.GetSize());
+			break;
+		}
+		break;
 	}
 
 	return pkey;
@@ -5299,7 +5488,16 @@ ERRENDOF:
 }
 int CIdKey::SetEvpPkey(EVP_PKEY *pk)
 {
-	switch(EVP_PKEY_id(pk)) {
+	int nid = EVP_PKEY_type(EVP_PKEY_get_id(pk));
+
+#if OPENSSL_VERSION_PREREQ(3, 5)
+	// 本来なら必要ないはず・・・
+	const char *name;
+	if ( nid == NID_undef && (name = EVP_PKEY_get0_type_name(pk)) != NULL )
+		nid = OBJ_ln2nid(name);
+#endif
+
+	switch(nid) {
 	case EVP_PKEY_RSA:
 	case EVP_PKEY_RSA2:
 		if ( m_Rsa != NULL )
@@ -5341,6 +5539,37 @@ int CIdKey::SetEvpPkey(EVP_PKEY *pk)
 		if ( !EdFromPkeyRaw(pk) )
 			return FALSE;
 		break;
+
+#if OPENSSL_VERSION_PREREQ(3, 5)
+	case EVP_PKEY_ML_DSA_44:
+	case EVP_PKEY_ML_DSA_65:
+	case EVP_PKEY_ML_DSA_87:
+		if ( !Create(IDKEY_ML_DSA) )
+			return FALSE;
+		m_Nid = nid;
+		if ( !EdFromPkeyRaw(pk) )
+			return FALSE;
+		break;
+
+	case EVP_PKEY_SLH_DSA_SHA2_128S:
+	case EVP_PKEY_SLH_DSA_SHA2_128F:
+	case EVP_PKEY_SLH_DSA_SHA2_192S:
+	case EVP_PKEY_SLH_DSA_SHA2_192F:
+	case EVP_PKEY_SLH_DSA_SHA2_256S:
+	case EVP_PKEY_SLH_DSA_SHA2_256F:
+	case EVP_PKEY_SLH_DSA_SHAKE_128S:
+	case EVP_PKEY_SLH_DSA_SHAKE_128F:
+	case EVP_PKEY_SLH_DSA_SHAKE_192S:
+	case EVP_PKEY_SLH_DSA_SHAKE_192F:
+	case EVP_PKEY_SLH_DSA_SHAKE_256S:
+	case EVP_PKEY_SLH_DSA_SHAKE_256F:
+		if ( !Create(IDKEY_SLH_DSA) )
+			return FALSE;
+		m_Nid = nid;
+		if ( !EdFromPkeyRaw(pk) )
+			return FALSE;
+		break;
+#endif
 
 	default:
 		m_Type = IDKEY_NONE;
@@ -5424,13 +5653,18 @@ int CIdKey::SavePrivateKey(int fmt, LPCTSTR file, LPCTSTR pass)
 	if ( (fp = _tfopen(file, _T("wb"))) == NULL )
 		return FALSE;
 
-	switch(m_Type) {
+	switch(m_Type & IDKEY_TYPE_MASK) {
 	case IDKEY_RSA1:
 		fmt = EXPORT_STYLE_OLDRSA;
 		break;
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
 		if ( fmt == EXPORT_STYLE_OSSLPEM )
+			fmt = EXPORT_STYLE_OSSLPFX;
+		break;
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
+		//if ( fmt != EXPORT_STYLE_OSSLPFX && fmt != EXPORT_STYLE_OPENSSH )
 			fmt = EXPORT_STYLE_OSSLPFX;
 		break;
 	case IDKEY_XMSS:
@@ -5440,7 +5674,7 @@ int CIdKey::SavePrivateKey(int fmt, LPCTSTR file, LPCTSTR pass)
 
 	switch(fmt) {
 	case EXPORT_STYLE_OSSLPEM:
-		switch(m_Type) {
+		switch(m_Type & IDKEY_TYPE_MASK) {
 		case IDKEY_RSA2:
 			rt = PEM_write_RSAPrivateKey(fp, m_Rsa, (mbs.IsEmpty() ? NULL : cipher), (unsigned char *)(mbs.IsEmpty() ? NULL : (LPCSTR)mbs), mbs.GetLength(), NULL, NULL);
 			break;
@@ -5664,6 +5898,9 @@ int CIdKey::GetSize()
 		return 255;
 	case IDKEY_ED448:
 		return 448;
+	case IDKEY_ML_DSA:
+	case IDKEY_SLH_DSA:
+		return GetDsaSize(m_Nid);
 	case IDKEY_XMSS:
 		return m_XmssKey.GetHeight();
 	}
@@ -5832,6 +6069,12 @@ void CIdKey::FingerPrint(CString &str, int digest, int format)
 	case IDKEY_ED448:
 		work = _T("+---[ED448    ]---+\r\n");
 		break;
+	case IDKEY_ML_DSA:
+		work.Format(_T("+--[ML-DSA %4d]--+\r\n"), GetSize());
+		break;
+	case IDKEY_SLH_DSA:
+		work.Format(_T("+--[SLH-DSA %4d]-+\r\n"), GetSize());
+		break;
 	default:
 		work = _T("+---[Unknown  ]---+\r\n");
 	}
@@ -5896,245 +6139,6 @@ int CIdKey::DnsDigest(int hash, CBuffer &digest)
 
 	digest.Clear();
 	digest.Apend(tmp, len);
-
-	return TRUE;
-}
-
-int CIdKey::FileHash(LPCTSTR filename, const EVP_MD *md, u_char *hash)
-{
-	int n;
-	int hlen = (-1);
-	FILE *fp = NULL;
-	EVP_MD_CTX *ctx = NULL;
-	BYTE tmp[4096];
-
-	if ( (fp = _tfopen(filename, _T("rb"))) == NULL )
-		goto ENDOF;
-
-	if ( (ctx = EVP_MD_CTX_new()) == NULL )
-		goto ENDOF;
-
-	if ( EVP_DigestInit(ctx, md) <= 0 )
-		goto ENDOF;
-
-	while ( (n = (int)fread(tmp, 1, 4096, fp)) > 0 ) {
-		if ( EVP_DigestUpdate(ctx, tmp, n) <= 0 )
-			goto ENDOF;
-	}
-
-	if ( EVP_DigestFinal(ctx, hash, (unsigned int *)&hlen) <= 0 )
-		goto ENDOF;
-
-ENDOF:
-	if ( ctx != NULL )
-		EVP_MD_CTX_free(ctx);
-
-	if ( fp != NULL )
-		fclose(fp);
-
-	return hlen;
-}
-BOOL CIdKey::FileSign(LPCTSTR filename, CBuffer *outbuf, LPCSTR nspc, LPCTSTR pass)
-{
-/*
-  draft-josefsson-sshsig-format-00
-
-  3.  Armored format
-
-  -----BEGIN SSH SIGNATURE-----
-  Tq0Fb56xhtuE1/lK9H9RZJfON4o6hE9R4ZGFX98gy0+fFJ/1d2/RxnZky0Y7GojwrZkrHT
-  ...
-  FgCqVWAQ==
-  -----END SSH SIGNATURE-----
-  
-  4.  Blob format
-
-  byte[6] "SSHSIG"
-    uint32 0x01
-    string publickey
-    string namespace
-    string reserved
-    string hash_algorithm
-    string signature
-
-  5.  Signed Data, of which the signature goes into the blob above
-
-   byte[6] "SSHSIG"
-    string namespace
-    string reserved
-    string hash_algorithm
-    string H(message)
-*/
-	int hlen;
-	CBuffer tmp, body, sig;
-	CString line;
-	u_char hash[EVP_MAX_MD_SIZE];
-
-	try {
-		if ( !InitPass(pass) )
-			return FALSE;
-
-		::FormatErrorReset();
-
-		if ( (hlen = FileHash(filename, EVP_sha512(), hash)) <= 0 )
-			throw _T("file hash error");
-
-		if ( nspc == NULL || *nspc == '\0' )
-			nspc = "RLogin";
-
-		tmp.Clear();
-		tmp.Apend((LPBYTE)"SSHSIG", 6);
-		tmp.PutStr(nspc);
-		tmp.PutStr("");
-		tmp.PutStr("sha512");
-		tmp.PutBuf(hash, hlen);
-
-		if ( (m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA1 || (m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA2 )
-			m_RsaNid = NID_sha512;
-
-		if ( !Sign(&sig, tmp.GetPtr(), tmp.GetSize()) )
-			throw _T("key sign error");
-
-		tmp.Clear();
-		SetBlob(&tmp, FALSE);
-
-		body.Apend((LPBYTE)"SSHSIG", 6);
-		body.Put32Bit(0x01);
-		body.PutBuf(tmp.GetPtr(), tmp.GetSize());
-		body.PutStr(nspc);
-		body.PutStr("");
-		body.PutStr("sha512");
-		body.PutBuf(sig.GetPtr(), sig.GetSize());
-
-		tmp.Base64Encode(body.GetPtr(), body.GetSize());
-
-		outbuf->Clear();
-		*outbuf += _T("-----BEGIN SSH SIGNATURE-----\r\n");
-
-		line.Empty();
-		for ( LPCTSTR p = (LPCTSTR)tmp ; *p != _T('\0') ; ) {
-			line += *(p++);
-			if ( line.GetLength() > 70 || *p == _T('\0') ) {
-				line += _T("\r\n");
-				*outbuf += (LPCTSTR)line;
-				line.Empty();
-			}
-		}
-
-		*outbuf += _T("-----END SSH SIGNATURE-----\r\n");
-
-	} catch(LPCTSTR msg) {
-		::ThreadMessageBox(_T("FileSign %s"), msg);
-		return FALSE;
-
-	} catch(...) {
-		return FALSE;
-	}
-
-	return TRUE;
-}
-BOOL CIdKey::FileVerify(LPCTSTR filename, CBuffer *inbuf, LPCSTR nspc)
-{
-	int hlen, nid = 0;
-	int st = 0;
-	CString line, text;
-	CBuffer body, tmp, name, sig;
-	CIdKey pub;
-	const EVP_MD *md = NULL;
-	u_char hash[EVP_MAX_MD_SIZE];
-
-	try {
-		::FormatErrorReset();
-
-		text.Empty();
-		while ( inbuf->ReadString(line) ) {
-			line.Trim(_T("\t\r\n"));
-
-			if ( line.CompareNoCase(_T("-----BEGIN SSH SIGNATURE-----")) == 0 ) {
-				if ( st == 0 ) {
-					st = 1;
-					continue;
-				} else
-					break;
-			} else if ( line.CompareNoCase(_T("-----END SSH SIGNATURE-----")) == 0 )
-				break;
-			
-			if ( st == 0 )
-				continue;
-
-			text += line;
-		}
-
-		body.Base64Decode(text);
-
-		if ( body.GetSize() < 6 || memcmp(body.GetPtr(), "SSHSIG", 6) != 0 )
-			throw _T("sshsig magic mismatch");
-		body.Consume(6);
-
-		if ( body.Get32Bit() != 0x01 )	// SSHSIG_VERSION
-			throw _T("sshsig version mismatch");
-
-		// string publickey
-		tmp.Clear();
-		body.GetBuf(&tmp);
-		
-		if ( !pub.GetBlob(&tmp) )
-			throw _T("public key load error");
-	
-		if ( m_Type != IDKEY_NONE && Compere(&pub) != 0 )
-			throw _T("public key no macth");
-
-		// string namespace
-		name.Clear();
-		body.GetBuf(&name);
-
-		if ( nspc != NULL && *nspc != '\0' && strcmp(nspc, (LPCSTR)name) != 0 )
-			throw _T("namespace no macth");
-
-		// string reserved
-		tmp.Clear();
-		body.GetBuf(&tmp);
-
-		// string hash_algorithm
-		tmp.Clear();
-		body.GetBuf(&tmp);
-
-		if ( strcmp((LPCSTR)tmp, "sha256") == 0 ) {
-			md = EVP_sha256();
-			nid = NID_sha256;
-		} else if ( strcmp((LPCSTR)tmp, "sha512") == 0 ) {
-			md = EVP_sha512();
-			nid = NID_sha512;
-		} else
-			throw _T("hash algorithm not support");
-
-		if ( (m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA1 || (m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA2 )
-			m_RsaNid = nid;
-
-		// string signature
-		sig.Clear();
-		body.GetBuf(&sig);
-
-		if ( (hlen = FileHash(filename, md, hash)) <= 0 )
-			throw _T("file hash error");
-
-		tmp.Clear();
-		tmp.Apend((LPBYTE)"SSHSIG", 6);
-		tmp.PutStr((LPCSTR)name);
-		tmp.PutStr("");
-		tmp.PutStr("sha512");
-		tmp.PutBuf(hash, hlen);
-
-		if ( !pub.Verify(&sig, tmp.GetPtr(), tmp.GetSize()) )
-			throw _T("verification failed");
-
-	} catch(LPCTSTR msg) {
-		::ThreadMessageBox(_T("FileVerify %s"), msg);
-		return FALSE;
-
-	} catch(...) {
-		return FALSE;
-	}
 
 	return TRUE;
 }
@@ -6294,4 +6298,3 @@ const CPermit & CPermit::operator = (CPermit &data)
 	m_Type  = data.m_Type;
 	return *this;
 }
-

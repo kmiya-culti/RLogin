@@ -25,7 +25,7 @@ public:
 	CEvent m_AbortEvent;
 	CEvent m_ThreadEvent;
 
-	UINT m_SendWait[2];
+	UINT m_SendWait[3];
 	int m_SendCrLf;
 
 public:

@@ -28,6 +28,8 @@ public:
 	CString	m_PassName;
 	BOOL m_bPassDisp;
 
+	CComboBoxHis m_IdkeyFileCombo;
+
 	int m_OpenMode;
 	CStringLoad m_Title;
 	TCHAR m_PassChar;

@@ -5092,3 +5092,118 @@ void argon2(uint32_t y, uint32_t m, uint32_t t, uint32_t p,
 
 	delete [] B;
 }
+
+//////////////////////////////////////////////////////////////////////
+// OpenSSL ml_kem lib
+
+#if OPENSSL_VERSION_PREREQ(3, 5)
+
+int ossl_mlkem_keypair(uint8_t *pk, uint8_t *sk, int type)
+{
+	int rt = (-1);
+	ML_KEM_KEY *private_key = NULL;
+	ML_KEM_KEY *public_key = NULL;
+	const ML_KEM_VINFO *v;
+
+	if ( (public_key = ossl_ml_kem_key_new(NULL, NULL, type)) == NULL )
+		goto ENDOF;
+
+	if ( (private_key = ossl_ml_kem_key_new(NULL, NULL, type)) == NULL )
+		goto ENDOF;
+
+	if ( (v = ossl_ml_kem_key_vinfo(public_key)) == NULL )
+		goto ENDOF;
+
+#ifdef	_DEBUG
+	switch(type) {
+	case EVP_PKEY_ML_KEM_512:
+		ASSERT(	v->pubkey_bytes == mlkem512_PUBLICKEYBYTES ||
+				v->prvkey_bytes == mlkem512_SECRETKEYBYTES ||
+				v->ctext_bytes  == mlkem512_CIPHERTEXTBYTES ||
+				ML_KEM_SHARED_SECRET_BYTES == mlkem512_BYTES );
+		break;
+	case EVP_PKEY_ML_KEM_768:
+		ASSERT(	v->pubkey_bytes == mlkem768_PUBLICKEYBYTES ||
+				v->prvkey_bytes == mlkem768_SECRETKEYBYTES ||
+				v->ctext_bytes  == mlkem768_CIPHERTEXTBYTES ||
+				ML_KEM_SHARED_SECRET_BYTES == mlkem768_BYTES );
+		break;
+	case EVP_PKEY_ML_KEM_1024:
+		ASSERT(	v->pubkey_bytes == mlkem1024_PUBLICKEYBYTES ||
+				v->prvkey_bytes == mlkem1024_SECRETKEYBYTES ||
+				v->ctext_bytes  == mlkem1024_CIPHERTEXTBYTES ||
+				ML_KEM_SHARED_SECRET_BYTES == mlkem1024_BYTES );
+		break;
+	}
+#endif
+
+	if ( !ossl_ml_kem_genkey(pk, v->pubkey_bytes, private_key) )
+		goto ENDOF;
+
+	if ( !ossl_ml_kem_encode_private_key(sk, v->prvkey_bytes, private_key) )
+		goto ENDOF;
+
+	rt = 0;
+
+ENDOF:
+	if ( public_key != NULL )
+		ossl_ml_kem_key_free(public_key);
+
+	if ( private_key != NULL )
+		ossl_ml_kem_key_free(private_key);
+
+	return rt;
+}
+int ossl_mlkem_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk, int type)
+{
+	int rt = (-1);
+	ML_KEM_KEY *public_key = NULL;
+	const ML_KEM_VINFO *v;
+
+	if ( (public_key = ossl_ml_kem_key_new(NULL, NULL, type)) == NULL )
+		goto ENDOF;
+
+	if ( (v = ossl_ml_kem_key_vinfo(public_key)) == NULL )
+		goto ENDOF;
+
+	if ( !ossl_ml_kem_parse_public_key(pk, v->pubkey_bytes, public_key) )
+		goto ENDOF;
+
+	if ( !ossl_ml_kem_encap_rand(ct, v->ctext_bytes, ss, ML_KEM_SHARED_SECRET_BYTES, public_key) )
+		goto ENDOF;
+
+	rt = 0;
+
+ENDOF:
+	if ( public_key != NULL )
+		ossl_ml_kem_key_free(public_key);
+
+	return rt;
+}
+int ossl_mlkem_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk, int type)
+{
+	int rt = (-1);
+	ML_KEM_KEY *private_key = NULL;
+	const ML_KEM_VINFO *v;
+
+	if ( (private_key = ossl_ml_kem_key_new(NULL, NULL, type)) == NULL )
+		goto ENDOF;
+
+	if ( (v = ossl_ml_kem_key_vinfo(private_key)) == NULL )
+		goto ENDOF;
+
+	if ( !ossl_ml_kem_parse_private_key(sk, v->prvkey_bytes, private_key) )
+		goto ENDOF;
+
+	if ( !ossl_ml_kem_decap(ss, ML_KEM_SHARED_SECRET_BYTES, ct, v->ctext_bytes, private_key) )
+		goto ENDOF;
+
+	rt = 0;
+
+ENDOF:
+	if ( private_key != NULL )
+		ossl_ml_kem_key_free(private_key);
+
+	return rt;
+}
+#endif

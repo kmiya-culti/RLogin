@@ -310,11 +310,20 @@ void CCharSetPage::OnReset()
 }
 void CCharSetPage::OnCharSet(UINT nID) 
 {
+	int oldCode = m_KanjiCode;
+
 	UpdateData(TRUE);
+
+	m_BankTab[oldCode][0] = m_FontTab.Find(m_CharBank1);
+	m_BankTab[oldCode][1] = m_FontTab.Find(m_CharBank2);
+	m_BankTab[oldCode][2] = m_FontTab.Find(m_CharBank3);
+	m_BankTab[oldCode][3] = m_FontTab.Find(m_CharBank4);
+
 	m_CharBank1  = m_FontTab[m_BankTab[m_KanjiCode][0]].m_EntryName;
 	m_CharBank2  = m_FontTab[m_BankTab[m_KanjiCode][1]].m_EntryName;
 	m_CharBank3  = m_FontTab[m_BankTab[m_KanjiCode][2]].m_EntryName;
 	m_CharBank4  = m_FontTab[m_BankTab[m_KanjiCode][3]].m_EntryName;
+
 	UpdateData(FALSE);
 
 	SetModified(TRUE);

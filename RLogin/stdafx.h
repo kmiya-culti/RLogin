@@ -24,7 +24,6 @@
 //#define	USE_HOSTBOUND		// EXT_INFOのhostkeys-00@openssh.comを有効
 #define	USE_EXTINFOINAUTH		// EXT_INFOのext-info-in-auth@openssh.comを有効
 //#define	USE_FIFOMONITER		// FifoBufferのサイズをデバッグ
-#define	USE_CSTRINGLASTERR		// CStrinA/W内の文字変換でLastErrorをセットするので小細工
 
 // Windows バージョン
 
@@ -149,68 +148,25 @@
   #include <afxcontrolbars.h>
 #endif
 
-#ifdef	USE_CSTRINGLASTERR
-	extern BOOL bBreak;
-	class CStringMbs : public CStringA
-	{
-	public:
-		CStringMbs(LPCWSTR wstr) {
-			DWORD err = GetLastError();
-	#ifdef	_DEBUG
-			bBreak = FALSE;
-			*(CStringA *)this = wstr;
-			bBreak = TRUE;
-	#else
-			*(CStringA *)this = wstr;
-	#endif
-			SetLastError(err);
-		}
-	};
-	class CStringUni : public CStringW
-	{
-	public:
-		CStringUni(LPCSTR str) {
-			DWORD err = GetLastError();
-	#ifdef	_DEBUG
-			bBreak = FALSE;
-			*(CStringW *)this = str;
-			bBreak = TRUE;
-	#else
-			*(CStringW *)this = str;
-	#endif
-			SetLastError(err);
-		}
-	};
+#define	UniToMbs(s)				((LPCSTR)WstrToMbs(s))
+#define	MbsToUni(s)				((LPCWSTR)MbsToWstr(s))
+#define	UniToUtf8(s)			((LPCSTR)WstrToUtf8(s))
+#define	Utf8ToUni(s)			((LPCWSTR)Utf8ToWstr(s))
 
-	#define	UniToMbs(s)				((LPCSTR)CStringMbs(s))
-	#define	MbsToUni(s)				((LPCWSTR)CStringUni(s))
-
-	#ifdef	_UNICODE
-	  #define	TstrToMbs(s)		((LPCSTR)CStringMbs(s))
-	  #define	TstrToUni(s)		((LPCWSTR)(s))
-	  #define	MbsToTstr(s)		((LPCTSTR)CStringUni(s))
-	  #define	UniToTstr(s)		((LPCTSTR)(s))
-	#else
-	  #define	TstrToMbs(s)		((LPCSTR)(s))
-	  #define	TstrToUni(s)		((LPCWSTR)CStringUni(s))
-	  #define	MbsToTstr(s)		((LPCTSTR)(s))
-	  #define	UniToTstr(s)		((LPCTSTR)CStringMbs(s))
-	#endif
+#ifdef	_UNICODE
+	#define	TstrToMbs(s)		((LPCSTR)WstrToMbs(s))
+	#define	TstrToUtf8(s)		((LPCSTR)WstrToUtf8(s))
+	#define	TstrToUni(s)		((LPCWSTR)(s))
+	#define	MbsToTstr(s)		((LPCTSTR)MbsToWstr(s))
+	#define	Utf8ToTstr(s)		((LPCTSTR)Utf8ToWstr(s))
+	#define	UniToTstr(s)		((LPCTSTR)(s))
 #else
-	#define	UniToMbs(s)				((LPCSTR)CStringA(s))
-	#define	MbsToUni(s)				((LPCWSTR)CStringW(s))
-
-	#ifdef	_UNICODE
-	  #define	TstrToMbs(s)		((LPCSTR)CStringA(s))
-	  #define	TstrToUni(s)		((LPCWSTR)(s))
-	  #define	MbsToTstr(s)		((LPCTSTR)CStringW(s))
-	  #define	UniToTstr(s)		((LPCTSTR)(s))
-	#else
-	  #define	TstrToMbs(s)		((LPCSTR)(s))
-	  #define	TstrToUni(s)		((LPCWSTR)CStringW(s))
-	  #define	MbsToTstr(s)		((LPCTSTR)(s))
-	  #define	UniToTstr(s)		((LPCTSTR)CStringA(s))
-	#endif
+	#define	TstrToMbs(s)		((LPCSTR)(s))
+	#define	TstrToUtf8(s)		((LPCSTR)(WStrToUtf8(MbsToWstr(s))))
+	#define	TstrToUni(s)		((LPCWSTR)MbsToWstr(s))
+	#define	MbsToTstr(s)		((LPCTSTR)(s))
+	#define	Utf8ToTstr(s)		((LPCTSTR)(Utf8ToWstr(WstrToMbs(s))))
+	#define	UniToTstr(s)		((LPCTSTR)WstrToMbs(s))
 #endif
 
 #if defined _UNICODE || defined _WIN64

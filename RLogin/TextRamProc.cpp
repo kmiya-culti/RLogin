@@ -1034,7 +1034,8 @@ void CTextRam::fc_Init(int mode)
 
 		fc_Init_Proc(STAGE_ESC, fc_CtrlTab);
 		fc_Init_Proc(STAGE_ESC, fc_EscTab);
-		fc_Init_Proc(STAGE_ESC, fc_Esc2Tab, 0x80);
+//		fc_Init_Proc(STAGE_ESC, fc_Esc2Tab, 0x80);
+		fc_Init_Proc(STAGE_ESC, fc_Esc2Tab);
 
 		fc_Init_Proc(STAGE_GOTOXY, fc_CtrlTab);
 		fc_Init_Proc(STAGE_GOTOXY, fc_GotoTab);
@@ -1574,7 +1575,7 @@ void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, DWORD ch)
 	if ( idx < 0 || idx >= EXTCOL_MAX )
 		return;
 
-	if ( para[0] == '?' ) {
+	if ( para[0] == _T('?') ) {
 		if ( (cmd >= 10 && cmd <= 19) || (cmd >= 110 && cmd <= 119) )
 			UNGETSTR(_T("%s%d;rgb:%04x/%04x/%04x%s"), m_RetChar[RC_OSC], cmd,
 				GetRValue16(m_ColTab[idx]), GetGValue16(m_ColTab[idx]), GetBValue16(m_ColTab[idx]),
@@ -1900,11 +1901,11 @@ void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, DWORD ch)
 			r = ((idx - 16) / 6 / 6) % 6;
 			g = ((idx - 16) / 6) % 6;
 			b = (idx - 16) % 6;
-			m_ColTab[idx] = RGB(r * 51, g * 51, b * 51);
+			m_ColTab[idx] = RGB((r == 0 ? 0 : (r * 40 + 55)), (g == 0 ? 0 : (g * 40 + 55)), (b == 0 ? 0 : (b * 40 + 55)));
 		} else if ( idx < 256 ) {			// colors 232-255 are a grayscale ramp, intentionally leaving out
-			r = (idx - 232) * 11;
-			g = (idx - 232) * 11;
-			b = (idx - 232) * 11;
+			r = (idx - 232) * 10 + 8;
+			g = (idx - 232) * 10 + 8;
+			b = (idx - 232) * 10 + 8;
 			m_ColTab[idx] = RGB(r, g, b);
 		} else if ( idx == EXTCOL_VT_TEXT_FORE ) {
 			m_ColTab[idx] = m_DefColTab[m_DefAtt.std.fcol];
@@ -1941,35 +1942,30 @@ void CTextRam::fc_POP(DWORD ch)
 }
 void CTextRam::fc_SESC(DWORD ch)
 {
-	fc_KANJI(ch);
+	if ( IsOptEnable(TO_RLC1DIS) ) {
+		int bank = m_BankTab[m_KanjiMode][m_BankSG >= 0 ? m_BankSG : m_BankGR] & SET_MASK;
+		if ( bank <= SET_96 )
+			fc_TEXT(ch);
+		else {
+			fc_KANJI(ch);
+			if ( IsOptEnable(TO_RLBRKMBCS) )
+				fc_KANBRK();
+			if ( IsOptEnable(TO_RLKANAUTO) )
+				fc_KANCHK();
+		}
+	} else {
+		fc_KANJI(ch);
 
-	if ( !IsOptEnable(TO_RLC1DIS) ) {
 		ch &= 0x1F;
 		ch += '@';
 		fc_Push(STAGE_ESC);
 		fc_RenameCall(ch);
-
-	} else {
-		if ( IsOptEnable(TO_RLBRKMBCS) )
-			fc_KANBRK();
-
-		if ( IsOptEnable(TO_RLKANAUTO) )
-			fc_KANCHK();
 	}
 }
 void CTextRam::fc_CESC(DWORD ch)
 {
-	fc_KANJI(ch);
-
-	if ( IsOptEnable(TO_RLC1DIS) ) {
-		ch &= 0x7F;
-		fc_POP(ch);			// SEC !!!
-	} else {
-		ch &= 0x1F;
-		ch += '@';
-		fc_Case(STAGE_ESC);	// SESC !!!
-		fc_RenameCall(ch);
-	}
+	fc_POP(ch);		// STAGE_ESC pop
+	fc_SESC(ch);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -5990,7 +5986,7 @@ void CTextRam::fc_SGR(DWORD ch)
 		case 38:
 		case 48:
 			a = n;	// base index
-			// ;(Semicolon) Style	38;5;n or 38;2;r;g;b
+			// ;(Semicolon) Style	38;5;n or 38;2;r;g;b or 38;2;i:r;g;b 
 			if ( m_AnsiPara[n].GetSize() == 0 && m_AnsiPara.GetSize() > (n + 1) ) {
 				m_AnsiPara[a].Add(m_AnsiPara[++n]);		// 5/2
 
@@ -6021,10 +6017,11 @@ void CTextRam::fc_SGR(DWORD ch)
 			}
 
 			// Para[a]    = 38
-			// Para[a][0] = 2 or 5
-			// Para[a][1] = n    r
-			// Para[a][2] =      g
-			// Para[a][3] =      b
+			// Para[a][0] = 2 or 5 or 5
+			// Para[a][1] = n    r    i
+			// Para[a][2] =      g    r
+			// Para[a][3] =      b    g
+			// Para[a][3] =		      b
 
 			if ( m_AnsiPara[a].GetSize() < 1 )
 				break;
@@ -6036,16 +6033,18 @@ void CTextRam::fc_SGR(DWORD ch)
 
 			switch(m_AnsiPara[a][0]) {
 			case 2:				// RGB color
-				if ( m_AnsiPara[a].GetSize() < 4 )
-					break;
-				if ( m_AnsiPara[a] == 38 ) {
-					m_AttNow.eatt |= EATT_FRGBCOL;
-					m_AttNow.frgb = RGB(m_AnsiPara[a][1], m_AnsiPara[a][2], m_AnsiPara[a][3]);
-					m_AttNow.std.fcol = GETCOLIDX(m_AnsiPara[a][1], m_AnsiPara[a][2], m_AnsiPara[a][3]);
-				} else {
-					m_AttNow.eatt |= EATT_BRGBCOL;
-					m_AttNow.brgb = RGB(m_AnsiPara[a][1], m_AnsiPara[a][2], m_AnsiPara[a][3]);
-					m_AttNow.std.bcol = GETCOLIDX(m_AnsiPara[a][1], m_AnsiPara[a][2], m_AnsiPara[a][3]);
+				if ( m_AnsiPara[a].GetSize() >= 4 ) {
+					// 38;2;r;g;b or 38;2;i:r;g;b
+					int o = (m_AnsiPara[a].GetSize() >= 5 ? 1 : 0);
+					if ( m_AnsiPara[a] == 38 ) {
+						m_AttNow.eatt |= EATT_FRGBCOL;
+						m_AttNow.frgb = RGB(m_AnsiPara[a][o + 1], m_AnsiPara[a][o + 2], m_AnsiPara[a][o + 3]);
+						m_AttNow.std.fcol = GETCOLIDX(m_AnsiPara[a][o + 1], m_AnsiPara[a][o + 2], m_AnsiPara[a][o + 3]);
+					} else {
+						m_AttNow.eatt |= EATT_BRGBCOL;
+						m_AttNow.brgb = RGB(m_AnsiPara[a][o + 1], m_AnsiPara[a][o + 2], m_AnsiPara[a][o + 3]);
+						m_AttNow.std.bcol = GETCOLIDX(m_AnsiPara[a][o + 1], m_AnsiPara[a][o + 2], m_AnsiPara[a][o + 3]);
+					}
 				}
 				break;
 			case 5:				// 256 index color

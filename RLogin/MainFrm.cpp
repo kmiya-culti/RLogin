@@ -986,6 +986,7 @@ CMainFrame::CMainFrame()
 	m_ClipTimer = 0;
 	m_IdleTimer = 0;
 	m_LastClipUpdate = clock();
+	m_LastClipTimer = 0;
 	m_pMidiData = NULL;
 	m_pServerSelect = NULL;
 	m_pHistoryDlg = NULL;
@@ -2398,22 +2399,25 @@ void CMainFrame::SetClipBoardMenu(UINT nId, CMenu *pMenu)
 		pMenu->AppendMenu(MF_STRING, nId++, tmp);
 	}
 }
-BOOL CMainFrame::CopyClipboardData(CString &str)
+BOOL CMainFrame::CopyClipboardData(CString &str, int *pRetry)
 {
-	int len, max = 0;
 	HGLOBAL hData;
 	WCHAR *pData = NULL;
 	BOOL ret = FALSE;
 
 	// 10msロック出来るまで待つ
-	if ( m_OpenClipboardLock.IsLocked() || !m_OpenClipboardLock.Lock(10) )
+	if ( m_OpenClipboardLock.IsLocked() || !m_OpenClipboardLock.Lock(10) ) {
+		if ( pRetry != NULL ) *pRetry = TRUE;
 		return FALSE;
+	}
 
 	if ( !IsClipboardFormatAvailable(CF_UNICODETEXT) )
 		goto UNLOCKRET;
 
-	if ( !OpenClipboard() )
+	if ( !OpenClipboard() ) {
+		if ( pRetry != NULL ) *pRetry = TRUE;
 		goto UNLOCKRET;
+	}
 
 	if ( (hData = GetClipboardData(CF_UNICODETEXT)) == NULL )
 		goto CLOSERET;
@@ -2421,11 +2425,7 @@ BOOL CMainFrame::CopyClipboardData(CString &str)
 	if ( (pData = (WCHAR *)GlobalLock(hData)) == NULL )
 		goto CLOSERET;
 
-	str.Empty();
-	max = (int)GlobalSize(hData) / sizeof(WCHAR);
-
-	for ( len = 0 ; len < max && *pData != L'\0' && *pData != L'\x1A' ; len++ )
-		str += *(pData++);
+	str.SetString(pData, (int)GlobalSize(hData) / sizeof(WCHAR));
 
 	GlobalUnlock(hData);
 	ret = TRUE;
@@ -2439,21 +2439,16 @@ UNLOCKRET:
 }
 static UINT CopyClipboardThead(LPVOID pParam)
 {
-	int n;
 	CString *pStr = new CString;
 	CMainFrame *pWnd = (CMainFrame *)pParam;
 
-	for ( n = 0 ; ; n++ ) {
-		if ( pWnd->CopyClipboardData(*pStr) ) {
+	for ( int n = 0 ; n < 10 ; n++ ) {
+		BOOL bRetry = FALSE;
+		if ( pWnd->CopyClipboardData(*pStr, &bRetry) ) {
 			pWnd->PostMessage(WM_GETCLIPBOARD, NULL, (LPARAM)pStr);
 			break;
-		}
-
-		if ( n >= 10 ) {
-			delete pStr;
+		} else if ( !bRetry )
 			break;
-		}
-
 		Sleep(100);
 	}
 
@@ -3001,6 +2996,15 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 				break;
 		}
 		//TRACE("TimerIdle %d(%d)\n", n, clock() - st + 90);
+		break;
+
+	case TIMERID_LASTCLIP:
+		if ( (clock() - m_LastClipUpdate) > CLIPOPENLASTMSEC && m_bClipThreadCount < CLIPOPENTHREADMAX  ) {
+			m_bClipThreadCount++;
+			AfxBeginThread(CopyClipboardThead, this, THREAD_PRIORITY_NORMAL);
+			KillTimer(nIDEvent);
+			m_LastClipTimer = 0;
+		}
 		break;
 
 	default:
@@ -4141,21 +4145,14 @@ void CMainFrame::OnClipboardUpdate()
 
 	// かなりややこしい動作なのでここにメモを残す
 
-	clock_t now = clock();
-	int msec = (int)(now - m_LastClipUpdate) * 1000 / CLOCKS_PER_SEC;
-	m_LastClipUpdate = now;
-
-	if ( msec > 0 && msec < CLIPOPENLASTMSEC )
-		return;
-
-	//TRACE("OnClipboardUpdate %d\n", msec);
+	// 2025.3.19
+	// 最後のメッセージからCLIPOPENLASTMSEC以上の時間を待つように変更
 
 	m_bClipEnable = TRUE;	// クリップボードチェインが有効？
+	m_LastClipUpdate = clock();
 
-	if ( m_bClipThreadCount < CLIPOPENTHREADMAX  ) {
-		m_bClipThreadCount++;
-		AfxBeginThread(CopyClipboardThead, this, THREAD_PRIORITY_NORMAL);
-	}
+	if ( m_LastClipTimer == 0 )
+		m_LastClipTimer = SetTimer(TIMERID_LASTCLIP, 100, NULL);
 }
 
 void CMainFrame::OnToolcust()

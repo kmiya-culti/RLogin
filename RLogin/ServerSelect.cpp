@@ -750,6 +750,7 @@ void CServerSelect::OnDelEntry()
 	int n, i;
 	CStringLoad tmp, msg;
 	CDWordArray tab;
+	int num = m_List.GetSelectionMark();
 
 	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
 		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
@@ -791,6 +792,13 @@ void CServerSelect::OnDelEntry()
 	}
 
 	InitEntry(INIT_CALL_UPDATE);
+
+	if ( num >= 0  ) {
+		if ( num >= m_List.GetItemCount() )
+			num = m_List.GetItemCount() - 1;
+		if ( num >= 0 )
+			m_List.SetSelectMarkItem(num);
+	}
 }
 
 void CServerSelect::OnCopyEntry() 

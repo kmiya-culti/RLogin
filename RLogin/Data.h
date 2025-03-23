@@ -1318,4 +1318,60 @@ public:
 	const CCodeFlag & operator = (CCodeFlag &data);
 };
 
+class WstrToMbs : public CObject
+{
+public:
+	LPCSTR m_pStr;
+
+	WstrToMbs(LPCWSTR wstr);
+	~WstrToMbs();
+
+	const WstrToMbs & operator = (WstrToMbs &data);
+	const WstrToMbs & operator = (LPCWSTR wstr);
+
+	inline operator LPCSTR () { return m_pStr; }
+};
+
+class MbsToWstr : public CObject
+{
+public:
+	LPCWSTR m_pStr;
+
+	MbsToWstr(LPCSTR str);
+	~MbsToWstr();
+
+	const MbsToWstr & operator = (MbsToWstr &data);
+	const MbsToWstr & operator = (LPCSTR str);
+
+	inline operator LPCWSTR () { return m_pStr; }
+};
+
+class WstrToUtf8 : public CObject
+{
+public:
+	LPCSTR m_pStr;
+
+	WstrToUtf8(LPCWSTR wstr);
+	~WstrToUtf8();
+
+	const WstrToUtf8 & operator = (WstrToUtf8 &data);
+	const WstrToUtf8 & operator = (LPCWSTR wstr);
+
+	inline operator LPCSTR () { return m_pStr; }
+};
+
+class Utf8ToWstr : public CObject
+{
+public:
+	LPCWSTR m_pStr;
+
+	Utf8ToWstr(LPCSTR str);
+	~Utf8ToWstr();
+
+	const Utf8ToWstr & operator = (Utf8ToWstr &data);
+	const Utf8ToWstr & operator = (LPCSTR str);
+
+	inline operator LPCWSTR () { return m_pStr; }
+};
+
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

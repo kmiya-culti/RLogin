@@ -235,14 +235,15 @@ void CStatusDlg::OnFilePrint()
 	BOOL bFF = FALSE;
 	CStringLoad DefFontName(IDS_DEFFONTNAME0);
 
-	if ( dlg.DoModal() != IDOK )
+//	if ( dlg.DoModal() != IDOK )
+	if ( theApp.DoPrintDialog(&dlg) != IDOK )
 		return;
 
 	dc.Attach(dlg.CreatePrinterDC());
 
     memset(&docinfo, 0, sizeof(DOCINFO));
     docinfo.cbSize = sizeof(DOCINFO);
-	docinfo.lpszDocName = m_Title.IsEmpty() ? _T("Mdedia Copy Print") : m_Title;
+	docinfo.lpszDocName = m_Title.IsEmpty() ? _T("Status Print") : m_Title;
 
 	fontName = ::AfxGetApp()->GetProfileString(_T("PrintText"), _T("FontName"), DefFontName);
 	fontSize = ::AfxGetApp()->GetProfileInt(_T("PrintText"),    _T("FontSize"), PRINTFONTSIZE);

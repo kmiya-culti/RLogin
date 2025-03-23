@@ -52,6 +52,7 @@ BEGIN_MESSAGE_MAP(CTekWnd, CFrameWndExt)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, &CTekWnd::OnUpdateEditCopy)
 	ON_COMMAND(ID_EDIT_PASTE, &CTekWnd::OnEditPaste)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_PASTE, &CTekWnd::OnUpdateEditPaste)
+	ON_COMMAND(ID_FILE_PRINT, &CTekWnd::OnFilePrint)
 END_MESSAGE_MAP()
 
 // CTekWnd メッセージ ハンドラ
@@ -623,6 +624,53 @@ void CTekWnd::OnDropFiles(HDROP hDropInfo)
 	}
 
 	delete [] pFileName;
+}
+
+void CTekWnd::OnFilePrint()
+{
+	CDC dc;
+    DOCINFO docinfo;
+	CPrintDialog dlg(FALSE, PD_ALLPAGES | PD_USEDEVMODECOPIES | PD_NOPAGENUMS | PD_HIDEPRINTTOFILE | PD_NOSELECTION, this);
+	CRect frame, margin;
+
+	//if ( dlg.DoModal() != IDOK )
+	if ( theApp.DoPrintDialog(&dlg) != IDOK )
+		return;
+
+	dc.Attach(dlg.CreatePrinterDC());
+
+    memset(&docinfo, 0, sizeof(DOCINFO));
+    docinfo.cbSize = sizeof(DOCINFO);
+	docinfo.lpszDocName = _T("Tek40xx Print");
+
+	margin.left   = 10;
+	margin.right  = 10;
+	margin.top    = 10;
+	margin.bottom = 10;
+
+	frame.left   = margin.left * 10 * dc.GetDeviceCaps(LOGPIXELSX) / 254;
+	frame.top    = margin.top  * 10 * dc.GetDeviceCaps(LOGPIXELSY) / 254;
+	frame.right  = dc.GetDeviceCaps(HORZRES) - margin.right  * 10 * dc.GetDeviceCaps(LOGPIXELSX) / 254;
+	frame.bottom = dc.GetDeviceCaps(VERTRES) - margin.bottom * 10 * dc.GetDeviceCaps(LOGPIXELSY) / 254;
+
+	dc.SetTextColor(RGB(0, 0, 0));
+	dc.SetBkColor(RGB(255, 255, 255));
+	dc.SetBkMode(TRANSPARENT);
+
+	dc.StartDoc(&docinfo);
+	dc.StartPage();
+
+	BOOL bImg = m_pTextRam->IsOptEnable(TO_RLGRPIND);
+	m_pTextRam->EnableOption(TO_RLGRPIND);
+
+	m_pTextRam->TekDraw(&dc, frame, FALSE);
+
+	m_pTextRam->SetOption(TO_RLGRPIND, bImg);
+
+	dc.EndPage();
+	dc.EndDoc();
+
+	dc.Detach();
 }
 
 //////////////////////////////////////////////////////////
@@ -2574,5 +2622,3 @@ BOOL CTekWnd::LoadSvg(LPCTSTR filename)
 
 	return LoadSvgText((LPCTSTR)text);
 }
-
-

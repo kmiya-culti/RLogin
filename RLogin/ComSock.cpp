@@ -33,7 +33,7 @@ CFifoCom::CFifoCom(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoASync
 	m_ThreadMode = THREAD_NONE;
 	m_pComThread = NULL;
 
-	m_SendWait[0] = m_SendWait[1] = 0;
+	m_SendWait[0] = m_SendWait[1] = m_SendWait[2] = 0;
 	m_SendCrLf = '\r';
 }
 CFifoCom::~CFifoCom()
@@ -277,19 +277,21 @@ void CFifoCom::OnReadWriteProc()
 					WriteStat = WRITE_EVENTWAIT;
 				} else {
 					// m_SendWait[0] = WC = msec/byte
-					// m_SendWait[1] = WC = msec/byte
-					if ( m_SendWait[1] != 0 ) {
+					// m_SendWait[1] = WL = msec/byte
+					// m_SendWait[2] = 1000 / GyteSec = msec/byte
+					if ( m_SendWait[0] != 0 ) {
+						WriteWaitMsec = m_SendWait[2] + m_SendWait[m_SendWait[1] != 0 && WriteBuf[0] == m_SendCrLf ? 1 : 0];
+						len = 1;
+					} else if ( m_SendWait[1] != 0 ) {
 						WriteWaitMsec = 0;
 						for ( pos = 0 ; pos < len ; ) {
 							if ( WriteBuf[pos++] == m_SendCrLf ) {
-								WriteWaitMsec += m_SendWait[1];
+								WriteWaitMsec += (m_SendWait[2] + m_SendWait[1]);
 								break;
-							} else if ( m_SendWait[0] != 0 )
-								WriteWaitMsec += m_SendWait[0];
+							} else if ( m_SendWait[2] != 0 )
+								WriteWaitMsec += m_SendWait[2];
 						}
 						len = pos;
-					} else if ( m_SendWait[0] != 0 ) {
-						WriteWaitMsec = len * m_SendWait[0];
 					} else {
 						WriteWaitMsec = 0;
 					}
@@ -418,6 +420,7 @@ void CFifoCom::OnReadWriteProc()
 								EscapeCommFunction(m_hCom, SETRTS);
 							m_SendWait[0] = pSock->m_SendWait[0];
 							m_SendWait[1] = pSock->m_SendWait[1];
+							m_SendWait[2] = 1000 / pSock->GetByteSec();
 							m_SendCrLf    = pSock->m_SendCrLf;
 							bDsrSensitivity = (pSock->m_pComConf->dcb.fDsrSensitivity != 0 ? TRUE : FALSE);
 							bOutxDsrFlow = (pSock->m_pComConf->dcb.fOutxDsrFlow != 0 ? TRUE : FALSE);
@@ -495,7 +498,7 @@ CFifoBase *CComSock::FifoLinkLeft()
 }
 BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
 {
-	int n;
+	int n, bs;
 	COMMTIMEOUTS ComTime;
 
 	if ( m_hCom != INVALID_HANDLE_VALUE )
@@ -516,7 +519,8 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 	SetupComm(m_hCom, COMQUEUESIZE, COMQUEUESIZE);
 	PurgeComm(m_hCom, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);
 
-	if ( (n = 1000 * 2 / GetByteSec()) <= 0 )			// 1 Byte Read Time = msec * 2
+	bs = GetByteSec();
+	if ( (n = 1000 * 2 / bs) <= 0 )			// 1 Byte Read Time = msec * 2
 		n = 1;
 
 	GetCommTimeouts(m_hCom, &ComTime);
@@ -535,6 +539,7 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 	((CFifoCom *)m_pFifoLeft)->m_SendCrLf    = (m_pDocument->m_TextRam.m_SendCrLf == 0 ? '\r' : '\n');
 	((CFifoCom *)m_pFifoLeft)->m_SendWait[0] = m_SendWait[0];
 	((CFifoCom *)m_pFifoLeft)->m_SendWait[1] = m_SendWait[1];
+	((CFifoCom *)m_pFifoLeft)->m_SendWait[2] = 1000 / bs;
 
 	if ( m_pComConf->dcb.fDtrControl == DTR_CONTROL_DISABLE )
 		EscapeCommFunction(m_hCom, CLRDTR);

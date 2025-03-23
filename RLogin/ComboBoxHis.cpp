@@ -115,6 +115,7 @@ void CComboBoxHis::AddHis(LPCTSTR str)
 		DeleteString(n);
 
 	InsertString(0, str);
+	SetCurSel(0);
 	m_UpdateFlag |= COMBOHIS_ADDHIS;
 }
 void CComboBoxHis::RemoveAll()
@@ -134,6 +135,7 @@ BOOL CComboBoxHis::PreTranslateMessage(MSG* pMsg)
 		ShowDropDown(FALSE);
 		DeleteString(idx);
 		ShowDropDown(TRUE);
+		SetCurSel(idx);
 		if ( tmp[0].Compare(tmp[1]) != 0 )
 			SetWindowText(tmp[0]);
 		m_UpdateFlag |= COMBOHIS_SAVEHIS;

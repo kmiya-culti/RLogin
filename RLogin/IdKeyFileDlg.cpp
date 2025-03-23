@@ -28,10 +28,12 @@ void CIdKeyFileDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogExt::DoDataExchange(pDX);
 
-	DDX_Text(pDX, IDC_IDKEYFILE, m_IdkeyFile);
+	DDX_CBStringExact(pDX, IDC_IDKEYFILE, m_IdkeyFile);
 	DDX_Text(pDX, IDC_MESSAGE, m_Message);
 	DDX_Text(pDX, IDC_PASSNAME, m_PassName);
 	DDX_Check(pDX, IDC_PASSDISP, m_bPassDisp);
+
+	DDX_Control(pDX, IDC_IDKEYFILE, m_IdkeyFileCombo);
 }
 
 BEGIN_MESSAGE_MAP(CIdKeyFileDlg, CDialogExt)
@@ -70,6 +72,8 @@ BOOL CIdKeyFileDlg::OnInitDialog()
 	if ( (pWnd = GetDlgItem(IDC_PASSNAME)) != NULL )
 		m_PassChar = ((CEdit *)pWnd)->GetPasswordChar();
 
+	m_IdkeyFileCombo.LoadHis(_T("IdKeyFileName"));
+
 	SetSaveProfile(_T("IdKeyFileDlg"));
 
 	return bRet;
@@ -79,11 +83,13 @@ void CIdKeyFileDlg::OnIdkeysel()
 {
 	UpdateData(TRUE);
 
-	CFileDialog dlg(m_OpenMode == IDKFDMODE_LOAD ? TRUE : FALSE, _T(""), m_IdkeyFile, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
+	CFileDialog dlg(m_OpenMode == IDKFDMODE_LOAD ? TRUE : FALSE, _T(""), m_IdkeyFile, 
+		m_OpenMode == IDKFDMODE_LOAD ? OFN_HIDEREADONLY : OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), this);
 
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
+	m_IdkeyFileCombo.UpdateHis();
 	m_IdkeyFile = dlg.GetPathName();
 	UpdateData(FALSE);
 }
@@ -91,6 +97,8 @@ void CIdKeyFileDlg::OnIdkeysel()
 void CIdKeyFileDlg::OnOK() 
 {
 	UpdateData(TRUE);
+
+	m_IdkeyFileCombo.AddHis(m_IdkeyFile);
 
 	CDialogExt::OnOK();
 }

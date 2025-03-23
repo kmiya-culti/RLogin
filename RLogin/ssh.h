@@ -25,6 +25,13 @@
 #include <openssl/core_dispatch.h>
 #include <openssl/core_names.h>
 
+#if OPENSSL_VERSION_PREREQ(3, 5)
+extern "C" {
+  #include <crypto/ml_kem.h>
+}
+#endif
+
+
 #define SSH_CIPHER_NONE         0       // none
 #define SSH_CIPHER_DES          2       // des
 #define SSH_CIPHER_3DES         3       // 3des
@@ -125,7 +132,7 @@
 #define	MODE_ENC				0
 #define	MODE_DEC				1
 
-#define INTBLOB_LEN				20
+#define INTBLOB_LEN				28
 #define SIGBLOB_LEN				(2*INTBLOB_LEN)
 
 class CCipher: public CObject
@@ -223,6 +230,8 @@ public:
 #define	IDKEY_XMSS					00020
 #define	IDKEY_UNKNOWN				00030
 #define	IDKEY_ECDSA					00040
+#define	IDKEY_ML_DSA				00050		// 44/65/87
+#define	IDKEY_SLH_DSA				00060		// SHA2/SHAKE 128/192/256 S/F
 
 #define	IDKEY_DSA2EX				00104		// BIGNUM2 fix
 #define	IDKEY_ECDSAEX				00140		// BIGNUM2 fix
@@ -351,6 +360,7 @@ public:
 	int	 m_EcNid;
 	CBuffer m_PublicKey;
 	CBuffer m_PrivateKey;
+	int m_Nid;
 	CXmssKey m_XmssKey;
 	CString m_Work;
 	CBuffer m_CertBlob;
@@ -373,6 +383,12 @@ public:
 	int GetEcNidFromKey(EC_KEY *k);
 	void RsaGenAddPara(BIGNUM *iqmp);
 	int EdFromPkeyRaw(const EVP_PKEY *pkey);
+	LPCTSTR GetDsaName(int nid);
+	int GetDsaNid(LPCTSTR name, int type);
+	int GetDsaSize(int nid);
+	int GetDsaPkey(int bits);
+	BOOL IsSlhDsaStype();
+	BOOL IsSlhDsaShake();
 
 	int Init(LPCTSTR pass);
 	int Create(int type);
@@ -456,10 +472,6 @@ public:
 	int GetHeight();
 	void FingerPrint(CString &str, int digest = SSHFP_DIGEST_SHA256, int format = SSHFP_FORMAT_BASE64);
 	int DnsDigest(int hash, CBuffer &digest);
-	
-	int FileHash(LPCTSTR filename, const EVP_MD *md, u_char *hash);
-	BOOL FileSign(LPCTSTR filename, CBuffer *outbuf, LPCSTR nspc = NULL, LPCTSTR pass = NULL);
-	BOOL FileVerify(LPCTSTR filename, CBuffer *inbuf, LPCSTR nspc = NULL);
 
 	CIdKey();
 	~CIdKey();
@@ -1200,6 +1212,24 @@ int	sntrup761_keypair(unsigned char *pk, unsigned char *sk);
 int	sntrup761_enc(unsigned char *cstr, unsigned char *k, const unsigned char *pk);
 int	sntrup761_dec(unsigned char *k, const unsigned char *cstr, const unsigned char *sk);
 
+#if OPENSSL_VERSION_PREREQ(3, 5)
+// sshLib.cpp
+int ossl_mlkem_keypair(uint8_t *pk, uint8_t *sk, int type);
+int ossl_mlkem_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk, int type);
+int ossl_mlkem_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk, int type);
+
+#define	mlkem768_keypair(pk, sk)	ossl_mlkem_keypair(pk, sk, EVP_PKEY_ML_KEM_768)
+#define	mlkem768_enc(ct, ss, pk)	ossl_mlkem_enc(ct, ss, pk, EVP_PKEY_ML_KEM_768)
+#define	mlkem768_dec(ss, ct, sk)	ossl_mlkem_dec(ss, ct, sk, EVP_PKEY_ML_KEM_768)
+
+#define	mlkem1024_keypair(pk, sk)	ossl_mlkem_keypair(pk, sk, EVP_PKEY_ML_KEM_1024)
+#define	mlkem1024_enc(ct, ss, pk)	ossl_mlkem_enc(ct, ss, pk, EVP_PKEY_ML_KEM_1024)
+#define	mlkem1024_dec(ss, ct, sk)	ossl_mlkem_dec(ss, ct, sk, EVP_PKEY_ML_KEM_1024)
+
+#define	mlkem512_keypair(pk, sk)	ossl_mlkem_keypair(pk, sk, EVP_PKEY_ML_KEM_512)
+#define	mlkem512_enc(ct, ss, pk)	ossl_mlkem_enc(ct, ss, pk, EVP_PKEY_ML_KEM_512)
+#define	mlkem512_dec(ss, ct, sk)	ossl_mlkem_dec(ss, ct, sk, EVP_PKEY_ML_KEM_512)
+#else
 // ml_kem.cpp
 int mlkem768_keypair(uint8_t *pk, uint8_t *sk);
 int mlkem768_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
@@ -1212,3 +1242,4 @@ int mlkem1024_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 int mlkem512_keypair(uint8_t *pk, uint8_t *sk);
 int mlkem512_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
 int mlkem512_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
+#endif

@@ -883,6 +883,7 @@ void CFontTab::Init()
 		{ _T("DEC_TCS-GR"),				SET_94,		_T("2"),	'\x80', _T("DEC_TCS-GR"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 
 		{ _T("ISO646-US"),				SET_94,		_T("@"),	'\x00', _T("ISO646-US"),		ANSI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
+		{ _T("IBM437"),					SET_94,		_T("A"),	'\x00', _T("IBM437"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("ASCII(ANSI X3.4-1968)"),	SET_94,		_T("B"),	'\x00', _T("ANSI_X3.4-1968"),	ANSI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("JIS X 0201-Kana"),		SET_94,		_T("I"),	'\x80', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("JIS X 0201-Roman"),		SET_94,		_T("J"),	'\x00', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
@@ -6386,7 +6387,7 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 		fcol = bcol;
 
 	if ( (prop.attr & ATT_HALF) != 0 )
-		bcol = RGB((GetRValue(fcol) + GetRValue(bcol)) / 2, (GetGValue(fcol) + GetGValue(bcol)) / 2, (GetBValue(fcol) + GetBValue(bcol)) / 2);
+		fcol = RGB((GetRValue(fcol) + GetRValue(bcol)) / 2, (GetGValue(fcol) + GetGValue(bcol)) / 2, (GetBValue(fcol) + GetBValue(bcol)) / 2);
 
 	if ( (prop.attr & ATT_SMARK) != 0 ) {
 		tcol = fcol;
@@ -8142,13 +8143,14 @@ void CTextRam::RESET(int mode)
 		// colors 16-231 are a 6x6x6 color cube
 		for ( int r = 0 ; r < 6 ; r++ ) {
 			for ( int g = 0 ; g < 6 ; g++ ) {
-				for ( int b = 0 ; b < 6 ; b++ )
-					m_ColTab[n++] = RGB(r * 51, g * 51, b * 51);
+				for ( int b = 0 ; b < 6 ; b++ ) {
+					m_ColTab[n++] = RGB((r == 0 ? 0 : (r * 40 + 55)), (g == 0 ? 0 : (g * 40 + 55)), (b == 0 ? 0 : (b * 40 + 55)));
+				}
 			}
 		}
 		// colors 232-255 are a grayscale ramp, intentionally leaving out
 		for ( int g = 0 ; g < 24 ; g++ )
-			m_ColTab[n++] = RGB(g * 11, g * 11, g * 11);
+			m_ColTab[n++] = RGB(g * 10 + 8, g * 10 + 8, g * 10 + 8);
 
 #if 0
 		// ext color 256-265
@@ -9418,16 +9420,14 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 
 	md &= CODE_MASK;
 
-#if 0
+#if 1
 	// ISO946 0x23, 0x24, 0x40, 0x5B, 0x5C, 0x5D, 0x5E, 0x60, 0x7B, 0x7C, 0x7D, 0x7E,
 	static const DWORD iso646map[4] = { 0x00000000, 0x00000018, 0x78000001, 0x78000001 };
-
-	if ( str == NULL && !(ch < 128 && (md & SET_MASK) <= SET_96 && m_FontTab[md].m_Shift == 0) && (iso646map[ch / 32] & (1 << (ch % 32))) != 0) {
+	if ( str == NULL && !(ch >= 32 && ch < 128 && (md & SET_MASK) <= SET_96 && m_FontTab[md].m_Shift == 0 && (iso646map[ch / 32] & (1 << (ch % 32))) != 0) ) {
 #else
-	if ( str == NULL && !(ch < 128 && (md & SET_MASK) <= SET_96 && m_FontTab[md].m_Shift == 0) ) {
+	if ( str == NULL && !(ch >= 32 && ch < 128 && (md & SET_MASK) <= SET_96 && m_FontTab[md].m_Shift == 0) ) {
 #endif
-		ch |= m_FontTab[md].m_Shift;
-		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
+		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch | m_FontTab[md].m_Shift);			// Char変換ではUTF-16BEを使用！
 		ch = IconvToMsUnicode(m_FontTab[md].m_JpSet, ch);
 	}
 
@@ -10451,10 +10451,10 @@ int CTextRam::GETCOLIDX(int red, int green, int blue)
 	if ( blue  > 255 ) blue  = 255;
 
 	for ( i = 0 ; i < 256 ; i++ ) {
-		int r = GetRValue(m_ColTab[i]) - red;
-		int g = GetGValue(m_ColTab[i]) - green;
-		int b = GetBValue(m_ColTab[i]) - blue;
-		DWORD d = r * r * 2 + g * g * 6 + b * b;
+		int r = (int)GetRValue(m_ColTab[i]) - red;
+		int g = (int)GetGValue(m_ColTab[i]) - green;
+		int b = (int)GetBValue(m_ColTab[i]) - blue;
+		DWORD d = r * r + g * g + b * b;
 		if ( min > d ) {
 			idx = i;
 			min = d;

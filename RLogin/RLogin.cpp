@@ -727,14 +727,12 @@ CRLoginApp::CRLoginApp()
 
 	m_FindProcsId = 0;
 	m_FindProcsHwnd = NULL;
+
+	m_pSshSigDlgWnd = NULL;
 }
 
 //////////////////////////////////////////////////////////////////////
 // 唯一の CRLoginApp オブジェクトです。
-
-#ifdef	_DEBUG
-	BOOL bBreak = TRUE;
-#endif
 
 	CRLoginApp theApp;
 	BOOL CompNameLenBugFix = TRUE;
@@ -1612,6 +1610,10 @@ BOOL CRLoginApp::InitInstance()
 	}
 
 	// opensslの初期化
+#ifdef	OPENSSL_DEBUG
+	OpenSSL_Memory_Test();
+#endif
+
 	m_ProvDefault = OSSL_PROVIDER_load(NULL, "default");
 	m_ProvLegacy  = OSSL_PROVIDER_load(NULL, "legacy");
 
@@ -1971,6 +1973,9 @@ LPCTSTR CRLoginApp::GetTempDir(BOOL bSeqId)
 
 int CRLoginApp::ExitInstance()
 {
+	if ( m_pSshSigDlgWnd != NULL && m_pSshSigDlgWnd->GetSafeHwnd() != NULL )
+		m_pSshSigDlgWnd->DestroyWindow();
+
 	// Free Handle or Library
 	rand_buf(NULL, 0);
 
@@ -3565,83 +3570,39 @@ void CRLoginApp::GetVersion(CString &str)
 
 void CRLoginApp::SetDefaultPrinter()
 {
-	int n, max;
-	int wDefault;
-	CString Driver, Device, Output;
-	LPDEVNAMES lpDevNames;
-	LPDEVMODE lpDevMode;
-	HANDLE hDevNames;
-	HANDLE hDevMode;
-	LPTSTR ptr;
 	UINT sz;
 	LPBYTE pByte;
+	HANDLE hDevNames = NULL, hDevMode = NULL;
+	void *pData;
 
-	if ( !GetProfileBinary(_T("PrintSetup"), _T("DevMode"), &pByte, &sz) )
-		return;
+	if ( GetProfileBinary(_T("PrintSetup"), _T("DevNames"), &pByte, &sz) ) {
+		if ( (hDevNames = ::GlobalAlloc(GHND, sz)) != NULL ) {
+			if ( (pData = ::GlobalLock(hDevNames)) != NULL ) {
+				memcpy(pData, pByte, sz);
+				::GlobalUnlock(hDevNames);
+			} else {
+				::GlobalFree(hDevNames);
+				hDevNames = NULL;
+			}
+		}
+		delete [] pByte;
+	} else
+		return;		// 設定していない場合は、SelectPrinterしない
 
-	if ( sz < sizeof(DEVMODE) )
-		goto ERRRET;
-
-	lpDevMode = (LPDEVMODE)pByte;
-
-	if ( sz < (UINT)(lpDevMode->dmSize + lpDevMode->dmDriverExtra) )
-		goto ERRRET;
-
-	Driver = GetProfileString(_T("PrintSetup"), _T("Driver"), _T(""));
-	Device = GetProfileString(_T("PrintSetup"), _T("Device"), _T(""));
-	Output = GetProfileString(_T("PrintSetup"), _T("Output"), _T(""));
-	wDefault = GetProfileInt(_T("PrintSetup"),  _T("Default"), 0);
-
-	if ( Driver.IsEmpty() || Device.IsEmpty() || Output.IsEmpty() )
-		goto ERRRET;
-
-	max = sizeof(DEVNAMES) + (Driver.GetLength() + Device.GetLength() + Output.GetLength() + 3) * sizeof(TCHAR);
-
-	if ( (hDevNames = ::GlobalAlloc(GHND, max)) == NULL )
-		goto ERRRET;
-
-	if ( (hDevMode = ::GlobalAlloc(GHND, sz)) == NULL ) {
-		::GlobalFree(hDevNames);
-		goto ERRRET;
+	if ( GetProfileBinary(_T("PrintSetup"), _T("DevMode"), &pByte, &sz) ) {
+		if ( (hDevMode = ::GlobalAlloc(GHND, sz)) != NULL ) {
+			if ( (pData = ::GlobalLock(hDevMode)) != NULL ) {
+				memcpy(pData, pByte, sz);
+				::GlobalUnlock(hDevMode);
+			} else {
+				::GlobalFree(hDevMode);
+				hDevMode = NULL;
+			}
+		}
+		delete [] pByte;
 	}
-
-	if ( (lpDevNames = (LPDEVNAMES)::GlobalLock(hDevNames)) == NULL ) {
-		::GlobalFree(hDevNames);
-		::GlobalFree(hDevMode);
-		goto ERRRET;
-	}
-
-	if ( (lpDevMode = (LPDEVMODE)::GlobalLock(hDevMode)) == NULL ) {
-		::GlobalUnlock(hDevNames);
-		::GlobalFree(hDevNames);
-		::GlobalFree(hDevMode);
-		goto ERRRET;
-	}
-
-	lpDevNames->wDefault = wDefault;
-	n   = sizeof(DEVNAMES) / sizeof(TCHAR);
-	ptr = (LPTSTR)lpDevNames;
-
-	lpDevNames->wDriverOffset = n;
-	_tcsncpy(ptr + n, Driver, (max / sizeof(TCHAR)) - n);
-	n += (Driver.GetLength() + 1);
-
-	lpDevNames->wDeviceOffset = n;
-	_tcsncpy(ptr + n, Device, (max / sizeof(TCHAR)) - n);
-	n += (Device.GetLength() + 1);
-
-	lpDevNames->wOutputOffset = n;
-	_tcsncpy(ptr + n, Output, (max / sizeof(TCHAR)) - n);
-
-	memcpy(lpDevMode, pByte, sz);
-
-	::GlobalUnlock(hDevMode);
-	::GlobalUnlock(hDevNames);
 
 	SelectPrinter(hDevNames, hDevMode);
-
-ERRRET:
-	delete pByte;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3740,10 +3701,13 @@ int CRLoginApp::DoMessageBox(LPCTSTR lpszPrompt, UINT nType, UINT nIDPrompt)
 	if ( theApp.m_pMainWnd == NULL )
 		return CWinApp::DoMessageBox(lpszPrompt, nType, nIDPrompt);
 
-	else if ( m_nThreadID == GetCurrentThreadId() )
-		return ::DoitMessageBox(lpszPrompt, nType, ::AfxGetMainWnd());
+	else if ( m_nThreadID == GetCurrentThreadId() ) {
+		CWnd *pWnd = CWnd::GetActiveWindow();
+		if ( pWnd == NULL )
+			pWnd = ::AfxGetMainWnd();
+		return ::DoitMessageBox(lpszPrompt, nType, pWnd);
 
-	else {
+	} else {
 		DocMsg docMsg;
 		docMsg.doc = NULL;
 		docMsg.pIn = (void *)lpszPrompt;
@@ -3926,11 +3890,8 @@ void CRLoginApp::OnFilePrintSetup()
 		return;
 	}
 
-	WriteProfileString(_T("PrintSetup"), _T("Driver"), (LPCTSTR)lpDevNames + lpDevNames->wDriverOffset);
-	WriteProfileString(_T("PrintSetup"), _T("Device"), (LPCTSTR)lpDevNames + lpDevNames->wDeviceOffset);
-	WriteProfileString(_T("PrintSetup"), _T("Output"), (LPCTSTR)lpDevNames + lpDevNames->wOutputOffset);
-	WriteProfileInt(_T("PrintSetup"), _T("Default"), lpDevNames->wDefault);
-	WriteProfileBinary(_T("PrintSetup"), _T("DevMode"), (LPBYTE)lpDevMode, lpDevMode->dmSize + lpDevMode->dmDriverExtra);
+	WriteProfileBinary(_T("PrintSetup"), _T("DevNames"), (LPBYTE)lpDevNames, (int)GlobalSize(m_hDevNames));
+	WriteProfileBinary(_T("PrintSetup"), _T("DevMode"), (LPBYTE)lpDevMode, (int)GlobalSize(m_hDevMode));
 
 	::GlobalUnlock(m_hDevMode);
 	::GlobalUnlock(m_hDevNames);
@@ -4131,8 +4092,19 @@ void CRLoginApp::OnSecporicy()
 }
 void CRLoginApp::OnSshSig()
 {
-	CSshSigDlg dlg;
-	dlg.DoModal();
+	if ( m_pSshSigDlgWnd == NULL ) {
+		CSshSigDlg *pDlg = new CSshSigDlg;
+		pDlg->Create(IDD_SSHSIGDLG, CWnd::GetDesktopWindow());
+		pDlg->ShowWindow(SW_SHOW);
+		m_pSshSigDlgWnd = pDlg;
+
+	} else if ( m_pSshSigDlgWnd->GetSafeHwnd() != NULL ) {
+		m_pSshSigDlgWnd->SetFocus();
+	}
+}
+void CRLoginApp::RemoveSshSigDlg(CSshSigDlg *pWnd)
+{
+	m_pSshSigDlgWnd = NULL;
 }
 
 #ifdef	USE_DIRECTWRITE

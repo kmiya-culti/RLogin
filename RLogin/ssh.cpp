@@ -1526,7 +1526,7 @@ void Cssh::LogIt(LPCTSTR format, ...)
 	tmp += str;
 	tmp += _T("\r\n");
 
-	CStringA mbs = TstrToMbs(tmp);
+	CStringA mbs = RemoteStr(tmp);
 	SendDocument((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
 }
 void Cssh::SendTextMsg(LPCSTR str, int len)
@@ -3026,14 +3026,14 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 	tmp.PutStr("ssh-connection");
 
 	if ( str == NULL ) {
-		meta = RemoteStr(m_AuthMeta);
+		meta = TstrToUtf8(m_AuthMeta);
 		str = meta;
 	} else if ( m_AuthMeta.IsEmpty() ) {
-		m_AuthMeta = LocalStr(str);
-	} else if ( m_AuthMeta.Compare(MbsToTstr(str)) != 0 ) {
+		m_AuthMeta = Utf8ToTstr(str);
+	} else if ( m_AuthMeta.Compare(Utf8ToTstr(str)) != 0 ) {
 		// 複数認証の場合、最初に戻す必要がある
 		// Methodsが変化しない場合は、認証順位をユーザーが管理する必要あり
-		m_AuthMeta = LocalStr(str);
+		m_AuthMeta = Utf8ToTstr(str);
 		m_AuthStat = AST_START;
 		m_bKeybIntrReq = FALSE;
 		UserAuthNextState();
@@ -3076,7 +3076,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 					tmp.PutStr(bHostBound ? "publickey-hostbound-v00@openssh.com" : "publickey");
 					tmp.Put8Bit(1);
-					tmp.PutStr(TstrToMbs(m_pIdKey->GetName(IDKEY_NAME_CERT | IDKEY_NAME_SIGN)));
+					tmp.PutStr(TstrToUtf8(m_pIdKey->GetName(IDKEY_NAME_CERT | IDKEY_NAME_SIGN)));
 					tmp.PutBuf(blob.GetPtr(), blob.GetSize());
 
 					if ( bHostBound )
@@ -3093,7 +3093,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 #else
 					tmp.PutStr("publickey");
 					tmp.Put8Bit(1);
-					tmp.PutStr(TstrToMbs(m_pIdKey->GetName(IDKEY_NAME_CERT | IDKEY_NAME_SIGN)));
+					tmp.PutStr(TstrToUtf8(m_pIdKey->GetName(IDKEY_NAME_CERT | IDKEY_NAME_SIGN)));
 					tmp.PutBuf(blob.GetPtr(), blob.GetSize());
 
 					if ( !m_pIdKey->Sign(&sig, tmp.GetPtr(), tmp.GetSize()) ) {
@@ -3108,7 +3108,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				} else {
 					tmp.PutStr("publickey");
 					tmp.Put8Bit(0);
-					tmp.PutStr(TstrToMbs(m_pIdKey->GetName(IDKEY_NAME_CERT | IDKEY_NAME_SIGN)));
+					tmp.PutStr(TstrToUtf8(m_pIdKey->GetName(IDKEY_NAME_CERT | IDKEY_NAME_SIGN)));
 					tmp.PutBuf(blob.GetPtr(), blob.GetSize());
 
 					AddAuthLog(_T("publickey:offered(%s)"), m_pIdKey->GetName(IDKEY_NAME_CERT | IDKEY_NAME_AGEANT | IDKEY_NAME_SIGN));
@@ -3148,7 +3148,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 				len = tmp.GetSize();
 				tmp.PutStr("hostbased");
-				tmp.PutStr(TstrToMbs(m_pIdKey->GetName(IDKEY_NAME_CERT | IDKEY_NAME_SIGN)));
+				tmp.PutStr(TstrToUtf8(m_pIdKey->GetName(IDKEY_NAME_CERT | IDKEY_NAME_SIGN)));
 				tmp.PutBuf(blob.GetPtr(), blob.GetSize());
 				GetSockName(m_Fd, wrk, &len);
 				tmp.PutStr(RemoteStr(wrk));			// client ip address
@@ -3500,8 +3500,8 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 			tmp.PutStr("x11-req");
 			tmp.Put8Bit(0);
 			tmp.Put8Bit(0);		// XXX bool single connection
-			tmp.PutStr(TstrToMbs(m_x11AuthName));
-			tmp.PutStr(TstrToMbs((LPCTSTR)dump));
+			tmp.PutStr(TstrToUtf8(m_x11AuthName));
+			tmp.PutStr(TstrToUtf8((LPCTSTR)dump));
 			tmp.Put32Bit(n);	// screen number
 			SendPacket2(&tmp);
 			m_bx11pfdEnable = TRUE;
@@ -3760,7 +3760,7 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		m_Cookie[n] = bp->Get8Bit();
 	for ( n = 0 ; n < 10 ; n++ ) {
 		bp->GetStr(mbs);
-		m_SProp[n] = MbsToTstr(mbs);	// LocalStr(mbs)だけど遅いから・・・
+		m_SProp[n] = Utf8ToTstr(mbs);
 	}
 	bp->Get8Bit();
 	bp->Get32Bit();
@@ -3811,8 +3811,10 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	}
 
 	if ( m_KexStrictStat == KEXSTRICT_CHECK ) {
-		if ( InStrStr(m_SProp[PROP_KEX_ALGS], _T("kex-strict-s-v00@openssh.com")) ) {
-			// openssh-9.6p1から導入された(CVE-2023-48795)
+		if ( InStrStr(m_SProp[PROP_KEX_ALGS], _T("kex-strict-s")) ) {							// draft-miller-sshm-strict-kex-00
+			m_KexStrictStat = KEXSTRICT_ENABLE;
+			m_VProp[PROP_KEX_ALGS] += _T(",kex-strict-c");
+		} else if ( InStrStr(m_SProp[PROP_KEX_ALGS], _T("kex-strict-s-v00@openssh.com")) ) {	// openssh-9.6p1から導入された(CVE-2023-48795)
 			m_KexStrictStat = KEXSTRICT_ENABLE;
 			m_VProp[PROP_KEX_ALGS] += _T(",kex-strict-c-v00@openssh.com");
 		} else
@@ -3823,7 +3825,7 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		m_MyPeer.Clear();
 		rand_buf(m_MyPeer.PutSpc(16), 16);
 		for ( n = 0 ; n < 10 ; n++ )
-			m_MyPeer.PutStr(TstrToMbs(m_VProp[n]));
+			m_MyPeer.PutStr(TstrToUtf8(m_VProp[n]));
 		m_MyPeer.Put8Bit(0);
 		m_MyPeer.Put32Bit(0);
 
@@ -3851,8 +3853,8 @@ int Cssh::HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_M
 	unsigned int hashlen;
 	BYTE hash[EVP_MAX_MD_SIZE];
 
-	b.PutStr(TstrToMbs(m_ClientVerStr));
-	b.PutStr(TstrToMbs(m_ServerVerStr));
+	b.PutStr(TstrToUtf8(m_ClientVerStr));
+	b.PutStr(TstrToUtf8(m_ServerVerStr));
 
 	/* kexinit messages: fake header: len+SSH2_MSG_KEXINIT */
 	b.Put32Bit(m_MyPeer.GetSize()+1);
@@ -5759,60 +5761,4 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 	}
 }
 
-#if 0
-void kem_text()
-{
-	int n;
-	clock_t st;
-	CString str, tmp;
-
-	BYTE spk[sntrup761_PUBLICKEYBYTES];
-	BYTE ssk[sntrup761_SECRETKEYBYTES];
-	BYTE sct[sntrup761_CIPHERTEXTBYTES];
-	BYTE sss[sntrup761_BYTES];
-
-	st = clock();
-	for ( n = 0 ; n < 100 ; n++ )
-		sntrup761_keypair(spk, ssk);
-	tmp.Format(_T("sntrup761_keypair\t%d\n"), (int)(clock() - st));
-	str += tmp;
-
-	st = clock();
-	for ( n = 0 ; n < 100 ; n++ )
-		sntrup761_enc(sct, sss, spk);
-	tmp.Format(_T("sntrup761_enc\t%d\n"), (int)(clock() - st));
-	str += tmp;
-
-	st = clock();
-	for ( n = 0 ; n < 100 ; n++ )
-		sntrup761_dec(sss, sct, ssk);
-	tmp.Format(_T("sntrup761_dec\t%d\n"), (int)(clock() - st));
-	str += tmp;
-
-	BYTE mpk[mlkem768_PUBLICKEYBYTES];
-	BYTE msk[mlkem768_SECRETKEYBYTES];
-	BYTE mct[mlkem768_CIPHERTEXTBYTES];
-	BYTE mss[mlkem768_BYTES];
-
-	st = clock();
-	for ( n = 0 ; n < 1000 ; n++ )
-		mlkem768_keypair(mpk, msk);
-	tmp.Format(_T("mlkem768_keypair\t%d\n"), (int)(clock() - st));
-	str += tmp;
-
-	st = clock();
-	for ( n = 0 ; n < 1000 ; n++ )
-		mlkem768_enc(mct, mss, mpk);
-	tmp.Format(_T("mlkem768_enc\t%d\n"), (int)(clock() - st));
-	str += tmp;
-
-	st = clock();
-	for ( n = 0 ; n < 1000 ; n++ )
-		mlkem768_dec(mss, mct, msk);
-	tmp.Format(_T("mlkem768_dec\t%d\n"), (int)(clock() - st));
-	str += tmp;
-
-	::AfxMessageBox(str);
-}
-#endif
 

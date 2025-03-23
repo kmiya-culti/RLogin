@@ -305,6 +305,7 @@ protected:
 	afx_msg void OnUpdateEditCopy(CCmdUI *pCmdUI);
 	afx_msg void OnHistogram();
 	afx_msg void OnUpdateHistogram(CCmdUI *pCmdUI);
+	afx_msg void OnFilePrint();
 };
 
 #define	FIFOMON_MAX		(10 * 60)

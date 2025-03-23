@@ -732,7 +732,7 @@ void CInfoCapDlg::LoadCapFile(LPCTSTR filename)
 			continue;
 
 #ifdef	_UNICODE
-		uni = str;
+		uni = MbsToTstr(str);
 		w = uni;
 #else
 		w = str;
@@ -800,7 +800,7 @@ void CInfoCapDlg::LoadInfoFile(LPCTSTR filename)
 		}
 
 #ifdef	_UNICODE
-		uni = str;
+		uni = MbsToTstr(str);
 		p = uni;
 #else
 		p = str;
