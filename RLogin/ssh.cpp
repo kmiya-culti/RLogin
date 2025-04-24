@@ -473,14 +473,14 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 
 		if ( m_pDocument->m_ParamTab.m_RsaExt != 0 ) {
 			for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
-				if ( (m_IdKeyTab[n].m_Type & IDKEY_TYPE_MASK) != IDKEY_RSA2 || m_IdKeyTab[n].m_RsaNid != NID_sha1 )
+				if ( (m_IdKeyTab[n].m_Type & IDKEY_TYPE_MASK) != IDKEY_RSA2 || m_IdKeyTab[n].m_Nid != NID_sha1 )
 					continue;
 
 				// 追加せずに置き換えに変更 2021.11.05
 				// カートを有効にした 2025.02.17
 				//m_IdKeyTab[n].m_Type &= IDKEY_TYPE_MASK;
 				//m_IdKeyTab[n].m_Cert = 0;
-				m_IdKeyTab[n].m_RsaNid = (m_pDocument->m_ParamTab.m_RsaExt == 1 ? NID_sha256 : NID_sha512);
+				m_IdKeyTab[n].m_Nid = (m_pDocument->m_ParamTab.m_RsaExt == 1 ? NID_sha256 : NID_sha512);
 			}
 		}
 
@@ -3114,7 +3114,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 					AddAuthLog(_T("publickey:offered(%s)"), m_pIdKey->GetName(IDKEY_NAME_CERT | IDKEY_NAME_AGEANT | IDKEY_NAME_SIGN));
 				}
 
-				if ( m_pIdKey->m_Type == IDKEY_RSA2 && m_pIdKey->m_RsaNid == NID_sha1 )
+				if ( (m_pIdKey->m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA2 && m_pIdKey->m_Nid == NID_sha1 )
 					m_bReqRsaSha1 = TRUE;
 
 				m_AuthMode = AUTH_MODE_PUBLICKEY;

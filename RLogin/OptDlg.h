@@ -68,6 +68,7 @@ protected:
 #define	UMOD_CARET		002000
 #define	UMOD_TABCOLOR	004000
 #define	UMOD_CODEFLAG	010000
+#define	UMOD_BACKIMG	020000
 
 class COptDlg : public CDialogExt
 {

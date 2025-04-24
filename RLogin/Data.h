@@ -260,6 +260,7 @@ public:
 	CStringLoad();
 	CStringLoad(int nID) { LoadString(nID); }
 	CStringLoad(int nID, BOOL bMenu);
+	CStringLoad(LPCTSTR format, ...);
 
 	inline void operator = (LPCWSTR str) { *((CString *)this) = str; }
 	inline void operator = (LPCSTR  str) { *((CString *)this) = str; }
@@ -268,10 +269,7 @@ public:
 
 	BOOL IsDigit(LPCTSTR str);
 	int CompareDigit(LPCTSTR dis);
-
-#ifdef	DEBUG
-	int Compare(LPCTSTR dis);
-#endif
+	void FormatFileName(LPCTSTR name, int max = 50);
 };
 
 class CStrNode : public CObject

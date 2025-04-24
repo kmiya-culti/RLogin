@@ -195,7 +195,7 @@ void CBackPage::OnReset()
 void CBackPage::OnUpdateEdit() 
 {
 	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_BACKIMG);
 }
 void CBackPage::OnBitMapFileSel() 
 {
@@ -215,7 +215,7 @@ void CBackPage::OnBitMapFileSel()
 	UpdateData(FALSE);
 
 	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_BACKIMG);;
 }
 void CBackPage::OnBnClickedTextfont()
 {

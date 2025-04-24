@@ -4044,15 +4044,13 @@ int CHistogram::CalcMaxValue()
 void CHistogram::CalcHistogram()
 {
 	int x, y;
-	BYTE *p;
-	COLORREF rgb;
 
 	ZeroMemory(m_Histgram, sizeof(int) * 3 * 256);
 
 	if ( m_Image.IsDIBSection() ) {
 		for ( y = 0 ; y < m_Image.GetHeight() ; y++ ) {
 			for ( x = 0 ; x < m_Image.GetWidth() ; x++ ) {
-				p = (BYTE *)m_Image.GetPixelAddress(x, y);
+				BYTE *p = (BYTE *)m_Image.GetPixelAddress(x, y);
 				m_Histgram[0][p[2]]++;
 				m_Histgram[1][p[1]]++;
 				m_Histgram[2][p[0]]++;
@@ -4064,7 +4062,7 @@ void CHistogram::CalcHistogram()
 	} else {
 		for ( y = 0 ; y < m_Image.GetHeight() ; y++ ) {
 			for ( x = 0 ; x < m_Image.GetWidth() ; x++ ) {
-				rgb = m_Image.GetPixel(x, y);
+				COLORREF rgb = m_Image.GetPixel(x, y);
 				m_Histgram[0][GetRValue(rgb)]++;
 				m_Histgram[1][GetGValue(rgb)]++;
 				m_Histgram[2][GetBValue(rgb)]++;

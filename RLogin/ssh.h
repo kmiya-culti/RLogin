@@ -25,12 +25,9 @@
 #include <openssl/core_dispatch.h>
 #include <openssl/core_names.h>
 
-#if OPENSSL_VERSION_PREREQ(3, 5)
 extern "C" {
   #include <crypto/ml_kem.h>
 }
-#endif
-
 
 #define SSH_CIPHER_NONE         0       // none
 #define SSH_CIPHER_DES          2       // des
@@ -233,15 +230,15 @@ public:
 #define	IDKEY_ML_DSA				00050		// 44/65/87
 #define	IDKEY_SLH_DSA				00060		// SHA2/SHAKE 128/192/256 S/F
 
-#define	IDKEY_DSA2EX				00104		// BIGNUM2 fix
-#define	IDKEY_ECDSAEX				00140		// BIGNUM2 fix
-
+#define	IDKEY_EXT_FLAG				00100		// BIGNUM2 fix
 #define	IDKEY_CERTV00				00200
 #define	IDKEY_CERTV01				00400
 #define	IDKEY_CERTX509				01000
 
 #define	IDKEY_TYPE_MASK				00077
 #define	IDKEY_CERT_MASK				01600
+
+#define	IDKEY_REQ(s,d)				(((s) & IDKEY_TYPE_MASK) == ((d) & IDKEY_TYPE_MASK))
 
 #define	IDKEY_AGEANT_NONE			0
 #define	IDKEY_AGEANT_PUTTY			1
@@ -353,14 +350,12 @@ public:
 	CString m_Hash;
 	int m_Type;
 	int m_Cert;
+	int m_Nid;
 	RSA *m_Rsa;
-	int m_RsaNid;
 	DSA *m_Dsa;
 	EC_KEY *m_EcDsa;
-	int	 m_EcNid;
 	CBuffer m_PublicKey;
 	CBuffer m_PrivateKey;
-	int m_Nid;
 	CXmssKey m_XmssKey;
 	CString m_Work;
 	CBuffer m_CertBlob;
@@ -412,7 +407,7 @@ public:
 	int InitPass(LPCTSTR pass);
 
 	LPCTSTR GetName(int nFlag = IDKEY_NAME_SIMPLE);
-	int GetTypeFromName(LPCTSTR name);
+	BOOL GetTypeFromName(LPCTSTR name, int &type, int &nid);
 	BOOL KnownHostsCheck(LPCTSTR dig);
 	int HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh = NULL);
 	int ChkOldCertHosts(LPCTSTR host);
@@ -454,6 +449,7 @@ public:
 	BOOL IsNotSupport();
 
 	int LoadPrivateKey(LPCTSTR file, LPCTSTR pass);
+	int SaveFileFormat(int fmt);
 	int SavePrivateKey(int fmt, LPCTSTR file, LPCTSTR pass);
 	int SavePublicKey(LPCTSTR file);
 
@@ -1212,7 +1208,6 @@ int	sntrup761_keypair(unsigned char *pk, unsigned char *sk);
 int	sntrup761_enc(unsigned char *cstr, unsigned char *k, const unsigned char *pk);
 int	sntrup761_dec(unsigned char *k, const unsigned char *cstr, const unsigned char *sk);
 
-#if OPENSSL_VERSION_PREREQ(3, 5)
 // sshLib.cpp
 int ossl_mlkem_keypair(uint8_t *pk, uint8_t *sk, int type);
 int ossl_mlkem_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk, int type);
@@ -1229,17 +1224,3 @@ int ossl_mlkem_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk, int type);
 #define	mlkem512_keypair(pk, sk)	ossl_mlkem_keypair(pk, sk, EVP_PKEY_ML_KEM_512)
 #define	mlkem512_enc(ct, ss, pk)	ossl_mlkem_enc(ct, ss, pk, EVP_PKEY_ML_KEM_512)
 #define	mlkem512_dec(ss, ct, sk)	ossl_mlkem_dec(ss, ct, sk, EVP_PKEY_ML_KEM_512)
-#else
-// ml_kem.cpp
-int mlkem768_keypair(uint8_t *pk, uint8_t *sk);
-int mlkem768_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
-int mlkem768_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
-// ml_kem_1024.cpp
-int mlkem1024_keypair(uint8_t *pk, uint8_t *sk);
-int mlkem1024_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
-int mlkem1024_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
-// ml_kem_512.cpp
-int mlkem512_keypair(uint8_t *pk, uint8_t *sk);
-int mlkem512_enc(uint8_t *ct, uint8_t *ss, const uint8_t *pk);
-int mlkem512_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
-#endif

@@ -1362,7 +1362,7 @@ void CTekWnd::SvgCubicBezier(double sx, double sy, double bx1, double by1, doubl
 		dx = tx;
 		dy = ty;
 
-	} else {
+	} else if ( m < 20 ) {
 		for ( c = 1 ; c < m ; c++ ) {
 			t = (double)c / (double)m;
 			tx = pow(1.0 - t, 3) * sx + 3.0 * pow(1.0 - t, 2) * t * bx1 + 3.0 * (1.0 - t) * pow(t, 2) * bx2 + pow(t, 3) * ex;

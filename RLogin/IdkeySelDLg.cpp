@@ -333,7 +333,7 @@ BOOL CIdkeySelDLg::OnInitDialog()
 		}
 	}
 
-	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
+	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | (m_pParamTab != NULL ? LVS_EX_CHECKBOXES : 0));
 	m_List.InitColumn(_T("IdkeySelDLg"), InitListTab, 4);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 2);
 	m_List.m_bMove = TRUE;
@@ -350,7 +350,17 @@ BOOL CIdkeySelDLg::OnInitDialog()
 	if ( (pWnd = GetDlgItem(IDCANCEL)) != NULL )
 		pWnd->GetWindowText(m_CancelStr);
 
-#if OPENSSL_VERSION_PREREQ(3, 5)
+	if ( m_pParamTab == NULL ) {
+		if ( (pWnd = GetDlgItem(IDC_TITLE4)) != NULL )
+			pWnd->EnableWindow(FALSE);
+		if ( (pWnd = GetDlgItem(IDC_IDKEY_UP)) != NULL )
+			pWnd->EnableWindow(FALSE);
+		if ( (pWnd = GetDlgItem(IDC_IDKEY_DOWN)) != NULL )
+			pWnd->EnableWindow(FALSE);
+		if ( (pWnd = GetDlgItem(IDC_IDKEY_COPY)) != NULL )
+			pWnd->EnableWindow(FALSE);
+	}
+
 	if ( (pWnd = GetDlgItem(IDC_IDKEY_TYPE)) != NULL ) {
 		((CComboBox *)pWnd)->AddString(_T("MLDSA"));		// draft-becker-cnsa2-ssh-profile-00
 		//((CComboBox *)pWnd)->AddString(_T("SLHSHA2S"));
@@ -358,7 +368,6 @@ BOOL CIdkeySelDLg::OnInitDialog()
 		//((CComboBox *)pWnd)->AddString(_T("SLHSHAKES"));
 		//((CComboBox *)pWnd)->AddString(_T("SLHSHAKEF"));
 	}
-#endif
 
 	SetBitsList();
 	UpdateData(FALSE);
@@ -376,7 +385,7 @@ void CIdkeySelDLg::OnOK()
 	ASSERT(m_pIdKeyTab != NULL);
 
 	if ( m_KeyGenFlag != 0 ) {
-		if ( ::AfxMessageBox(CStringLoad(IDE_MAKEIDKEY), MB_ICONWARNING | MB_OKCANCEL) == IDCANCEL )
+		if ( MessageBox(CStringLoad(IDE_MAKEIDKEY), NULL, MB_ICONWARNING | MB_OKCANCEL) == IDCANCEL )
 			m_GenStat.abort = 1;
 		return;
 	}
@@ -399,7 +408,7 @@ void CIdkeySelDLg::OnOK()
 void CIdkeySelDLg::OnCancel()
 {
 	if ( m_KeyGenFlag != 0 ) {
-		if ( ::AfxMessageBox(CStringLoad(IDE_MAKEIDKEY), MB_ICONWARNING | MB_OKCANCEL) == IDCANCEL )
+		if ( MessageBox(CStringLoad(IDE_MAKEIDKEY), NULL, MB_ICONWARNING | MB_OKCANCEL) == IDCANCEL )
 			m_GenStat.abort = 1;
 		return;
 	}
@@ -473,41 +482,55 @@ void CIdkeySelDLg::OnIdkeyDown()
 }
 void CIdkeySelDLg::OnIdkeyDel() 
 {
-	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
+	CDWordArray UidTab;
+
+	for ( int n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) != 0 )
+			UidTab.Add(m_Data[(int)m_List.GetItemData(n)]);
+	}
+
+	if ( UidTab.GetSize() == 0 || MessageBox(CStringLoad(IDE_DELETEKEYQES), NULL, MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 		return;
 
-	if ( ::AfxMessageBox(CStringLoad(IDE_DELETEKEYQES), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
-		return;
-
-	int n = (int)m_List.GetItemData(m_EntryNum);
-
-	m_pIdKeyTab->RemoveUid(m_Data[n]);
-	m_Data.RemoveAt(n);
+	for ( int n = 0 ; n < (int)UidTab.GetSize() ; n++ ) {
+		for ( int i = 0 ; n < (int)m_Data.GetSize() ; i++ ) {
+			if ( UidTab[n] == m_Data[i] ) {
+				m_pIdKeyTab->RemoveUid(m_Data[i]);
+				m_Data.RemoveAt(i);
+				break;
+			}
+		}
+	}
 
 	InitList();
 }
 void CIdkeySelDLg::OnIdkeyCopy() 
 {
-	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
+	int count = 0;
+	CString str, tmp;
+
+	for ( int n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
+			continue;
+
+		CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[(int)m_List.GetItemData(n)]);
+
+		if ( pKey == NULL )
+			continue;
+
+		pKey->WritePublicKey(tmp);
+		str += tmp;
+		str += _T("\r\n");
+		count++;
+	}
+
+	if ( count <= 0 )
 		return;
 
-	int n = (int)m_List.GetItemData(m_EntryNum);
-	CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
+	tmp.Format(CStringLoad(IDS_PUBLICKEYCOPYMSG), count);
 
-	if ( pKey == NULL )
-		return;
-
-	CString str;
-	CEditDlg dlg;
-
-	pKey->WritePublicKey(str);
-
-	dlg.m_WinText = _T("Public Key");
-	dlg.m_Edit = str;
-	dlg.m_Title.LoadString(IDS_PUBLICKEYCOPYMSG);
-
-	if ( dlg.DoModal() == IDOK )
-		((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(dlg.m_Edit);
+	if ( MessageBox(tmp, NULL, MB_ICONINFORMATION | MB_YESNO) == IDYES )
+		((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(str);
 }
 void CIdkeySelDLg::OnIdkeyInport() 
 {
@@ -522,15 +545,15 @@ void CIdkeySelDLg::OnIdkeyInport()
 		return;
 
 	if ( dlg.m_IdkeyFile.IsEmpty() ) {
-		::AfxMessageBox(CStringLoad(IDE_USEIDKEYFILENAME), MB_ICONINFORMATION);
+		MessageBox(CStringLoad(IDE_USEIDKEYFILENAME), NULL, MB_ICONINFORMATION);
 		return;
 	}
 
 	if ( !key.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
-		::AfxMessageBox(CStringLoad(IDE_IDKEYLOADERROR), MB_ICONINFORMATION);
+		MessageBox(CStringLoad(IDE_IDKEYLOADERROR), NULL, MB_ICONINFORMATION);
 		return;
 	} else if ( key.IsNotSupport() ) {
-		::AfxMessageBox(CStringLoad(IDE_IDKEYNOTSUPPORT), MB_ICONINFORMATION);
+		MessageBox(CStringLoad(IDE_IDKEYNOTSUPPORT), NULL, MB_ICONINFORMATION);
 		return;
 	}
 
@@ -541,7 +564,7 @@ void CIdkeySelDLg::OnIdkeyInport()
 		CString msg, finger;
 		key.FingerPrint(finger, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
 		msg.Format(_T("%s\n\n%s(%d) %s\n%32.32s..."), CStringLoad(IDE_DUPIDKEYENTRY), key.GetName(), key.GetSize(), (LPCTSTR)key.m_Name, (LPCTSTR)finger);
-		::AfxMessageBox(msg, MB_ICONINFORMATION);
+		MessageBox(msg, NULL, MB_ICONINFORMATION);
 		return;
 	}
 	m_Data.InsertAt(0, key.m_Uid);
@@ -551,49 +574,59 @@ void CIdkeySelDLg::OnIdkeyInport()
 }
 void CIdkeySelDLg::OnIdkeyExport() 
 {
-	UpdateData(TRUE);
-
-	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
-		return;
-
-	int n = (int)m_List.GetItemData(m_EntryNum);
-	CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
 	CIdKeyFileDlg dlg(this);
-	CStringLoad msg(IDS_IDKEYFILESAVECOM);
 	CString finger;
 
-	if ( pKey == NULL )
-		return;
+	UpdateData(TRUE);
 
-	if ( pKey->m_AgeantType != IDKEY_AGEANT_NONE ) {
-		::AfxMessageBox(CStringLoad(IDE_PAGEANTKEYEDIT), MB_ICONINFORMATION);
-		return;
+	for ( int n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
+			continue;
+
+		CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[(int)m_List.GetItemData(n)]);
+
+		if ( pKey == NULL )
+			continue;
+
+		if ( pKey->m_AgeantType != IDKEY_AGEANT_NONE ) {
+			MessageBox(CStringLoad(IDE_PAGEANTKEYEDIT), NULL, MB_ICONINFORMATION);
+			continue;
+		}
+
+		pKey->FingerPrint(finger, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
+
+		dlg.m_OpenMode = IDKFDMODE_SAVE;
+		dlg.m_Title.LoadString(IDS_IDKEYFILESAVE);
+		dlg.m_Message.Format(_T("%s%s\n\n%s(%d) %s\n%32.32s..."), 
+			(LPCTSTR)CStringLoad(IDS_IDKEYFILESAVECOM), 
+			(pKey->SaveFileFormat(m_ExportStyle) != m_ExportStyle ? (LPCTSTR)CStringLoad(IDS_XMSSSAVEFORMAT) : _T("")),
+			pKey->GetName(), pKey->GetSize(), (LPCTSTR)pKey->m_Name, (LPCTSTR)finger);
+
+		for ( ; ; ) {
+			if ( dlg.DoModal() != IDOK )
+				return;
+
+			if ( dlg.m_IdkeyFile.IsEmpty() ) {
+				MessageBox(CStringLoad(IDE_USEIDKEYFILENAME), NULL, MB_ICONERROR);
+				continue;
+			}
+
+			if ( pKey->CompPass(dlg.m_PassName) != 0 ) {
+				MessageBox(CStringLoad(IDE_IDKEYPASSERROR), NULL, MB_ICONERROR);
+				continue;
+			}
+
+			if ( _taccess(dlg.m_IdkeyFile, 00) == 0 ) {
+				if ( MessageBox(CStringLoad(IDS_FILEOVERWRITEMSG), NULL, MB_YESNO | MB_ICONWARNING) != IDYES )
+					continue;
+			}
+
+			break;
+		}
+
+		if ( !pKey->SavePrivateKey(m_ExportStyle, dlg.m_IdkeyFile, dlg.m_PassName) )
+			MessageBox(CStringLoad(IDE_IDKEYSAVEERROR), NULL, MB_ICONERROR);
 	}
-
-	if ( pKey->m_Type == IDKEY_XMSS && m_ExportStyle != EXPORT_STYLE_OPENSSH )
-		::AfxMessageBox(CStringLoad(IDS_XMSSSAVEFORMAT), MB_ICONWARNING);
-
-	pKey->FingerPrint(finger, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
-
-	dlg.m_OpenMode = IDKFDMODE_SAVE;
-	dlg.m_Title.LoadString(IDS_IDKEYFILESAVE);
-	dlg.m_Message.Format(_T("%s\n\n%s(%d) %s\n%32.32s..."), (LPCTSTR)msg, pKey->GetName(), pKey->GetSize(), (LPCTSTR)pKey->m_Name, (LPCTSTR)finger);
-
-	if ( dlg.DoModal() != IDOK )
-		return;
-
-	if ( dlg.m_IdkeyFile.IsEmpty() ) {
-		::AfxMessageBox(CStringLoad(IDE_USEIDKEYFILENAME), MB_ICONERROR);
-		return;
-	}
-
-	if ( pKey->CompPass(dlg.m_PassName) != 0 ) {
-		::AfxMessageBox(CStringLoad(IDE_IDKEYPASSERROR), MB_ICONERROR);
-		return;
-	}
-
-	if ( !pKey->SavePrivateKey(m_ExportStyle, dlg.m_IdkeyFile, dlg.m_PassName) )
-		::AfxMessageBox(CStringLoad(IDE_IDKEYSAVEERROR), MB_ICONERROR);
 }
 void CIdkeySelDLg::OnIdkeyCreate() 
 {
@@ -635,22 +668,22 @@ void CIdkeySelDLg::OnIdkeyCreate()
 
 
 	if ( m_GenIdKeyType == IDKEY_ECDSA && (m_GenIdKeyBits < 256 || m_GenIdKeyBits > 521) ) {
-		if ( ::AfxMessageBox(CStringLoad(IDE_ECDSABITSIZEERR), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
-			return;
+		MessageBox(CStringLoad(IDE_ECDSABITSIZEERR), NULL, MB_ICONERROR);
+		return;
 	} else if ( (m_GenIdKeyType == IDKEY_RSA1 || m_GenIdKeyType == IDKEY_RSA2) && m_GenIdKeyBits <= 2048 ) {
-		if ( ::AfxMessageBox(CStringLoad(IDE_RSABITSIZEERR), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
+		if ( MessageBox(CStringLoad(IDE_RSABITSIZEERR), NULL, MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 			return;
 	} else if ( m_GenIdKeyType == IDKEY_DSA2 && (m_GenIdKeyBits < 768 || m_GenIdKeyBits > 1024) ) {
-		if ( ::AfxMessageBox(CStringLoad(IDE_DSABITSIZEERR), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
+		if ( MessageBox(CStringLoad(IDE_DSABITSIZEERR), NULL, MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 			return;
 	} else if ( m_GenIdKeyType == IDKEY_XMSS && (m_GenIdKeyBits < 10 || m_GenIdKeyBits > 20) ) {
-		if ( ::AfxMessageBox(CStringLoad(IDE_XMSSBITSIZEERR), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
-			return;
+		MessageBox(CStringLoad(IDE_XMSSBITSIZEERR), NULL, MB_ICONWARNING);
+		return;
 	} else if ( m_GenIdKeyType == IDKEY_ML_DSA && (m_GenIdKeyBits < 44 || m_GenIdKeyBits > 87) ) {
-		::AfxMessageBox(_T("ml-dsa size error use 44/65/87"));
+		MessageBox(_T("ml-dsa size error use 44/65/87"), NULL, MB_ICONERROR);
 		return;
 	} else if ( m_GenIdKeyType == IDKEY_SLH_DSA && (m_GenIdKeyBits < 128 || m_GenIdKeyBits > 256) ) {
-		::AfxMessageBox(_T("slh-dsa size error use 128/192/256"));
+		MessageBox(_T("slh-dsa size error use 128/192/256"), NULL, MB_ICONERROR);
 		return;
 	}
 
@@ -662,7 +695,7 @@ void CIdkeySelDLg::OnIdkeyCreate()
 		return;
 
 	if ( dlg.m_PassName.IsEmpty() ) {
-		if ( ::AfxMessageBox(CStringLoad(IDE_USEPASSWORDIDKEY), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
+		if ( MessageBox(CStringLoad(IDE_USEPASSWORDIDKEY), NULL, MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 			return;
 	}
 
@@ -713,7 +746,7 @@ void CIdkeySelDLg::OnKeyGenEndof()
 	m_KeyGenProg.EnableWindow(FALSE);
 
 	if ( !m_GenIdKeyStat || !m_pIdKeyTab->AddEntry(m_GenIdKey) ) {
-		::AfxMessageBox(CStringLoad(IDE_IDKEYCREATEERROR), MB_ICONINFORMATION);
+		MessageBox(CStringLoad(IDE_IDKEYCREATEERROR), NULL, MB_ICONINFORMATION);
 		return;
 	}
 	m_Data.InsertAt(0, m_GenIdKey.m_Uid);
@@ -734,7 +767,7 @@ void CIdkeySelDLg::OnEditUpdate()
 		return;
 
 	if ( pKey->m_AgeantType != IDKEY_AGEANT_NONE ) {
-		::AfxMessageBox(CStringLoad(IDE_PAGEANTKEYEDIT), MB_ICONINFORMATION);
+		MessageBox(CStringLoad(IDE_PAGEANTKEYEDIT), NULL, MB_ICONINFORMATION);
 		return;
 	}
 
@@ -835,7 +868,7 @@ void CIdkeySelDLg::OnIdkeyCakey()
 		return;
 
 	if ( pKey->m_AgeantType != IDKEY_AGEANT_NONE ) {
-		::AfxMessageBox(CStringLoad(IDE_PAGEANTKEYEDIT), MB_ICONINFORMATION);
+		MessageBox(CStringLoad(IDE_PAGEANTKEYEDIT), NULL, MB_ICONINFORMATION);
 		return;
 	}
 
@@ -845,29 +878,30 @@ void CIdkeySelDLg::OnIdkeyCakey()
 		return;
 
 	if ( !pKey->LoadCertPublicKey(dlg.GetPathName()) )
-		::AfxMessageBox(CStringLoad(IDE_IDKEYLOADERROR), MB_ICONERROR);
+		MessageBox(CStringLoad(IDE_IDKEYLOADERROR), NULL, MB_ICONERROR);
 
 	m_pIdKeyTab->UpdateUid(pKey->m_Uid);
 	InitList();
 }
 void CIdkeySelDLg::OnSavePublicKey()
 {
-	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
-		return;
+	for ( int n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
+			continue;
 
-	int n = (int)m_List.GetItemData(m_EntryNum);
-	CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
+		CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[(int)m_List.GetItemData(n)]);
 
-	if ( pKey == NULL )
-		return;
+		if ( pKey == NULL )
+			continue;
 
-	CFileDialog dlg(FALSE, _T(""), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), this);
+		CFileDialog dlg(FALSE, _T(""), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), this);
 
-	if ( DpiAwareDoModal(dlg) != IDOK )
-		return;
+		if ( DpiAwareDoModal(dlg) != IDOK )
+			return;
 
-	if ( !pKey->SavePublicKey(dlg.GetPathName()) )
-		::AfxMessageBox(CStringLoad(IDE_IDKEYSAVEERROR), MB_ICONERROR);
+		if ( !pKey->SavePublicKey(dlg.GetPathName()) )
+			MessageBox(CStringLoad(IDE_IDKEYSAVEERROR), NULL, MB_ICONERROR);
+	}
 }
 
 void CIdkeySelDLg::OnCbnSelchangeIdkeyType()

@@ -982,11 +982,11 @@ CMainFrame::CMainFrame()
 	m_ScreenX = m_ScreenY = m_ScreenW = m_ScreenH = 0;
 	m_bGlassStyle = FALSE;
 	m_UseBitmapUpdate = FALSE;
-	m_bClipThreadCount = 0;
+	m_bClipThreadFlag = FALSE;
+	m_ClipThreadCount = 0;
 	m_ClipTimer = 0;
 	m_IdleTimer = 0;
 	m_LastClipUpdate = clock();
-	m_LastClipTimer = 0;
 	m_pMidiData = NULL;
 	m_pServerSelect = NULL;
 	m_pHistoryDlg = NULL;
@@ -1009,6 +1009,7 @@ CMainFrame::CMainFrame()
 		m_SpeakData[n].abs = 0;
 		m_SpeakData[n].line = 0;
 	}
+	m_pRandFolder = NULL;
 }
 
 CMainFrame::~CMainFrame()
@@ -1041,6 +1042,12 @@ CMainFrame::~CMainFrame()
 			continue;
 		pMap->m_Bitmap.DeleteObject();
 		delete pMap;
+	}
+
+	RandFolder *rp;
+	while ( (rp = m_pRandFolder) != NULL ) {
+		m_pRandFolder = rp->next;
+		delete rp;
 	}
 
 	for ( int n = 0 ; m_InfoThreadCount > 0 && n < 10 ; n++ )
@@ -2428,7 +2435,9 @@ BOOL CMainFrame::CopyClipboardData(CString &str, int *pRetry)
 	str.SetString(pData, (int)GlobalSize(hData) / sizeof(WCHAR));
 
 	GlobalUnlock(hData);
-	ret = TRUE;
+
+	if ( !str.IsEmpty() && *str != _T('\0') )
+		ret = TRUE;
 
 CLOSERET:
 	CloseClipboard();
@@ -2439,20 +2448,31 @@ UNLOCKRET:
 }
 static UINT CopyClipboardThead(LPVOID pParam)
 {
+	clock_t msec;
+	BOOL bPost = FALSE;
 	CString *pStr = new CString;
 	CMainFrame *pWnd = (CMainFrame *)pParam;
+
+	while ( (msec = (clock() - pWnd->m_LastClipUpdate) * 1000 / CLOCKS_PER_SEC) < CLIPOPENLASTMSEC )
+		Sleep(CLIPOPENLASTMSEC - msec);
+
+	pWnd->m_bClipThreadFlag = FALSE;
 
 	for ( int n = 0 ; n < 10 ; n++ ) {
 		BOOL bRetry = FALSE;
 		if ( pWnd->CopyClipboardData(*pStr, &bRetry) ) {
 			pWnd->PostMessage(WM_GETCLIPBOARD, NULL, (LPARAM)pStr);
+			bPost = TRUE;
 			break;
 		} else if ( !bRetry )
 			break;
 		Sleep(100);
 	}
 
-	pWnd->m_bClipThreadCount--;
+	if ( !bPost )
+		delete pStr;
+
+	pWnd->m_ClipThreadCount--;
 	return 0;
 }
 BOOL CMainFrame::SetClipboardText(LPCTSTR str, LPCSTR rtf)
@@ -2704,6 +2724,76 @@ void CMainFrame::SetTaskbarProgress(int state, int value)
 	}
 }
 
+LPCTSTR CMainFrame::RandomFile(LPCTSTR folder)
+{
+	int n, max, rc;
+	BOOL DoLoop;
+	CString tmp(folder);
+    CFileFind Finder;
+	struct _stati64 st;
+	RandFolder *bp = NULL, *rp = m_pRandFolder;
+
+	if ( (n = tmp.ReverseFind(_T('\\'))) >= 0 || (n = tmp.ReverseFind(_T(':'))) >= 0 )
+		rc = _tstati64(tmp.Left(n), &st);
+	else
+		rc = _tstati64(tmp, &st);
+
+	if ( (n = (int)_tcslen(folder)) > 0 && folder[n - 1] == _T('\\') ) {
+		tmp.Format(_T("%s\\*.*"), folder);
+		folder = tmp;
+	}
+
+	while ( rp != NULL ) {
+		if ( rp->folder.Compare(folder) == 0 ) {
+			if ( rc == 0 && rp->mtime != 0 && st.st_mtime != rp->mtime ) {
+				if ( bp == NULL )
+					m_pRandFolder = rp->next;
+				else
+					bp->next = rp->next;
+				delete rp;
+				break;
+			}
+			if ( ++rp->pos >= rp->files.GetSize() )
+				rp->pos = 0;
+			return rp->files[rp->pos];
+		}
+		bp = rp;
+		rp = rp->next;
+	}
+
+	rp = new RandFolder;
+	DoLoop = Finder.FindFile(folder);
+	while ( DoLoop != FALSE ) {
+		DoLoop = Finder.FindNextFile();
+		if ( Finder.IsSystem() || Finder.IsTemporary() || Finder.IsDots() || Finder.IsDirectory() )
+			continue;
+		rp->files.Add(Finder.GetFilePath());
+	}
+	Finder.Close();
+
+	if ( (max = (int)rp->files.GetSize()) <= 0 ) {
+		delete rp;
+		return NULL;
+	} else if ( max > 2 ) {
+		for ( n = 0 ; n < max ; n++ ) {
+			int i = rand() % max;
+			if ( n != i ) {
+				CString tmp(rp->files[n]);
+				rp->files[n] = rp->files[i];
+				rp->files[i] = tmp;
+			}
+		}
+	}
+
+	rp->pos = 0;
+	rp->folder = folder;
+	rp->mtime = (rc == 0 ? st.st_mtime : 0);
+	rp->next = m_pRandFolder;
+	m_pRandFolder = rp;
+
+	return rp->files[rp->pos];
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame 診断
 
@@ -2797,7 +2887,7 @@ LRESULT CMainFrame::OnGetClipboard(WPARAM wParam, LPARAM lParam)
 	else if ( CopyClipboardData(tmp) )
 		pStr = &tmp;
 	else
-		return TRUE;
+		goto ENDOF;
 
 	if ( !CServerSelect::IsJsonEntryText(*pStr) ) {
 
@@ -2820,6 +2910,7 @@ LRESULT CMainFrame::OnGetClipboard(WPARAM wParam, LPARAM lParam)
 	if ( m_pHistoryDlg != NULL )
 		m_pHistoryDlg->Add(HISBOX_CLIP, *pStr);
 
+ENDOF:
 	if ( lParam != NULL )
 		delete pStr;
 
@@ -2996,15 +3087,6 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 				break;
 		}
 		//TRACE("TimerIdle %d(%d)\n", n, clock() - st + 90);
-		break;
-
-	case TIMERID_LASTCLIP:
-		if ( (clock() - m_LastClipUpdate) > CLIPOPENLASTMSEC && m_bClipThreadCount < CLIPOPENTHREADMAX  ) {
-			m_bClipThreadCount++;
-			AfxBeginThread(CopyClipboardThead, this, THREAD_PRIORITY_NORMAL);
-			KillTimer(nIDEvent);
-			m_LastClipTimer = 0;
-		}
 		break;
 
 	default:
@@ -4149,10 +4231,14 @@ void CMainFrame::OnClipboardUpdate()
 	// 最後のメッセージからCLIPOPENLASTMSEC以上の時間を待つように変更
 
 	m_bClipEnable = TRUE;	// クリップボードチェインが有効？
+
 	m_LastClipUpdate = clock();
 
-	if ( m_LastClipTimer == 0 )
-		m_LastClipTimer = SetTimer(TIMERID_LASTCLIP, 100, NULL);
+	if ( !m_bClipThreadFlag && m_ClipThreadCount < CLIPOPENTHREADMAX ) {
+		m_bClipThreadFlag = TRUE;
+		m_ClipThreadCount++;
+		AfxBeginThread(CopyClipboardThead, this, THREAD_PRIORITY_NORMAL);
+	}
 }
 
 void CMainFrame::OnToolcust()

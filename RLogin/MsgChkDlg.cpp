@@ -186,6 +186,14 @@ BOOL CMsgChkDlg::OnInitDialog()
 		break;
 	}
 
+	if ( m_IconWnd.GetIcon() == NULL ) {
+		m_IconWnd.GetWindowPlacement(&place);
+		int left = place.rcNormalPosition.left;
+		m_MsgWnd.GetWindowPlacement(&place);
+		place.rcNormalPosition.left = left;
+		m_MsgWnd.SetWindowPlacement(&place);
+	}
+
 	int mdx = 0;
 	CDC *pDC = m_MsgWnd.GetDC();
 	CFont *pOld = pDC->SelectObject(m_MsgWnd.GetFont());
@@ -213,7 +221,7 @@ BOOL CMsgChkDlg::OnInitDialog()
 
 	for ( int n = 0 ; n < line.GetSize() ; n++ ) {
 		sz = pDC->GetTextExtent(line[n]);
-		if ( sz.cx < rect.Width() )
+		if ( sz.cx <= rect.Width() )
 			continue;
 		int b = 0;
 		int m = line[n].GetLength();
@@ -236,8 +244,11 @@ BOOL CMsgChkDlg::OnInitDialog()
 		tmp += _T('\n');
 	}
 
-	if ( line.GetSize() <= 1 )
-		m_MsgWnd.ModifyStyle(0, SS_CENTERIMAGE);
+	//if ( line.GetSize() <= 1 )
+	//	m_MsgWnd.ModifyStyle(0, SS_CENTERIMAGE);
+
+	if ( line.GetSize() <= 2 )
+		m_MsgText.Insert(0, _T("\n"));
 
 	if ( !m_bNoChkEnable ) {
 		pButton[0]->GetWindowRect(txrt);
@@ -291,6 +302,9 @@ BOOL CMsgChkDlg::OnInitDialog()
 
 	if ( m_BtnRes[2] == IDCLOSE ) 
 		pButton[2]->ShowWindow(SW_HIDE);
+
+	if ( m_IconWnd.GetIcon() == NULL )
+		m_IconWnd.ShowWindow(SW_HIDE);
 
 	return TRUE;
 }

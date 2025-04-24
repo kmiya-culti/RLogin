@@ -32,7 +32,7 @@ public:
 	class CParamTab *m_pParamTab;
 	CIdKeyTab *m_pIdKeyTab;
 	CStringArrayExt m_IdKeyList;
-	CWordArray m_Data;
+	CDWordArray m_Data;
 	int m_EntryNum;
 	CEvent *m_pKeyGenEvent;
 	int m_KeyGenFlag;

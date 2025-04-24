@@ -1314,10 +1314,11 @@ void CTextBitMap::Init()
 	m_HeightAlign = DT_VCENTER;		// DT_TOP DT_VCENTER DT_BOTTOM
 
 	m_Text = _T("%E\\r\\n%S");
+	m_TextFixed.RemoveAll();
 	m_TextColor = RGB(128, 128, 128);
 
 	ZeroMemory(&m_LogFont, sizeof(m_LogFont));
-	m_LogFont.lfHeight = 30;
+	m_LogFont.lfHeight = 0 - MulDiv(10, SYSTEM_DPI_Y, 72);
 }
 void CTextBitMap::SetArray(CStringArrayExt &stra)
 {
@@ -2726,6 +2727,7 @@ void CTextRam::Init()
 
 	m_WheelSize      = 2;
 	m_BitMapFile     = _T("");
+	m_BitMapFileFixed.RemoveAll();
 	m_BitMapAlpha    = 255;
 	m_BitMapBlend    = 128;
 	m_BitMapStyle    = MAPING_FILL;
@@ -8320,7 +8322,7 @@ void CTextRam::FLUSH()
 	if ( m_UpdateRect == CRect(0, 0, m_Cols, m_Lines) )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_INVALIDATE, NULL);
 	else if ( m_UpdateRect.left < m_UpdateRect.right && m_UpdateRect.top < m_UpdateRect.bottom )
-		m_pDocument->UpdateAllViews(NULL, UPDATE_TEXTRECT, (CObject *)&m_UpdateRect);
+		m_pDocument->UpdateAllViews(NULL, UPDATE_TEXTRECT, (CObject *)(LPCRECT)m_UpdateRect);
 	else if ( m_CurX != m_UpdateCurX || m_CurY != m_UpdateCurY )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 

@@ -324,15 +324,6 @@
     <ClCompile Include="ControlBar.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="ml_kem.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="ml_kem_1024.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="ml_kem_512.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="SshSigDlg.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>

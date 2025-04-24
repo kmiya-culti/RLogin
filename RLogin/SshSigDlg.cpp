@@ -6,6 +6,7 @@
 #include "MainFrm.h"
 #include "SshSigDlg.h"
 #include "IdKeyFileDlg.h"
+#include "IdkeySelDLg.h"
 
 #include <sys/stat.h>
 
@@ -76,7 +77,7 @@ CIdKey *CSshSigDlg::LoadKey()
 		pKey = &m_TempKey;
 	} else if ( m_TempKey.LoadPrivateKey(m_KeyFile, _T("")) ) {
 		pKey = &m_TempKey;
-	} else {
+	} else if ( _taccess(m_KeyFile, 04) == 0 ){
 		dlg.m_OpenMode  = IDKFDMODE_OPEN;
 		dlg.m_Title.LoadString(IDS_SSH_PASS_TITLE);		// = _T("SSH鍵ファイルの読み込み");
 		dlg.m_Message.LoadString(IDS_SSH_PASS_MSG);		// = _T("作成時に設定したパスフレーズを入力してください");
@@ -89,13 +90,12 @@ CIdKey *CSshSigDlg::LoadKey()
 		if ( dlg.DoModal() != IDOK )
 			return NULL;
 
-		if ( !m_TempKey.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
-			::AfxMessageBox(CStringLoad(IDE_IDKEYLOADERROR), MB_ICONERROR);
-			return NULL;
-		}
-
-		pKey = &m_TempKey;
+		if ( m_TempKey.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) )
+			pKey = &m_TempKey;
 	}
+
+	if ( pKey == NULL )
+		MessageBox(CStringLoad(IDE_IDKEYLOADERROR), NULL, MB_ICONERROR);
 
 	return pKey;
 }
@@ -104,7 +104,7 @@ BOOL CSshSigDlg::ThreadCheck()
 	if ( m_ThreadStat == 0 )
 		return FALSE;
 
-	if ( DoitMessageBox(CStringLoad(IDT_SSHSIG_CANCEL), MB_ICONQUESTION | MB_YESNO, this) != IDYES )
+	if ( MessageBox(CStringLoad(IDT_SSHSIG_CANCEL), NULL, MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return TRUE;
 
 	m_ThreadStat = 0;
@@ -151,11 +151,62 @@ void CSshSigDlg::SaveProfile()
 	m_KeyFileCombo.AddHis(m_KeyFile);
 	m_NameSpaceCombo.AddHis(m_NameSpace);
 }
+void CSshSigDlg::KeyListInit(int uid)
+{
+	CString str;
+
+	m_KeyListCombo.RemoveAll();
+
+	for ( int n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
+		switch(m_IdKeyTab[n].m_Type & IDKEY_TYPE_MASK) {
+		case IDKEY_RSA1:
+		case IDKEY_RSA2:
+		case IDKEY_DSA2:
+		case IDKEY_XMSS:
+			str.Format(_T("%s %d"), m_IdKeyTab[n].GetName(), m_IdKeyTab[n].GetSize());
+			break;
+		default:
+			str.Format(_T("%s"), m_IdKeyTab[n].GetName());
+			break;
+		}
+
+		if ( !m_IdKeyTab[n].m_Name.IsEmpty() ) {
+			str += _T(" (");
+			str += m_IdKeyTab[n].m_Name;
+			str += _T(")");
+		}
+
+		switch(m_IdKeyTab[n].m_AgeantType) {
+		case IDKEY_AGEANT_NONE:
+			if ( m_IdKeyTab[n].m_Type == IDKEY_UNKNOWN )
+				str += _T(" Unkown");
+			break;
+		case IDKEY_AGEANT_PUTTY:
+		case IDKEY_AGEANT_PUTTYPIPE:
+			str += (m_IdKeyTab[n].m_bSecInit ? _T(" Pageant") : _T(" None"));
+			break;
+		case IDKEY_AGEANT_WINSSH:
+			str += (m_IdKeyTab[n].m_bSecInit ? _T(" Wageant") : _T(" None"));
+			break;
+		}
+
+		int i = m_KeyListCombo.AddString(str);
+		m_KeyListCombo.SetItemData(i, (DWORD_PTR)m_IdKeyTab[n].m_Uid);
+	}
+
+	for ( int i = 0 ; i < m_KeyListCombo.GetCount() ; i++ ) {
+		if ( (int)(m_KeyListCombo.GetItemData(i)) == uid ) {
+			m_KeyList = i;
+			break;
+		}
+	}
+}
 
 BEGIN_MESSAGE_MAP(CSshSigDlg, CDialogExt)
 	ON_WM_CLOSE()
 	ON_BN_CLICKED(IDC_SSHSIG_VERIFY, &CSshSigDlg::OnVerify)
 	ON_BN_CLICKED(IDC_SSHSIG_DATAFILE_SEL, &CSshSigDlg::OnDatafileSel)
+	ON_BN_CLICKED(IDC_SSHSIG_KEYLIST_SEL, &CSshSigDlg::OnKeylistSel)
 	ON_BN_CLICKED(IDC_SSHSIG_KEYFILE_SEL, &CSshSigDlg::OnKeyfileSel)
 	ON_BN_CLICKED(IDC_SSHSIG_INPORT, &CSshSigDlg::OnSignInport)
 	ON_BN_CLICKED(IDC_SSHSIG_EXPORT, &CSshSigDlg::OnSignExport)
@@ -209,7 +260,6 @@ static const INITDLGTAB ItemTab[] = {
 BOOL CSshSigDlg::OnInitDialog()
 {
 	int uid;
-	CString str;
 	CWnd *pWnd;
 	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
@@ -229,50 +279,7 @@ BOOL CSshSigDlg::OnInitDialog()
 
 	pMain->AgeantInit();
 	m_IdKeyTab = pMain->m_IdKeyTab;
-
-	for ( int n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
-		switch(m_IdKeyTab[n].m_Type & IDKEY_TYPE_MASK) {
-		case IDKEY_RSA1:
-		case IDKEY_RSA2:
-		case IDKEY_DSA2:
-		case IDKEY_XMSS:
-			str.Format(_T("%s %d"), m_IdKeyTab[n].GetName(), m_IdKeyTab[n].GetSize());
-			break;
-		default:
-			str.Format(_T("%s"), m_IdKeyTab[n].GetName());
-			break;
-		}
-
-		if ( !m_IdKeyTab[n].m_Name.IsEmpty() ) {
-			str += _T(" (");
-			str += m_IdKeyTab[n].m_Name;
-			str += _T(")");
-		}
-
-		switch(m_IdKeyTab[n].m_AgeantType) {
-		case IDKEY_AGEANT_NONE:
-			if ( m_IdKeyTab[n].m_Type == IDKEY_UNKNOWN )
-				str += _T(" Unkown");
-			break;
-		case IDKEY_AGEANT_PUTTY:
-		case IDKEY_AGEANT_PUTTYPIPE:
-			str += (m_IdKeyTab[n].m_bSecInit ? _T(" Pageant") : _T(" None"));
-			break;
-		case IDKEY_AGEANT_WINSSH:
-			str += (m_IdKeyTab[n].m_bSecInit ? _T(" Wageant") : _T(" None"));
-			break;
-		}
-
-		int i = m_KeyListCombo.AddString(str);
-		m_KeyListCombo.SetItemData(i, (DWORD_PTR)m_IdKeyTab[n].m_Uid);
-	}
-
-	for ( int i = 0 ; i < m_KeyListCombo.GetCount() ; i++ ) {
-		if ( (int)(m_KeyListCombo.GetItemData(i)) == uid ) {
-			m_KeyList = i;
-			break;
-		}
-	}
+	KeyListInit(uid);
 	
 	if ( (pWnd = GetDlgItem(IDC_SSHSIG_KEYLIST)) != NULL )
 		pWnd->EnableWindow(m_KeyMode == 0 ? TRUE : FALSE);
@@ -336,10 +343,10 @@ void CSshSigDlg::OnCancel()
 static UINT FileHashThread(LPVOID pParam)
 {
 	int n;
-	BYTE tmp[4096];
+	BYTE tmp[16384];
 	CSshSigDlg *pThis = (CSshSigDlg *)pParam;
 
-	while ( pThis->m_ThreadStat != 0 && (n = (int)fread(tmp, 1, 4096, pThis->m_HashFp)) > 0 ) {
+	while ( pThis->m_ThreadStat != 0 && (n = (int)fread(tmp, 1, 16384, pThis->m_HashFp)) > 0 ) {
 		if ( EVP_DigestUpdate(pThis->m_HashCtx, tmp, n) <= 0 )
 			break;
 		pThis->m_HashFilePos += n;
@@ -433,7 +440,7 @@ void CSshSigDlg::OnOK()
 		return;	// wait OnSignNext
 
 	} catch(LPCTSTR msg) {
-		::DoitMessageBox(msg, MB_ICONERROR, this);
+		MessageBox(msg, NULL, MB_ICONERROR);
 	}
 
 	if ( m_HashCtx != NULL ) {
@@ -471,7 +478,7 @@ void CSshSigDlg::OnSignNext()
 		tmp.PutBuf(hash, hlen);
 
 		if ( (m_pKey->m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA1 || (m_pKey->m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA2 )
-			m_pKey->m_RsaNid = NID_sha512;
+			m_pKey->m_Nid = NID_sha512;
 
 		if ( !m_pKey->Sign(&sig, tmp.GetPtr(), tmp.GetSize()) )
 			throw _T("Sign key sign error");
@@ -506,7 +513,7 @@ void CSshSigDlg::OnSignNext()
 		UpdateData(FALSE);
 
 	} catch(LPCTSTR msg) {
-		::DoitMessageBox(msg, MB_ICONERROR, this);
+		MessageBox(msg, NULL, MB_ICONERROR);
 	}
 
 	if ( m_HashFp != NULL ) {
@@ -598,14 +605,15 @@ void CSshSigDlg::OnVerify()
 		tmp.Clear();
 		body.GetBuf(&tmp);
 
-		if ( strcmp((LPCSTR)tmp, "sha256") == 0 ) {
+		if ( strcmp((LPCSTR)tmp, "sha256") == 0 )
 			md = EVP_sha256();
-			m_VerifyKey.m_RsaNid = NID_sha256;
-		} else if ( strcmp((LPCSTR)tmp, "sha512") == 0 ) {
+		else if ( strcmp((LPCSTR)tmp, "sha512") == 0 )
 			md = EVP_sha512();
-			m_VerifyKey.m_RsaNid = NID_sha512;
-		} else
+		else
 			throw _T("Verify hash algorithm not support");
+
+		if ( (m_VerifyKey.m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA1 || (m_VerifyKey.m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA2 )
+			m_VerifyKey.m_Nid = (md == EVP_sha256() ? NID_sha256 : NID_sha512);
 
 		// string signature
 		m_VerifySign.Clear();
@@ -635,7 +643,7 @@ void CSshSigDlg::OnVerify()
 		return;	// wait OnVerifyNext
 
 	} catch(LPCTSTR msg) {
-		::DoitMessageBox(msg, MB_ICONERROR, this);
+		MessageBox(msg, NULL, MB_ICONERROR);
 	}
 
 	if ( m_HashFp != NULL ) {
@@ -665,10 +673,10 @@ void CSshSigDlg::OnVerifyNext()
 		if ( !m_VerifyKey.Verify(&m_VerifySign, m_VerifyData.GetPtr(), m_VerifyData.GetSize()) )
 			throw _T("Verify verification failed");
 
-		::DoitMessageBox(_T("SSH key verification was successful"), MB_ICONINFORMATION, this);
+		MessageBox(_T("SSH key verification was successful"), NULL, MB_ICONINFORMATION);
 
 	} catch(LPCTSTR msg) {
-		::DoitMessageBox(msg, MB_ICONERROR, this);
+		MessageBox(msg, NULL, MB_ICONERROR);
 	}
 
 	if ( m_HashFp != NULL ) {
@@ -694,6 +702,28 @@ void CSshSigDlg::OnDatafileSel()
 	m_DataFile = dlg.GetPathName();
 	UpdateData(FALSE);
 }
+void CSshSigDlg::OnKeylistSel()
+{
+	int uid = (-1);
+	CIdkeySelDLg dlg(this);
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+
+	UpdateData(TRUE);
+	uid = (int)m_KeyListCombo.GetItemData(m_KeyList);
+
+	pMain->AgeantInit();
+
+	dlg.m_pParamTab = NULL;
+	dlg.m_pIdKeyTab = &(pMain->m_IdKeyTab);
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	m_IdKeyTab = pMain->m_IdKeyTab;
+	KeyListInit(uid);
+	UpdateData(FALSE);
+}
 void CSshSigDlg::OnKeyfileSel()
 {
 	UpdateData(TRUE);
@@ -715,8 +745,13 @@ void CSshSigDlg::OnSignInport()
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
-	if ( !buf.LoadFile(dlg.GetPathName()) )
-		::ThreadMessageBox(_T("SSH sign file load error\n'%s'"), dlg.GetPathName());
+	FormatErrorReset();
+
+	if ( !buf.LoadFile(dlg.GetPathName()) ) {
+		CStringLoad msg;
+		::FormatErrorMessage(msg, _T("SSH sign file load error\n\n%s"), dlg.GetPathName());
+		MessageBox(msg, NULL, MB_ICONERROR);
+	}
 
 	buf.StrConvert(_T("UTF-8"));
 
@@ -736,8 +771,13 @@ void CSshSigDlg::OnSignExport()
 	buf = (LPCTSTR)m_Sign;
 	buf.WstrConvert(_T("UTF-8"), 2);	// DEFAULT, LF
 
-	if ( !buf.SaveFile(dlg.GetPathName()) )
-		::ThreadMessageBox(_T("SSH sign file save error\n'%s'"), dlg.GetPathName());
+	FormatErrorReset();
+
+	if ( !buf.SaveFile(dlg.GetPathName()) ) {
+		CStringLoad msg;
+		::FormatErrorMessage(msg, _T("SSH sign file save error\n\n%s"), dlg.GetPathName());
+		MessageBox(msg, NULL, MB_ICONERROR);
+	}
 }
 
 void CSshSigDlg::OnSignCopy()
@@ -761,6 +801,9 @@ void CSshSigDlg::OnKeyMode(UINT nID)
 	UpdateData(TRUE);
 
 	if ( (pWnd = GetDlgItem(IDC_SSHSIG_KEYLIST)) != NULL )
+		pWnd->EnableWindow(m_KeyMode == 0 ? TRUE : FALSE);
+
+	if ( (pWnd = GetDlgItem(IDC_SSHSIG_KEYLIST_SEL)) != NULL )
 		pWnd->EnableWindow(m_KeyMode == 0 ? TRUE : FALSE);
 
 	if ( (pWnd = GetDlgItem(IDC_SSHSIG_KEYFILE)) != NULL )

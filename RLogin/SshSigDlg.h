@@ -52,6 +52,7 @@ public:
 	BOOL ThreadCheck();
 	FILE *FileOpen(LPCTSTR filename);
 	void SaveProfile();
+	void KeyListInit(int uid);
 
 public:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
@@ -68,6 +69,7 @@ public:
 	afx_msg void OnSignNext();
 	afx_msg void OnVerifyNext();
 	afx_msg void OnDatafileSel();
+	afx_msg void OnKeylistSel();
 	afx_msg void OnKeyfileSel();
 	afx_msg void OnSignInport();
 	afx_msg void OnSignExport();

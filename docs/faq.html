@@ -5,8 +5,12 @@
 <TITLE>RLogin使い方説明</TITLE>
 <STYLE type="text/css">
 <!--
-TD {background-color : #ffffff; font-size : 90%;}
-.BOX{background-color : silver;}
+TD {
+		background-color : #ffffff; font-size : 90%;
+}
+.BOX{
+		background-color : silver;
+}
 -->
 </STYLE>
 </HEAD>
@@ -515,7 +519,9 @@ fi</PRE>
             RLogin内部の場合は認証キーリストのキーを選択して「公開鍵」をクリックしクリップボードに公開鍵を転送してから<BR>
             <BR>
             cat &gt;&gt;~/.ssh/authorized_keys<BR>
-            「メニュー」「編集」「貼り付け」をしてEnter(改行)CTRL+D(eof)で設定します。<BR>
+            「メニュー」「編集」「貼り付け」をして<S>Enter(改行)</S>CTRL+D(eof)で設定します。<BR>
+            <BR>
+            ※2.30.4から公開鍵をクリップボードに転送時に改行コードを追加しました<BR>
             <BR>
             ※authorized_keysファイルを新規作成する場合には、&quot;chmod 600 authorized_keys&quot;などでアクセスパーミッションを設定しないとサーバー側で怒られるかもしれません。(.sshディレクトリーも同様に&quot;chmod
             755 .ssh&quot;などのgw/ow属性のオフがsshサーバーで確認されます）<BR>

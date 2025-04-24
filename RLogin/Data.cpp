@@ -69,7 +69,7 @@ BOOL IsZeroMemory(void *ptr, int len)
 	BYTE *p = (BYTE *)ptr;
 
 	if ( len <= 0 )
-		return FALSE;
+		return TRUE;
 
 	if ( *p == 0 && memcmp(p, p + 1, (size_t)len - 1) == 0 )
 		return TRUE;
@@ -590,7 +590,8 @@ void CBuffer::PutEcPoint(const EC_GROUP *curve, const EC_POINT *point)
 	if ( (bnctx = BN_CTX_new()) == NULL )
 		throw _T("CBuffer PutEcPoint mem");
 
-	len = (int)EC_POINT_point2oct(curve, point, POINT_CONVERSION_UNCOMPRESSED, NULL, 0, bnctx);
+	if ( (len = (int)EC_POINT_point2oct(curve, point, POINT_CONVERSION_UNCOMPRESSED, NULL, 0, bnctx)) <= 0 )
+		throw _T("CBuffer PutEcPoint len 0");
 
 	if ( (tmp = new BYTE[len]) == NULL )
 		throw _T("CBuffer PutEcPoint new");
@@ -2483,8 +2484,10 @@ BOOL CBuffer::LoadFile(LPCTSTR filename)
 	if( !file.Open(filename, CFile::modeRead | CFile::shareDenyNone) )
 		return FALSE;
 
-	if ( (FileSize = file.GetLength()) > (512 * 1024 * 1024) )
+	if ( (FileSize = file.GetLength()) > (512 * 1024 * 1024) ) {
+		SetLastError(ERROR_OUTOFMEMORY);
 		return FALSE;
+	}
 
 	if ( m_Max > 0 ) {
 		if ( m_bZero )
@@ -3461,6 +3464,13 @@ CStringLoad::CStringLoad(int nID, BOOL bMenu)
 	if ( (n = Find(_T('\n'))) >= 0 )
 		Delete(0, n + 1);
 }
+CStringLoad::CStringLoad(LPCTSTR format, ...)
+{
+	va_list arg;
+
+	va_start(arg, format);
+	FormatV(format, arg);
+}
 
 int CStringLoad::LoadString(UINT nID)
 {
@@ -3471,6 +3481,7 @@ int CStringLoad::LoadString(UINT nID)
 
 	return (rt ? 1 : 0);
 }
+
 int CStringLoad::IsDigit(LPCTSTR str)
 {
 	return (*str >= _T('0') && *str <= _T('9') ? TRUE : FALSE);
@@ -3500,13 +3511,26 @@ int CStringLoad::CompareDigit(LPCTSTR dis)
 	}
 	return (*dis == _T('\0') ? 0 : (-1));
 }
-#ifdef	DEBUG
-int CStringLoad::Compare(LPCTSTR dis)
+void CStringLoad::FormatFileName(LPCTSTR name, int max)
 {
-	ASSERT(FALSE);
-	return CString::Compare(dis);
+	int n = 0;
+	int len = (int)_tcslen(name);
+
+	if ( len <= max )
+		SetString(name);
+
+	else {
+		Empty();
+		while ( n < len && n < (max / 2 - 3) )
+			*this += name[n++];
+
+		*this += _T("...");
+		n = len - (max / 2);
+
+		while ( n < len )
+			*this += name[n++];
+	}
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////
 // CStrNode
@@ -3995,10 +4019,9 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 	if ( Alpha < 254 || 257 < Alpha ) {
 
 		DWORD len;
-		BYTE *lpBuf, *p;
+		BYTE *lpBuf;
 		BITMAP mapinfo;
 		BYTE ctab[256];
-		COLORREF col;
 
 		if ( Alpha < 255 ) {
 			for ( x = 0 ; x < 256 ; x++ )
@@ -4015,9 +4038,9 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 			len = mapinfo.bmWidthBytes * mapinfo.bmHeight;
 			lpBuf = new BYTE[len];
 			m_Bitmap.GetBitmapBits(len, lpBuf);
-			for ( y = 0 ; y < height ; y++ ) {
-				p = lpBuf + mapinfo.bmWidthBytes * y;
-				for ( x = 0 ; x < width ; x++ ) {
+			for ( int y = 0 ; y < height ; y++ ) {
+				BYTE *p = lpBuf + mapinfo.bmWidthBytes * y;
+				for ( int x = 0 ; x < width ; x++ ) {
 					*p = ctab[*p]; p++;
 					*p = ctab[*p]; p++;
 					*p = ctab[*p]; p++;
@@ -4032,9 +4055,9 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 			len = mapinfo.bmWidthBytes * mapinfo.bmHeight;
 			lpBuf = new BYTE[len];
 			m_Bitmap.GetBitmapBits(len, lpBuf);
-			for ( y = 0 ; y < height ; y++ ) {
-				p = lpBuf + mapinfo.bmWidthBytes * y;
-				for ( x = 0 ; x < width ; x++ ) {
+			for ( int y = 0 ; y < height ; y++ ) {
+				BYTE *p = lpBuf + mapinfo.bmWidthBytes * y;
+				for ( int x = 0 ; x < width ; x++ ) {
 					*p = ctab[*p]; p++;
 					*p = ctab[*p]; p++;
 					*p = ctab[*p]; p++;
@@ -4048,9 +4071,9 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 			len = mapinfo.bmWidthBytes * mapinfo.bmHeight;
 			lpBuf = new BYTE[len];
 			m_Bitmap.GetBitmapBits(len, lpBuf);
-			for ( y = 0 ; y < height ; y++ ) {
-				p = lpBuf + mapinfo.bmWidthBytes * y;
-				for ( x = 0 ; x < width ; x++ ) {
+			for ( int y = 0 ; y < height ; y++ ) {
+				BYTE *p = lpBuf + mapinfo.bmWidthBytes * y;
+				for ( int x = 0 ; x < width ; x++ ) {
 					struct _rgb16 {
 						WORD r:5;
 						WORD g:6;
@@ -4070,9 +4093,9 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 			len = mapinfo.bmWidthBytes * mapinfo.bmHeight;
 			lpBuf = new BYTE[len];
 			m_Bitmap.GetBitmapBits(len, lpBuf);
-			for ( y = 0 ; y < height ; y++ ) {
-				p = lpBuf + mapinfo.bmWidthBytes * y;
-				for ( x = 0 ; x < width ; x++ ) {
+			for ( int y = 0 ; y < height ; y++ ) {
+				BYTE *p = lpBuf + mapinfo.bmWidthBytes * y;
+				for ( int x = 0 ; x < width ; x++ ) {
 					struct _rgb15 {
 						WORD r:5;
 						WORD g:5;
@@ -4089,9 +4112,9 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 			break;
 
 		default:
-			for ( y = 0 ; y < height ; y++ ) {
-				for ( x = 0 ; x < width ; x++ ) {
-					col = MemDC.GetPixel(x, y);
+			for ( int y = 0 ; y < height ; y++ ) {
+				for ( int x = 0 ; x < width ; x++ ) {
+					COLORREF col = MemDC.GetPixel(x, y);
 					MemDC.SetPixelV(x, y, RGB(ctab[GetRValue(col)], ctab[GetGValue(col)], ctab[GetBValue(col)]));
 				}
 			}
@@ -4133,7 +4156,8 @@ CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcol
 	if ( m_Bitmap.m_hObject != NULL )
 		m_Bitmap.DeleteObject();
 
-	MemDC.CreateCompatibleDC(pDC);
+	if ( MemDC.CreateCompatibleDC(pDC) == NULL )
+		return NULL;
 
 	if ( GetBitmap(pDC, width, height, bkcolor, Alpha, Style, pWnd) == NULL ) {
 		if ( m_Bitmap.m_hObject != NULL )
@@ -8101,12 +8125,6 @@ void CKeyMacTab::SetHisMenu(CMenu *pMenu)
 #define	META_CLEFIA_STRING	_T("")
 #endif
 
-#if OPENSSL_VERSION_PREREQ(3, 5)
-#define	META_MLDSA_STRING	_T("ssh-mldsa44,ssh-mldsa65,ssh-mldsa87,ssh-slh-dsa-sha2-256f,")
-#else
-#define	META_MLDSA_STRING	_T("")
-#endif
-
 static LPCTSTR InitAlgo[12]= {
 	_T("blowfish,3des,des"),
 	_T("crc32"),
@@ -8177,12 +8195,14 @@ static LPCTSTR InitAlgo[12]= {
 	_T("diffie-hellman-group14-sha1,diffie-hellman-group1-sha1,") \
 	_T("rsa2048-sha256,rsa1024-sha1"),
 
+	_T("ssh-ed25519-cert-v01@openssh.com,")\
+	_T("ssh-ed25519,ssh-ed448,") \
 	_T("ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521-cert-v01@openssh.com,") \
-	_T("ssh-ed25519-cert-v01@openssh.com,ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,") \
 	_T("ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,") \
-	_T("ssh-ed25519,ssh-ed448,rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss,") \
-	META_MLDSA_STRING \
-	_T("ssh-xmss@openssh.com,ssh-xmss-cert-v01@openssh.com"),
+	_T("ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,") \
+	_T("rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss,") \
+	_T("ssh-mldsa44,ssh-mldsa65,ssh-mldsa87,ssh-slh-dsa-sha2-256f,") \
+	_T("ssh-xmss-cert-v01@openssh.com,ssh-xmss@openssh.com"),
 
 	_T("publickey,hostbased,gssapi-with-mic,password,keyboard-interactive"),
 };

@@ -7,6 +7,7 @@
 #include "Data.h"
 #include "DialogExt.h"
 #include "ComboBoxHis.h"
+#include "MsgChkDlg.h"
 
 //////////////////////////////////////////////////////////////////////
 
@@ -619,6 +620,7 @@ CDialogExt::CDialogExt(UINT nIDTemplate, CWnd *pParent)
 	m_LoadPosMode = LOADPOS_NONE;
 	m_bGripDisable = FALSE;
 	m_bReSizeDisable = FALSE;
+	m_bIdleDisable = FALSE;
 
 	m_bDarkMode = FALSE;
 }
@@ -1548,6 +1550,23 @@ void CDialogExt::AddToolTip(CWnd *pWnd, LPCTSTR msg)
 
     m_toolTip.AddTool(pWnd, msg);
 }
+int CDialogExt::_AFX_FUNCNAME(MessageBox)(LPCTSTR lpszText, LPCTSTR lpszCaption, UINT nType)
+{
+	CMsgChkDlg dlg(this);
+
+	if ( lpszText != NULL )
+		dlg.m_MsgText = lpszText;
+
+	if ( lpszCaption != NULL )
+		dlg.m_Title = lpszCaption;
+	else
+		GetWindowText(dlg.m_Title);
+
+	dlg.m_nType = nType;
+	dlg.m_bNoChkEnable = FALSE;
+
+	return (int)dlg.DoModal();
+}
 
 BEGIN_MESSAGE_MAP(CDialogExt, CDialog)
 	ON_WM_CREATE()
@@ -1638,6 +1657,9 @@ BOOL CDialogExt::OnNcActivate(BOOL bActive)
 
 afx_msg LRESULT CDialogExt::OnKickIdle(WPARAM wParam, LPARAM lParam)
 {
+	if ( m_bIdleDisable )
+		return FALSE;
+
 	DWORD d = GetCurrentThreadId();
 	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
 
@@ -1800,6 +1822,8 @@ int CDialogExt::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
 	if ( CDialog::OnCreate(lpCreateStruct) == (-1) )
 		return (-1);
+
+	m_InitDlgRect.RemoveAll();
 
 	CRect frame, oldClient, newClient;
 

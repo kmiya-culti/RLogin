@@ -743,9 +743,9 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,210,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.30.3 (2025/03/24)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.30.4 (2025/04/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2025 Culti",IDC_STATIC,44,17,189,8
-    LTEXT           "OpenSSL 3.4.1 11 Feb 2025",IDC_STATIC,44,50,189,8
+    LTEXT           "OpenSSL 3.5.0 8 Apr 2025",IDC_STATIC,44,50,189,8
     LTEXT           "Copyright (c) 1998-2025 The OpenSSL Project",IDC_STATIC,44,60,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,80,189,8
@@ -1297,7 +1297,7 @@ STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "認証キー"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "List2",IDC_IDKEY_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,17,37,161,75
+    CONTROL         "List2",IDC_IDKEY_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,17,37,161,75
     PUSHBUTTON      "上へ",IDC_IDKEY_UP,188,38,50,14
     PUSHBUTTON      "下へ",IDC_IDKEY_DOWN,188,55,50,14
     PUSHBUTTON      "公開鍵",IDC_IDKEY_COPY,188,98,50,14
@@ -2326,6 +2326,7 @@ BEGIN
     CONTROL         "RLoginで管理している鍵",IDC_SSHSIG_KEYSEL1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,63,240,10
     CONTROL         "ファイル保存の鍵",IDC_SSHSIG_KEYSEL2,"Button",BS_AUTORADIOBUTTON,14,90,240,10
     COMBOBOX        IDC_SSHSIG_KEYLIST,14,75,250,100,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_GROUP | WS_TABSTOP
+    PUSHBUTTON      "認証キー",IDC_SSHSIG_KEYLIST_SEL,268,74,50,14
     COMBOBOX        IDC_SSHSIG_KEYFILE,14,101,250,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "参照",IDC_SSHSIG_KEYFILE_SEL,268,100,50,14
     COMBOBOX        IDC_SSHSIG_NAMESPACE,218,140,100,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
@@ -2356,8 +2357,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,30,3,0
- PRODUCTVERSION 2,30,3,0
+ FILEVERSION 2,30,4,0
+ PRODUCTVERSION 2,30,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2374,12 +2375,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.30.3.0"
+            VALUE "FileVersion", "2.30.4.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.30.3.0"
+            VALUE "ProductVersion", "2.30.4.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4515,7 +4516,7 @@ END
 STRINGTABLE
 BEGIN
     IDS_PROTODLGTITLE       "プロトコルハンドラの登録"
-    IDS_PUBLICKEYCOPYMSG    "クリップボードにコピーされる公開鍵"
+    IDS_PUBLICKEYCOPYMSG    "クリップボードに%d個の公開鍵をコピーしますか？"
     IDS_REMOTEFILEDELETE    "リモートに無いファイルを削除しますか？"
     IDS_RENAMEMSG           "ファイル名の変更"
     IDS_SCRIPTNEW           "すでに読み込んでいるスクリプトを放棄しますか？"
@@ -4727,7 +4728,7 @@ BEGIN
     IDS_VERSIONCHECKURL2    "https://kmiya-culti.github.io/RLogin/version.txt"
     IDS_SCRIPTDLGSTEP       "ステップ"
     IDS_KNOWNHOSTDELMSG     "登録されているホスト鍵%d個を削除しますか？"
-    IDS_XMSSSAVEFORMAT      "XMSSは、OpenSSH形式で保存されます"
+    IDS_XMSSSAVEFORMAT      "。この鍵は、指定されたファイル形式と違う形式で保存します"
     IDS_VERCHKDISABLE       "RLoginの自動バージョンチェックを行わないようにしました"
     IDS_VERCHKENABLE        "RLoginの自動バージョンチェックを定期的に行うようにしました\n今すぐバージョンチェックを行いますか？"
     IDS_VERCHKLATEST        "RLoginが最新バージョンであることを確認しました"
@@ -4765,6 +4766,7 @@ BEGIN
     IDS_MESSAGEBOX_NO       "いいえ(&N)"
     IDS_MESSAGEBOX_TRYAGAIN "再試行(&T)"
     IDS_MESSAGEBOX_CONTINUE "続行(&C)"
+    IDS_FILEOVERWRITEMSG    "既に指定されたファイルが存在します\n上書きで保存しますか？"
 END
 
 STRINGTABLE

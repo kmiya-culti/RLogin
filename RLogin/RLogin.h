@@ -422,6 +422,7 @@ extern HRESULT (__stdcall *ExGetDpiForMonitor)(HMONITOR hmonitor, MONITOR_DPI_TY
 typedef enum _PROCESS_DPI_AWARENESS { PROCESS_DPI_UNAWARE, PROCESS_SYSTEM_DPI_AWARE, PROCESS_PER_MONITOR_DPI_AWARE } PROCESS_DPI_AWARENESS;
 extern HRESULT (__stdcall *ExSetProcessDpiAwareness)(PROCESS_DPI_AWARENESS value);
 
+extern void AddErrorMessage(CString &str);
 extern void FormatErrorReset();
 extern LPCTSTR FormatErrorMessage(CString &str, LPCTSTR msg, ...);
 extern int ThreadMessageBox(LPCTSTR msg, ...);

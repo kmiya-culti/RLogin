@@ -535,6 +535,8 @@ protected:
 protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnNMClickSyslink(NMHDR *pNMHDR, LRESULT *pResult);
+public:
+	afx_msg void OnStnClickedVersionstr();
 };
 
 CAboutDlg::CAboutDlg() : CDialogExt(CAboutDlg::IDD)
@@ -585,6 +587,7 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogExt)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK1, &CAboutDlg::OnNMClickSyslink)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK2, &CAboutDlg::OnNMClickSyslink)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK3, &CAboutDlg::OnNMClickSyslink)
+	ON_STN_CLICKED(IDC_VERSIONSTR, &CAboutDlg::OnStnClickedVersionstr)
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
@@ -1021,7 +1024,7 @@ void ExDarkModeEnable(BOOL bEnable)
 	}
 }
 
-static void AddErrorMessage(CString &str)
+void AddErrorMessage(CString &str)
 {
 	LPVOID lpMessageBuffer;
 	DWORD err = ::GetLastError();
@@ -4680,4 +4683,9 @@ void CRLoginApp::SetVoice(LPCTSTR str, long rate)
 	m_pVoice->Resume();
 		
 	pMain->SpeakUpdate(pMain->m_SpeakActive[2], pMain->m_SpeakActive[1] - pMain->m_SpeakActive[0]);
+}
+
+void CAboutDlg::OnStnClickedVersionstr()
+{
+	// TODO: ここにコントロール通知ハンドラー コードを追加します。
 }

@@ -6,17 +6,15 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
+TD {
 				
 				
-				
-		background-color : #ffffff; font-size : 90%; 
+			background-color : #ffffff; font-size : 90%; 
 }
-.BOX{		
+.BOX{
 				
 				
-				
-		background-color : silver; 
+			background-color : silver; 
 }
 -->
 </STYLE>
@@ -31,8 +29,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.3)</TD>
-            <TD width="20%" align="right">2025/03/26</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.4)</TD>
+            <TD width="20%" align="right">2025/04/25</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -353,7 +351,7 @@ TD {
         <TBODY>
           <TR>
             <TD width="600">動作環境としてWindows XP x32/Windows 7 x64/Windows 10 x64/Windows 11 x64にて確認しています<BR>
-            サーバーは、FreeBSD 14.2のrlogind, telnetd, sshd(openssh-9.9p1)を使用しています<BR>
+            サーバーは、FreeBSD 14.2のrlogind, telnetd, sshd(openssh-10.0p2)を使用しています<BR>
             <BR>
             「rlogin.zip」を解凍してRLogin.exeを適当な場所に置いて実行してください<BR>
             <BR>
@@ -444,6 +442,18 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2025/04/25</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.4/">2.30.4</A></TD>
+            <TD>ファイルの署名検証に認証キーの管理ボタンを追加<BR>
+            ml-kem関数をopensslの物に変更<BR>
+            <SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">ssh-mldsa</SPAN>44/65/87,ssh-slh-dsa-sha2-128/192/256fを追加<BR>
+            認証キーのリストを複数選択が出来るように変更<BR>
+            クリップボード取得の待ち時間を300msから20msに変更<BR>
+            背景設定のテキスト指定で%Iが正しく処理されないバグを修正<BR>
+            送信文字列の特殊文字に%fと%Rを追加<BR>
+            openssl-3.5.0に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2025/03/24</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.3/">2.30.3</A></TD>
             <TD>認証鍵のファイル選択をヒストリー形式にに変更<BR>
@@ -486,20 +496,6 @@ TD {
             tekウィンドウのファイル保存にSVG形式を追加</TD>
           </TR>
           <TR>
-            <TD align="center">2024/10/25</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.29.9/">2.29.9</A></TD>
-            <TD>ファイルのドラッグアンドドロップSCPで異常終了するのを修正<BR>
-            Scriptのダイアログ関数をHIDPI・ダークモードに対応<BR>
-            DCSに<A href="ctrlcode.html#RLUCSIZE">RLUCSIZE</A>でUnicodeの文字サイズを指定するを追加<BR>
-            フォントオプションにUNICODE文字サイズ上書きを追加<BR>
-            すべての状態を保存でフォーカス情報を含めるように変更<BR>
-            マウスホイールの動作をより汎用的に変更<BR>
-            カラー絵文字に変換するコードの範囲を変更<BR>
-            文字コード変換(EUC/SJIS)のエラー処理を修正<BR>
-            カーソル行をぷるるんをスクリーン・ベルコードのJigglyに移動<BR>
-            openssl-3.4.0に更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -523,13 +519,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.4.1.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.5.0.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.4.1 openssl-3.4.1-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.5.0 openssl-3.5.0-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -614,7 +610,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.4.1 11 Feb 2025<BR>
+            <P>OpenSSL 3.5.0 8 Apr 2025<BR>
             Copyright (c) 1998-2025 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -2719,6 +2715,10 @@ fi</PRE>
                   <TD>サーバーエントリーのServer Entryに置き換え</TD>
                 </TR>
                 <TR>
+                  <TD align="center">%G</TD>
+                  <TD>サーバーエントリーのタブグループに置き換え</TD>
+                </TR>
+                <TR>
                   <TD width="15%" align="center">%U</TD>
                   <TD>サーバーエントリーのUser Nameに置き換え</TD>
                 </TR>
@@ -2749,6 +2749,16 @@ fi</PRE>
                 <TR>
                   <TD align="center">%I</TD>
                   <TD>文字入力ダイアログを表示し文字入力を待ちます</TD>
+                </TR>
+                <TR>
+                  <TD align="center">%f</TD>
+                  <TD>ファイルダイアログでファイル名を選択して置き換え<BR>
+                  例：%{MYDOCUMENTS}\Test.txt%f</TD>
+                </TR>
+                <TR>
+                  <TD align="center">%R</TD>
+                  <TD>フォルダの中からランダムにファイルを選択して置き換え<BR>
+                  例：%{MYPICTURES}\*.jpg%R</TD>
                 </TR>
                 <TR>
                   <TD align="center">%s</TD>
@@ -3668,21 +3678,22 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">インポート</TD>
-                  <TD>ファイルに保存された認証キーを読み込みます。正しいパスフレーズを入力しないと読み込めません
-                  <TABLE border="0" width="400">
+                  <TD>ファイルに保存された認証キーを読み込みます。正しいパスフレーズを入力しないと読み込めません<BR>
+                  <TABLE width="400" class="BOX" cellpadding="1" cellspacing="1">
                     <TBODY>
                       <TR>
                         <TD colspan="2">対応している鍵のファイル形式</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">OpenSSL<BR>
+                        <TD valign="top" width="30%">OpenSSL<BR>
                         PEM/PFX</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         ecdsa-sha2-*<BR>
-                        ssh-ed25519/448</TD>
+                        ssh-ed25519/448<BR>                        ssh-mldsa44/65/87<BR>
+                        ssh-slh-dsa-sha2-128/192/256f</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">OpenSSH<BR>
+                        <TD valign="top" width="30%">OpenSSH<BR>
                         bcrypt KDF</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         ecdsa-sha2-*<BR>
@@ -3690,11 +3701,11 @@ fi</PRE>
                         ssh-xmss@openssh.com</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">ssh.com</TD>
+                        <TD valign="top" width="30%">ssh.com</TD>
                         <TD>ssh-rsa,ssh-dss</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">PuTTY<BR>
+                        <TD valign="top" width="30%">PuTTY<BR>
                         Ver.1/2/3</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         eddsa-sha2-*<BR>
@@ -3707,25 +3718,26 @@ fi</PRE>
                 <TR>
                   <TD width="30%" align="center">エクスポート</TD>
                   <TD>認証キーリストで選択した認証キーをファイルに保存します。作成時に設定したパスフレーズを入力しないと保存できません<BR>
-                  <TABLE border="0" width="400">
+                  <TABLE width="400" class="BOX" cellpadding="1" cellspacing="1">
                     <TBODY>
                       <TR>
-                        <TD colspan="2">エクスポート出来るファイル形式と鍵の種類<BR>
-                        ※鍵の種類(RSA1/ED25519/ED448/XMSS)により保存できるフォーマットが制限されますので注意</TD>
+                        <TD colspan="2">エクスポート出来るファイル形式と鍵の種類</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">OpenSSL(PEM)</TD>
+                        <TD valign="top" width="30%">OpenSSL(PEM)</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         ecdsa-sha2-*</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">OpenSSL(PFX)</TD>
+                        <TD valign="top" width="30%">OpenSSL(PFX)</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         ecdsa-sha2-*<BR>
-                        ssh-ed25519/448</TD>
+                        ssh-ed25519/448<BR>
+                        ssh-mldsa44/65/87<BR>
+                        ssh-slh-dsa-sha2-128/192/256f</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">OpenSSH<BR>
+                        <TD valign="top" width="30%">OpenSSH<BR>
                         bcrypt KDF</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         ecdsa-sha2-*<BR>
@@ -3733,20 +3745,20 @@ fi</PRE>
                         ssh-xmss@openssh.com</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">PuTTY(Ver2)<BR>
+                        <TD valign="top" width="30%">PuTTY(Ver2)<BR>
                         PuTTY(Ver3)</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         eddsa-sha2-*<BR>
                         ssh-ed25519/448</TD>
                       </TR>
                     </TBODY>
-                  </TABLE>
-                  </TD>
+                  </TABLE>※鍵の種類(RSA1/ED25519/ED448/XMSS)により保存できるフォーマットが制限されますので注意</TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">RSA1/RSA2/DSA2<BR>
                   ECDSA/ED25519<BR>
-                  ED448/XMSS</TD>
+                  ED448/XMSS<BR>
+                  MLDSA/SLHSHA2F</TD>
                   <TD>作成する認証キーの種類を指定します（RSA1/RSA2は、基本的に同じですが、エクスポートする際の形式が異なります）<BR>
                   <BR>
                   openssh-5.7以上ならECDSAが利用できます<BR>
@@ -3754,135 +3766,109 @@ fi</PRE>
                   openssh-7.0以上からDSAがデフォルトで使用できません</TD>
                 </TR>
                 <TR>
-                  <TD width="30%" align="center">XMSS<BR>
-                  10/16/20<BR>
+                  <TD width="30%" align="center">                  RSA1/2<BR>
+                  2048/3072/4096<BR>
+                  8192/16384<BR>
+                  <BR>                  DSA<BR>
+                  1024<BR>
                   <BR>
                   ECDSA<BR>
                   256/384/521<BR>
+                  <BR>                  XMSS<BR>
+                  10/16/20<BR>
                   <BR>
-                  DSA<BR>
-                  768/1024<BR>
+                  MLDSA<BR>
+                  44/65/87<BR>
                   <BR>
-                  RSA1/2<BR>
-                  2048/3072/4096<BR>
-                  8192/16384</TD>
-                  <TD>認証キーのサイズを指定します。サイズが大きい程、作成するのに時間がかかります。詳しくは<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A>を参照<BR>
+                  SLHSHA2F<BR>
+                  128/192/256</TD>
+                  <TD valign="top">認証キーのサイズを指定します。サイズが大きい程、作成するのに時間がかかります。詳しくは<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A>を参照<BR>
                   <BR>
-                  <TABLE width="400">
+                  <TABLE width="400" cellspacing="1" class="BOX" cellpadding="1">
                     <TBODY>
                       <TR>
-                        <TD></TD>
-                        <TD align="center">10</TD>
-                        <TD align="center">16</TD>
-                        <TD align="center">20</TD>
-                        <TD align="center" width="30">-</TD>
-                        <TD align="center" width="30"><FONT size="-1">256</FONT></TD>
-                        <TD align="center" width="30"><FONT size="-1">384</FONT></TD>
-                        <TD align="center" width="30"><FONT size="-1">521</FONT></TD>
-                        <TD align="center" width="30"><FONT size="-1">768</FONT></TD>
-                        <TD align="center" width="30"><FONT size="-2">1024</FONT></TD>
-                        <TD align="center" width="30"><FONT size="-2">2048</FONT></TD>
-                        <TD align="center" width="30"><FONT size="-2">4096</FONT></TD>
-                        <TD align="center" width="30"><FONT size="-2">8192</FONT></TD>
+                        <TD rowspan="2" width="40%">RSA1/2</TD>
+                        <TD align="center" width="20%">2048</TD>
+                        <TD align="center" width="20%">3072</TD>
+                        <TD align="center" width="20%">4096</TD>
                       </TR>
                       <TR>
-                        <TD>RSA1/2</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">◎</TD>
-                        <TD align="center">〇</TD>
-                        <TD align="center">△</TD>
+                        <TD align="center" width="20%">○</TD>
+                        <TD align="center" width="20%">◎</TD>
+                        <TD align="center" width="20%">○</TD>
                       </TR>
                       <TR>
-                        <TD>DSA2</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">△</TD>
-                        <TD align="center">△</TD>
-                        <TD align="center">×</TD>
-                        <TD align="center">×</TD>
-                        <TD align="center">×</TD>
+                        <TD rowspan="2" width="40%">DSA2</TD>
+                        <TD align="center" width="20%">1024</TD>
+                        <TD align="center" width="20%"></TD>
+                        <TD align="center" width="20%"></TD>
                       </TR>
                       <TR>
-                        <TD>ECDSA</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">◎</TD>
-                        <TD align="center">◎</TD>
-                        <TD align="center">〇</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
+                        <TD align="center" width="20%">×</TD>
+                        <TD align="center" width="20%"></TD>
+                        <TD align="center" width="20%"></TD>
                       </TR>
                       <TR>
-                        <TD>ED25519</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">◎</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
+                        <TD rowspan="2" width="40%">ECDSA</TD>
+                        <TD align="center" width="20%">256</TD>
+                        <TD align="center" width="20%">384</TD>
+                        <TD align="center" width="20%">521</TD>
                       </TR>
                       <TR>
-                        <TD>ED448</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">△</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
+                        <TD align="center" width="20%">◎</TD>
+                        <TD align="center" width="20%">◎</TD>
+                        <TD align="center" width="20%">○</TD>
                       </TR>
                       <TR>
-                        <TD>XMSS</TD>
-                        <TD align="center">〇</TD>
-                        <TD align="center">〇</TD>
-                        <TD align="center">△</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
-                        <TD align="center">-</TD>
+                        <TD rowspan="2" width="40%">ED25519/448</TD>
+                        <TD align="center" width="20%">256</TD>
+                        <TD align="center" width="20%">448</TD>
+                        <TD align="center" width="20%"></TD>
+                      </TR>
+                      <TR>
+                        <TD align="center" width="20%">◎</TD>
+                        <TD align="center" width="20%">△</TD>
+                        <TD align="center" width="20%"></TD>
+                      </TR>
+                      <TR>
+                        <TD rowspan="2" width="40%">XMSS</TD>
+                        <TD align="center" width="20%">10</TD>
+                        <TD align="center" width="20%">16</TD>
+                        <TD align="center" width="20%">20</TD>
+                      </TR>
+                      <TR>
+                        <TD align="center" width="20%">○</TD>
+                        <TD align="center" width="20%">○</TD>
+                        <TD align="center" width="20%">△</TD>
+                      </TR>
+                      <TR>
+                        <TD rowspan="2" width="40%">MLDSA</TD>
+                        <TD align="center" width="20%">44</TD>
+                        <TD align="center" width="20%">65</TD>
+                        <TD align="center" width="20%">87</TD>
+                      </TR>
+                      <TR>
+                        <TD align="center" width="20%">△</TD>
+                        <TD align="center" width="20%">△</TD>
+                        <TD align="center" width="20%">○</TD>
+                      </TR>
+                      <TR>
+                        <TD rowspan="2" width="40%">SLHSHA2F</TD>
+                        <TD align="center" width="20%">128</TD>
+                        <TD align="center" width="20%">192</TD>
+                        <TD align="center" width="20%">256</TD>
+                      </TR>
+                      <TR>
+                        <TD align="center" width="20%">△</TD>
+                        <TD align="center" width="20%">△</TD>
+                        <TD align="center" width="20%">○</TD>
                       </TR>
                     </TBODY>
                   </TABLE>
                   △推奨しません、〇使用できます、◎推奨します<BR>
                   ×環境により使用できません<BR>
                   <BR>
-                  ※DSA2は1024のみ互換性があります<BR>
-                  ※ED25519では、ビットサイズ指定できません<BR>
-                  ※XMSSは、ビットサイズではありません。インデックスのサイズを2のn乗で表します(2^10=1024)</TD>
+                  ※XMSS/MLDSA/SLHSHA2Fは、テスト実装です</TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">Name</TD>
@@ -4207,8 +4193,9 @@ function TekClock2() {
                 </TR>
                 <TR>
                   <TD align="center">フォントサイズ…</TD>
-                  <TD>フォントサイズ（ピクセル単位）から一行あたりの文字数を計算します。<BR>
-                  ※2.19.1から括弧内の数値でポイント換算した値を示すようにしました</TD>
+                  <TD>フォントサイズ（ピクセル単位）から一行あたりの文字数を計算します<BR>
+                  ※2.19.1から括弧内の数値でポイント換算した値を示すようにしました<BR>
+                  ※2.27.7からCtrl+wheelでフォントサイズを一時的に変更することが出来ます</TD>
                 </TR>
                 <TR>
                   <TD align="center">HiDPIの変更…</TD>

@@ -141,6 +141,7 @@ public:
 	CSizeGrip m_SizeGrip;
 	BOOL m_bGripDisable;
 	BOOL m_bReSizeDisable;
+	BOOL m_bIdleDisable;
 	CString m_SaveProfile;
 	int m_LoadPosMode;
 	BOOL m_bDarkMode;
@@ -168,13 +169,16 @@ public:
 	virtual void LoadSaveDialogSize(BOOL bSave);
 	inline void SizeGripDisable(BOOL bDisable) { m_bGripDisable = bDisable; }
 	inline void SetReSizeDisable(BOOL bDisable) { m_bReSizeDisable = bDisable; }
+	inline void SetOnIdleDisable(BOOL bDisable) { m_bIdleDisable = bDisable; }
 
 	static void GetActiveDpi(CSize &dpi, CWnd *pWnd, CWnd *pParent);
 	static BOOL IsDialogExt(CWnd *pWnd);
 	static void GetDlgFontBase(CDC *pDC, CFont *pFont, CSize &size);
 
 	void GetFontSize(CDialogTemplate *pDlgTemp, CSize &fsz);
-	void CDialogExt::DrawSystemBar();
+	void DrawSystemBar();
+
+	int _AFX_FUNCNAME(MessageBox)(LPCTSTR lpszText, LPCTSTR lpszCaption = NULL, UINT nType = MB_OK);
 
 // オーバーライド
 public:

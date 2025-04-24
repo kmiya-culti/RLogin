@@ -5096,8 +5096,6 @@ void argon2(uint32_t y, uint32_t m, uint32_t t, uint32_t p,
 //////////////////////////////////////////////////////////////////////
 // OpenSSL ml_kem lib
 
-#if OPENSSL_VERSION_PREREQ(3, 5)
-
 int ossl_mlkem_keypair(uint8_t *pk, uint8_t *sk, int type)
 {
 	int rt = (-1);
@@ -5206,4 +5204,3 @@ ENDOF:
 
 	return rt;
 }
-#endif

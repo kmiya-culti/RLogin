@@ -277,7 +277,7 @@ CRLoginView::CRLoginView()
 	m_ClipKeyFlags = 0;
 	m_KeyMacFlag = FALSE;
 	m_KeyMacSizeCheck = FALSE;
-	m_ActiveFlag = TRUE;
+	m_ActiveFlag = FALSE;
 	m_VisualBellFlag = 0;
 	m_BlinkFlag = 0;
 	m_ImageFlag = 0;
@@ -354,6 +354,7 @@ CRLoginView::CRLoginView()
 	m_bPostInvRect = FALSE;
 
 	m_HaveBack = FALSE;
+	m_bUseUpdateCall = FALSE;
 }
 
 CRLoginView::~CRLoginView()
@@ -1461,16 +1462,43 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	CRLoginDoc *pDoc = GetDocument();
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 	CChildFrame *pFrame = GetFrameWnd();
+	BOOL bFreeParam = FALSE;
 
 	ASSERT(pFrame != NULL);
 
-	//TRACE("UpdateView %d\n", (int)lHint);
+	//TRACE("UpdateView %x %d %x %d %x\n", this, m_UpdateCall.GetSize(), pSender, (int)lHint, pHint);
 
+	// 通常以下の処理は、必要ないがUPDATE_INITPARA内のEntryTextでモーダルダイアログを利用した場合に
+	// メッセージが処理されOnUpdate中にOnUpdateが呼ばれる場合があるので重複しないようにしてみた。
+	// 以下の処理の問題点は、OnUpdateを呼び出した関数で処理後の値が期待出来ないので注意が必要になった
+
+	if ( m_bUseUpdateCall ) {
+		UpdateCall ucall = { pSender, lHint, pHint };
+		switch(lHint) {
+		case UPDATE_TEXTRECT:
+			// pHint == LPCRECT
+			ucall.pHint = (CObject *)malloc(sizeof(RECT));
+			memcpy(ucall.pHint, (void *)pHint, sizeof(RECT));
+			break;
+		case UPDATE_DISPMSG:
+		case UPDATE_CANCELBTN:
+			// pHint == LPCTSTR
+			ucall.pHint = (CObject *)_tcsdup((LPCTSTR)pHint);
+			break;
+		}
+
+		m_UpdateCall.AddTail(ucall);
+		return;
+	}
+
+	m_bUseUpdateCall = TRUE;
+
+RECALL:
 	switch(lHint) {
 	case UPDATE_RESIZE:
 		GetWindowRect(rect);
 		SendMessage(WM_SIZE, SIZE_MAXSHOW, MAKELPARAM(rect.Width(), rect.Height()));
-		return;
+		goto ENDOF;
 
 	case UPDATE_TEKFLUSH:
 		if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) ) {
@@ -1478,7 +1506,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 				m_TekBitmap.DeleteObject();
 			InvalidateFullText();
 		}
-		return;
+		goto ENDOF;
 
 	case UPDATE_VISUALBELL:
 		if ( m_VisualBellFlag == 0 ) {
@@ -1495,7 +1523,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			if ( m_pGhost != NULL )
 				m_pGhost->Invalidate(FALSE);
 		}
-		return;
+		goto ENDOF;
 
 	case UPDATE_SETCURSOR:
 		GetClientRect(rect);
@@ -1503,11 +1531,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		GetCursorPos(&point);
 		if ( rect.PtInRect(point) )
 			OnSetCursor(NULL, 0, 0);
-		return;
+		goto ENDOF;
 
 	case UPDATE_TYPECARET:
 		UpdateCaret();
-		return;
+		goto ENDOF;
 
 	case UPDATE_CANCELBTN:
 		if ( pHint == NULL ) {
@@ -1522,16 +1550,16 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 //			if ( (m_CaretFlag & FGCARET_FOCUS) != 0 || pDoc->GetViewCount() <= 1 )
 				m_BtnWnd.ShowWindow(SW_SHOW);
 		}
-		return;
+		goto ENDOF;
 
 	case UPDATE_DISPINDEX:
 		pMain->GetTabTitle(pFrame, str);
 		m_MsgWnd.Message(str, this, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.std.bcol]);
-		return;
+		goto ENDOF;
 
 	case UPDATE_WAKEUP:
 		m_SleepCount = 0;
-		return;
+		goto ENDOF;
 
 	case UPDATE_SCROLLOUT:
 		m_HisOfs = 0;
@@ -1541,11 +1569,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 	case UPDATE_UPDATEWINDOW:
 		UpdateWindow();
-		return;
+		goto ENDOF;
 
 	case UPDATE_DISPMSG:
 		m_MsgWnd.Message((LPCTSTR)pHint, this, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.std.bcol]);
-		return;
+		goto ENDOF;
 	}
 
 	if ( (m_CaretFlag & FGCARET_FOCUS) != 0 && pSender != this && m_ScrollOut == FALSE &&
@@ -1583,17 +1611,19 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		KillCaret();
 
 		if ( !pDoc->m_TextRam.m_BitMapFile.IsEmpty() || pDoc->m_TextRam.m_TextBitMap.m_bEnable ) {
+			CString file(pDoc->m_TextRam.m_BitMapFile), text(pDoc->m_TextRam.m_TextBitMap.m_Text);
+			BOOL bText = (pDoc->m_TextRam.m_TextBitMap.m_bEnable && !pDoc->m_TextRam.m_TextBitMap.m_Text.IsEmpty() ? TRUE : FALSE);
+
+			pDoc->EntryText(file, NULL, FALSE, &pDoc->m_TextRam.m_BitMapFileFixed);
+			if ( bText )
+				pDoc->EntryText(text, NULL, TRUE, &pDoc->m_TextRam.m_TextBitMap.m_TextFixed);
+
 			CDC *pDC = GetDC();
 			GetClientRect(rect);
-			str = pDoc->m_TextRam.m_BitMapFile;
-			pDoc->EntryText(str);
-			m_BmpFile.LoadFile(str);
+			m_BmpFile.LoadFile(file);
 			m_pBitmap = m_BmpFile.GetBitmap(pDC, rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
-			if ( pDoc->m_TextRam.m_TextBitMap.m_bEnable && !pDoc->m_TextRam.m_TextBitMap.m_Text.IsEmpty() ) {
-				str = pDoc->m_TextRam.m_TextBitMap.m_Text;
-				pDoc->EntryText(str, NULL, TRUE);
-				m_pBitmap = m_BmpFile.GetTextBitmap(pDC, rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), &(pDoc->m_TextRam.m_TextBitMap), str, pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
-			}
+			if ( bText )
+				m_pBitmap = m_BmpFile.GetTextBitmap(pDC, rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), &(pDoc->m_TextRam.m_TextBitMap), text, pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
 			if ( m_BmpFile.m_Style == MAPING_DESKTOP )
 				((CMainFrame *)::AfxGetMainWnd())->m_UseBitmapUpdate = TRUE;
 			ReleaseDC(pDC);
@@ -1640,7 +1670,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		break;
 
 	case UPDATE_TEXTRECT:
-		rect = *((CRect *)pHint);
+		rect = *((LPCRECT)pHint);
 		if ( m_bVramTipDisp && rect.PtInRect(CPoint(m_VramTipPos.cx, m_VramTipPos.cy)) ) {
 			m_VramTip.Pop();
 			m_VramTip.DelTool(this);
@@ -1704,6 +1734,24 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		m_CaretFlag |= FGCARET_ONOFF;
 
 	SetCaret();
+
+ENDOF:
+	if ( bFreeParam ) {
+		bFreeParam = FALSE;
+		free(pHint);
+	}
+
+	if ( !m_UpdateCall.IsEmpty() ) {
+		UpdateCall *up = &m_UpdateCall.GetHead();
+		pSender = up->pSender;
+		lHint = up->lHint;
+		if ( (pHint = up->pHint) != NULL )
+			bFreeParam = TRUE;
+		m_UpdateCall.RemoveAt(m_UpdateCall.GetHeadPosition());
+		goto RECALL;
+	}
+
+	m_bUseUpdateCall = FALSE;
 }
 
 void CRLoginView::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags) 
@@ -1995,13 +2043,20 @@ void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pD
 {
 	CView::OnActivateView(bActivate, pActivateView, pDeactiveView);
 
-	if ( bActivate && pActivateView->m_hWnd == m_hWnd ) {
-		CRLoginDoc *pDoc = GetDocument();
-		m_ActiveFlag = TRUE;
-		SetFrameRect(-1, -1);
-		pDoc->UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
-	} else if ( !bActivate && pDeactiveView->m_hWnd == m_hWnd )
+	if ( bActivate ) {
+		ASSERT(pActivateView == this);
+
+		if ( !m_ActiveFlag ) {
+			CRLoginDoc *pDoc = GetDocument();
+			m_ActiveFlag = TRUE;
+			SetFrameRect(-1, -1);
+			pDoc->UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
+		}
+
+	} else {
+		ASSERT(pDeactiveView == this);
 		m_ActiveFlag = FALSE;
+	}
 }
 
 LRESULT CRLoginView::OnImeNotify(WPARAM wParam, LPARAM lParam)

@@ -94,7 +94,6 @@ public:
 #define	TIMERID_STATUSCLR	1026
 #define	TIMERID_CLIPUPDATE	1027
 #define	TIMERID_IDLETIMER	1028
-#define	TIMERID_LASTCLIP	1029
 #define	TIMERID_TIMEREVENT	1100
 
 class CTimerObject : public CObject
@@ -128,7 +127,7 @@ public:
 };
 
 #define	CLIPOPENTHREADMAX	3		// クリップボードアクセススレッド多重起動数
-#define	CLIPOPENLASTMSEC	300		// 指定msec以内のクリップボードアップデートを無視する
+#define	CLIPOPENLASTMSEC	20		// 指定msec以内のクリップボードアップデートを無視する
 
 #define	SOCKPARAHASH		4
 #define	SOCKPARAMASK(fd)	(int)(((INT_PTR)fd / sizeof(INT_PTR)) & (SOCKPARAHASH - 1))
@@ -215,7 +214,6 @@ public:
 	BOOL m_UseBitmapUpdate;
 	UINT_PTR m_IdleTimer;
 	clock_t m_LastClipUpdate;
-	UINT_PTR m_LastClipTimer;
 	class CServerSelect *m_pServerSelect;
 	class CHistoryDlg *m_pHistoryDlg;
 	class CAnyPastDlg *m_pAnyPastDlg;
@@ -305,7 +303,8 @@ public:
 	int GetExecCount();
 	void SetActivePoint(CPoint point);
 
-	volatile int m_bClipThreadCount;
+	volatile BOOL m_bClipThreadFlag;
+	volatile int m_ClipThreadCount;
 	CMutexLock m_OpenClipboardLock;
 
 	void ClipBoradStr(LPCWSTR str, CString &tmp);
@@ -367,6 +366,17 @@ public:
 	inline void TabBarUpdate() { m_wndTabBar.Invalidate(FALSE); }
 
 	void DrawSystemBar();
+
+	typedef struct _RandFolder {
+		struct _RandFolder *next;
+		int		pos;
+		CString folder;
+		__time64_t mtime;
+		CStringArray files;
+	} RandFolder;
+
+	RandFolder *m_pRandFolder;
+	LPCTSTR RandomFile(LPCTSTR folder);
 
 // コントロール バー用メンバ
 protected: 

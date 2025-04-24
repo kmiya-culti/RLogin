@@ -296,6 +296,7 @@
 #define IDS_MESSAGEBOX_NO               676
 #define IDS_MESSAGEBOX_TRYAGAIN         677
 #define IDS_MESSAGEBOX_CONTINUE         678
+#define IDS_FILEOVERWRITEMSG            679
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -1124,6 +1125,8 @@
 #define IDC_SSHSIG_VERIFY               2551
 #define IDC_SSHSIG_VERIFY_WITHKEY       2552
 #define IDC_SSHSIG_PROG                 2553
+#define IDC_SSHSIG_KEYFILE_SEL2         2554
+#define IDC_SSHSIG_KEYLIST_SEL          2554
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1282,6 +1285,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        174
 #define _APS_NEXT_COMMAND_VALUE         5161
 #define _APS_NEXT_CONTROL_VALUE         2554
-#define _APS_NEXT_SYMED_VALUE           679
+#define _APS_NEXT_SYMED_VALUE           680
 #endif
 #endif

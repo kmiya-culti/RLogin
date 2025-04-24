@@ -203,6 +203,9 @@ BOOL CRLoginDoc::InitDocument()
 
 	m_DocSeqNumber = ++SeqNumber;
 
+	m_TextRam.m_BitMapFileFixed.RemoveAll();
+	m_TextRam.m_TextBitMap.m_TextFixed.RemoveAll();
+
 	return TRUE;
 }
 BOOL CRLoginDoc::OnNewDocument()
@@ -1082,7 +1085,7 @@ void CRLoginDoc::EnvironPath(CString &path)
 	tmp += e;
 	path = tmp;
 }
-BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match, BOOL bCtrl)
+BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match, BOOL bCtrl, CStringArray *pDlgStr)
 {
 	int n;
 	TCHAR c;
@@ -1096,6 +1099,8 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match, BOOL bCtrl)
 	TCHAR buf[MAX_COMPUTERNAME];
 	CString work, env, src, dis;
 	LPCTSTR s;
+	int dlgpos = 0;
+	BOOL bHaveDlgStr = (pDlgStr != NULL && pDlgStr->GetSize() > 0 ? TRUE : FALSE);
 
 	while ( *str != _T('\0') ) {
 		if ( *str == _T('%') ) {
@@ -1138,37 +1143,90 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match, BOOL bCtrl)
 				st = TRUE;
 				break;
 			case _T('I'):
-				if ( match != NULL ) {
-					dlg.m_WinText = _T("ChatScript");
-					dlg.m_Title = UniToTstr(match);
-					dlg.m_Edit  = tmp;
-					tmp.Empty();
-					if ( dlg.DoModal() == IDOK )
-						tmp = dlg.m_Edit;
+				if ( bHaveDlgStr ) {
+					if ( pDlgStr->GetSize() > dlgpos )
+						tmp = pDlgStr->GetAt(dlgpos++);
 				} else {
-					dlg.m_WinText = _T("FileName");
-					dlg.m_Title = m_ServerEntry.m_EntryName;
-					dlg.m_Edit  = tmp;
-					tmp.Empty();
-					if ( dlg.DoModal() == IDOK )
-						tmp = dlg.m_Edit;
-					st = TRUE;
+					if ( match != NULL ) {
+						dlg.m_WinText = _T("ChatScript");
+						dlg.m_Title = UniToTstr(match);
+						dlg.m_Edit  = tmp;
+						if ( dlg.DoModal() == IDOK )
+							tmp = dlg.m_Edit;
+						else
+							tmp.Empty();
+					} else {
+						dlg.m_WinText = (bCtrl ? _T("Edit") : _T("FileName"));
+						dlg.m_Title = m_ServerEntry.m_EntryName;
+						dlg.m_Edit  = tmp;
+						if ( dlg.DoModal() == IDOK )
+							tmp = dlg.m_Edit;
+						else
+							tmp.Empty();
+					}
+					if ( pDlgStr != NULL )
+						pDlgStr->Add(tmp);
 				}
+				st = TRUE;
 				break;
 			case _T('i'):
-				pass.m_Title    = m_ServerEntry.m_EntryName;
-				pass.m_HostAddr = m_ServerEntry.m_HostName;
-				pass.m_PortName = m_ServerEntry.m_PortName;
-				pass.m_UserName = m_ServerEntry.m_UserName;
-				pass.m_PassName = m_ServerEntry.m_PassName;
-				pass.m_Prompt   = _T("Password");
-				pass.m_MaxTime  = 120;
-				if ( pass.DoModal() == IDOK ) {
-					m_ServerEntry.m_HostName = pass.m_HostAddr;
-					m_ServerEntry.m_PortName = pass.m_PortName;
-					m_ServerEntry.m_UserName = pass.m_UserName;
-					m_ServerEntry.m_PassName = pass.m_PassName;
+				if ( bHaveDlgStr ) {
+					if ( pDlgStr->GetSize() > dlgpos )
+						m_ServerEntry.m_HostName = pDlgStr->GetAt(dlgpos++);
+					if ( pDlgStr->GetSize() > dlgpos )
+						m_ServerEntry.m_PortName = pDlgStr->GetAt(dlgpos++);
+					if ( pDlgStr->GetSize() > dlgpos )
+						m_ServerEntry.m_UserName = pDlgStr->GetAt(dlgpos++);
+					if ( pDlgStr->GetSize() > dlgpos )
+						m_ServerEntry.m_PassName = pDlgStr->GetAt(dlgpos++);
+				} else {
+					pass.m_Title    = m_ServerEntry.m_EntryName;
+					pass.m_HostAddr = m_ServerEntry.m_HostName;
+					pass.m_PortName = m_ServerEntry.m_PortName;
+					pass.m_UserName = m_ServerEntry.m_UserName;
+					pass.m_PassName = m_ServerEntry.m_PassName;
+					pass.m_Prompt   = _T("Password");
+					pass.m_MaxTime  = 120;
+					if ( pass.DoModal() == IDOK ) {
+						m_ServerEntry.m_HostName = pass.m_HostAddr;
+						m_ServerEntry.m_PortName = pass.m_PortName;
+						m_ServerEntry.m_UserName = pass.m_UserName;
+						m_ServerEntry.m_PassName = pass.m_PassName;
+					}
+					if ( pDlgStr != NULL ) {
+						pDlgStr->Add(m_ServerEntry.m_HostName);
+						pDlgStr->Add(m_ServerEntry.m_PortName);
+						pDlgStr->Add(m_ServerEntry.m_UserName);
+						pDlgStr->Add(m_ServerEntry.m_PassName);
+					}
 				}
+				st = TRUE;
+				break;
+			case _T('f'):
+				if ( bHaveDlgStr ) {
+					if ( pDlgStr->GetSize() > dlgpos )
+						tmp = pDlgStr->GetAt(dlgpos++);
+				} else {
+					CFileDialog dlg(TRUE, _T(""), tmp, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), ::AfxGetMainWnd());
+					if ( DpiAwareDoModal(dlg) == IDOK )
+						tmp = dlg.GetPathName();
+					if ( pDlgStr != NULL )
+						pDlgStr->Add(tmp);
+				}
+				st = TRUE;
+				break;
+			case _T('R'):
+				if ( bHaveDlgStr ) {
+					if ( pDlgStr->GetSize() > dlgpos )
+						tmp = pDlgStr->GetAt(dlgpos++);
+				} else {
+					LPCTSTR p = ((CMainFrame *)::AfxGetMainWnd())->RandomFile(tmp);
+					if ( p != NULL )
+						tmp = p;
+					if ( pDlgStr != NULL )
+						pDlgStr->Add(tmp);
+				}
+				st = TRUE;
 				break;
 			case _T('s'):
 				tmp += m_SockStatus;
@@ -1229,7 +1287,6 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match, BOOL bCtrl)
 			if ( str[1] == '$' ) {
 				tmp += *(str++);
 				str++;
-				st = TRUE;
 			} else if ( str[1] == '{' ) {
 				env.Empty();
 				for ( s = str + 2 ; *s != _T('}') ; ) {
@@ -1244,14 +1301,13 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match, BOOL bCtrl)
 				}
 				str = s + 1;
 				EnvironText(env, tmp);
-				st = TRUE;
 			} else {
 				env.Empty();
 				for ( str++ ; *str != '\0' && _istalnum(*str) ; )
 					env += *(str++);
 				EnvironText(env, tmp);
-				st = TRUE;
 			}
+			st = TRUE;
 
 		} else if ( (match != NULL || bCtrl) && *str == _T('\\') ) {
 			switch(str[1]) {
@@ -2313,6 +2369,11 @@ void CRLoginDoc::UpdateOption(COptDlg *pOptDlg)
 
 	if ( (pOptDlg->m_ModFlag & (UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT | UMOD_CARET | UMOD_CODEFLAG)) != 0 )
 		pOptDlg->m_ModFlag = m_TextRam.InitDefParam(TRUE, pOptDlg->m_ModFlag);
+
+	if ( (pOptDlg->m_ModFlag & UMOD_BACKIMG) != 0 ) {
+		m_TextRam.m_BitMapFileFixed.RemoveAll();
+		m_TextRam.m_TextBitMap.m_TextFixed.RemoveAll();
+	}
 
 	UpdateAllViews(NULL, (pOptDlg->m_ModFlag & UMOD_RESIZE) != 0 ? UPDATE_RESIZE : UPDATE_INITPARA, NULL);
 }

@@ -172,6 +172,15 @@ public:
 	CCurPos m_VramTipPos;
 	BOOL m_bVramTipDisp;
 
+	typedef struct _UpdateCall {
+		CView		*pSender;
+		LPARAM		lHint;
+		CObject		*pHint;
+	} UpdateCall;
+
+	BOOL m_bUseUpdateCall;
+	CList<UpdateCall, UpdateCall &> m_UpdateCall;
+
 	UINT DelayInvalThread();
 	void DelayInvalThreadStart();
 	void DelayInvalThreadEndof();

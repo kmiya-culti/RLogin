@@ -145,7 +145,7 @@ public:
 	static LPCTSTR GetSpecialFolder(LPCTSTR env);
 	static void EnvironText(CString &env, CString &str);
 	static void EnvironPath(CString &path);
-	BOOL EntryText(CString &name, LPCWSTR match = NULL, BOOL bCtrl = FALSE);
+	BOOL EntryText(CString &name, LPCWSTR match = NULL, BOOL bCtrl = FALSE, CStringArray *pDlgStr = NULL);
 
 	BOOL ScriptInit();
 	void SendBuffer(CBuffer &buf, BOOL macflag = TRUE);

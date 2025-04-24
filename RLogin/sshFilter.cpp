@@ -562,26 +562,26 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 				key.GetBlob(&blob);
 
 				if ( (pkey = GetIdKey(&key, m_pDocument->m_ServerEntry.m_PassName)) != NULL ) {
-					int saveNid = pkey->m_RsaNid;
+					int saveNid = pkey->m_Nid;
 					if ( (pkey->m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA1 || (pkey->m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA2 ) {
 						switch(flag & (SSH_AGENT_RSA_SHA2_256 | SSH_AGENT_RSA_SHA2_512)) {
 						case 0:
-							pkey->m_RsaNid = NID_sha1;
+							pkey->m_Nid = NID_sha1;
 							break;
 						case SSH_AGENT_RSA_SHA2_256:
-							pkey->m_RsaNid = NID_sha256;
+							pkey->m_Nid = NID_sha256;
 							break;
 						case SSH_AGENT_RSA_SHA2_512:
-							pkey->m_RsaNid = NID_sha512;
+							pkey->m_Nid = NID_sha512;
 							break;
 						case SSH_AGENT_RSA_SHA2_256 | SSH_AGENT_RSA_SHA2_512:
-							pkey->m_RsaNid = key.m_RsaNid;
+							pkey->m_Nid = key.m_Nid;
 							break;
 						}
 					}
 					if ( pkey->Sign(&sig, data.GetPtr(), data.GetSize()) )
 						bSign = TRUE;
-					pkey->m_RsaNid = saveNid;
+					pkey->m_Nid = saveNid;
 				}
 
 				if ( bSign ) {

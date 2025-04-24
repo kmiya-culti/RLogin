@@ -97,7 +97,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>openssl-3.4.1-x32;openssl-3.4.1-x32\include;openssl-3.4.1-x32\crypto\include;libiconv-1.17\include;zlib-1.3.1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>openssl-3.5.0-x32;openssl-3.5.0-x32\include;openssl-3.5.0-x32\crypto\include;libiconv-1.17\include;zlib-1.3.1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -113,7 +113,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>d2d1.lib;dwrite.lib;windowscodecs.lib;dxgi.lib;d3d10_1.lib;imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>openssl-3.4.1-x32;libiconv-1.17\lib\x32;zlib-1.3.1\x32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>openssl-3.5.0-x32;libiconv-1.17\lib\x32;zlib-1.3.1\x32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>libcmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -140,7 +140,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>openssl-3.4.1-x32;openssl-3.4.1-x32\include;openssl-3.4.1-x32\crypto\include;libiconv-1.17\include;zlib-1.3.1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>openssl-3.5.0-x32;openssl-3.5.0-x32\include;openssl-3.5.0-x32\crypto\include;libiconv-1.17\include;zlib-1.3.1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -155,7 +155,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>openssl-3.4.1-x32;libiconv-1.17\lib\x32;zlib-1.3.1\x32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>openssl-3.5.0-x32;libiconv-1.17\lib\x32;zlib-1.3.1\x32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -165,7 +165,8 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Command>signtool sign /fd SHA256 /f ..\..\DigSig\kmiya.pfx "$(OutDir)$(TargetName)$(TargetExt)"</Command>
+      <Command>signtool sign /fd SHA256 /f ..\..\DigSig\kmiya.pfx "$(OutDir)$(TargetName)$(TargetExt)"
+powershell Compress-Archive -Path "$(OutDir)$(TargetName)$(TargetExt)" -DestinationPath "$(OutDir)..\rlogin_x32.zip" -Force</Command>
     </PostBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>$(TargetName).manifest</AdditionalManifestFiles>
@@ -186,7 +187,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>openssl-3.4.1;openssl-3.4.1\include;openssl-3.4.1\crypto\include;libiconv-1.17\include;zlib-1.3.1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>openssl-3.5.0;openssl-3.5.0\include;openssl-3.5.0\crypto\include;libiconv-1.17\include;zlib-1.3.1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -195,6 +196,8 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <WarningLevel>Level3</WarningLevel>
+      <OpenMPSupport>
+      </OpenMPSupport>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -203,7 +206,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>openssl-3.4.1;libiconv-1.17\lib\x64;zlib-1.3.1\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>openssl-3.5.0;libiconv-1.17\lib\x64;zlib-1.3.1\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -214,7 +217,8 @@
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
-      <Command>signtool sign /fd SHA256 /f ..\..\DigSig\kmiya.pfx "$(OutDir)$(TargetName)$(TargetExt)"</Command>
+      <Command>signtool sign /fd SHA256 /f ..\..\DigSig\kmiya.pfx "$(OutDir)$(TargetName)$(TargetExt)"
+powershell Compress-Archive -Path "$(OutDir)$(TargetName)$(TargetExt)" -DestinationPath "$(OutDir)..\rlogin_x64.zip" -Force</Command>
     </PostBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>$(TargetName).manifest</AdditionalManifestFiles>
@@ -241,6 +245,8 @@
       <MinimalRebuild>true</MinimalRebuild>
       <PreprocessorDefinitions>_UNICODE;UNICODE;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <OpenMPSupport>
+      </OpenMPSupport>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>openssl-3.5.0;libiconv-1.17\lib\x64;zlib-1.3.1\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -314,9 +320,6 @@
     <ClCompile Include="Login.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="MidiData.cpp" />
-    <ClCompile Include="ml_kem.cpp" />
-    <ClCompile Include="ml_kem_1024.cpp" />
-    <ClCompile Include="ml_kem_512.cpp" />
     <ClCompile Include="ModKeyPage.cpp" />
     <ClCompile Include="MousePage.cpp" />
     <ClCompile Include="MsgChkDlg.cpp" />

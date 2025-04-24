@@ -514,7 +514,7 @@ BOOL CKnownHostsDlg::OnInitDialog()
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
 	m_List.InitColumn(_T("CKnownHostsDlg"), InitKnownHostsTab, 3);
 
-	int n, i;
+	int n, i, a;
 	LPCTSTR p;
 	CStringArrayExt list, entry;
 	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
@@ -543,7 +543,7 @@ BOOL CKnownHostsDlg::OnInitDialog()
 			}
 
 		// ŒÃ‚¢Œ`Ž®(KnownHosts\host-xxx)
-		} else if ( (p = _tcsrchr(list[n], _T('-'))) != NULL && ((i = (key.GetTypeFromName(p + 1) & IDKEY_TYPE_MASK)) != IDKEY_NONE && i != IDKEY_UNKNOWN) ) {
+		} else if ( (p = _tcsrchr(list[n], _T('-'))) != NULL && key.GetTypeFromName(p + 1, i, a) && i != IDKEY_UNKNOWN ) {
 			pData = new KNOWNHOSTDATA;
 			pData->key = list[n];
 			pData->del = FALSE;

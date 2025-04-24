@@ -790,6 +790,7 @@ public:
 	int m_WidthAlign;
 	int m_HeightAlign;
 	CString m_Text;
+	CStringArrayExt m_TextFixed;
 	COLORREF m_TextColor;
 	LOGFONT m_LogFont;
 
@@ -1031,6 +1032,7 @@ public:	// Options
 	WORD m_DefBankTab[5][4];
 	int m_WheelSize;
 	CString m_BitMapFile;
+	CStringArrayExt m_BitMapFileFixed;
 	int m_BitMapAlpha;
 	int m_BitMapBlend;
 	int m_BitMapStyle;
