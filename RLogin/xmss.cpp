@@ -1878,8 +1878,8 @@ static int xmssmt_core_sign(const xmss_params *params,
 //////////////////////////////////////////////////////////////////////
 // params.c
 
-static struct _xmss_name_tab {
-	char *name;
+static const struct _xmss_name_tab {
+	const char *name;
 	uint32_t oid;
 } xmss_name_tab[] = {
 	{	"XMSS_SHA2-256_W16_H10",	0x00000001	},	// openssh/sshkey-xmss.h

@@ -260,7 +260,7 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 		return ((CFifoSocket *)m_pFifoLeft)->Open(host, m_RealHostPort, m_RealRemotePort, GetFamily(), m_RealSocketType);
 
 	case FIFO_TYPE_PIPE:
-		return ((CFifoPipe *)m_pFifoLeft)->Open(lpszHostAddress);
+		return ((CFifoPipe *)m_pFifoLeft)->Open(lpszHostAddress, FALSE);
 	}
 
 	return FALSE;
@@ -269,6 +269,7 @@ void CExtSocket::Close()
 {
 	SSLClose();
 	FifoUnlink();
+
 	m_bConnect = FALSE;
 
 	if ( m_pHttp2Ctx != NULL ) {
@@ -1297,7 +1298,7 @@ BOOL CExtSocket::ProxyReOpen()
 		((CFifoPipe *)m_pFifoLeft)->Close();
 		((CFifoPipe *)m_pFifoLeft)->Reset(FIFO_STDIN);
 		((CFifoPipe *)m_pFifoLeft)->Reset(FIFO_STDOUT);
-		rt = ((CFifoPipe *)m_pFifoLeft)->Open();
+		rt = ((CFifoPipe *)m_pFifoLeft)->Open(NULL, FALSE);
 		break;
 	case FIFO_TYPE_COM:
 		((CFifoCom *)m_pFifoLeft)->Close();

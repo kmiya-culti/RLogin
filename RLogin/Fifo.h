@@ -24,6 +24,7 @@
 #define	FIFO_TYPE_LISTEN		6
 #define	FIFO_TYPE_PIPE			7
 #define	FIFO_TYPE_COM			8
+#define	FIFO_TYPE_TUNNEL		9
 
 #define	FIFO_THREAD_NONE		0
 #define	FIFO_THREAD_EXEC		1
@@ -56,6 +57,7 @@ enum FifoMsgQueInCmd {
 	FIFO_QCMD_KEEPALIVE,		// CFifoSsh
 	FIFO_QCMD_CANCELPFD,		// CFifoSsh
 	FIFO_QCMD_PLUGIN,			// CFifoSsh
+	FIFO_QCMD_KEXINIT,			// CFifoSsh
 };
 
 class CFifoBuffer : public CObject
@@ -298,7 +300,7 @@ class CFifoWorkThread : public CWinThread
 	DECLARE_DYNCREATE(CFifoWorkThread)
 
 public:
-	BOOL m_bDestroy;
+	class CFifoThread *m_pFifoThread;
 
 public:
 	CFifoWorkThread();
@@ -315,6 +317,7 @@ class CFifoThread : public CFifoWnd
 {
 public:
 	CFifoWorkThread *m_pWinThread;
+	CEvent m_ThreadEvent;
 
 public:
 	CFifoThread(class CRLoginDoc *pDoc, class CExtSocket *pSock);
@@ -384,6 +387,19 @@ public:
 	virtual void FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam);
 
 	int ReadWriteEvent();
+};
+
+class CFifoTunnel : public CFifoBase
+{
+public:
+	CArray<HANDLE, HANDLE> m_hWaitEvents;
+
+public:
+	CFifoTunnel(class CRLoginDoc *pDoc, class CExtSocket *pSock);
+	~CFifoTunnel();
+
+	virtual void FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam);
+	virtual void SendCommand(int cmd, int param = 0, int msg = 0, int len = 0, void *buf = NULL, CEvent *pEvent = NULL, BOOL *pResult = NULL);
 };
 
 class CFifoSocket : public CFifoASync

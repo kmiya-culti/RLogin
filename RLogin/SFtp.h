@@ -69,6 +69,15 @@
 #define SSH2_FX_NO_CONNECTION           6
 #define SSH2_FX_CONNECTION_LOST         7
 #define SSH2_FX_OP_UNSUPPORTED          8
+#define SSH2_FX_INVALID_HANDLE          9
+#define SSH2_FX_NO_SUCH_PATH            10
+#define SSH2_FX_FILE_ALREADY_EXISTS     11
+#define SSH2_FX_WRITE_PROTECT           12
+#define SSH2_FX_NO_MEDIA                13
+#define SSH2_FX_NO_SPACE_ON_FILESYSTEM  14
+#define SSH2_FX_QUOTA_EXCEEDED          15
+#define SSH2_FX_UNKNOWN_PRINCIPLE       16
+#define SSH2_FX_LOCK_CONFlICT           17
 
 #define	SSH2_FX_TRANSBUFLEN				(31 * 1024)
 #define	SSH2_FX_TRANSMINMSEC			95
@@ -424,6 +433,9 @@ public:
 	void AddTotalRange(LONGLONG size);
 	void SetRangeProg(LPCTSTR file, LONGLONG size, LONGLONG ofs);
 	void SetPosProg(LONGLONG pos);
+	BOOL StatusCheck(int type, CBuffer *bp, int RetCode);
+	inline BOOL StatusErrorCheck(int type, CBuffer *bp) { return StatusCheck(type, bp, SSH2_FX_OK); }
+	inline BOOL StatusEofCheck(int type, CBuffer *bp) { return StatusCheck(type, bp, SSH2_FX_EOF); }
 	void DispErrMsg(LPCTSTR msg, LPCTSTR file);
 	LPCTSTR JointPath(LPCTSTR dir, LPCTSTR file, CString &path);
 	inline void KanjiConvToLocal(LPCSTR in, CString &out) { m_IConv.RemoteToStr(m_HostKanjiSet, in, out); }

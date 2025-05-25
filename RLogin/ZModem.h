@@ -68,7 +68,7 @@ public:
 	int ZReceiveEscByte();
 	int ZReceive7Bit();
 	void ZSetLongHeader(LONGLONG pos);
-	LONGLONG ZGetLongHeader(register char *hdr);
+	LONGLONG ZGetLongHeader(char *hdr);
 
 	CZModem(class CRLoginDoc *pDoc, CWnd *pWnd);
 	virtual ~CZModem();

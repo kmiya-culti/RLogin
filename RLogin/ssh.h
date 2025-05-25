@@ -719,6 +719,8 @@ public:
 	BOOL m_bClosed;
 	CFifoBase *m_pFifoBase;
 
+	void *m_pParam;
+
 	CFifoChannel();
 };
 
@@ -960,6 +962,7 @@ public:
 
 	int m_ExtInfoStat;
 	CStringIndex m_ExtInfo;
+	int m_KexInitTiimerId;
 
 	int m_KeepAliveTiimerId;
 	int m_KeepAliveSendCount;
@@ -1018,6 +1021,7 @@ public:
 	void UserAuthNextState();
 	void AddAuthLog(LPCTSTR str, ...);
 	BOOL IsStriStr(LPCSTR str, LPCSTR ptn);
+	void CreateMyPeer();
 
 // Channel func
 	inline int IdToFdIn(int id)  { return(id * 2 + 0); }
@@ -1037,7 +1041,7 @@ public:
 	void SocksResult(class CFifoSocks *pFifoSocks);
 
 	void PortForward(BOOL bReset);
-	void CancelPortForward();
+	void CancelPortForward(BOOL bClose);
 	void OpenSFtpChannel();
 	void OpenRcpUpload(LPCTSTR file);
 	void OpenRcpDownload(LPCTSTR file);

@@ -2026,7 +2026,7 @@ void CZModem::ZSetLongHeader(LONGLONG pos)
 	Txhdr[ZP2] = (char)(pos >> 16);
 	Txhdr[ZP3] = (char)(pos >> 24);
 }
-LONGLONG CZModem::ZGetLongHeader(register char *hdr)
+LONGLONG CZModem::ZGetLongHeader(char *hdr)
 {
 	LONGLONG l;
 

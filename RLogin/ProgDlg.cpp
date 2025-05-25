@@ -187,10 +187,10 @@ void CProgressWnd::OnPaint()
 	CPen PenLine[4];
 	CPen *pOldPen;
 
-	PenLine[0].CreatePen(PS_SOLID, 0, GetAppColor(COLOR_WINDOW));	// RGB(255, 255, 255));
-	PenLine[1].CreatePen(PS_SOLID, 0, RGB(  0, 172,  64));
-	PenLine[2].CreatePen(PS_SOLID, 0, RGB(215, 215, 215));
-	PenLine[3].CreatePen(PS_SOLID, 0, RGB(138, 255, 172));
+	PenLine[0].CreatePen(PS_SOLID, 0, GetAppColor(COLOR_WINDOW));			// RGB(255, 255, 255));
+	PenLine[1].CreatePen(PS_SOLID, 0, GetAppColor(APPCOL_PROGCOL1));		// RGB(  0, 172,  64));
+	PenLine[2].CreatePen(PS_SOLID, 0, GetAppColor(APPCOL_PROGCOL2));		// RGB(215, 215, 215));
+	PenLine[3].CreatePen(PS_SOLID, 0, GetAppColor(APPCOL_PROGCOL3));		// RGB(138, 255, 172));
 
 	pOldPen = dc.SelectObject(&PenLine[0]);
 

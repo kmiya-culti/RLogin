@@ -1265,7 +1265,7 @@ void CSFtp::RemoteLinkStat(LPCTSTR path, CCmdQue *pOwner, int index)
 }
 int CSFtp::RemoteMakeDirRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
-	if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK ) {
+	if ( !StatusErrorCheck(type, bp) ) {
 		if ( pQue->m_Max )
 			DispErrMsg(_T("Create Dir Error"), pQue->m_Path);
 	} else
@@ -1286,7 +1286,7 @@ void CSFtp::RemoteMakeDir(LPCTSTR dir, int show)
 }
 int CSFtp::RemoteDeleteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
-	if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK )
+	if ( !StatusErrorCheck(type, bp) )
 		DispErrMsg(_T("Delete File/Dir Error"), pQue->m_Path);
 	else if ( pQue->m_Max )
 		RemoteUpdateCwd(pQue->m_Path);
@@ -1310,7 +1310,7 @@ void CSFtp::RemoteDelete(CFileNode *pNode, int show)
 }
 int CSFtp::RemoteSetAttrRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
-	if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK )
+	if ( !StatusErrorCheck(type, bp) )
 		DispErrMsg(_T("Set Attr Error"), pQue->m_Path);
 	else if ( pQue->m_Max )
 		RemoteUpdateCwd(pQue->m_Path);
@@ -1330,7 +1330,7 @@ void CSFtp::RemoteSetAttr(CFileNode *pNode, int attr, int show)
 }
 int CSFtp::RemoteRenameRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
-	if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK )
+	if ( !StatusErrorCheck(type, bp) )
 		DispErrMsg(_T("Reanme Error"), pQue->m_Path);
 	else if ( pQue->m_Max )
 		RemoteUpdateCwd(pQue->m_Path);
@@ -1538,9 +1538,11 @@ int CSFtp::RemoteCloseDirRes(int type, CBuffer *bp, class CCmdQue *pQue)
 
 	if ( pQue->m_Len == (-1) || type < 0 )
 		return (this->*(pQue->m_EndFunc))(SSH2_FX_FAILURE, pQue);
-	else if ( type == SSH2_FXP_STATUS )
-		return (this->*(pQue->m_EndFunc))(bp->Get32Bit(), pQue);
-	else
+	else if ( type == SSH2_FXP_STATUS ) {
+		int st = bp->PTR32BIT(bp->GetPtr());
+		StatusErrorCheck(type, bp);
+		return (this->*(pQue->m_EndFunc))(st, pQue);
+	} else
 		return (this->*(pQue->m_EndFunc))(SSH2_FX_FAILURE, pQue);
 }
 int CSFtp::RemoteReadDirRes(int type, CBuffer *bp, class CCmdQue *pQue)
@@ -1551,7 +1553,7 @@ int CSFtp::RemoteReadDirRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	CFileNode node;
 
 	if ( type != SSH2_FXP_NAME ) {
-		pQue->m_Len = (type == SSH2_FXP_STATUS && bp->Get32Bit() == SSH2_FX_EOF ? 0 : (-1));
+		pQue->m_Len = (StatusEofCheck(type, bp) ? 0 : (-1));
 		RemoteMakePacket(pQue, SSH2_FXP_CLOSE);
 		SendCommand(pQue, &CSFtp::RemoteCloseDirRes, SENDCMD_HEAD);
 		return FALSE;
@@ -1723,7 +1725,7 @@ int CSFtp::RemoteCloseReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	}
 
 	if ( type >= 0 ) {
-		if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK )
+		if ( !StatusErrorCheck(type, bp) )
 			DispErrMsg(_T("Close Read Error"), pQue->m_Path);
 		else if ( pQue->m_Len == (-1) )
 			DispErrMsg(_T("File Read Error"), pQue->m_Path);
@@ -1769,7 +1771,7 @@ int CSFtp::RemoteDataReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 				DispErrMsg(_T("Remote Read Error"), pOwner->m_Path);
 			return TRUE;
 		}
-		pQue->m_Len = (type == SSH2_FXP_STATUS && bp->Get32Bit() == SSH2_FX_EOF ? 0 : (m_DoAbort ? 0 : (-1)));
+		pQue->m_Len = (StatusEofCheck(type, bp) ? 0 : (m_DoAbort ? 0 : (-1)));
 		RemoteMakePacket(pQue, SSH2_FXP_CLOSE);
 		SendCommand(pQue, &CSFtp::RemoteCloseReadRes, SENDCMD_NOWAIT);
 		return FALSE;
@@ -1836,8 +1838,11 @@ int CSFtp::RemoteOpenReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
 	SetRangeProg(pQue->m_CopyPath, pQue->m_Size, 0);	// TotalSize/Pos‚Ìˆ×‚Ì‰Šú‰»
 
-	if ( type != SSH2_FXP_HANDLE )
+	if ( type != SSH2_FXP_HANDLE ) {
+		if ( type == SSH2_FXP_STATUS )
+			StatusErrorCheck(type, bp);
 		return RemoteCloseReadRes((-1), bp, pQue);
+	}
 	bp->GetBuf(&pQue->m_Handle);
 
 	if ( (pQue->m_hFile = CreateFile(pQue->m_CopyPath, GENERIC_WRITE, 0, NULL, (pQue->m_NextOfs != 0 ? OPEN_EXISTING : CREATE_ALWAYS), FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE || !m_WriteOverLap.WriteOverLapInit() ) {
@@ -1992,7 +1997,7 @@ int CSFtp::RemoteDataMemReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	int n;
 
 	if ( type != SSH2_FXP_DATA || m_DoAbort ) {
-		pQue->m_Len = (type == SSH2_FXP_STATUS && bp->Get32Bit() == SSH2_FX_EOF ? 0 : (-1));
+		pQue->m_Len = (StatusEofCheck(type, bp) ? 0 : (-1));
 		RemoteMakePacket(pQue, SSH2_FXP_CLOSE);
 		SendCommand(pQue, &CSFtp::RemoteCloseMemReadRes, SENDCMD_NOWAIT);
 		return FALSE;
@@ -2067,7 +2072,7 @@ int CSFtp::RemoteCloseWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		CloseHandle(pQue->m_hFile);
 
 	if ( type >= 0 ) {
-		if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK )
+		if ( !StatusErrorCheck(type, bp) )
 			DispErrMsg(_T("Close Write Error"), pQue->m_Path);
 		else if ( pQue->m_Len == (-1) )
 			DispErrMsg(_T("File Read Error"), pQue->m_FileNode[0].m_path);
@@ -2119,7 +2124,7 @@ int CSFtp::RemoteCloseWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 }
 int CSFtp::RemoteAttrWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
-	pQue->m_Len = (type == SSH2_FXP_STATUS && bp->Get32Bit() == SSH2_FX_OK ? 0 : (-3));
+	pQue->m_Len = (StatusErrorCheck(type, bp) ? 0 : (-3));
 	RemoteMakePacket(pQue, SSH2_FXP_CLOSE);
 	SendCommand(pQue, &CSFtp::RemoteCloseWriteRes, SENDCMD_NOWAIT);
 	return FALSE;
@@ -2130,7 +2135,7 @@ int CSFtp::RemoteDataWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	LPBYTE buf;
 	CCmdQue *pOwner = (pQue->m_pOwner != NULL ? pQue->m_pOwner : pQue);
 
-	if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK || m_DoAbort ) {
+	if ( !StatusErrorCheck(type, bp) || m_DoAbort ) {
 		if ( pQue->m_pOwner != NULL ) {
 			if ( !m_DoAbort )
 				DispErrMsg(_T("Remote Write Error"), pOwner->m_Path);
@@ -2251,7 +2256,7 @@ int CSFtp::RemoteMkDirWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	CFileNode node;
 
 	if ( type != (-1) ) {
-		if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK )
+		if ( !StatusErrorCheck(type, bp) )
 			return RemoteCloseWriteRes((-2), bp, pQue);
 		else
 			RemoteUpdateCwd(pQue->m_Path);
@@ -3031,6 +3036,51 @@ void CSFtp::SetPosProg(LONGLONG pos)
 
 	if ( m_pTaskbarList != NULL )
 		m_pTaskbarList->SetProgressValue(GetSafeHwnd(), (m_TotalPos + pos), m_TotalSize);
+}
+BOOL CSFtp::StatusCheck(int type, CBuffer *bp, int RetCode)
+{
+	int st;
+	CStringA mbs;
+	const LPCTSTR FxErr[] = { 
+		_T("Indicates successful completion of the operation"),																			// SSH2_FX_OK
+		_T("An attempt to read past the end-of-file was made or there are no more directory entries to return"),						// SSH2_FX_EOF
+		_T("A reference was made to a file which does not exist"),																		// SSH2_FX_NO_SUCH_FILE
+		_T("The user does not have sufficient permissions to perform the operation"),													// SSH2_FX_PERMISSION_DENIED
+		_T("An error occured, but no specific error code exists to describe the failure"),												// SSH2_FX_FAILURE
+		_T("A badly formatted packet or other SFTP protocol incompatibility was detected"),												// SSH2_FX_BAD_MESSAGE
+		_T("There is no connection to the server. This error can only be generated locally, and MUST NOT be return by a server"),		// SSH2_FX_NO_CONNECTION
+		_T("The connection to the server was lost. This error can only be generated locally, and MUST NOT be return by a server"),		// SSH2_FX_CONNECTION_LOST
+		_T("An attempted operation could not be completed by the server because the server does not support the operation"),			// SSH2_FX_OP_UNSUPPORTED
+		_T("The handle value was invalid"),																								// SSH2_FX_INVALID_HANDLE
+		_T("The file path does not exist or is invalid"),																				// SSH2_FX_NO_SUCH_PATH          
+		_T("The file already exists"),																									// SSH2_FX_FILE_ALREADY_EXISTS   
+		_T("The file is on read-only media, or the media is write protected"),															// SSH2_FX_WRITE_PROTECT         
+		_T("The requested operation cannot be completed because there is no media available in the drive"),								// SSH2_FX_NO_MEDIA              
+		_T("The requested operation cannot be completed because there is no free space on the filesystem"),								// SSH2_FX_NO_SPACE_ON_FILESYSTEM
+		_T("The operation cannot be completed because the it would exceed the users storage quota"),									// SSH2_FX_QUOTA_EXCEEDED        
+		_T("A principle referenced by the request was unknown. The error specific data contains the problematic names"),				// SSH2_FX_UNKNOWN_PRINCIPLE     
+		_T("The file could not be opened because it is locked by another process"),														// SSH2_FX_LOCK_CONFlICT         
+	};
+
+	if ( type != SSH2_FXP_STATUS ) {
+		m_LastErrorMsg = _T("Not status reponse");
+		return FALSE;
+	}
+
+	if ( (st = bp->Get32Bit()) == RetCode )
+		return TRUE;
+
+	bp->GetStr(mbs);
+
+	if ( mbs.IsEmpty() ) {
+		if ( st >= SSH2_FX_OK && st <= SSH2_FX_LOCK_CONFlICT )
+			m_LastErrorMsg = FxErr[st];
+		else
+			m_LastErrorMsg.Format(_T("Error status reponse code #%d"), st);
+	} else
+		KanjiConvToLocal(mbs, m_LastErrorMsg);
+
+	return FALSE;
 }
 void CSFtp::DispErrMsg(LPCTSTR msg, LPCTSTR file)
 {

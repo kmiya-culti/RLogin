@@ -29,7 +29,7 @@ public:
 	virtual void OnUnLinked(int nFd, BOOL bMid);
 
 	BOOL IsPipeName(LPCTSTR path);
-	BOOL Open(LPCTSTR pCommand = NULL);
+	BOOL Open(LPCTSTR pCommand, BOOL bNew);
 	void Close();
 	void SendBreak(int opt);
 

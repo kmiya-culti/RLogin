@@ -463,7 +463,10 @@
 #define IDT_APPCOL_TITLE19              986
 #define IDT_APPCOL_TITLE20              987
 #define IDT_APPCOL_TITLE21              988
-#define IDT_SSHSIG_CANCEL               989
+#define IDT_APPCOL_TITLE22              989
+#define IDT_APPCOL_TITLE23              990
+#define IDT_APPCOL_TITLE24              991
+#define IDT_SSHSIG_CANCEL               992
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002

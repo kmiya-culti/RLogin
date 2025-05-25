@@ -1212,7 +1212,7 @@ void CDialogExt::GetDlgFontBase(CDC *pDC, CFont *pFont, CSize &size)
 	pDC->SelectObject(pOld);
 }
 
-void CDialogExt::CheckMoveWindow(CRect &rect, BOOL bRepaint)
+void CDialogExt::CheckMoveWindow(CRect rect, BOOL bRepaint)
 {
 	HMONITOR hMonitor;
     MONITORINFOEX  mi;

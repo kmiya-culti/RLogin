@@ -909,6 +909,10 @@ void CFifoBase::UnLink(CFifoBase *pMid, int nFd, BOOL bMid)
 	ASSERT((nFd + 1) < pMid->GetFifoSize());
 	pReadFifo = (CFifoBuffer *)pMid->m_FifoBuf[nFd];
 	pWriteFifo = (CFifoBuffer *)pMid->m_FifoBuf[nFd + 1];
+
+	if ( pReadFifo == NULL || pWriteFifo == NULL )
+		return;
+
 	ASSERT(pReadFifo != NULL && pWriteFifo != NULL);
 
 	pLeft = pReadFifo->m_pWriteBase;
@@ -1267,7 +1271,7 @@ END_MESSAGE_MAP()
 
 CFifoWorkThread::CFifoWorkThread()
 {
-	m_bDestroy = FALSE;
+	m_pFifoThread = NULL;
 }
 BOOL CFifoWorkThread::InitInstance()
 {
@@ -1278,12 +1282,14 @@ int CFifoWorkThread::ExitInstance()
 	// CFifoTelnetでopenssl関数を使用
 	OPENSSL_thread_stop();
 
+	if ( m_pFifoThread != NULL )
+		m_pFifoThread->m_ThreadEvent.SetEvent();
+
 	return CWinThread::ExitInstance();
 }
 void CFifoWorkThread::OnFifoMsg(WPARAM wParam, LPARAM lParam)
 {
-	if ( !m_bDestroy )
-		((CFifoThread *)lParam)->MsgPump(wParam);
+	((CFifoThread *)lParam)->MsgPump(wParam);
 }
 
 ///////////////////////////////////////////////////////
@@ -1305,28 +1311,57 @@ BOOL CFifoThread::ThreadOpen()
 		return FALSE;
 
 	m_pWinThread = new CFifoWorkThread;
+	m_pWinThread->m_pFifoThread = this;
+	m_ThreadEvent.ResetEvent();
 
-	if ( !m_pWinThread->CreateThread() )
-		goto ERRRET;
-
-	if ( !m_pWinThread->SetThreadPriority(THREAD_PRIORITY_NORMAL) )
-		goto ERRRET;
+	if ( !m_pWinThread->CreateThread() || !m_pWinThread->SetThreadPriority(THREAD_PRIORITY_NORMAL) ) {
+		delete m_pWinThread;
+		m_pWinThread = NULL;
+		return FALSE;
+	}
 
 	return TRUE;
-
-ERRRET:
-	delete m_pWinThread;
-	m_pWinThread = NULL;
-	return FALSE;
 }
 BOOL CFifoThread::ThreadClose()
 {
 	if ( m_pWinThread == NULL )
 		return FALSE;
 
-	m_pWinThread->m_bDestroy = TRUE;
-	m_pWinThread->PostThreadMessage(WM_QUIT, 0, 0);
-	//WaitForSingleObject(*m_pWinThread, INFINITE);
+	DWORD tId = GetCurrentThreadId();
+
+	// スレッド内でメインウィンドウへのSendMessageで同期を取る為
+	// メインスレッドからの呼び出しならメッセージ処理をしないとデッドロックする
+	if ( tId == theApp.m_nThreadID ) {
+		MSG msg;
+		BOOL bIdle = FALSE;
+
+		m_pWinThread->PostThreadMessage(WM_QUIT, 0, 0);
+		while ( WaitForSingleObject(m_ThreadEvent, 20) == WAIT_TIMEOUT ) {
+			while ( ::PeekMessage(&msg, NULL, NULL, NULL, PM_REMOVE) ) {
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+				if ( ((CRLoginApp *)::AfxGetApp())->IsIdleMessage(&msg) )
+					bIdle = TRUE;
+			}
+
+			for ( int idlecount = 0 ; bIdle || !::PeekMessage(&msg, NULL, NULL, NULL, PM_NOREMOVE) ; idlecount++ ) {
+				bIdle = FALSE;
+				if ( !((CRLoginApp *)AfxGetApp())->OnIdle(idlecount) )
+					break;
+			}
+		}
+
+	// 別スレッドからなら終了を待つ
+	} else if ( tId != m_pWinThread->m_nThreadID ) {
+		m_pWinThread->PostThreadMessage(WM_QUIT, 0, 0);
+		WaitForSingleObject(m_ThreadEvent, INFINITE);
+
+	// 自身のスレッドなら待たない
+	} else {
+		m_pWinThread->m_pFifoThread = NULL;
+		m_pWinThread->PostThreadMessage(WM_QUIT, 0, 0);
+	}
+
 	m_pWinThread = NULL;
 
 	return TRUE;
@@ -1364,8 +1399,8 @@ void CFifoThread::PostMessage(int cmd, int param)
 	if ( !m_bDestroy && !m_bPostMsg && m_pMsgTop != NULL ) {
 		m_bPostMsg = TRUE;
 		m_MsgSemaphore.Unlock();
-		ASSERT(m_pWinThread != NULL);
-		m_pWinThread->PostThreadMessage(WM_FIFOMSG, MAKEWPARAM(cmd, param), (LPARAM)this);
+		if ( m_pWinThread != NULL )
+			m_pWinThread->PostThreadMessage(WM_FIFOMSG, MAKEWPARAM(cmd, param), (LPARAM)this);
 	} else
 		m_MsgSemaphore.Unlock();
 }
@@ -1704,6 +1739,70 @@ int CFifoASync::ReadWriteEvent()
 	}
 
 	return HandleCount;
+}
+
+///////////////////////////////////////////////////////
+// CFifoTunnel
+
+CFifoTunnel::CFifoTunnel(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoBase(pDoc, pSock)
+{
+	m_Type = FIFO_TYPE_TUNNEL;
+}
+CFifoTunnel::~CFifoTunnel()
+{
+}
+void CFifoTunnel::FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam)
+{
+	int n;
+	int eFd = GetXFd(nFd);
+	CFifoBuffer *pExFifo;
+	BYTE tmp[FIFO_BUFSIZE];
+
+	switch(fdEvent) {
+	case FD_READ:
+		// from Write/PutBuffer pFifo read buffer nFd == EXTIN/STDIN
+		if ( (pExFifo = GetFifo(eFd)) != NULL ) {
+			while ( pExFifo->GetSize() < FIFO_BUFUPPER ) {
+				if ( (n = pFifo->GetBuffer(tmp, FIFO_BUFSIZE)) < 0 ) {
+					pExFifo->PutBuffer(NULL, 0);
+					break;
+				} else if ( n == 0 )
+					break;
+				pExFifo->PutBuffer(tmp, n);
+			}
+			RelFifo(pExFifo);
+		}
+		break;
+	case FD_WRITE:
+		// from Read/GetBuffer pFifo write buffer nFd == EXTOUT/STDOUT
+		if ( (pExFifo = GetFifo(eFd)) != NULL ) {
+			while ( pFifo->GetSize() < FIFO_BUFUPPER ) {
+				if ( (n = pExFifo->GetBuffer(tmp, FIFO_BUFSIZE)) < 0 ) {
+					pFifo->PutBuffer(NULL, 0);
+					break;
+				} else if ( n == 0 )
+					break;
+				pFifo->PutBuffer(tmp, n);
+			}
+			RelFifo(pExFifo);
+		}
+		break;
+
+	case FD_OOB:
+	case FD_ACCEPT:
+	case FD_CONNECT:
+		SendFdEvents(eFd, fdEvent, pParam);
+		break;
+	case FD_CLOSE:
+		SendFdEvents(eFd, fdEvent, pParam);
+		if ( nFd == FIFO_STDIN || nFd == FIFO_EXTIN )
+			Write(eFd, NULL, 0);
+		break;
+	}
+}
+void CFifoTunnel::SendCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult)
+{
+	SendFdCommand(FIFO_EXTOUT, cmd, param, msg, len, buf, pEvent, pResult);
 }
 
 ///////////////////////////////////////////////////////

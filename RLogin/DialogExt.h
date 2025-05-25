@@ -162,7 +162,7 @@ public:
 	void AddToolTip(CWnd *pWnd, LPCTSTR msg);
 
 	void SubclassComboBox(int nID);
-	void CheckMoveWindow(CRect &rect, BOOL bRepaint);
+	void CheckMoveWindow(CRect rect, BOOL bRepaint);
 	inline void CheckMoveWindow(int sx, int sy, int cx, int cy, BOOL bRepaint) { CheckMoveWindow(CRect(sx, sy, sx + cx, sy + cy), bRepaint); }
 	inline void SetSaveProfile(LPCTSTR name) { m_SaveProfile = name; }
 	inline void SetLoadPosition(int mode) { m_LoadPosMode = mode; }

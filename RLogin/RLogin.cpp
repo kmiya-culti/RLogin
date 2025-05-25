@@ -833,6 +833,10 @@ void InitAppColor()
 	AppColorTable[0][APPCOL_CTRLHTEXT]		= RGB(255, 255, 255);
 	AppColorTable[0][APPCOL_CTRLSHADOW]		= RGB(185, 209, 234);
 
+	AppColorTable[0][APPCOL_PROGCOL1]		= RGB(  0, 172,  64);
+	AppColorTable[0][APPCOL_PROGCOL2]		= RGB(215, 215, 215);
+	AppColorTable[0][APPCOL_PROGCOL3]		= RGB(138, 255, 172);
+
 	// ダークモードの色設定
 	memcpy(AppColorTable[1], AppColorTable[0], sizeof(AppColorTable[1]));
 
@@ -879,6 +883,10 @@ void InitAppColor()
 	AppColorTable[1][APPCOL_CTRLHIGH]		= RGB(0, 100, 190);
 	AppColorTable[1][APPCOL_CTRLHTEXT]		= RGB(255, 255, 255);
 	AppColorTable[1][APPCOL_CTRLSHADOW]		= RGB(56, 96, 124);
+
+	AppColorTable[1][APPCOL_PROGCOL1]		= RGB(  0, 172,  64);
+	AppColorTable[1][APPCOL_PROGCOL2]		= RGB(215, 215, 215);
+	AppColorTable[1][APPCOL_PROGCOL3]		= RGB(138, 255, 172);
 
 	// ブラシの初期化
 	if ( !bAppColBrushInit ) {

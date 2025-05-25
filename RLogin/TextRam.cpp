@@ -8693,7 +8693,7 @@ void CTextRam::MouseReport(int md, int sw, int x, int y)
 		else if ( m_MouseTrack == MOS_EVENT_HILT ) {
 			stat = 0x03;	// Release
 			code = 't';
-		} else if ( IsOptEnable(TO_XTSGRMOS) ) {
+		} else if ( IsOptEnable(TO_XTSGRMOS) || IsOptEnable(TO_XTSGRPIX) ) {
 			stat = m_MouseMode[0];
 			code = 'm';
 		} else
@@ -8709,7 +8709,7 @@ void CTextRam::MouseReport(int md, int sw, int x, int y)
 	case MOS_LOCA_RTUP:
 		if ( m_MouseTrack < MOS_EVENT_NORM || m_MouseTrack == MOS_EVENT_HILT )
 			return;
-		if ( IsOptEnable(TO_XTSGRMOS) ) {
+		if ( IsOptEnable(TO_XTSGRMOS) || IsOptEnable(TO_XTSGRPIX) ) {
 			stat = m_MouseMode[1];
 			code = 'm';
 		} else
@@ -8759,13 +8759,13 @@ void CTextRam::MouseReport(int md, int sw, int x, int y)
 
 	tmp = m_RetChar[RC_CSI];
 
-	if ( IsOptEnable(TO_XTSGRMOS) )
+	if ( IsOptEnable(TO_XTSGRMOS) || IsOptEnable(TO_XTSGRPIX) )
 		tmp += '<';
 	else if ( !IsOptEnable(TO_XTURXMOS) )
 		tmp += (CHAR)code;
 
 	if ( code != 't' ) {
-		if ( IsOptEnable(TO_XTSGRMOS) ) {
+		if ( IsOptEnable(TO_XTSGRMOS) || IsOptEnable(TO_XTSGRPIX) ) {
 			str.Format("%d;", stat);
 			tmp += str;
 		} else if ( IsOptEnable(TO_XTURXMOS) ) {
@@ -8784,7 +8784,11 @@ void CTextRam::MouseReport(int md, int sw, int x, int y)
 		}
 	}
 
-	if ( IsOptEnable(TO_XTSGRMOS) || IsOptEnable(TO_XTURXMOS) ) {
+	if ( IsOptEnable(TO_XTSGRPIX) ) {
+		str.Format("%d;%d", m_MousePos.x + 1, m_MousePos.y + 1);
+		tmp += str;
+
+	} else if ( IsOptEnable(TO_XTSGRMOS) || IsOptEnable(TO_XTURXMOS) ) {
 		str.Format("%d;%d", x + 1, y + 1);
 		tmp += str;
 
@@ -8823,7 +8827,7 @@ void CTextRam::MouseReport(int md, int sw, int x, int y)
 			tmp += (CHAR)(255);
 	}
 
-	if ( IsOptEnable(TO_XTSGRMOS) || IsOptEnable(TO_XTURXMOS) )
+	if ( IsOptEnable(TO_XTSGRMOS) || IsOptEnable(TO_XTSGRPIX) || IsOptEnable(TO_XTURXMOS) )
 		tmp += (CHAR)code;
 
 	if ( m_pDocument != NULL )

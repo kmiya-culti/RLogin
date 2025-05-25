@@ -6982,15 +6982,18 @@ void CTextRam::fc_DECSRET(DWORD ch)
 		case TO_XTEXTMOS:	// 1005 X11 Enable Extended Mouse Mode
 		case TO_XTSGRMOS:	// 1006 X11 SGR Extended Mouse Mode
 		case TO_XTURXMOS:	// 1015 X11 URXVT Extended Mouse Mode
+		case TO_XTSGRPIX:	// 1016 SGR-Pixels Extended Mouse Mode
 			if ( ch == 'h' ) {
 				DisableOption(TO_XTEXTMOS);
 				DisableOption(TO_XTSGRMOS);
 				DisableOption(TO_XTURXMOS);
+				DisableOption(TO_XTSGRPIX);
 				EnableOption(i);	// Last select Enable
 			} else if ( ch == 'l' ) {
 				DisableOption(TO_XTEXTMOS);
 				DisableOption(TO_XTSGRMOS);
 				DisableOption(TO_XTURXMOS);
+				DisableOption(TO_XTSGRPIX);
 			}
 			break;
 

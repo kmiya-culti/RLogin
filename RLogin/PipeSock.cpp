@@ -148,7 +148,7 @@ BOOL CFifoPipe::IsPipeName(LPCTSTR path)
 
 	return TRUE;
 }
-BOOL CFifoPipe::Open(LPCTSTR pCommand)
+BOOL CFifoPipe::Open(LPCTSTR pCommand, BOOL bNew)
 {
 	::FormatErrorReset();
 
@@ -159,7 +159,7 @@ BOOL CFifoPipe::Open(LPCTSTR pCommand)
 
 	if ( IsPipeName(pCommand) ) {
 
-		if ( (m_hIn[0] = CreateFile(pCommand, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE ) {
+		if ( (m_hIn[0] = CreateFile(pCommand, GENERIC_READ | GENERIC_WRITE, 0, NULL, (bNew ? CREATE_NEW : OPEN_EXISTING), FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE ) {
 			m_nLastError = GetLastError();
 			::ThreadMessageBox(_T("Pipe create error\n'%s'\n"), pCommand);
 			return FALSE;

@@ -1782,7 +1782,7 @@ static void Encode(unsigned char *out, const uint16_t *R, const uint16_t *M, lon
     }
   }
   if (len > 1) {
-//    uint16_t R2[(len + 1) / 2], M2[(len + 1) / 2];
+    //uint16_t R2[(len + 1) / 2], M2[(len + 1) / 2];
 	uint16_t *R2 = new uint16_t[(int)((len + 1) / 2)];
 	uint16_t *M2 = new uint16_t[(int)((len + 1) / 2)];
     long long i;
@@ -1857,7 +1857,9 @@ static void Decode(uint16_t *out, const unsigned char *S, const uint16_t *M, lon
     }
     if (i < len) *out++ = R2[i / 2];
 
-	delete [] R2, M2, bottomr;
+	delete [] R2;
+	delete [] M2;
+	delete [] bottomr;
 	delete [] bottomt;
   }
 }
@@ -1993,6 +1995,7 @@ static void Short_fromlist(small *out, const uint32_t *in) {
 }
 
 static void Hash_prefix(unsigned char *out, int b, const unsigned char *in, int inlen) {
+  //unsigned char x[inlen + 1];
   unsigned char *x = new unsigned char[inlen + 1];
   unsigned char h[64];
   int i;

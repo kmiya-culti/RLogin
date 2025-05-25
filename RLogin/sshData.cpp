@@ -2558,7 +2558,7 @@ BOOL CIdKey::GetTypeFromName(LPCTSTR name, int &type, int &nid)
 	CString tmp;
 
 #define	TYPENAMETABMAX		38
-	TYPENAMETAB TypeNameTab[TYPENAMETABMAX] = {
+	static const TYPENAMETAB TypeNameTab[TYPENAMETABMAX] = {
 		{ _T("dsa"),						IDKEY_DSA2,			NID_undef				},
 		{ _T("ecdsa-sha2-nistb233"),		IDKEY_ECDSA,		NID_sect233r1			},
 		{ _T("ecdsa-sha2-nistb409"),		IDKEY_ECDSA,		NID_sect409r1			},
@@ -4252,7 +4252,7 @@ int CIdKey::ReadPrivateKey(LPCTSTR str, LPCTSTR pass, BOOL bHost)
 		return TRUE;
 
 	} catch(LPCTSTR msg) {
-		::ThreadMessageBox(msg);
+		::ThreadMessageBox(_T("%s"), msg);
 		return FALSE;
 	} catch(...) {
 		return FALSE;

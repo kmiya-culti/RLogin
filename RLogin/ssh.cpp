@@ -139,11 +139,14 @@ void CFifoSsh::OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent
 		((Cssh *)m_pSock)->SendMsgKeepAlive();
 		break;
 	case FIFO_QCMD_CANCELPFD:
-		((Cssh *)m_pSock)->CancelPortForward();
+		((Cssh *)m_pSock)->CancelPortForward(msg);
 		break;
 	case FIFO_QCMD_PLUGIN:
 		((Cssh *)m_pSock)->PluginProc(msg, (CBuffer *)buf);
 		delete (CBuffer *)buf;
+		break;
+	case FIFO_QCMD_KEXINIT:
+		((Cssh *)m_pSock)->SendMsgKexInit();
 		break;
 	}
 }
@@ -175,6 +178,8 @@ CFifoChannel::CFifoChannel()
 
 	m_bClosed = FALSE;
 	m_pFifoBase = NULL;
+
+	m_pParam = NULL;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -286,6 +291,7 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 
 	m_ExtInfoStat = EXTINFOSTAT_CHECK;
 	m_ExtInfo.RemoveAll();
+	m_KexInitTiimerId = 0;
 
 	m_KeepAliveTiimerId = 0;
 	m_KeepAliveSendCount = m_KeepAliveReplyCount = 0;
@@ -324,6 +330,9 @@ Cssh::~Cssh()
 
 	if ( m_KeepAliveTiimerId != 0 )
 		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_KeepAliveTiimerId);
+
+	if ( m_KexInitTiimerId != 0 )
+		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_KexInitTiimerId);
 
 	if ( m_pAgentMutex != NULL )
 		delete m_pAgentMutex;
@@ -521,6 +530,8 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		n = m_pDocument->m_ParamTab.GetPropNode(2, 0, str);
 		m_CompMode = (n == FALSE || str.Compare(_T("none")) == 0 ? FALSE : TRUE);
 
+		CreateMyPeer();
+
 		if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType) )
 			return FALSE;
 
@@ -537,6 +548,13 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 }
 void Cssh::Close()
 {
+	if ( m_pFifoMid != NULL ) {
+		m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_CANCELPFD, TRUE);
+		((CFifoSsh *)m_pFifoMid)->ThreadClose();
+	}
+
+	CExtSocket::Close();
+
 	for ( int n = 0 ; n < m_FifoCannel.GetSize() ; n++ ) {
 		CFifoChannel *pChan = (CFifoChannel *)m_FifoCannel[n];
 		if ( pChan != NULL ) {
@@ -544,8 +562,6 @@ void Cssh::Close()
 			ChannelClose(n);
 		}
 	}
-
-	CExtSocket::Close();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -554,6 +570,8 @@ void Cssh::OnTimer(UINT_PTR nIDEvent)
 {
 	if ( nIDEvent == m_KeepAliveTiimerId )
 		m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_KEEPALIVE);
+	else if ( nIDEvent == m_KexInitTiimerId )
+		m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_KEXINIT);
 	else
 		CExtSocket::OnTimer(nIDEvent);
 }
@@ -616,6 +634,9 @@ void Cssh::OnRecvSocket(void* lpBuf, int nBufLen, int nFlags)
 
 							DEBUGLOG("Receive Version %s", TstrToMbs(m_ServerVerStr));
 							DEBUGLOG("Send Version %s", str);
+
+							if ( m_SSHVer == 2 )
+								m_KexInitTiimerId = m_pFifoMid->DocMsgSetTimer(100, TIMEREVENT_SOCK, this);
 						}
 
 						break;
@@ -1078,7 +1099,7 @@ void Cssh::ResetOption()
 		m_KeepAliveTiimerId = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
 
 	if ( m_PortFwdTable.Compare(m_pDocument->m_ParamTab.m_PortFwd) != 0 ) {
-		m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_CANCELPFD);
+		m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_CANCELPFD, FALSE);
 		m_PortFwdTable = m_pDocument->m_ParamTab.m_PortFwd;
 	}
 
@@ -1501,6 +1522,9 @@ void Cssh::ReceivePacket(CBuffer *bp)
 
 void Cssh::LogIt(LPCTSTR format, ...)
 {
+	if ( m_pFifoMid == NULL )
+		return;
+
     va_list args;
 	CString str;
 
@@ -1655,6 +1679,32 @@ BOOL Cssh::IsStriStr(LPCSTR str, LPCSTR ptn)
 	}
 
 	return FALSE;
+}
+void Cssh::CreateMyPeer()
+{
+	m_pDocument->m_ParamTab.GetProp(9,  m_CProp[PROP_KEX_ALGS]);			// PROPOSAL_KEX_ALGS
+	m_pDocument->m_ParamTab.GetProp(10, m_CProp[PROP_HOST_KEY_ALGS]);		// PROPOSAL_SERVER_HOST_KEY_ALGS
+
+	m_pDocument->m_ParamTab.GetProp(6,  m_CProp[PROP_ENC_ALGS_CTOS], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFENC));	// PROPOSAL_ENC_ALGS_CTOS
+	m_pDocument->m_ParamTab.GetProp(3,  m_CProp[PROP_ENC_ALGS_STOC], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFENC));	// PROPOSAL_ENC_ALGS_STOC
+	m_pDocument->m_ParamTab.GetProp(7,  m_CProp[PROP_MAC_ALGS_CTOS], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));	// PROPOSAL_MAC_ALGS_CTOS
+	m_pDocument->m_ParamTab.GetProp(4,  m_CProp[PROP_MAC_ALGS_STOC], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));	// PROPOSAL_MAC_ALGS_STOC
+
+	m_pDocument->m_ParamTab.GetProp(8,  m_CProp[PROP_COMP_ALGS_CTOS]);		// PROPOSAL_COMP_ALGS_CTOS
+	m_pDocument->m_ParamTab.GetProp(5,  m_CProp[PROP_COMP_ALGS_STOC]);		// PROPOSAL_COMP_ALGS_STOC
+
+	m_CProp[PROP_LANG_CTOS] = _T("");				// PROPOSAL_LANG_CTOS,
+	m_CProp[PROP_LANG_STOC] = _T("");				// PROPOSAL_LANG_STOC,
+
+	// add kex option
+	m_CProp[PROP_KEX_ALGS] += _T(",ext-info-c,kex-strict-c,kex-strict-c-v00@openssh.com");
+
+	m_MyPeer.Clear();
+	rand_buf(m_MyPeer.PutSpc(16), 16);
+	for ( int n = 0 ; n < 10 ; n++ )
+		m_MyPeer.PutStr(TstrToUtf8(m_CProp[n]));
+	m_MyPeer.Put8Bit(0);
+	m_MyPeer.Put32Bit(0);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1932,6 +1982,7 @@ void Cssh::ChannelClose(int id, int nStat)
 	if ( pChan->m_pFifoBase != NULL ) {
 		CFifoBase::UnLink(pChan->m_pFifoBase, FIFO_STDIN, FALSE);
 		pChan->m_pFifoBase->Destroy();
+		pChan->m_pFifoBase = NULL;
 	}
 
 	switch(pChan->m_Type) {
@@ -2324,7 +2375,7 @@ void Cssh::PortForward(BOOL bReset)
 	} else
 		m_PfdConnect = 0;
 }
-void Cssh::CancelPortForward()
+void Cssh::CancelPortForward(BOOL bClose)
 {
 	int n;
 	CBuffer *pBuf;
@@ -2354,7 +2405,7 @@ void Cssh::CancelPortForward()
 	if ( m_pDocument != NULL )
 		m_pDocument->m_bPfdCheck = FALSE;
 
-	if ( !bDelay )
+	if ( !bDelay && !bClose )
 		PortForward(TRUE);
 }
 
@@ -2509,7 +2560,7 @@ void Cssh::PluginProc(int type, CBuffer *bp)
 				file = m_pDocument->m_ParamTab.m_PluginAuth;
 				m_pDocument->EntryText(file);
 
-				if ( !m_pFifoPipe->Open(file) ) {
+				if ( !m_pFifoPipe->Open(file, FALSE) ) {
 					errMsg.Format(_T("State None, command exec error '%s'"), (LPCTSTR)file);
 					m_PluginStat = STATE_ERROR;
 					break;
@@ -3754,6 +3805,9 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_MLKEM1024H384,	_T("ml-kem-1024-sha384")						},	// draft-harrison-mlkem-ssh-00
 		{ 0,					NULL											},
 	};
+		
+	if ( m_KexInitTiimerId != 0 )
+		m_KexInitTiimerId = 0;
 
 	m_HisPeer = *bp;
 	for ( n = 0 ; n < 16 ; n++ )
@@ -3765,24 +3819,13 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	bp->Get8Bit();
 	bp->Get32Bit();
 
-	m_pDocument->m_ParamTab.GetProp(9,  m_CProp[PROP_KEX_ALGS]);			// PROPOSAL_KEX_ALGS
-	m_pDocument->m_ParamTab.GetProp(10, m_CProp[PROP_HOST_KEY_ALGS]);		// PROPOSAL_SERVER_HOST_KEY_ALGS
-
-	m_pDocument->m_ParamTab.GetProp(6,  m_CProp[PROP_ENC_ALGS_CTOS], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFENC));	// PROPOSAL_ENC_ALGS_CTOS
-	m_pDocument->m_ParamTab.GetProp(3,  m_CProp[PROP_ENC_ALGS_STOC], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFENC));	// PROPOSAL_ENC_ALGS_STOC
-	m_pDocument->m_ParamTab.GetProp(7,  m_CProp[PROP_MAC_ALGS_CTOS], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));	// PROPOSAL_MAC_ALGS_CTOS
-	m_pDocument->m_ParamTab.GetProp(4,  m_CProp[PROP_MAC_ALGS_STOC], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));	// PROPOSAL_MAC_ALGS_STOC
-
-	m_pDocument->m_ParamTab.GetProp(8,  m_CProp[PROP_COMP_ALGS_CTOS]);		// PROPOSAL_COMP_ALGS_CTOS
-	m_pDocument->m_ParamTab.GetProp(5,  m_CProp[PROP_COMP_ALGS_STOC]);		// PROPOSAL_COMP_ALGS_STOC
-
-	m_CProp[PROP_LANG_CTOS] = m_VProp[PROP_LANG_CTOS] = _T("");				// PROPOSAL_LANG_CTOS,
-	m_CProp[PROP_LANG_STOC] = m_VProp[PROP_LANG_STOC] = _T("");				// PROPOSAL_LANG_STOC,
-
 	for ( n = 0 ; n < 8 ; n++ ) {
 		if ( !MatchList(m_CProp[n], m_SProp[n], m_VProp[n]) )
 			return (-1);
 	}
+
+	m_VProp[PROP_LANG_CTOS] = _T("");				// PROPOSAL_LANG_CTOS,
+	m_VProp[PROP_LANG_STOC] = _T("");				// PROPOSAL_LANG_STOC,
 
 	if ( m_EncCip.IsAEAD(m_VProp[PROP_ENC_ALGS_CTOS]) || m_EncCip.IsPOLY(m_VProp[PROP_ENC_ALGS_CTOS]) )
 		m_VProp[PROP_MAC_ALGS_CTOS] = m_VProp[PROP_ENC_ALGS_CTOS];
@@ -5034,10 +5077,14 @@ int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 		return (-1);
 
 	if ( type == SSH2_MSG_CHANNEL_OPEN_FAILURE ) {
-		if ( pChan->m_Type != SSHFT_NONE )
-			LogIt(_T("Open Failure #%d Filter"), id);
-		else
-			LogIt(_T("Open Failure #%d %s:%d -> %s:%d"), id, pChan->m_lHost, pChan->m_lPort, pChan->m_rHost, pChan->m_rPort);
+		int ec;
+		CStringA msg;
+		CString host;
+		ec = bp->Get32Bit();
+		bp->GetStr(msg);
+		if ( pChan->m_Type == SSHFT_NONE )
+			host.Format(_T("%s:%d -> %s:%d "), (LPCTSTR)pChan->m_lHost, pChan->m_lPort, (LPCTSTR)pChan->m_rHost, pChan->m_rPort);
+		LogIt(_T("Open Failure #%d(%d) %s%d:%s"), id, pChan->m_Type, host, ec, LocalStr(msg));
 		ChannelClose(id);
 		return (id == FdToId(FIFO_EXTIN) ? (-1) : 0);
 	}

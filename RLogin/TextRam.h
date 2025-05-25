@@ -187,6 +187,7 @@
 #define	TO_XTEXTMOS		(1005-700)	// Enable Extended Mouse Mode
 #define	TO_XTSGRMOS		(1006-700)	// SGR Extended Mouse Mode
 #define	TO_XTURXMOS		(1015-700)	// URXVT Extended Mouse Mode
+#define	TO_XTSGRPIX		(1016-700)	// SGR-Pixels Extended Mouse Mode
 #define	TO_XTALTSCR		(1047-700)	// Alternate/Normal screen buffer
 #define	TO_XTSRCUR		(1048-700)	// Save/Restore cursor as in DECSC/DECRC
 #define	TO_XTALTCLR		(1049-700)	// Alternate screen with clearing
