@@ -6,9 +6,17 @@
 <STYLE type="text/css">
 <!--
 TD {
+				
+				
+				
+				
 		background-color : #ffffff; font-size : 90%;
 }
 .BOX{
+				
+				
+				
+				
 		background-color : silver;
 }
 -->
@@ -1525,10 +1533,16 @@ function OnClickOk(id) {
           <TR>
             <TD width="600" valign="top">単純なコマンドラインによる多段接続（ログインしてからsshやtelnetコマンドで別のサーバーに接続）なら<A href="faq.html#LOGON">ログイン手順の自動化</A>で設定するのが簡単ですが<A href="./#PORTFORWARD">ポートフォワードの設定</A>で多段接続した場合は、ローカルネット上のsshサーバーに対してsftpなどが実行できるメリットがあります。（コマンドラインで接続した場合にsftpなどを実行すると踏み台サーバーにアクセスします）<BR>
             <BR>
-            ※コマンドラインで接続する場合、すべてsshサーバーで公開鍵認証ならserverAの設定で<A href="./#PROTOPT">エージェント転送を有効にする</A>にしておけば認証を簡素化することも出来ます。（ssh -A localBですね）<BR>
-            <BR>
+            ※コマンドラインで接続する場合、すべてsshサーバーで公開鍵認証ならserverAの設定で<A href="./#PROTOPT">エージェント転送を有効にする</A>にしておけば認証を簡素化することも出来ます。<BR>
             ※踏み台となるサーバーでシェルの実行が不用なら<A href="./#PROTOPT">ポートフォワードだけ行う</A>をチェックすればポートフォワードのログが表示されるようになります。</TD>
             <TD valign="top" align="left"><IMG src="image250.jpg" width="574" height="184" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"> 2.30.6から<A href="index.html#PROXYSET">プロキシ－サーバーの設定</A>のSSH Proxyで踏み台サーバーエントリーを指定するだけでローカルネット上のSSHサーバーに接続することが出来ます。下の例との違いは、前接続の設定とプロキシ設定でSOCKS5を指定するのではなくSSH
+            ProxyでserverAを指定しています。SSH Proxyでの指定は、指定する<B>踏み台となるサーバーのSSHエントリーで事前にポートフォワードの設定が不要</B>で自動でポートフォワードを行います。下記の方法では、別のRLoginでserverAの接続があれば使用出来ますがこのSSH Proxyは、localBと同じRLogin内の別タブに限定されますのでご注意ください。別タブで開きたくない場合は、下記のサーバーエントリーのポートフォワード設定をご利用ください<BR>
+            <BR>
+            <IMG src="image300.jpg" width="420" height="506" border="0"></TD>
+            <TD valign="top"><IMG src="image301.jpg" width="611" height="538" border="0"></TD>
           </TR>
           <TR>
             <TD valign="top" width="600">踏み台となるserverAの設定では、まず通常に接続できる事を確認した上で<A href="./#PORTFORWARD">ポートフォワードの設定</A>を行います。ここで注意するのはエントリー名で任意の名前ですが下記の<FONT color="#ff0000">前接続先で指定するエントリー名</FONT>になります。<BR>

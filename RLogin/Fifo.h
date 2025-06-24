@@ -332,6 +332,8 @@ public:
 
 	virtual void OnLinked(int nFd, BOOL bMid);
 	virtual void OnUnLinked(int nFd, BOOL bMid);
+
+	inline DWORD GetThreadID() { return m_pWinThread == NULL ? 0 : m_pWinThread->m_nThreadID; }
 };
 
 class CFifoSync : public CFifoBase
@@ -392,7 +394,9 @@ public:
 class CFifoTunnel : public CFifoBase
 {
 public:
-	CArray<HANDLE, HANDLE> m_hWaitEvents;
+	class CFifoTunnel *m_pMater;
+	class CFifoTunnel *m_pSlave;
+	void *m_pFifoSave[2];
 
 public:
 	CFifoTunnel(class CRLoginDoc *pDoc, class CExtSocket *pSock);
@@ -400,6 +404,10 @@ public:
 
 	virtual void FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam);
 	virtual void SendCommand(int cmd, int param = 0, int msg = 0, int len = 0, void *buf = NULL, CEvent *pEvent = NULL, BOOL *pResult = NULL);
+	virtual void OnUnLinked(int nFd, BOOL bMid);
+
+	void FifoLink(class CFifoTunnel *pSlave);
+	void FifoUnLink();
 };
 
 class CFifoSocket : public CFifoASync

@@ -95,6 +95,7 @@ protected:
 protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnLvnItemchangedModeList(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult);
 };
 
 /////////////////////////////////////////////////////////////////////////////

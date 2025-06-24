@@ -22,6 +22,7 @@ public:
 	CString m_HostName;
 	CProgressCtrl m_TimeLimit;
 	CFont m_DigestFont;
+	BOOL m_bStatusMode;
 
 	int m_Counter;
 	int m_MaxTime;

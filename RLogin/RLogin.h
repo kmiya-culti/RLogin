@@ -178,6 +178,7 @@ public:
 	CString m_BaseDir;
 	CString m_ExecDir;
 	CString m_PathName;
+	BOOL m_bUseCmdInfo;
 	CCommandLineInfoEx *m_pCmdInfo;
 	CServerEntry *m_pServerEntry;
 	BOOL m_bLookCast;
@@ -289,6 +290,8 @@ public:
 	BOOL CheckDocument(class CRLoginDoc *pDoc);
 	BOOL OnEntryData(COPYDATASTRUCT *pCopyData);
 	void OpenRLogin(class CRLoginDoc *pDoc, CPoint *pPoint);
+
+	CRLoginDoc *GetDocFromEntryName(LPCTSTR entry, CRLoginDoc *pThis = NULL);
 
 	DWORD m_FindProcsId;
 	HWND m_FindProcsHwnd;

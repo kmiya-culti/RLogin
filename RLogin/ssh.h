@@ -541,6 +541,7 @@ public:
 #define	SSHFT_REMOTE_SOCKS		9
 #define	SSHFT_SOCKET_LOCAL		10
 #define	SSHFT_SOCKET_REMOTE		11
+#define	SSHFT_TUNNEL_SOCKET		12
 
 #define	CHAN_REQ_PTY			0
 #define	CHAN_REQ_SHELL			1
@@ -864,6 +865,7 @@ public:
 	UINT m_HostPort;
 
 	CStringA m_ServerPrompt;
+	CStringA m_ClinetPrompt;
 	CString m_ServerVerStr;
 	CString m_ClientVerStr;
 
@@ -1023,6 +1025,8 @@ public:
 	BOOL IsStriStr(LPCSTR str, LPCSTR ptn);
 	void CreateMyPeer();
 
+	inline BOOL IsLogin() { return (m_SSH2Status & (SSH2_STAT_HAVELOGIN | SSH2_STAT_HAVESESS | SSH2_STAT_SENTKEXINIT)) == (SSH2_STAT_HAVELOGIN | SSH2_STAT_HAVESESS); }
+
 // Channel func
 	inline int IdToFdIn(int id)  { return(id * 2 + 0); }
 	inline int IdToFdOut(int id) { return(id * 2 + 1); }
@@ -1046,6 +1050,14 @@ public:
 	void OpenRcpUpload(LPCTSTR file);
 	void OpenRcpDownload(LPCTSTR file);
 
+	typedef struct _TunnelScoketCtx {
+		CString HostName;
+		UINT HostPort;
+		CExtSocket *pSock;
+	} TunnelScoketCtx;
+
+	BOOL OpenTunnelSocket(LPCTSTR lpszHostAddress, UINT nHostPort, CExtSocket *pSock);
+
 	enum PluginState m_PluginStat;
 	class CFifoPipe *m_pFifoPipe;
 	CFifoPlugin *m_pFifoPlugin;
@@ -1064,8 +1076,7 @@ public:
 	void SendMsgServiceRequest(LPCSTR str);
 	int SendMsgUserAuthRequest(LPCSTR str);
 
-	void PostSendMsgChannelOpen(int id, LPCSTR type);
-	int SendMsgChannelOpen(int id, LPCSTR type, LPCTSTR lhost = NULL, int lport = 0, LPCTSTR rhost = NULL, int rport = 0);
+	void SendMsgChannelOpen(int id, LPCSTR type, LPCTSTR lhost = NULL, int lport = 0, LPCTSTR rhost = NULL, int rport = 0);
 	void SendMsgChannelOpenConfirmation(int id);
 	void SendMsgChannelOpenFailure(int id);
 	void SendMsgChannelData(int id);

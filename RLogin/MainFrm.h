@@ -241,7 +241,14 @@ public:
 	void AddFifoActive(void *pFifoBase);
 	void DelFifoActive(void *pFifoBase);
 
-	int SetAfterId(void *param);
+	typedef struct _AfterIdParam {
+		int		SeqId;
+		LPCTSTR	EntryName;
+		CRLoginDoc *pDocument;
+	} AfterIdParam;
+
+	int SetAfterId(LPCTSTR EntryName, CRLoginDoc *pDocument);
+
 	void UpdateServerEntry();
 	int OpenServerEntry(CServerEntry &Entry);
 
@@ -445,6 +452,7 @@ protected:
 	afx_msg void OnUpdateWindowPrev(CCmdUI *pCmdUI);
 	afx_msg void OnWinodwNext();
 	afx_msg void OnUpdateWinodwNext(CCmdUI *pCmdUI);
+	afx_msg void OnWinodwDelNext();
 
 	afx_msg void OnViewMenubar();
 	afx_msg void OnUpdateViewMenubar(CCmdUI *pCmdUI);

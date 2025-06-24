@@ -12,6 +12,7 @@
 #include "TtyModeDlg.h"
 #include "InitAllDlg.h"
 #include "BlockDlg.h"
+#include "CertKeyDlg.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CTtyModeDlg ダイアログ
@@ -479,6 +480,7 @@ CKnownHostsDlg::~CKnownHostsDlg()
 
 BEGIN_MESSAGE_MAP(CKnownHostsDlg, CTtyModeDlg)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_MODE_LIST, &CKnownHostsDlg::OnLvnItemchangedModeList)
+	ON_NOTIFY(NM_DBLCLK, IDC_MODE_LIST, &CKnownHostsDlg::OnNMDblclk)
 END_MESSAGE_MAP()
 
 static const LV_COLUMN InitKnownHostsTab[3] = {
@@ -654,6 +656,30 @@ void CKnownHostsDlg::OnLvnItemchangedModeList(NMHDR *pNMHDR, LRESULT *pResult)
 			m_List.SetLVCheck(n, bCheck);
 		}
 	}
+
+	*pResult = 0;
+}
+void CKnownHostsDlg::OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	NMLISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
+	int nItem = pNMListView->iItem;
+
+	if ( nItem < 0 )
+		return;
+
+	int nIndex = (int)m_List.GetItemData(nItem);
+	KNOWNHOSTDATA *pData = (KNOWNHOSTDATA *)m_Data[nIndex];
+
+	CCertKeyDlg dlg;
+	CIdKey key;
+	
+	if ( key.ReadPublicKey(pData->digest) )
+		key.FingerPrint(dlg.m_Digest);
+	else
+		dlg.m_Digest.Format(_T("unkown key type\n'%16.16s'"), pData->digest);
+
+	dlg.m_bStatusMode = TRUE;
+	dlg.DoModal();
 
 	*pResult = 0;
 }

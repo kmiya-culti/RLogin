@@ -30,10 +30,15 @@ public:
 	BOOL m_UsePassDlg;
 	BOOL m_CmdFlag;
 	CString m_ProxyCmd;
+	BOOL m_SshFlag;
+	BOOL m_SshDisable;
+	CString m_ProxySsh;
 
 	CComboBoxHis m_ServerCombo;
 	CComboBoxHis m_UserCombo;
 	CComboBoxHis m_ProxyCmdCombo;
+
+	void InitSshEntry();
 
 // オーバーライド
 protected:

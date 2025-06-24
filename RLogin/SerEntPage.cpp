@@ -50,6 +50,7 @@ CSerEntPage::CSerEntPage() : CTreePage(CSerEntPage::IDD)
 	m_ProxyUser = _T("");
 	m_ProxyPass = _T("");
 	m_ProxyCmd = _T("");
+	m_ProxySsh = _T("");
 	m_ExtEnvStr = _T("");
 	m_BeforeEntry = _T("");
 	m_UsePassDlg = FALSE;
@@ -153,6 +154,7 @@ void CSerEntPage::DoInit()
 	m_ProxyUser   = m_pSheet->m_pEntry->m_ProxyUserProvs;
 	m_ProxyPass   = m_pSheet->m_pEntry->m_ProxyPassProvs;
 	m_ProxyCmd    = m_pSheet->m_pEntry->m_ProxyCmd;
+	m_ProxySsh    = m_pSheet->m_pEntry->m_ProxySsh;
 	m_SSL_Keep    = m_pSheet->m_pEntry->m_ProxySSLKeep;
 	m_Memo        = m_pSheet->m_pEntry->m_Memo;
 	m_Group       = m_pSheet->m_pEntry->m_Group;
@@ -298,6 +300,7 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pEntry->m_ProxyUser = m_ProxyUser;
 	m_pSheet->m_pEntry->m_ProxyPass = m_ProxyPass;
 	m_pSheet->m_pEntry->m_ProxyCmd  = m_ProxyCmd;
+	m_pSheet->m_pEntry->m_ProxySsh  = m_ProxySsh;
 	m_pSheet->m_pEntry->m_Memo      = m_Memo;
 	m_pSheet->m_pEntry->m_Group     = m_Group;
 	m_pSheet->m_pEntry->m_HostNameProvs  = m_HostName;
@@ -435,8 +438,9 @@ void CSerEntPage::OnProxySet()
 {
 	CProxyDlg dlg;
 
-	dlg.m_ProxyMode  = m_ProxyMode & 7;
-	dlg.m_SSLMode    = m_ProxyMode >> 3;
+	// ProxyMode 0000 00mm ssss smmm
+	dlg.m_ProxyMode  = (m_ProxyMode & 0x07) | ((m_ProxyMode & 0x300) >> 5);
+	dlg.m_SSLMode    = (m_ProxyMode >> 3) & 0x1F;
 	dlg.m_ServerName = m_ProxyHost;
 	dlg.m_PortName   = m_ProxyPort;
 	dlg.m_UserName   = m_ProxyUser;
@@ -444,11 +448,12 @@ void CSerEntPage::OnProxySet()
 	dlg.m_SSL_Keep   = m_SSL_Keep;
 	dlg.m_UsePassDlg = m_UseProxyDlg;
 	dlg.m_ProxyCmd   = m_ProxyCmd;
+	dlg.m_ProxySsh   = m_ProxySsh;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	m_ProxyMode   = dlg.m_ProxyMode | (dlg.m_SSLMode << 3);
+	m_ProxyMode   = (dlg.m_ProxyMode & 0x07) | ((dlg.m_ProxyMode & 0x18) << 5) | ((dlg.m_SSLMode & 0x1F) << 3);
 	m_ProxyHost   = dlg.m_ServerName;
 	m_ProxyPort   = dlg.m_PortName;
 	m_ProxyUser   = dlg.m_UserName;
@@ -456,6 +461,7 @@ void CSerEntPage::OnProxySet()
 	m_SSL_Keep    = dlg.m_SSL_Keep;
 	m_UseProxyDlg = dlg.m_UsePassDlg;
 	m_ProxyCmd    = dlg.m_ProxyCmd;
+	m_ProxySsh    = dlg.m_ProxySsh;
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= (UMOD_ENTRY | UMOD_PARAMTAB);

@@ -333,9 +333,15 @@ protected:
 	afx_msg void OnSearchReg();
 	afx_msg void OnSearchBack();
 	afx_msg void OnSearchNext();
+
 	afx_msg void OnSplitHeight();
 	afx_msg void OnSplitWidth();
 	afx_msg void OnSplitOver();
 	afx_msg void OnSplitHeightNew();
 	afx_msg void OnSplitWidthNew();
+
+	afx_msg void OnFontSizeUp();
+	afx_msg void OnFontSizeDown();
+	afx_msg void OnFontSizeDef();
+	afx_msg void OnUpdateFontSize(CCmdUI *pCmdUI);
 };

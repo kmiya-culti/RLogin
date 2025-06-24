@@ -254,6 +254,14 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_UPDATE_COMMAND_UI(IDM_EDIT_MARK, &CRLoginView::OnUpdateEditMark)
 	ON_COMMAND(IDM_LINEEDITMODE, &CRLoginView::OnLineeditmode)
 	ON_UPDATE_COMMAND_UI(IDM_LINEEDITMODE, &CRLoginView::OnUpdateLineeditmode)
+
+	ON_COMMAND(IDM_FONT_SIZE_UP, &CRLoginView::OnFontSizeUp)
+	ON_UPDATE_COMMAND_UI(IDM_FONT_SIZE_UP, &CRLoginView::OnUpdateFontSize)
+	ON_COMMAND(IDM_FONT_SIZE_DOWN, &CRLoginView::OnFontSizeDown)
+	ON_UPDATE_COMMAND_UI(IDM_FONT_SIZE_DOWN, &CRLoginView::OnUpdateFontSize)
+	ON_COMMAND(IDM_FONT_SIZE_DEF, &CRLoginView::OnFontSizeDef)
+	ON_UPDATE_COMMAND_UI(IDM_FONT_SIZE_DEF, &CRLoginView::OnUpdateFontSize)
+
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2708,9 +2716,13 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 		if ( pDoc->m_TextRam.IsOptEnable(TO_RLFONT) ) {
 			if ( (pDoc->m_TextRam.m_FontSize += (m_WheelzDelta / WHEEL_DELTA)) < 2 )
 				pDoc->m_TextRam.m_FontSize = 2;
-			m_WheelzDelta %= WHEEL_DELTA;
-			pDoc->UpdateAllViews(NULL, UPDATE_RESIZE, NULL);
+		} else {
+			if ( (pDoc->m_TextRam.m_ActCols[0] -= (m_WheelzDelta / WHEEL_DELTA)) < 5 )
+				pDoc->m_TextRam.m_ActCols[0] = 5;
+			pDoc->m_TextRam.m_ActCols[1] = pDoc->m_TextRam.m_ActCols[0] * pDoc->m_TextRam.m_DefCols[1] / pDoc->m_TextRam.m_DefCols[0];
 		}
+		m_WheelzDelta %= WHEEL_DELTA;
+		pDoc->UpdateAllViews(NULL, UPDATE_RESIZE, NULL);
 		return TRUE;
 	}
 
@@ -4160,6 +4172,60 @@ void CRLoginView::SpeakTextPos(BOOL bDisp, CCurPos *pStaPos, CCurPos *pEndPos)
 
 	if ( !bDisp && !((CMainFrame *)::AfxGetMainWnd())->SpeakViewCheck(this) )
 		OnSetCursor(NULL, 0, 0);
+}
+
+void CRLoginView::OnFontSizeUp()
+{
+	CRLoginDoc *pDoc = GetDocument();
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLFONT) ) {
+		pDoc->m_TextRam.m_FontSize += 1;
+	} else {
+		if ( pDoc->m_TextRam.m_ActCols[0] <= 5 )
+			return;
+		pDoc->m_TextRam.m_ActCols[0] -= 1;
+		pDoc->m_TextRam.m_ActCols[1] = pDoc->m_TextRam.m_ActCols[0] * pDoc->m_TextRam.m_DefCols[1] / pDoc->m_TextRam.m_DefCols[0];
+	}
+
+	pDoc->UpdateAllViews(NULL, UPDATE_RESIZE, NULL);
+}
+void CRLoginView::OnFontSizeDown()
+{
+	CRLoginDoc *pDoc = GetDocument();
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLFONT) ) {
+		if ( pDoc->m_TextRam.m_FontSize <= 2 )
+			return;
+		pDoc->m_TextRam.m_FontSize -= 1;
+	} else {
+		pDoc->m_TextRam.m_ActCols[0] += 1;
+		pDoc->m_TextRam.m_ActCols[1] = pDoc->m_TextRam.m_ActCols[0] * pDoc->m_TextRam.m_DefCols[1] / pDoc->m_TextRam.m_DefCols[0];
+	}
+
+	pDoc->UpdateAllViews(NULL, UPDATE_RESIZE, NULL);
+}
+void CRLoginView::OnFontSizeDef()
+{
+	CRLoginDoc *pDoc = GetDocument();
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLFONT) ) {
+		if (  pDoc->m_TextRam.m_FontSize == pDoc->m_TextRam.m_DefFontSize )
+			return;
+		pDoc->m_TextRam.m_FontSize = pDoc->m_TextRam.m_DefFontSize;
+	} else {
+		if (  pDoc->m_TextRam.m_ActCols[0] == pDoc->m_TextRam.m_DefCols[0] )
+			return;
+		pDoc->m_TextRam.m_ActCols[0] = pDoc->m_TextRam.m_DefCols[0];
+		pDoc->m_TextRam.m_ActCols[1] = pDoc->m_TextRam.m_DefCols[1];
+	}
+
+	pDoc->UpdateAllViews(NULL, UPDATE_RESIZE, NULL);
+}
+void CRLoginView::OnUpdateFontSize(CCmdUI *pCmdUI)
+{
+	CRLoginDoc *pDoc = GetDocument();
+
+	pCmdUI->Enable(pDoc->m_TextRam.IsInitText() ? TRUE : FALSE);
 }
 
 /////////////////////////////////////////////////////////////////////////////

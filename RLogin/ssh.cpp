@@ -194,6 +194,7 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_HostPort = 0;
 
 	m_ServerPrompt.Empty();
+	m_ClinetPrompt.Empty();
 	m_ServerVerStr.Empty();
 	m_ClientVerStr.Empty();
 
@@ -367,6 +368,8 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		CDWordArray list[2];
 
 		m_SSHVer = 0;
+		m_ServerPrompt.Empty();
+		m_ClinetPrompt.Empty();
 		m_ServerVerStr = _T("");
 		m_ClientVerStr = _T("");
 		m_InPackStat = 0;
@@ -548,6 +551,19 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 }
 void Cssh::Close()
 {
+	while ( !m_DelayedCheck.IsEmpty() ) {
+		DelayedCheck *pDelayedCheck = (DelayedCheck *)m_DelayedCheck.RemoveHead();
+		if ( pDelayedCheck->bDelBuf )
+			delete (CBuffer *)pDelayedCheck->pParam;
+		delete pDelayedCheck;
+	}
+
+	for ( int n = 0 ; n < m_FifoCannel.GetSize() ; n++ ) {
+		CFifoChannel *pChan = (CFifoChannel *)m_FifoCannel[n];
+		if ( pChan != NULL && pChan->m_pFifoBase != NULL && pChan->m_Type == SSHFT_TUNNEL_SOCKET )
+			((CFifoTunnel *)pChan->m_pFifoBase)->FifoUnLink();
+	}
+
 	if ( m_pFifoMid != NULL ) {
 		m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_CANCELPFD, TRUE);
 		((CFifoSsh *)m_pFifoMid)->ThreadClose();
@@ -629,7 +645,8 @@ void Cssh::OnRecvSocket(void* lpBuf, int nBufLen, int nFlags)
 								m_ClientVerStr += m_pDocument->m_ParamTab.m_VerIdent;
 							}
 
-							str.Format("%s\r\n", RemoteStr(m_ClientVerStr));
+							m_ClinetPrompt = RemoteStr(m_ClientVerStr);
+							str.Format("%s\r\n", m_ClinetPrompt);
 							SendSocket((LPCSTR)str, str.GetLength());
 
 							DEBUGLOG("Receive Version %s", TstrToMbs(m_ServerVerStr));
@@ -1067,7 +1084,7 @@ void Cssh::GetStatus(CString &str)
 		CFifoChannel *pChan = (CFifoChannel *)m_FifoCannel[n];
 		if ( pChan != NULL ) {
 			tmp.Format(_T("Chanel: RemoteId=%d LocalId=%d Name=%s Type=%d Status=%03o Stage=%d\r\n"),
-				pChan->m_RemoteID, pChan->m_LocalID, MbsToTstr(pChan->m_TypeName), pChan->m_Type, pChan->m_Status, pChan->m_Stage);
+				pChan->m_RemoteID, pChan->m_LocalID, Utf8ToTstr(pChan->m_TypeName), pChan->m_Type, pChan->m_Status, pChan->m_Stage);
 			str += tmp;
 		}
 	}
@@ -1114,25 +1131,34 @@ void Cssh::ResetOption()
 
 void Cssh::FifoCmdSendPacket(int type, CBuffer *bp)
 {
-	if (  (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 ) {
-		DelayedCheck *pDelayedCheck = new DelayedCheck;
-		pDelayedCheck->type = type;
-		pDelayedCheck->pParam = (void *)bp;
-		pDelayedCheck->bDelBuf = TRUE;
-		m_DelayedCheck.AddTail(pDelayedCheck);
-	} else {
+	if ( IsLogin() ) {
 		switch(type) {
 		case 1: SendPacket(bp); break;
 		case 2: SendPacket2(bp); break;
 		}
 		delete bp;
+	} else {
+		DelayedCheck *pDelayedCheck = new DelayedCheck;
+		pDelayedCheck->type = type;
+		pDelayedCheck->pParam = (void *)bp;
+		pDelayedCheck->bDelBuf = TRUE;
+		m_DelayedCheck.AddTail(pDelayedCheck);
 	}
 }
 void Cssh::PostSendPacket(int type, CBuffer *bp)
 {
-	CBuffer *pWork = new CBuffer;
-	pWork->Swap(*bp);
-	m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SENDPACKET, type, 0, (void *)pWork);
+	ASSERT(m_pFifoMid != NULL && m_pFifoMid->m_Type == FIFO_TYPE_THREAD);
+
+	if ( ((CFifoSsh *)m_pFifoMid)->GetThreadID() == GetCurrentThreadId() && IsLogin() ) {
+		switch(type) {
+		case 1: SendPacket(bp); break;
+		case 2: SendPacket2(bp); break;
+		}
+	} else {
+		CBuffer *pWork = new CBuffer;
+		pWork->Swap(*bp);
+		m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SENDPACKET, type, 0, (void *)pWork);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1980,6 +2006,8 @@ void Cssh::ChannelClose(int id, int nStat)
 	}
 
 	if ( pChan->m_pFifoBase != NULL ) {
+		if ( pChan->m_Type == SSHFT_TUNNEL_SOCKET )
+			((CFifoTunnel *)pChan->m_pFifoBase)->FifoUnLink();
 		CFifoBase::UnLink(pChan->m_pFifoBase, FIFO_STDIN, FALSE);
 		pChan->m_pFifoBase->Destroy();
 		pChan->m_pFifoBase = NULL;
@@ -2015,6 +2043,11 @@ void Cssh::ChannelClose(int id, int nStat)
 	case SSHFT_SOCKET_LOCAL:
 	case SSHFT_SOCKET_REMOTE:
 		LogIt(_T("Closed #%d %s:%d -> %s:%d"), id, pChan->m_lHost, pChan->m_lPort, pChan->m_rHost, pChan->m_rPort);
+		break;
+	case SSHFT_TUNNEL_SOCKET:
+		LogIt(_T("Closed #%d %s:%d"), id, pChan->m_lHost, pChan->m_lPort);
+		if ( pChan->m_pParam != NULL )
+			delete (TunnelScoketCtx *)pChan->m_pParam;
 		break;
 	}
 
@@ -2364,8 +2397,10 @@ void Cssh::PortForward(BOOL bReset)
 
 	if ( !bReset && m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
 		if ( a == 0 && !m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFTPORY) ) {
-			::AfxMessageBox(CStringLoad(IDE_PORTFWORDERROR), MB_ICONWARNING);
-			PostClose(0);
+			//::AfxMessageBox(CStringLoad(IDE_PORTFWORDERROR), MB_ICONWARNING);
+			//PostClose(0);
+			// ポートフォワードの設定が無くても終了しないように変更 2025/05/29
+			LogIt(_T("Port Forward Warning %s"), CStringLoad(IDE_PORTFWORDERROR));
 		}
 
 		if ( m_PfdConnect == 0 ) { // && !m_bConnect ) {
@@ -2432,7 +2467,7 @@ void Cssh::OpenSFtpChannel()
 
 	CFifoBase::Link(m_pFifoMid, IdToFdIn(pChan->m_LocalID), pChan->m_pFifoBase, FIFO_STDIN);
 
-	PostSendMsgChannelOpen(pChan->m_LocalID, "session");
+	SendMsgChannelOpen(pChan->m_LocalID, "session");
 }
 
 static LPCTSTR GetFileName(LPCTSTR path)
@@ -2506,7 +2541,7 @@ void Cssh::OpenRcpUpload(LPCTSTR file)
 
 	CFifoBase::Link(m_pFifoMid, IdToFdIn(pChan->m_LocalID), pChan->m_pFifoBase, FIFO_STDIN);
 
-	PostSendMsgChannelOpen(pChan->m_LocalID, "session");
+	SendMsgChannelOpen(pChan->m_LocalID, "session");
 }
 void Cssh::OpenRcpDownload(LPCTSTR file)
 {
@@ -2534,7 +2569,33 @@ void Cssh::OpenRcpDownload(LPCTSTR file)
 
 	CFifoBase::Link(m_pFifoMid, IdToFdIn(pChan->m_LocalID), pChan->m_pFifoBase, FIFO_STDIN);
 
-	PostSendMsgChannelOpen(pChan->m_LocalID, "session");
+	SendMsgChannelOpen(pChan->m_LocalID, "session");
+}
+BOOL Cssh::OpenTunnelSocket(LPCTSTR lpszHostAddress, UINT nHostPort, CExtSocket *pSock)
+{
+	CFifoChannel *pNewChan;
+	TunnelScoketCtx *pCtx = new TunnelScoketCtx;
+
+	PunyCodeAdress(lpszHostAddress, pCtx->HostName);
+	pCtx->HostPort = nHostPort;
+	pCtx->pSock = pSock;
+
+	if ( (pNewChan = GetFifoChannel(-1)) == NULL ) {
+		pCtx->pSock->m_pFifoLeft->SendFdEvents(FIFO_STDIN, FD_CLOSE, (void *)WSAEFAULT);
+		SetLastError(ERROR_INVALID_FUNCTION);
+		delete pCtx;
+		return FALSE;
+	}
+	
+	pNewChan->m_Type = SSHFT_TUNNEL_SOCKET;
+	pNewChan->m_pFifoBase = new CFifoTunnel(m_pDocument, this);
+	pNewChan->m_pParam = (void *)pCtx;
+
+	CFifoBase::Link(m_pFifoMid, IdToFdIn(pNewChan->m_LocalID), pNewChan->m_pFifoBase, FIFO_STDIN);
+	((CFifoTunnel *)pNewChan->m_pFifoBase)->FifoLink((CFifoTunnel *)pCtx->pSock->m_pFifoLeft);
+
+	SendMsgChannelOpen(pNewChan->m_LocalID, "direct-tcpip", pCtx->HostName, pCtx->HostPort, _T("localhost"), 0);
+	return TRUE;
 }
 
 void Cssh::PluginProc(int type, CBuffer *bp)
@@ -2921,11 +2982,9 @@ int Cssh::SendMsgKexEcdhInit()
 	if ( m_EcdhClientKey != NULL )
 		EC_KEY_free(m_EcdhClientKey);
 
-	if ( (m_EcdhClientKey = EC_KEY_new_by_curve_name(m_EcdhCurveNid)) == NULL )
-		return FALSE;
-	if ( EC_KEY_generate_key(m_EcdhClientKey) != 1 )
-		return FALSE;
-	if ( (m_EcdhGroup = EC_KEY_get0_group(m_EcdhClientKey)) == NULL )
+	if ( (m_EcdhClientKey = EC_KEY_new_by_curve_name(m_EcdhCurveNid)) == NULL ||
+		  EC_KEY_generate_key(m_EcdhClientKey) != 1 ||
+		 (m_EcdhGroup = EC_KEY_get0_group(m_EcdhClientKey)) == NULL )
 		return FALSE;
 
 	pubs.PutEcPoint(m_EcdhGroup, EC_KEY_get0_public_key(m_EcdhClientKey));
@@ -3329,7 +3388,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 		m_AuthLog = _T("none");
 
 	SendDisconnect2(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, "User Auth Failure");
-	wrk.Format(_T("SSH2 User Auth Failure \"%s\" Status=%04o\nSend Disconnect Message...\n%s"), MbsToTstr(str), m_SSH2Status, (LPCTSTR)m_AuthLog);
+	wrk.Format(_T("SSH2 User Auth Failure \"%s\" Status=%04o\nSend Disconnect Message...\n%s"), Utf8ToTstr(str), m_SSH2Status, (LPCTSTR)m_AuthLog);
 
 	if ( m_bReqRsaSha1 )
 		wrk += CStringLoad(IDS_SSHRSASIGNMSG);
@@ -3341,31 +3400,13 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 //////////////////////////////////////////////////////////////////////
 
-void Cssh::PostSendMsgChannelOpen(int id, LPCSTR type)
-{
-	CFifoChannel *pChan = GetFifoChannel(id);
-	CBuffer tmp;
-
-	ASSERT(pChan != NULL);
-
-	pChan->m_TypeName = type;
-	pChan->m_Status |= CHAN_OPEN_LOCAL;
-
-	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN);
-	tmp.PutStr(type);
-	tmp.Put32Bit(pChan->m_LocalID);
-	tmp.Put32Bit(pChan->m_LocalWind);
-	tmp.Put32Bit(pChan->m_LocalPacks);
-
-	PostSendPacket(2, &tmp);
-}
-int Cssh::SendMsgChannelOpen(int id, LPCSTR type, LPCTSTR lhost, int lport, LPCTSTR rhost, int rport)
+void Cssh::SendMsgChannelOpen(int id, LPCSTR type, LPCTSTR lhost, int lport, LPCTSTR rhost, int rport)
 {
 	CFifoChannel *pChan = GetFifoChannel(id);
 	CBuffer tmp;
 
 	if ( pChan == NULL )
-		return (-1);
+		return;
 
 	pChan->m_TypeName = type;
 	pChan->m_Status |= CHAN_OPEN_LOCAL;
@@ -3387,15 +3428,15 @@ int Cssh::SendMsgChannelOpen(int id, LPCSTR type, LPCTSTR lhost, int lport, LPCT
 		pChan->m_rPort = rport;
 	}
 
-	SendPacket2(&tmp);
-	return pChan->m_LocalID;
+	PostSendPacket(2, &tmp);
 }
 void Cssh::SendMsgChannelOpenConfirmation(int id)
 {
 	CFifoChannel *pChan = GetFifoChannel(id);
 	CBuffer tmp;
 
-	ASSERT(pChan != NULL);
+	if ( pChan == NULL )
+		return;
 
 	pChan->m_Status |= CHAN_OPEN_LOCAL;
 
@@ -3416,7 +3457,8 @@ void Cssh::SendMsgChannelOpenFailure(int id)
 	CFifoChannel *pChan = GetFifoChannel(id);
 	CBuffer tmp;
 
-	ASSERT(pChan != NULL);
+	if ( pChan == NULL )
+		return;
 
 	if ( (pChan->m_Status & CHAN_OPEN_REMOTE) != 0 && pChan->m_RemoteID != (-1) ) {
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN_FAILURE);
@@ -3677,8 +3719,8 @@ void Cssh::SendMsgUnimplemented()
 {
 	CBuffer tmp;
 	tmp.Put8Bit(SSH2_MSG_UNIMPLEMENTED);
-	tmp.Put32Bit(m_RecvPackSeq);
-	PostSendPacket(2, &tmp);
+	tmp.Put32Bit(m_RecvPackSeq - 1);
+	SendPacket2(&tmp);
 }
 void Cssh::SendDisconnect2(int st, LPCSTR str)
 {
@@ -3686,14 +3728,14 @@ void Cssh::SendDisconnect2(int st, LPCSTR str)
 	tmp.Put8Bit(SSH2_MSG_DISCONNECT);
 	tmp.Put32Bit(st);
 	tmp.PutStr(str);
-	PostSendPacket(2, &tmp);
+	SendPacket2(&tmp);
 }
 void Cssh::SendMsgPong(LPCSTR msg)
 {
 	CBuffer tmp;
 	tmp.Put8Bit(SSH2_MSG_PONG);
 	tmp.PutStr(msg);
-	PostSendPacket(2, &tmp);
+	SendPacket2(&tmp);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3800,9 +3842,9 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_MLKEM768X25519,_T("mlkem768x25519-sha256")						},	// draft-kampanakis-curdle-ssh-pq-ke-04
 		{ DHMODE_MLKEM768N256,	_T("mlkem768nistp256-sha256")					},	// draft-kampanakis-curdle-ssh-pq-ke-04
 		{ DHMODE_MLKEM1024N384,	_T("mlkem1024nistp384-sha384")					},	// draft-kampanakis-curdle-ssh-pq-ke-04
-		{ DHMODE_MLKEM512H256,	_T("ml-kem-512-sha256")							},	// draft-harrison-mlkem-ssh-00
-		{ DHMODE_MLKEM768H256,	_T("ml-kem-768-sha256")							},	// draft-harrison-mlkem-ssh-00
-		{ DHMODE_MLKEM1024H384,	_T("ml-kem-1024-sha384")						},	// draft-harrison-mlkem-ssh-00
+		{ DHMODE_MLKEM512H256,	_T("mlkem512-sha256")							},	// draft-harrison-sshm-mlkem-00
+		{ DHMODE_MLKEM768H256,	_T("mlkem768-sha256")							},	// draft-harrison-sshm-mlkem-00
+		{ DHMODE_MLKEM1024H384,	_T("mlkem1024-sha384")							},	// draft-harrison-sshm-mlkem-00
 		{ 0,					NULL											},
 	};
 		
@@ -3896,8 +3938,8 @@ int Cssh::HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_M
 	unsigned int hashlen;
 	BYTE hash[EVP_MAX_MD_SIZE];
 
-	b.PutStr(TstrToUtf8(m_ClientVerStr));
-	b.PutStr(TstrToUtf8(m_ServerVerStr));
+	b.PutStr(m_ClinetPrompt);
+	b.PutStr(m_ServerPrompt);
 
 	/* kexinit messages: fake header: len+SSH2_MSG_KEXINIT */
 	b.Put32Bit(m_MyPeer.GetSize()+1);
@@ -3925,7 +3967,7 @@ int Cssh::HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_M
 		m_SessHash.Apend(hash, hashlen);
 
 	if ( (md_ctx = EVP_MD_CTX_new()) == NULL )
-		throw _T("HostVerifyKey md_ctx Error");
+		throw _T("HostVerifyKey md_ctx error");
 	mdsz = EVP_MD_size(evp_md);
 
 	for ( n = 0 ; n < 6 ; n++ ) {
@@ -3933,7 +3975,7 @@ int Cssh::HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_M
 			free(m_VKey[n]);
 
 		if ( (m_VKey[n] = (u_char *)malloc(m_NeedKeyLen + (mdsz - (m_NeedKeyLen % mdsz)))) == NULL )
-			throw _T("HostVerifyKey VKey malloc Error");
+			throw _T("HostVerifyKey VKey malloc error");
 		c = (char)('A' + n);
 
 		/* K1 = HASH(K || H || "A" || session_id) */
@@ -3943,7 +3985,7 @@ int Cssh::HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_M
 			 EVP_DigestUpdate(md_ctx, &c, 1) == 0 ||
 			 EVP_DigestUpdate(md_ctx, m_SessHash.GetPtr(), m_SessHash.GetSize()) == 0 ||
 			 EVP_DigestFinal(md_ctx, m_VKey[n], NULL) == 0 )
-			throw _T("HostVerifyKey kdf Error");
+			throw _T("HostVerifyKey kdf error");
 
 		/*
 		 * expand key:
@@ -3956,7 +3998,7 @@ int Cssh::HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_M
 				 EVP_DigestUpdate(md_ctx, hash, hashlen) == 0 ||
 				 EVP_DigestUpdate(md_ctx, m_VKey[n], have) == 0 ||
 				 EVP_DigestFinal(md_ctx, m_VKey[n] + have, NULL) == 0 )
-				throw _T("HostVerifyKey kdf expand Error");
+				throw _T("HostVerifyKey kdf expand error");
 		}
 	}
 
@@ -4150,7 +4192,7 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return (-1);
-
+	
 	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, this) )
 		return (-1);
 
@@ -4292,18 +4334,18 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 		evp_md = EVP_sha512();
 		ctsz = sntrup761_CIPHERTEXTBYTES;
 		if ( server_public.GetSize() < ctsz )
-			return (-1);
+			goto ENDRET;
 		if ( sntrup761_dec(shared_key.PutSpc(sntrup761_BYTES), server_public.GetPtr(), m_HybridClientSeckey.GetPtr()) != 0 )
-			return (-1);
+			goto ENDRET;
 		break;
 	case DHMODE_MLKEM768X25519:
 		type = EVP_PKEY_X25519;
 		evp_md = EVP_sha256();
 		ctsz = mlkem768_CIPHERTEXTBYTES;
 		if ( server_public.GetSize() < ctsz )
-			return (-1);
+			goto ENDRET;
 		if ( mlkem768_dec(shared_key.PutSpc(mlkem768_BYTES), server_public.GetPtr(), m_HybridClientSeckey.GetPtr()) != 0 )
-			return (-1);
+			goto ENDRET;
 		break;
 	}
 
@@ -4442,10 +4484,7 @@ int Cssh::SSH2MsgKexRsaPubkey(CBuffer *bp)
 	bp->GetBuf(&tmp);
 	m_RsaTranBlob = tmp;
 		
-	if ( !TranKey.GetBlob(&tmp) )
-		return (-1);
-
-	if ( TranKey.m_Type != IDKEY_RSA2 )
+	if ( !TranKey.GetBlob(&tmp) || TranKey.m_Type != IDKEY_RSA2 )
 		return (-1);
 
 	m_RsaSharedKey.Clear();
@@ -5127,6 +5166,10 @@ int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 		LogIt(_T("Connect #%d %s:%d -> %s:%d"), id, pChan->m_lHost, pChan->m_lPort, pChan->m_rHost, pChan->m_rPort);
 		ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
 		break;
+	case SSHFT_TUNNEL_SOCKET:
+		LogIt(_T("Connect #%d %s:%d -> %s"), id, pChan->m_lHost, pChan->m_lPort, ((TunnelScoketCtx *)pChan->m_pParam)->pSock->m_pDocument->m_ServerEntry.m_EntryName);
+		ChannelCheck(IdToFdOut(id), FD_CONNECT, NULL);
+		break;
 	}
 
 	return 0;
@@ -5471,11 +5514,15 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 
 	CStringA str, tmp;
 	int type = bp->Get8Bit();
+	int DisConnectCode = SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT;
+	LPCSTR DisConnectMsg = "unkown error";
+
+#define	GOTODISCONNECT(c, m)	{ DisConnectCode = c; DisConnectMsg = m; goto DISCONNECT; }
 
 	switch(type) {
 	case SSH2_MSG_KEXINIT:
 		if ( SSH2MsgKexInit(bp) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_KEY_EXCHANGE_FAILED, "KexInit protocol error");
 		m_SSH2Status |= SSH2_STAT_HAVEPROP;
 		switch(m_DhMode) {
 		case DHMODE_GROUP_1:
@@ -5497,7 +5544,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		case DHMODE_MLKEM768N256:
 		case DHMODE_MLKEM1024N384:
 			if ( !SendMsgKexEcdhInit() )
-				goto DISCONNECT;
+				GOTODISCONNECT(SSH2_DISCONNECT_KEY_EXCHANGE_FAILED, "KexInit init error");
 			break;
 		case DHMODE_CURVE25519:
 		case DHMODE_CURVE448:
@@ -5511,7 +5558,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 			SendMsgKexMlKemInit();
 			break;
 		default:
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_KEY_EXCHANGE_FAILED, "KexInit dh mode error");
 		}
 		break;
 	case SSH2_MSG_KEXDH_REPLY:
@@ -5519,7 +5566,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 //	case SSH2_MSG_KEX_ECDH_REPLY:
 //	case SSH2_MSG_KEX_HYBRID_REPLY:
 		if ( (m_SSH2Status & SSH2_STAT_HAVEPROP) == 0 )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_HOST_AUTHENTICATION_FAILED, "KexReply Not processing KexInit");
 		switch(m_DhMode) {
 		case DHMODE_GROUP_1:
 		case DHMODE_GROUP_14:
@@ -5529,7 +5576,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		case DHMODE_GROUP_17_512:
 		case DHMODE_GROUP_18_512:
 			if ( SSH2MsgKexDhReply(bp) )
-				goto DISCONNECT;
+				GOTODISCONNECT(SSH2_DISCONNECT_HOST_AUTHENTICATION_FAILED, "KexReply KexGrp error");
 			m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
 			m_SSH2Status |= SSH2_STAT_HAVEKEYS;
 			SendMsgNewKeys();
@@ -5537,7 +5584,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		case DHMODE_GROUP_GEX:
 		case DHMODE_GROUP_GEX256:
 			if ( SSH2MsgKexDhGexGroup(bp) )
-				goto DISCONNECT;
+				GOTODISCONNECT(SSH2_DISCONNECT_HOST_AUTHENTICATION_FAILED, "KexReply KexGrpGex error");
 			break;
 		case DHMODE_ECDH_S2_N256:
 		case DHMODE_ECDH_S2_N384:
@@ -5545,7 +5592,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		case DHMODE_MLKEM768N256:
 		case DHMODE_MLKEM1024N384:
 			if ( SSH2MsgKexEcdhReply(bp) )
-				goto DISCONNECT;
+				GOTODISCONNECT(SSH2_DISCONNECT_HOST_AUTHENTICATION_FAILED, "KexReply ecdh error");
 			m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
 			m_SSH2Status |= SSH2_STAT_HAVEKEYS;
 			SendMsgNewKeys();
@@ -5555,7 +5602,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		case DHMODE_SNT761X25519:
 		case DHMODE_MLKEM768X25519:
 			if ( SSH2MsgKexCurveReply(bp) )
-				goto DISCONNECT;
+				GOTODISCONNECT(SSH2_DISCONNECT_HOST_AUTHENTICATION_FAILED, "KexReply curve error");
 			m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
 			m_SSH2Status |= SSH2_STAT_HAVEKEYS;
 			SendMsgNewKeys();
@@ -5564,36 +5611,37 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		case DHMODE_MLKEM768H256:
 		case DHMODE_MLKEM1024H384:
 			if ( SSH2MsgKexMlKemReply(bp) )
-				goto DISCONNECT;
+				GOTODISCONNECT(SSH2_DISCONNECT_HOST_AUTHENTICATION_FAILED, "KexReply mlkem error");
 			m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
 			m_SSH2Status |= SSH2_STAT_HAVEKEYS;
 			SendMsgNewKeys();
 			break;
 		default:
+			GOTODISCONNECT(SSH2_DISCONNECT_HOST_AUTHENTICATION_FAILED, "KexReply dh mode error");
 			goto DISCONNECT;
 		}
 		break;
 	case SSH2_MSG_KEX_DH_GEX_REPLY:
 		if ( (m_SSH2Status & SSH2_STAT_HAVEPROP) == 0 )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_HOST_AUTHENTICATION_FAILED, "KexDhGexReply Not processing KexInit");
 		if ( SSH2MsgKexDhGexReply(bp) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_HOST_AUTHENTICATION_FAILED, "KexDhGexReply error");
 		m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
 		m_SSH2Status |= SSH2_STAT_HAVEKEYS;
 		SendMsgNewKeys();
 		break;
 	case SSH2_MSG_KEXRSA_PUBKEY:
 		if ( (m_SSH2Status & SSH2_STAT_HAVEPROP) == 0 )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_HOST_AUTHENTICATION_FAILED, "KexRsaPubkey Not processing KexInit");
 		if ( SSH2MsgKexRsaPubkey(bp) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_HOST_AUTHENTICATION_FAILED, "KexRsaPubkey error");
 		m_SSH2Status |= SSH2_STAT_HAVERSAPUB;
 		break;
 	case SSH2_MSG_KEXRSA_DONE:
 		if ( (m_SSH2Status & SSH2_STAT_HAVEPROP) == 0 || (m_SSH2Status & SSH2_STAT_HAVERSAPUB) == 0 )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_HOST_AUTHENTICATION_FAILED, "KexRsaDone Not processing KexInit");
 		if ( SSH2MsgKexRsaDone(bp) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_HOST_AUTHENTICATION_FAILED, "KexRsaDone error");
 		m_SSH2Status &= ~SSH2_STAT_HAVERSAPUB;
 		m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
 		m_SSH2Status |= SSH2_STAT_HAVEKEYS;
@@ -5602,9 +5650,9 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 
 	case SSH2_MSG_NEWKEYS:
 		if ( (m_SSH2Status & SSH2_STAT_HAVEKEYS) == 0 )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_KEY_EXCHANGE_FAILED, "NewKeys Host key exchange not done");
 		if ( SSH2MsgNewKeys(bp) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_KEY_EXCHANGE_FAILED, "NewKeys error");
 		m_SSH2Status &= ~SSH2_STAT_SENTKEXINIT;
 		m_SSH2Status &= ~SSH2_STAT_HAVEKEYS;
 		m_SSH2Status |= SSH2_STAT_HAVESESS;
@@ -5616,28 +5664,28 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 				m_EncCmp.Init(NULL, MODE_ENC, COMPLEVEL);
 			if ( m_DecCmp.m_Mode == 4 )
 				m_DecCmp.Init(NULL, MODE_DEC, COMPLEVEL);
-			DelayedCheckExec();
 		}
 		break;
 	case SSH2_MSG_SERVICE_ACCEPT:
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_SERVICE_NOT_AVAILABLE, "ServiceAccept Not processing session");
 		bp->GetStr(str);
 		if ( str.Compare("ssh-userauth") == 0 ) {
 			if ( !SendMsgUserAuthRequest(NULL) )
 				break;
-		} else
-			goto DISCONNECT;
+		} else {
+			GOTODISCONNECT(SSH2_DISCONNECT_SERVICE_NOT_AVAILABLE, "ServiceAccept Not supported");
+		}
 		break;
 
 	case SSH2_MSG_EXT_INFO:
 		if ( SSH2MsgExtInfo(bp) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "ExtInfo error");
 		break;
 
 	case SSH2_MSG_USERAUTH_SUCCESS:
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_AUTH_CANCELLED_BY_USER, "UserAuthSuccess Not processing session");
 		if ( m_AuthMode == AUTH_MODE_KEYBOARD && m_PluginStat != STATE_NONE )
 			PluginProc(PLUGIN_AUTH_SUCCESS, NULL);
 		if ( m_EncCmp.m_Mode == 4 )
@@ -5663,10 +5711,11 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 			m_KeepAliveTiimerId = m_pFifoMid->DocMsgSetTimer(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
 		if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFTPORY) )
 			m_pFifoMid->DocMsgCommand(IDM_SFTP);
+		DelayedCheckExec();
 		break;
 	case SSH2_MSG_USERAUTH_FAILURE:
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_AUTH_CANCELLED_BY_USER, "UserAuthFailure Not processing session");
 		if ( m_AuthMode == AUTH_MODE_KEYBOARD && m_PluginStat != STATE_NONE )
 			PluginProc(PLUGIN_AUTH_FAILURE, NULL);
 		bp->GetStr(str);
@@ -5683,26 +5732,26 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 //	case SSH2_MSG_USERAUTH_GSSAPI_RESPONSE:		// 60	gssapi
 	case SSH2_MSG_USERAUTH_INFO_REQUEST:		// 60	keyboard-interactive
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_AUTH_CANCELLED_BY_USER, "UserAuthInfo Not processing session");
 		switch(m_AuthMode) {
 		case AUTH_MODE_PUBLICKEY:
 			if ( SSH2MsgUserAuthPkOk(bp) )
-				goto DISCONNECT;
+				GOTODISCONNECT(SSH2_DISCONNECT_AUTH_CANCELLED_BY_USER, "UserAuthPubkey error");
 			break;
 		case AUTH_MODE_PASSWORD:
 			if ( SSH2MsgUserAuthPasswdChangeReq(bp) )
-				goto DISCONNECT;
+				GOTODISCONNECT(SSH2_DISCONNECT_AUTH_CANCELLED_BY_USER, "UserAuthPassword error");
 			break;
 		case AUTH_MODE_KEYBOARD:
 			if ( SSH2MsgUserAuthInfoRequest(bp) )
-				goto DISCONNECT;
+				GOTODISCONNECT(SSH2_DISCONNECT_AUTH_CANCELLED_BY_USER, "UserAuthKeybord error");
 			break;
 		case AUTH_MODE_GSSAPI:
 			if ( SSH2MsgUserAuthGssapiProcess(bp, type) )
-				goto DISCONNECT;
+				GOTODISCONNECT(SSH2_DISCONNECT_AUTH_CANCELLED_BY_USER, "UserAuthGssapi error");
 			break;
 		default:
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_AUTH_CANCELLED_BY_USER, "UserAuthInfo not found AuthMode");
 		}
 		break;
 
@@ -5710,53 +5759,53 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 	case SSH2_MSG_USERAUTH_GSSAPI_ERROR:
 	case SSH2_MSG_USERAUTH_GSSAPI_ERRTOK:
 		if ( SSH2MsgUserAuthGssapiProcess(bp, type) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_AUTH_CANCELLED_BY_USER, "UserAuthGssapiRes error");
 		break;
 
 	case SSH2_MSG_CHANNEL_OPEN:
 		if ( SSH2MsgChannelOpen(bp) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "ChannelOpen error");
 		break;
 	case SSH2_MSG_CHANNEL_OPEN_FAILURE:
 	case SSH2_MSG_CHANNEL_OPEN_CONFIRMATION:
 		if ( SSH2MsgChannelOpenReply(bp, type) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "ChannelOpenRes error");
 		break;
 	case SSH2_MSG_CHANNEL_CLOSE:
 		if ( SSH2MsgChannelClose(bp) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "ChannelClose error");
 		break;
 	case SSH2_MSG_CHANNEL_DATA:
 	case SSH2_MSG_CHANNEL_EXTENDED_DATA:
 		if ( SSH2MsgChannelData(bp, type) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "ChannelData error");
 		break;
 	case SSH2_MSG_CHANNEL_EOF:
 		if ( SSH2MsgChannelEof(bp) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "ChannelEof error");
 		break;
 	case SSH2_MSG_CHANNEL_REQUEST:
 		if ( SSH2MsgChannelRequesst(bp) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "ChannelRequesst error");
 		break;
 	case SSH2_MSG_CHANNEL_WINDOW_ADJUST:
 		if ( SSH2MsgChannelAdjust(bp) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "ChannelWindowAdjust error");
 		break;
 	case SSH2_MSG_CHANNEL_SUCCESS:
 	case SSH2_MSG_CHANNEL_FAILURE:
 		if ( SSH2MsgChannelRequestReply(bp, type) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "ChannelRequestRes error");
 		break;
 
 	case SSH2_MSG_GLOBAL_REQUEST:
 		if ( SSH2MsgGlobalRequest(bp) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "GlobalRequest error");
 		break;
 	case SSH2_MSG_REQUEST_SUCCESS:
 	case SSH2_MSG_REQUEST_FAILURE:
 		if ( SSH2MsgGlobalRequestReply(bp, type) )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "GlobalRequestRes error");
 		break;
 
 	case SSH2_MSG_DISCONNECT:
@@ -5768,7 +5817,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 
 	case SSH2_MSG_DEBUG:
 		if ( m_KexStrictStat == KEXSTRICT_ENABLE && (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "MsgDebug Not processing session");
 		bp->Get8Bit();
 		bp->GetStr(str);
 		TRACE("Recive SSH2_MSG_DEBUG '%s'\n", str);
@@ -5777,20 +5826,20 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 	case SSH2_MSG_IGNORE:
 	case SSH2_MSG_UNIMPLEMENTED:
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, "MsgIgnore/Uninplimented Not processing session");
 		TRACE("Recive SSH2_MSG_IGNORE/UNIMPLEMENTED '%d'\n", type);
 		break;
 
 	case SSH2_MSG_PING:
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "MsgPing Not processing session");
 		bp->GetStr(str);
 		SendMsgPong(str);
 		TRACE("Recive SSH2_MSG_PING '%s' Send MSG_PONG \n", str);
 		break;
 	case SSH2_MSG_PONG:
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
-			goto DISCONNECT;
+			GOTODISCONNECT(SSH2_DISCONNECT_BY_APPLICATION, "MsgPong Not processing session");
 		bp->GetStr(str);
 		TRACE("Recive SSH2_MSG_PONG '%s'\n", str);
 		break;
@@ -5799,11 +5848,14 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		SendMsgUnimplemented();
 		break;
 
-	DISCONNECT:
-		str.Format("Packet Type %d Error", type);
-		SendDisconnect2(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, str);
-		str.Format("SSH2 Receive Packet Error Type=%d Status=%04o\nSend Disconnect Message...", type, m_SSH2Status);
-		::AfxMessageBox(MbsToTstr(str), MB_ICONERROR);
+DISCONNECT:
+		str.Format("Packet Type %d : %s", type, DisConnectMsg);
+		SendDisconnect2(DisConnectCode, str);
+		str.Format("SSH2 Receive Packet Error Type=%d Status=%04o\nSend Disconnect Message %d\n%s", type, m_SSH2Status, DisConnectCode, DisConnectMsg);
+		::AfxMessageBox(Utf8ToTstr(str), MB_ICONERROR);
+		// ソケットにCloseを送る 2025.06.16
+		m_pFifoMid->SendFdEvents(FIFO_STDOUT, FD_CLOSE, NULL);
+		m_Incom.Clear();
 		break;
 	}
 }

@@ -67,6 +67,7 @@ public:
 	void NextActive();
 	void PrevActive();
 	void SelectActive(int idx);
+	void DeleteActive();
 	int GetIndex(CWnd *pWnd);
 	int HitPoint(CPoint point);
 	void SetTabTitle(BOOL bNumber);

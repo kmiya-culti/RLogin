@@ -731,6 +731,7 @@ public:
 	CString m_ProxyUser;
 	CString m_ProxyPass;
 	CString m_ProxyCmd;
+	CString m_ProxySsh;
 	CString m_Memo;
 	CString m_Group;
 	CString m_ScriptFile;
@@ -755,7 +756,7 @@ public:
 	CTime m_LastAccess;
 	CServerEntry *m_pList;
 	CBmpFile m_IconImage;
-
+	int m_AfterId;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);

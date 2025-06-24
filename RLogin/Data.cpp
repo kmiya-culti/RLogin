@@ -5155,6 +5155,7 @@ void CServerEntry::Init()
 	m_ProxyPassProvs.Empty();
 	m_ProxySSLKeep = FALSE;
 	m_ProxyCmd.Empty();
+	m_ProxySsh.Empty();
 	m_BeforeEntry.Empty();
 	m_OptFixEntry.Empty();
 	m_ReEntryFlag = FALSE;
@@ -5165,6 +5166,7 @@ void CServerEntry::Init()
 	m_bOptFixed = FALSE;
 	m_ListIndex.Empty();
 	m_LastAccess = 0;
+	m_AfterId = (-1);
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -5200,6 +5202,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_ProxyPassProvs = data.m_ProxyPassProvs;
 	m_ProxySSLKeep   = data.m_ProxySSLKeep;
 	m_ProxyCmd       = data.m_ProxyCmd;
+	m_ProxySsh		 = data.m_ProxySsh;
 	m_BeforeEntry    = data.m_BeforeEntry;
 	m_OptFixEntry    = data.m_OptFixEntry;
 	m_ReEntryFlag    = data.m_ReEntryFlag;
@@ -5208,6 +5211,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_bPassOk        = data.m_bPassOk;
 	m_bSelFlag       = data.m_bSelFlag;
 	m_bOptFixed      = data.m_bOptFixed;
+	m_AfterId        = data.m_AfterId;
 	return *this;
 }
 void CServerEntry::GetArray(CStringArrayExt &stra)
@@ -5263,6 +5267,7 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_bOptFixed    = (stra.GetSize() > 24 ?  stra.GetVal(24) : FALSE);;
 	m_OptFixEntry  = (stra.GetSize() > 25 ?  stra.GetAt(25) : _T(""));
 	m_ProxyCmd     = (stra.GetSize() > 26 ?  stra.GetAt(26) : _T(""));
+	m_ProxySsh     = (stra.GetSize() > 27 ?  stra.GetAt(27) : _T(""));
 
 	m_ProBuffer.Clear();
 
@@ -5313,6 +5318,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_bOptFixed);
 	stra.Add(m_OptFixEntry);
 	stra.Add(m_ProxyCmd);
+	stra.Add(m_ProxySsh);
 }
 
 static const ScriptCmdsDefs DocEntry[] = {
@@ -5340,6 +5346,7 @@ static const ScriptCmdsDefs DocEntry[] = {
 	{	_T("User"),			23	},
 	{	_T("Pass"),			24	},
 	{	_T("Cmd"),			25	},
+	{	_T("Ssh"),			26	},
 	{	NULL,				0	},
 };
 
@@ -5457,6 +5464,9 @@ void CServerEntry::ScriptValue(int cmds, class CScriptValue &value, int mode)
 	case 25:				// Document.Entry.Proxy.Cmd
 		value.SetStr(m_ProxyCmd, mode);
 		break;
+	case 26:				// Document.Entry.Proxy.Ssh
+		value.SetStr(m_ProxySsh, mode);
+		break;
 	}
 }
 void CServerEntry::SetBuffer(CBuffer &buf)
@@ -5566,6 +5576,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		index[_T("Proxy")][_T("Pass")] = str;
 
 		index[_T("Proxy")][_T("Cmd")] = m_ProxyCmd;
+		index[_T("Proxy")][_T("Ssh")] = m_ProxySsh;
 
 		index[_T("Script")][_T("File")] = m_ScriptFile;
 		index[_T("Script")][_T("Text")] = m_ScriptStr;
@@ -5632,6 +5643,8 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 			}
 			if ( (i = index[n].Find(_T("Cmd"))) >= 0 )
 				m_ProxyCmd = index[n][i];
+			if ( (i = index[n].Find(_T("Ssh"))) >= 0 )
+				m_ProxySsh = index[n][i];
 		}
 
 		if ( (n = index.Find(_T("Script"))) >= 0 ) {
@@ -5732,6 +5745,9 @@ void CServerEntry::DiffIndex(CServerEntry &orig, CStringIndex &index)
 
 	if ( m_ProxyCmd.Compare(orig.m_ProxyCmd) != 0 )
 		index[_T("Proxy")][_T("Cmd")] = m_ProxyCmd;
+
+	if ( m_ProxySsh.Compare(orig.m_ProxySsh) != 0 )
+		index[_T("Proxy")][_T("Ssh")] = m_ProxySsh;
 
 	if ( m_ScriptFile.Compare(orig.m_ScriptFile) != 0 )
 		index[_T("Script")][_T("File")] = m_ScriptFile;
@@ -6751,6 +6767,10 @@ static const struct _InitKeyTab {
 		{ 0,	VK_NUMPAD8,		MASK_APPL,				_T("\\033Ox")		},	// 8	        | 8	  | SS3 x
 		{ 0,	VK_NUMPAD9,		MASK_APPL,				_T("\\033Oy")		},	// 9	        | 9	  | SS3 y
 
+		{ 14,	VK_ADD,			MASK_CTRL,				_T("$FONT_SIZE_UP")	},
+		{ 14,	VK_SUBTRACT,	MASK_CTRL,				_T("$FONT_SIZE_DOWN")},
+		{ 14,	VK_NUMPAD0,		MASK_CTRL,				_T("$FONT_SIZE_DEF")},
+
 		{ 0,	VK_PRIOR,		MASK_SHIFT,				_T("$PRIOR")		},
 		{ 0,	VK_NEXT,		MASK_SHIFT,				_T("$NEXT")			},
 		{ 0,	VK_PRIOR,		MASK_CTRL,				_T("$SEARCH_BACK")	},
@@ -7177,7 +7197,7 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
-	tmp.AddVal(13);			// KeyCode Bug Fix
+	tmp.AddVal(14);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &stra)
@@ -7346,7 +7366,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	153
+#define	CMDSKEYTABMAX	156
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -7383,6 +7403,9 @@ static const struct _CmdsKeyTab {
 	{	ID_FILE_SAVE_AS,			L"$FILE_SAVE"		},
 	{	IDM_SSHSIG,					L"$FILE_SSHSIG"		},
 	{	IDM_SIMPLE_UPLOAD,			L"$FILE_UPLOAD"		},
+	{	IDM_FONT_SIZE_DEF,			L"$FONT_SIZE_DEF"	},
+	{	IDM_FONT_SIZE_DOWN,			L"$FONT_SIZE_DOWN"	},
+	{	IDM_FONT_SIZE_UP,			L"$FONT_SIZE_UP"	},
 	{	IDM_KANJI_ASCII,			L"$KANJI_ASCII"		},
 	{	IDM_KANJI_EUC,				L"$KANJI_EUC"		},
 	{	IDM_KANJI_SJIS,				L"$KANJI_SJIS"		},
@@ -8184,11 +8207,11 @@ static LPCTSTR InitAlgo[12]= {
 
 	_T("zlib@openssh.com,zlib,none"),
 
+	_T("mlkem768x25519-sha256,mlkem768nistp256-sha256,mlkem1024nistp384-sha384,") \
+	_T("sntrup761x25519-sha512@openssh.com,sntrup761x25519-sha512,") \
 	_T("curve25519-sha256,curve25519-sha256@libssh.org,curve448-sha512,") \
 	_T("ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,") \
-	_T("mlkem768x25519-sha256,mlkem768nistp256-sha256,mlkem1024nistp384-sha384,") \
-	_T("ml-kem-512-sha256,ml-kem-768-sha256,ml-kem-1024-sha384,") \
-	_T("sntrup761x25519-sha512@openssh.com,sntrup761x25519-sha512,") \
+	_T("mlkem512-sha256,mlkem768-sha256,mlkem1024-sha384,") \
 	_T("diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,") \
 	_T("diffie-hellman-group16-sha512,diffie-hellman-group15-sha512,diffie-hellman-group17-sha512,diffie-hellman-group18-sha512,") \
 	_T("diffie-hellman-group14-sha256,") \

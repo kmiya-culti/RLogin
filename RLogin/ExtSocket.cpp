@@ -46,6 +46,8 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_ProxyConnect = FALSE;
 	m_ProxyCmdMode = FALSE;
 
+	m_pSshProxy = NULL;
+
 	m_SSL_mode  = 0;
 	m_SSL_pCtx  = NULL;
 	m_SSL_pSock = NULL;
@@ -79,6 +81,8 @@ CFifoBase *CExtSocket::FifoLinkLeft()
 {
 	if ( m_ProxyCmdMode )
 		return new CFifoPipe(m_pDocument, this);
+	else if ( m_pSshProxy != NULL )
+		return new CFifoTunnel(m_pDocument, this);
 	else
 		return new CFifoSocket(m_pDocument, this);
 }
@@ -166,20 +170,28 @@ int CExtSocket::GetFamily()
 }
 BOOL CExtSocket::ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR ProxyUser, LPCTSTR ProxyPass, LPCTSTR RealHost, UINT RealPort)
 {
-	switch(mode & 7) {
-	case 0: m_ProxyStatus = PRST_NONE;				break;	// Non
+	switch((mode & 7) | ((mode & 0x300) >> 5)) {	// 000000mm sssssmmm
 	case 1: m_ProxyStatus = PRST_HTTP_START;		break;	// HTTP
 	case 2: m_ProxyStatus = PRST_SOCKS4_START;		break;	// SOCKS4
 	case 3: m_ProxyStatus = PRST_SOCKS5_START;		break;	// SOCKS5
 	case 4: m_ProxyStatus = PRST_HTTP_BASIC_START;	break;	// HTTP(Basic)
 	case 6: m_ProxyStatus = PRST_HTTP2_START;		break;	// HTTP/2
 	case 7: m_ProxyStatus = PRST_HTTP3_START;		break;	// HTTP/3
+	default:m_ProxyStatus = PRST_NONE;				break;	// 0=None 5=PIPE 8=SSH
 	}
 
-	switch(mode >> 3) {
-	case 0:  m_SSL_mode = 0; break;									// Non
-	case 7:  m_SSL_mode = 2; m_RealSocketType = SOCK_DGRAM; break;	// QUIC
-	default: m_SSL_mode = 1; break;									// SSL/TLS
+	switch((mode >> 3) & 0x1F) {
+	case 1:		// 1=SSL/TLS
+	case 2: case 3: case 4: case 5: case 6:	// old 2-6=SSL/TLS
+		m_SSL_mode = 1;
+		break;
+	case 7:		// 7=QUIC
+		m_SSL_mode = 2;
+		m_RealSocketType = SOCK_DGRAM;
+		break;
+	default:	// 0=None
+		m_SSL_mode = 0;
+		break;
 	}
 
 	m_SSL_keep = (m_ProxyStatus != PRST_NONE && m_SSL_mode == 1 ? keep : FALSE);
@@ -261,12 +273,24 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 
 	case FIFO_TYPE_PIPE:
 		return ((CFifoPipe *)m_pFifoLeft)->Open(lpszHostAddress, FALSE);
+
+	case FIFO_TYPE_TUNNEL:
+		if ( m_pSshProxy != NULL && m_pSshProxy->m_Type == ESCT_SSH_MAIN )
+			return ((Cssh *)m_pSshProxy)->OpenTunnelSocket(m_RealHostAddr, m_RealHostPort, this);
+		else
+			SetLastError(ERROR_INVALID_HANDLE);
+		break;
 	}
 
 	return FALSE;
 }
 void CExtSocket::Close()
 {
+	if ( m_pFifoLeft != NULL && m_pFifoLeft->m_Type == FIFO_TYPE_TUNNEL ) {
+		m_pFifoLeft->SendFdEvents(FIFO_STDIN, FD_CLOSE, 0);
+		((CFifoTunnel *)m_pFifoLeft)->FifoUnLink();
+	}
+
 	SSLClose();
 	FifoUnlink();
 

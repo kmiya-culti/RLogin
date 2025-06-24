@@ -1022,6 +1022,7 @@ public:	// Options
 	CString m_SendCharSet[5];
 	DWORD m_DefAnsiOpt[16];
 	int m_DefCols[2];
+	int m_ActCols[2];
 	int m_DefHisMax;
 	int m_DefFontSize;
 	int m_FontSize;

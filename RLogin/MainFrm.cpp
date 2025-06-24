@@ -871,6 +871,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(IDM_WINDOW_PREV, &CMainFrame::OnUpdateWindowPrev)
 	ON_COMMAND(IDM_WINODW_NEXT, &CMainFrame::OnWinodwNext)
 	ON_UPDATE_COMMAND_UI(IDM_WINODW_NEXT, &CMainFrame::OnUpdateWinodwNext)
+	ON_COMMAND(IDM_WINODW_DELNEXT, &CMainFrame::OnWinodwDelNext)
 
 	ON_COMMAND_RANGE(AFX_IDM_FIRST_MDICHILD, AFX_IDM_FIRST_MDICHILD + 255, &CMainFrame::OnWinodwSelect)
 	ON_COMMAND_RANGE(IDM_MOVEPANE_UP, IDM_MOVEPANE_LEFT, &CMainFrame::OnActiveMove)
@@ -1649,14 +1650,29 @@ BOOL CMainFrame::AgeantSign(int type, CBuffer *blob, CBuffer *sign, LPBYTE buf, 
 
 /////////////////////////////////////////////////////////////////////////////
 
-int CMainFrame::SetAfterId(void *param)
+int CMainFrame::SetAfterId(LPCTSTR EntryName, CRLoginDoc *pDocument)
 {
+	int id = 0;
+	AfterIdParam *pParam = new AfterIdParam;
 	static int SeqId = 0;
 
-	m_AfterIdParam.Add((void *)(INT_PTR)(++SeqId));
-	m_AfterIdParam.Add(param);
+	pParam->SeqId = 0;
+	pParam->EntryName = _tcsdup(EntryName);
+	pParam->pDocument = pDocument;
 
-	return SeqId;
+	for ( int n = 0 ; n < (int)m_AfterIdParam.GetSize() ; n++ ) {
+		if ( _tcscmp(((AfterIdParam *)(m_AfterIdParam[n]))->EntryName, EntryName) == 0 ) {
+			pParam->SeqId = ((AfterIdParam *)(m_AfterIdParam[n]))->SeqId;
+			break;
+		}
+	}
+
+	if ( pParam->SeqId == 0 )
+		pParam->SeqId = id = ++SeqId;
+
+	m_AfterIdParam.Add((void *)pParam);
+
+	return id;
 }
 
 int CMainFrame::SetTimerEvent(int msec, int mode, void *pParam)
@@ -1827,10 +1843,12 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 	}
 	m_LastPaneFlag = FALSE;
 
-	for ( n = 0 ; n< m_ServerEntryTab.m_Data.GetSize() ; n++ ) {
-		if ( m_ServerEntryTab.m_Data[n].m_CheckFlag ) {
-			dlg.m_EntryNum = n;
-			break;
+	if ( !pApp->m_bUseCmdInfo ) {
+		for ( n = 0 ; n < m_ServerEntryTab.m_Data.GetSize() ; n++ ) {
+			if ( m_ServerEntryTab.m_Data[n].m_CheckFlag ) {
+				dlg.m_EntryNum = n;
+				break;
+			}
 		}
 	}
 
@@ -1867,6 +1885,7 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 	m_ServerEntryTab.m_Data[dlg.m_EntryNum].m_CheckFlag = FALSE;
 	Entry = m_ServerEntryTab.m_Data[dlg.m_EntryNum];
 	Entry.m_DocType = DOCTYPE_REGISTORY;
+	m_ServerEntryTab.m_Data[dlg.m_EntryNum].m_AfterId = (-1);
 
 	for ( n = 0 ; n < m_ServerEntryTab.m_Data.GetSize() ; n++ ) {
 		if ( m_ServerEntryTab.m_Data[n].m_CheckFlag ) {
@@ -2852,27 +2871,30 @@ LRESULT CMainFrame::OnAfterOpen(WPARAM wParam, LPARAM lParam)
 {
 	int n;
 
-	for ( n = 0 ; n < m_AfterIdParam.GetSize() ; n += 2 ) {
-		if ( (INT_PTR)(m_AfterIdParam[n]) == (INT_PTR)(wParam) ) {
-			CRLoginDoc *pDoc = (CRLoginDoc *)m_AfterIdParam[n + 1];
+	for ( n = 0 ; n < (int)m_AfterIdParam.GetSize() ; n++ ) {
+		AfterIdParam *pParam = (AfterIdParam *)m_AfterIdParam[n];
 
-			m_AfterIdParam.RemoveAt(n, 2);
+		if ( pParam->SeqId == (int)wParam ) {
+			CRLoginDoc *pDoc = pParam->pDocument;
 
-			if ( !((CRLoginApp *)AfxGetApp())->CheckDocument(pDoc) )
-				break;
+			m_AfterIdParam.RemoveAt(n--);
 
-			if ( (int)lParam != 0 ) {
-				pDoc->OnSocketError((int)lParam);
+			free((void *)(pParam->EntryName));
+			delete pParam;
 
-			} else {
-				pDoc->SocketOpen();
+			if ( ((CRLoginApp *)AfxGetApp())->CheckDocument(pDoc) ) {
+				if ( (int)lParam != 0 ) {
+					pDoc->OnSocketError((int)lParam);
 
-				CRLoginView *pView = (CRLoginView *)pDoc->GetAciveView();
+				} else {
+					pDoc->SocketOpen();
 
-				if ( pView != NULL )
-					MDIActivate(pView->GetFrameWnd());
+					CRLoginView *pView = (CRLoginView *)pDoc->GetAciveView();
+
+					if ( pView != NULL )
+						MDIActivate(pView->GetFrameWnd());
+				}
 			}
-			break;
 		}
 	}
 
@@ -4150,6 +4172,12 @@ void CMainFrame::OnUpdateWindowPrev(CCmdUI *pCmdUI)
 void CMainFrame::OnWinodwSelect(UINT nID)
 {
 	m_wndTabBar.SelectActive(nID - AFX_IDM_FIRST_MDICHILD);
+}
+void CMainFrame::OnWinodwDelNext()
+{
+	if ( m_wndTabBar.GetSize() <= 1 )
+		return;
+	m_wndTabBar.DeleteActive();
 }
 
 void CMainFrame::OnActiveMove(UINT nID)

@@ -1747,62 +1747,118 @@ int CFifoASync::ReadWriteEvent()
 CFifoTunnel::CFifoTunnel(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoBase(pDoc, pSock)
 {
 	m_Type = FIFO_TYPE_TUNNEL;
+	m_pMater = m_pSlave = NULL;
 }
 CFifoTunnel::~CFifoTunnel()
 {
+	FifoUnLink();
 }
 void CFifoTunnel::FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam)
 {
-	int n;
-	int eFd = GetXFd(nFd);
-	CFifoBuffer *pExFifo;
-	BYTE tmp[FIFO_BUFSIZE];
-
-	switch(fdEvent) {
-	case FD_READ:
-		// from Write/PutBuffer pFifo read buffer nFd == EXTIN/STDIN
-		if ( (pExFifo = GetFifo(eFd)) != NULL ) {
-			while ( pExFifo->GetSize() < FIFO_BUFUPPER ) {
-				if ( (n = pFifo->GetBuffer(tmp, FIFO_BUFSIZE)) < 0 ) {
-					pExFifo->PutBuffer(NULL, 0);
-					break;
-				} else if ( n == 0 )
-					break;
-				pExFifo->PutBuffer(tmp, n);
-			}
-			RelFifo(pExFifo);
-		}
-		break;
-	case FD_WRITE:
-		// from Read/GetBuffer pFifo write buffer nFd == EXTOUT/STDOUT
-		if ( (pExFifo = GetFifo(eFd)) != NULL ) {
-			while ( pFifo->GetSize() < FIFO_BUFUPPER ) {
-				if ( (n = pExFifo->GetBuffer(tmp, FIFO_BUFSIZE)) < 0 ) {
-					pFifo->PutBuffer(NULL, 0);
-					break;
-				} else if ( n == 0 )
-					break;
-				pFifo->PutBuffer(tmp, n);
-			}
-			RelFifo(pExFifo);
-		}
-		break;
-
-	case FD_OOB:
-	case FD_ACCEPT:
-	case FD_CONNECT:
-		SendFdEvents(eFd, fdEvent, pParam);
-		break;
-	case FD_CLOSE:
-		SendFdEvents(eFd, fdEvent, pParam);
-		if ( nFd == FIFO_STDIN || nFd == FIFO_EXTIN )
-			Write(eFd, NULL, 0);
-		break;
-	}
 }
 void CFifoTunnel::SendCommand(int cmd, int param, int msg, int len, void *buf, CEvent *pEvent, BOOL *pResult)
 {
-	SendFdCommand(FIFO_EXTOUT, cmd, param, msg, len, buf, pEvent, pResult);
+}
+void CFifoTunnel::OnUnLinked(int nFd, BOOL bMid)
+{
+	FifoUnLink();
+}
+void CFifoTunnel::FifoLink(class CFifoTunnel *pSlave)
+{
+	if ( m_pMater != NULL || m_pSlave != NULL )
+		return;
+
+	pSlave->m_pMater = this;
+	m_pSlave = pSlave;
+
+	Lock();
+	pSlave->Lock();
+
+	CFifoBuffer *pStdIn = (CFifoBuffer *)m_FifoBuf[FIFO_STDIN];
+	CFifoBuffer *pStdOut = (CFifoBuffer *)m_FifoBuf[FIFO_STDOUT];
+	CFifoBuffer *pExtIn = (CFifoBuffer *)pSlave->m_FifoBuf[FIFO_STDIN];
+	CFifoBuffer *pExtOut = (CFifoBuffer *)pSlave->m_FifoBuf[FIFO_STDOUT];
+
+	CFifoBase *pRight = pExtIn->m_pWriteBase;
+	int RightIn = pExtOut->m_nReadNumber;
+	int RightOut = pExtIn->m_nWriteNumber;
+
+	pRight->Lock();
+
+	ASSERT(pStdIn != NULL && pStdOut != NULL);
+	ASSERT(pStdIn->m_pReadBase == this && pStdIn->m_nReadNumber == FIFO_STDIN);
+	ASSERT(pStdOut->m_pWriteBase == this && pStdOut->m_nWriteNumber == FIFO_STDOUT);
+
+	ASSERT(pExtIn != NULL && pExtOut != NULL);
+	ASSERT(pExtIn->m_pReadBase == pSlave && pExtIn->m_nReadNumber == FIFO_STDIN);
+	ASSERT(pExtIn->m_pWriteBase == pRight && pExtIn->m_nWriteNumber == RightOut);
+	ASSERT(pExtOut->m_pWriteBase == pSlave && pExtOut->m_nWriteNumber == FIFO_STDOUT);
+	ASSERT(pExtOut->m_pReadBase == pRight && pExtOut->m_nReadNumber == RightIn);
+
+	pStdIn->m_pReadBase = pRight;
+	pStdIn->m_nReadNumber = RightIn;
+	pStdOut->m_pWriteBase = pRight;
+	pStdOut->m_nWriteNumber = RightOut;
+
+	m_pFifoSave[0] = pSlave->m_FifoBuf[FIFO_STDIN];
+	m_pFifoSave[1] = pSlave->m_FifoBuf[FIFO_STDOUT];
+
+	pSlave->m_FifoBuf[FIFO_STDIN]  = (void *)pStdIn;
+	pSlave->m_FifoBuf[FIFO_STDOUT] = (void *)pStdOut;
+
+	pRight->m_FifoBuf[RightIn]  = (void *)pStdIn;
+	pRight->m_FifoBuf[RightOut] = (void *)pStdOut;
+
+	pRight->Unlock();
+	pSlave->Unlock();
+	Unlock();
+}
+void CFifoTunnel::FifoUnLink()
+{
+	if ( m_pMater != NULL ) {
+		m_pMater->FifoUnLink();
+		return;
+	}
+
+	if ( m_pSlave == NULL )
+		return;
+
+	Lock();
+	m_pSlave->Lock();
+
+	CFifoBuffer *pStdIn = (CFifoBuffer *)m_FifoBuf[FIFO_STDIN];
+	CFifoBuffer *pStdOut = (CFifoBuffer *)m_FifoBuf[FIFO_STDOUT];
+	CFifoBuffer *pExtIn = (CFifoBuffer *)m_pFifoSave[0];
+	CFifoBuffer *pExtOut = (CFifoBuffer *)m_pFifoSave[1];
+
+	CFifoBase *pRight = pStdIn->m_pReadBase;
+	int RightIn = pStdIn->m_nReadNumber;
+	int RightOut = pStdOut->m_nWriteNumber;
+
+	pRight->Lock();
+
+	pExtIn->m_pWriteBase = pRight;
+	pExtIn->m_nWriteNumber = RightOut;
+	pExtOut->m_pReadBase = pRight;
+	pExtOut->m_nReadNumber = RightIn;
+
+	m_pSlave->m_FifoBuf[FIFO_STDIN]  = pRight->m_FifoBuf[RightOut] = (void *)pExtIn;
+	m_pSlave->m_FifoBuf[FIFO_STDOUT] = pRight->m_FifoBuf[RightIn]  = (void *)pExtOut;
+
+	pStdIn->m_pReadBase = this;
+	pStdIn->m_nReadNumber = FIFO_STDIN;
+	pStdOut->m_pWriteBase = this;
+	pStdOut->m_nWriteNumber = FIFO_STDOUT;
+
+	pRight->Unlock();
+
+	m_pSlave->m_pMater = NULL;
+	m_pSlave->Unlock();
+	Unlock();
+
+	m_pSlave->Write(FIFO_STDOUT, NULL, 0);
+	m_pSlave->m_pMater = NULL;
+	m_pSlave = NULL;
 }
 
 ///////////////////////////////////////////////////////

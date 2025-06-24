@@ -1130,6 +1130,8 @@
 #define IDC_SSHSIG_PROG                 2553
 #define IDC_SSHSIG_KEYFILE_SEL2         2554
 #define IDC_SSHSIG_KEYLIST_SEL          2554
+#define IDC_SSHPROXY                    2554
+#define IDC_PROXYSSH                    2554
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1197,6 +1199,7 @@
 #define IDM_TRACEDISP                   5066
 #define IDM_WINDOW_PREV                 5067
 #define IDM_WINODW_NEXT                 5068
+#define IDM_WINODW_DELNEXT              5069
 #define IDM_VERSIONCHECK                5077
 #define IDM_NEWVERSIONFOUND             5078
 #define IDM_DIALOGFONT                  5079
@@ -1279,6 +1282,9 @@
 #define IDM_SSHSIG                      5158
 #define IDM_SSHSIG_SIGNEXT              5159
 #define IDM_SSHSIG_VERIFYNEXT           5160
+#define IDM_FONT_SIZE_UP                5161
+#define IDM_FONT_SIZE_DOWN              5162
+#define IDM_FONT_SIZE_DEF               5163
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
@@ -1286,8 +1292,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        174
-#define _APS_NEXT_COMMAND_VALUE         5161
-#define _APS_NEXT_CONTROL_VALUE         2554
+#define _APS_NEXT_COMMAND_VALUE         5164
+#define _APS_NEXT_CONTROL_VALUE         2555
 #define _APS_NEXT_SYMED_VALUE           680
 #endif
 #endif

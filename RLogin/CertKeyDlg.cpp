@@ -17,6 +17,7 @@ CCertKeyDlg::CCertKeyDlg(CWnd* pParent /*=NULL*/)
 	m_HostName.Empty();
 	m_Digest.Empty();
 	m_SaveKeyFlag = TRUE;
+	m_bStatusMode = FALSE;
 	m_Counter = 0;
 	m_MaxTime = 60;
 }
@@ -47,14 +48,28 @@ BOOL CCertKeyDlg::OnInitDialog()
 
 	CWnd *pWnd;
 
-	m_TimeLimit.SetRange(0, m_MaxTime);
-	SetTimer(1028, 1000, NULL);
-	m_Counter = 0;
+	if ( !m_bStatusMode ) {
+		m_TimeLimit.SetRange(0, m_MaxTime);
+		SetTimer(1028, 1000, NULL);
+		m_Counter = 0;
+
+		m_SaveKeyFlag = ::AfxGetApp()->GetProfileInt(_T("CCertKeyDlg"), _T("SaveKeyFlag"), TRUE);
+	} else {
+		if ( (pWnd = GetDlgItem(IDC_TITLE)) != NULL )
+			pWnd->EnableWindow(FALSE);
+		if ( (pWnd = GetDlgItem(IDC_SAVEKEY)) != NULL )
+			pWnd->EnableWindow(FALSE);
+		if ( (pWnd = GetDlgItem(IDC_HOSTNAME)) != NULL )
+			pWnd->EnableWindow(FALSE);
+		if ( (pWnd = GetDlgItem(IDC_TIMELIMIT)) != NULL )
+			pWnd->EnableWindow(FALSE);
+		if ( (pWnd = GetDlgItem(IDOK)) != NULL )
+			pWnd->EnableWindow(FALSE);
+	}
 
 	if ( (pWnd = GetDlgItem(IDC_DIGEST)) != NULL && m_DigestFont.CreatePointFont(MulDiv(9 * 10, m_NowDpi.cy, SYSTEM_DPI_Y), _T("Consolas")) )
 		pWnd->SetFont(&m_DigestFont);
 
-	m_SaveKeyFlag = ::AfxGetApp()->GetProfileInt(_T("CCertKeyDlg"), _T("SaveKeyFlag"), TRUE);
 	UpdateData(FALSE);
 
 	SetSaveProfile(_T("CCertKeyDlg"));
@@ -76,7 +91,9 @@ void CCertKeyDlg::OnTimer(UINT_PTR nIDEvent)
 void CCertKeyDlg::OnOK()
 {
 	UpdateData(TRUE);
-	::AfxGetApp()->WriteProfileInt(_T("CCertKeyDlg"), _T("SaveKeyFlag"), m_SaveKeyFlag);
+
+	if ( !m_bStatusMode )
+		::AfxGetApp()->WriteProfileInt(_T("CCertKeyDlg"), _T("SaveKeyFlag"), m_SaveKeyFlag);
 
 	CDialogExt::OnOK();
 }

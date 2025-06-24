@@ -3,6 +3,8 @@
 
 #include "stdafx.h"
 #include "RLogin.h"
+#include "MainFrm.h"
+#include "RLoginDoc.h"
 #include "ProxyDlg.h"
 
 
@@ -25,6 +27,9 @@ CProxyDlg::CProxyDlg(CWnd* pParent /*=NULL*/)
 	m_UsePassDlg = FALSE;
 	m_CmdFlag    = FALSE;
 	m_ProxyCmd   = _T("");
+	m_SshFlag    = FALSE;
+	m_SshDisable = FALSE;
+	m_ProxySsh   = _T("");
 }
 
 CProxyDlg::~CProxyDlg()
@@ -48,13 +53,15 @@ void CProxyDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK2, m_CmdFlag);
 	DDX_CBStringExact(pDX, IDC_PROXYCMD, m_ProxyCmd);
 	DDX_Control(pDX, IDC_PROXYCMD, m_ProxyCmdCombo);
+	DDX_Check(pDX, IDC_CHECK3, m_SshFlag);
+	DDX_CBStringExact(pDX, IDC_PROXYSSH, m_ProxySsh);
 }
 
 
 BEGIN_MESSAGE_MAP(CProxyDlg, CDialogExt)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO7, OnProtoType)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_SSL_RADIO1, IDC_SSL_RADIO6, OnProtoType)
-	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECK2, IDC_CHECK2, OnProtoType)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECK2, IDC_CHECK3, OnProtoType)
 END_MESSAGE_MAP()
 
 
@@ -66,14 +73,15 @@ void CProxyDlg::OnProtoType(UINT nID)
 	CWnd *pWnd;
 	static const struct {
 		int		nId;
-		BOOL	mode[9];
-	} ItemTab[] = {			/*	none	http	http(b)	http/2	http/3	socks4	socks5	ssl		cmd		*/
-		{ IDC_SERVERNAME,	{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE	} },
-		{ IDC_SOCKNO,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE	} },
-		{ IDC_USERNAME,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE	} },
-		{ IDC_PASSWORD,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE,	TRUE,	FALSE,	FALSE	} },
-		{ IDC_CHECK1,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE	} },
-		{ IDC_CHECK2,		{	TRUE,	FALSE,	FALSE,	FALSE,	FALSE,	FALSE,	FALSE,	FALSE,	TRUE	} },
+		BOOL	mode[10];
+	} ItemTab[] = {			/*	none	http	http(b)	http/2	http/3	socks4	socks5	ssl		cmd		ssh		*/
+		{ IDC_SERVERNAME,	{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE,	FALSE	} },
+		{ IDC_SOCKNO,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE,	FALSE	} },
+		{ IDC_USERNAME,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE,	FALSE	} },
+		{ IDC_PASSWORD,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE,	TRUE,	FALSE,	FALSE,	FALSE	} },
+		{ IDC_CHECK1,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE,	FALSE	} },
+		{ IDC_CHECK2,		{	TRUE,	FALSE,	FALSE,	FALSE,	FALSE,	FALSE,	FALSE,	FALSE,	TRUE,	TRUE	} },
+		{ IDC_CHECK3,		{	TRUE,	FALSE,	FALSE,	FALSE,	FALSE,	FALSE,	FALSE,	FALSE,	TRUE,	TRUE	} },
 		{ 0 }
 	};
 
@@ -81,6 +89,8 @@ void CProxyDlg::OnProtoType(UINT nID)
 
 	if ( nID == IDC_CHECK2 )
 		nID = IDC_RADIO1 + 8;
+	else if ( nID == IDC_CHECK3 )
+		nID = IDC_RADIO1 + 9;
 
 	if ( nID >= IDC_SSL_RADIO1 && nID <= IDC_SSL_RADIO6 )
 		nID = IDC_RADIO1 + m_ProxyType;
@@ -89,8 +99,14 @@ void CProxyDlg::OnProtoType(UINT nID)
 		nID = IDC_RADIO1 + 7;
 
 	for ( n = 0 ; ItemTab[n].nId != 0 ; n++ ) {
-		if ( (pWnd = GetDlgItem(ItemTab[n].nId)) != NULL && nID >= IDC_RADIO1 && nID < (IDC_RADIO1 + 9) )
-			pWnd->EnableWindow(ItemTab[n].mode[nID - IDC_RADIO1]);
+		if ( (pWnd = GetDlgItem(ItemTab[n].nId)) != NULL && nID >= IDC_RADIO1 && nID < (IDC_RADIO1 + 10) ) {
+			if ( ItemTab[n].nId == IDC_CHECK2 )
+				pWnd->EnableWindow(m_SshFlag ? FALSE : ItemTab[n].mode[nID - IDC_RADIO1]);
+			else if ( ItemTab[n].nId == IDC_CHECK3 )
+				pWnd->EnableWindow(m_SshDisable ? FALSE : (m_CmdFlag ? FALSE : ItemTab[n].mode[nID - IDC_RADIO1]));
+			else 
+				pWnd->EnableWindow(ItemTab[n].mode[nID - IDC_RADIO1]);
+		}
 	}
 
 	if ( (pWnd = GetDlgItem(IDC_SSL_KEEP)) != NULL )
@@ -98,24 +114,45 @@ void CProxyDlg::OnProtoType(UINT nID)
 
 	for ( n = 0 ; n <= 7 ; n++ ) {
 		if ( (pWnd = GetDlgItem(IDC_RADIO1 + n)) != NULL )
-			pWnd->EnableWindow(m_CmdFlag ? FALSE : TRUE);
+			pWnd->EnableWindow((m_CmdFlag || m_SshFlag) ? FALSE : TRUE);
 	}
 
 	for ( n = 0 ; n <= 2 ; n++ ) {
 		if ( (pWnd = GetDlgItem(IDC_SSL_RADIO1 + n)) != NULL )
-			pWnd->EnableWindow(m_CmdFlag ? FALSE : TRUE);
+			pWnd->EnableWindow((m_CmdFlag || m_SshFlag) ? FALSE : TRUE);
 	}
 
 	if ( (pWnd = GetDlgItem(IDC_PROXYCMD)) != NULL )
 		pWnd->EnableWindow(m_CmdFlag ? TRUE : FALSE);
 
+	if ( (pWnd = GetDlgItem(IDC_PROXYSSH)) != NULL )
+		pWnd->EnableWindow(m_SshFlag ? TRUE : FALSE);
 }
- 
+
+ void CProxyDlg::InitSshEntry()
+ {
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+	CComboBox *pCombo = (CComboBox *)GetDlgItem(IDC_PROXYSSH);
+
+	m_SshDisable = m_SshFlag ? FALSE : TRUE;
+
+	for ( int n = 0 ; n < (int)pMain->m_ServerEntryTab.GetSize() ; n++ ) {
+		CServerEntry *pEntry = &(pMain->m_ServerEntryTab.GetAt(n));
+		if ( pEntry->m_ProtoType == PROTO_SSH ) {
+			pCombo->AddString(pEntry->m_EntryName);
+			m_SshDisable = FALSE;
+		}
+	}
+
+	if ( !m_ProxySsh.IsEmpty() && pCombo->FindStringExact((-1), m_ProxySsh) == CB_ERR )
+		pCombo->AddString(m_ProxySsh);
+ }
+
 BOOL CProxyDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
 
-	// m_ProxyMode = CServerEntry::m_ProxyMode & 7
+	// m_ProxyMode = CServerEntry::m_ProxyMode(000000mm 00000mmm)
 	// m_ProxyMode 0 == None			m_ProxyType = 0
 	// m_ProxyMode 1 == HTTP			m_ProxyType = 1
 	// m_ProxyMode 2 == SOCKS4			m_ProxyType = 5
@@ -124,8 +161,9 @@ BOOL CProxyDlg::OnInitDialog()
 	// m_ProxyMode 5 == ProxyCommand	m_CmdFlag = TRUE
 	// m_ProxyMode 6 == HTTP/2			m_ProxyType = 3
 	// m_ProxyMode 7 == HTTP/3			m_ProxyType = 4
+	// m_ProxyMode 8 == ProxySsh		m_SshFlag = TRUE
 
-	// m_SSLMode = CServerEntry::m_ProxyMode >> 3
+	// m_SSLMode = CServerEntry::m_ProxyMode(00000000 sssss000)
 	// m_SSLMode 0   == None			m_SSLType = 0
 	// m_SSLMode 1-6 == SSL/TLS			m_SSLType = 1
 	// m_SSLMode 7   == QUIC			m_SSLType = 2
@@ -152,12 +190,19 @@ BOOL CProxyDlg::OnInitDialog()
 		m_ProxyType = 0;
 		m_SSLMode   = 0;
 		m_CmdFlag   = TRUE;
+		m_SshFlag   = FALSE;
 		break;
 	case 6:		// HTTP/2
 		m_ProxyType = 3;
 		break;
 	case 7:		// HTTP/3
 		m_ProxyType = 4;
+		break;
+	case 8:		// ProxySsh
+		m_ProxyType = 0;
+		m_SSLMode   = 0;
+		m_CmdFlag   = FALSE;
+		m_SshFlag   = TRUE;
 		break;
 	}
 
@@ -173,6 +218,8 @@ BOOL CProxyDlg::OnInitDialog()
 		m_SSLType = 2;
 		break;
 	}
+
+	InitSshEntry();
 
 	UpdateData(FALSE);
 
@@ -196,6 +243,9 @@ void CProxyDlg::OnOK()
 
 	if ( m_CmdFlag ) {
 		m_ProxyMode = 5;
+		m_SSLMode = 0;
+	} else if ( m_SshFlag ) {
+		m_ProxyMode = 8;
 		m_SSLMode = 0;
 	} else {
 		switch(m_ProxyType) {

@@ -6,17 +6,11 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
-				
-				
-				
-			background-color : #ffffff; font-size : 90%; 
+TD {
+	background-color : #ffffff; font-size : 90%; 
 }
-.BOX{		
-				
-				
-				
-			background-color : silver; 
+.BOX{
+	background-color : silver; 
 }
 -->
 </STYLE>
@@ -31,8 +25,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.5)</TD>
-            <TD width="20%" align="right">2025/05/26</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.6)</TD>
+            <TD width="20%" align="right">2025/06/25</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -444,6 +438,14 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2025/06/25</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.6/">2.30.6</A></TD>
+            <TD>プロキシ設定にSSH Proxyを追加<BR>
+            mlkem512/768/1024-sha256/384に名称を変更<BR>
+            sshのエラー時のメッセージと処理を変更<BR>
+            メニュー表示にフォントサイズの拡大縮小を追加</TD>
+          </TR>
+          <TR>
             <TD align="center">2025/05/26</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.5/">2.30.5</A></TD>
             <TD>SFTPのリモート側エラー時に原因を表示するように変更<BR>
@@ -486,14 +488,6 @@ TD {
             ACP文字変換内でLastErrorを待避するように変更<BR>
             openssl-3.4.1に更新<BR>
             <FONT color="#ff0000">SSHエージェントが動作しないバグを修正して更新</FONT></TD>
-          </TR>
-          <TR>
-            <TD align="center">2025/01/27</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.1/">2.30.1</A></TD>
-            <TD>tekウィンドウの編集にコピー・ペーストを追加<BR>
-            ssh2のkexsにml-kem-512/768/1024-sha256/384を暫定的に対応<BR>
-            ファイルアップ・ダウン時の受信処理を少し変更<BR>
-            tekウィンドウのSVG読み込み処理でsytleを部分的に対応</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -967,7 +961,7 @@ TD {
                   <TD align="left" colspan="6">表示(V)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="10" rowspan="33">&nbsp;</TD>
+                  <TD align="center" width="10" rowspan="34">&nbsp;</TD>
                   <TD colspan="2" width="250" valign="top">メニューバー(M)</TD>
                   <TD width="450" valign="top">メニューバーを表示・非表示にします<BR>
                   ※非表示の時は、システムメニューでメニューバーを表示できます</TD>
@@ -1104,6 +1098,16 @@ TD {
                   <TD valign="top">ウィンドウやタブに表示するタイトルを一時的に変更します。「すべての状態を保存」以外では、この変更は、保存されません</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$TITLE_EDIT</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" colspan="2">フォントサイズ(F)</TD>
+                  <TD valign="top">一時的にフォントサイズを大きく・小さく・初期値に変更します<BR>
+                  Ctrl+テンキーの+/-/0にメニューのショートカットを追加しました。キー操作で表示フォントのサイズを一時的に変更できます<BR>
+                  また、2.27.7からCtrl+Wheelでフォントサイズの変更が可能です</TD>
+                  <TD valign="top" align="right"></TD>
+                  <TD valign="top">$FONT_SIZE_UP<BR>
+                  $FONT_SIZE_DOWN<BR>
+                  $FONT_SIZE_DEF</TD>
                 </TR>
                 <TR>
                   <TD colspan="2" valign="top" width="250">漢字コードの変更(C)</TD>
@@ -2978,10 +2982,15 @@ fi</PRE>
                   <TD>プロキシプログラムをパイプでつないで接続します<BR>
                   <A href="#FILENAMEEXT">送信文字列の特殊文字</A>が利用できます</TD>
                 </TR>
+                <TR>
+                  <TD align="center">下記SSHエントリ…</TD>
+                  <TD>SSHエントリーを利用してプロキシ接続を行います。指定のSSHエントリーが接続していない場合は、先にその接続を行ってから自身の接続を行います。<BR>
+                  ※<A href="faq.html#SSHCASCADE">SSHによる多段接続</A>で説明している<A href="#PORTFORWARD">ポートフォワードの設定</A>との違いは、このSSH Proxyでもポートフォワードと同じ機能を使用しますが、接続先が同じRLogin内のタブで開いたエントリーと直接接続されます。したがって別に起動したRLoginの接続を利用できませんのでご注意ください</TD>
+                </TR>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image012.jpg" width="420" height="479" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image012.jpg" width="420" height="506" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

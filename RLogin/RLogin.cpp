@@ -693,6 +693,7 @@ END_MESSAGE_MAP()
 
 CRLoginApp::CRLoginApp()
 {
+	m_bUseCmdInfo = FALSE;
 	m_pCmdInfo = NULL;
 	m_pServerEntry = NULL;
 	m_bLookCast = FALSE;
@@ -2091,7 +2092,18 @@ int CRLoginApp::ExitInstance()
 void CRLoginApp::OpenProcsCmd(CCommandLineInfoEx *pCmdInfo)
 {
 	CCommandLineInfoEx *pOldCmdInfo = m_pCmdInfo;
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
 
+	if ( !pCmdInfo->m_Name.IsEmpty() && pCmdInfo->m_AfterId != (-1) && pMain != NULL ) {
+		for ( int n = 0 ; n < (int)pMain->m_ServerEntryTab.m_Data.GetSize() ; n++ ) {
+			if ( pMain->m_ServerEntryTab.m_Data[n].m_CheckFlag && pCmdInfo->m_Name.Compare(pMain->m_ServerEntryTab.m_Data[n].m_EntryName) == 0 ) {
+				pMain->m_ServerEntryTab.m_Data[n].m_AfterId = pCmdInfo->m_AfterId;
+				return;
+			}
+		}
+	}
+
+	m_bUseCmdInfo = TRUE;
 	m_pCmdInfo = pCmdInfo;
 	switch(pCmdInfo->m_nShellCommand) {
 	case CCommandLineInfo::FileNew:
@@ -2103,6 +2115,7 @@ void CRLoginApp::OpenProcsCmd(CCommandLineInfoEx *pCmdInfo)
 		break;
 	}
 	m_pCmdInfo = pOldCmdInfo;
+	m_bUseCmdInfo = FALSE;
 }
 void CRLoginApp::OpenCommandEntry(LPCTSTR entry)
 {
@@ -2256,6 +2269,20 @@ void CRLoginApp::OpenRLogin(class CRLoginDoc *pDoc, CPoint *pPoint)
 		param.Format(_T("%s /sx %d /sy %d"), (LPCTSTR)pDoc->m_CmdLine, pPoint->x, pPoint->y);
 		ShellExecute(AfxGetMainWnd()->GetSafeHwnd(), NULL, m_PathName, param, m_BaseDir, SW_NORMAL);
 	}
+}
+CRLoginDoc *CRLoginApp::GetDocFromEntryName(LPCTSTR entry, CRLoginDoc *pThis)
+{
+	POSITION pos = GetFirstDocTemplatePosition();
+	while ( pos != NULL ) {
+		CDocTemplate *pDocTemp = GetNextDocTemplate(pos);
+		POSITION dpos = pDocTemp->GetFirstDocPosition();
+		while ( dpos != NULL ) {
+			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+			if ( pDoc != pThis && pDoc->m_ServerEntry.m_EntryName.Compare(entry) == 0 && pDoc->m_AfterId == (-1) && pDoc->m_pSock != NULL && pDoc->m_pSock->m_bConnect )
+				return pDoc;
+		}
+	}
+	return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -188,6 +188,9 @@ BOOL CRLoginDoc::InitDocument()
 	SetTitle(m_ServerEntry.m_EntryName);
 	SetCmdInfo(((CRLoginApp *)AfxGetApp())->m_pCmdInfo);
 
+	if ( m_ServerEntry.m_AfterId != (-1) )
+		m_AfterId = m_ServerEntry.m_AfterId;
+
 	if ( ScriptInit() && !SocketOpen() )
 		return FALSE;
 
@@ -313,9 +316,13 @@ void CRLoginDoc::OnFileClose()
 		if ( ::AfxMessageBox(msg, MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 	}
+	
+	CWnd *pWnd = GetAciveView();
 
 	if ( IsCanExit() )
 		m_pMainWnd->PostMessage(WM_COMMAND, ID_APP_EXIT, 0 );
+	else if ( pWnd != NULL && pWnd->GetSafeHwnd() == ::GetFocus() )
+		m_pMainWnd->SendMessage(WM_COMMAND, IDM_WINODW_DELNEXT, 0 );
 
 	if ( m_InPane ) {
 		POSITION pos;
@@ -2119,10 +2126,13 @@ void CRLoginDoc::OnSockReOpen()
 
 int CRLoginDoc::SocketOpen()
 {
-	BOOL rt;
+	BOOL rt = FALSE;
 	CPassDlg dlg;
 	CStringArrayExt hosts;
 	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+	CRLoginDoc *pProxyDoc = NULL;
+	LPCTSTR pAfterEntry = NULL;
+	int ProxyMode = (m_ServerEntry.m_ProxyMode & 0x07) | ((m_ServerEntry.m_ProxyMode & 0x300) >> 5);	// 000000mm sssssmmm
 
 	if ( m_pSock != NULL )
 		return FALSE;
@@ -2130,10 +2140,18 @@ int CRLoginDoc::SocketOpen()
 	if ( InternetAttemptConnect(0) != ERROR_SUCCESS )
 		return FALSE;
 
-	if ( !m_ServerEntry.m_BeforeEntry.IsEmpty() && m_ServerEntry.m_BeforeEntry.Compare(m_ServerEntry.m_EntryName) != 0 && !((CRLoginApp *)::AfxGetApp())->IsOnlineEntry(m_ServerEntry.m_BeforeEntry) ) {
-		CString cmds;
-		cmds.Format(_T("/Entry \"%s\" /After %d"), (LPCTSTR)m_ServerEntry.m_BeforeEntry, ((CMainFrame *)::AfxGetMainWnd())->SetAfterId((void *)this));
-		pApp->OpenCommandLine(cmds);
+	if ( !m_ServerEntry.m_BeforeEntry.IsEmpty() && m_ServerEntry.m_BeforeEntry.Compare(m_ServerEntry.m_EntryName) != 0 && !((CRLoginApp *)::AfxGetApp())->IsOnlineEntry(m_ServerEntry.m_BeforeEntry) )
+		pAfterEntry = m_ServerEntry.m_BeforeEntry;
+	else if ( ProxyMode == 8 && !m_ServerEntry.m_ProxySsh.IsEmpty() && (pProxyDoc = pApp->GetDocFromEntryName(m_ServerEntry.m_ProxySsh, this)) == NULL )
+		pAfterEntry = m_ServerEntry.m_ProxySsh;
+
+	if ( pAfterEntry != NULL && m_ServerEntry.m_EntryName.Compare(pAfterEntry) != 0 ) {
+		int id = ((CMainFrame *)::AfxGetMainWnd())->SetAfterId(pAfterEntry, this);
+		if ( id > 0 ) {
+			CString cmds;
+			cmds.Format(_T("/Entry \"%s\" /After %d"), pAfterEntry, id);
+			pApp->OpenCommandLine(cmds);
+		}
 		return TRUE;
 	}
 
@@ -2146,8 +2164,8 @@ int CRLoginDoc::SocketOpen()
 	if ( m_ServerEntry.m_ProtoType == PROTO_SSH && m_ParamTab.IsPfdEnable() )
 		m_bPfdCheck = ((CRLoginApp *)::AfxGetApp())->IsOnlineEntry(m_ServerEntry.m_EntryName);
 
-	// 0=NONE, 1=HTTP, 2=SOCKS4, 3=SOCKS5, 4=HTTP(Basic)
-	if ( (m_ServerEntry.m_ProxyMode & 7) > 0 && (m_TextRam.IsOptEnable(TO_PROXPASS) || !m_ServerEntry.m_bPassOk) ) {
+	// 0=NONE, 1=HTTP, 2=SOCKS4, 3=SOCKS5, 4=HTTP(Basic) 6=HTTP/2 7=HTTP/3
+	if ( (ProxyMode >= 1 && ProxyMode <= 7 && ProxyMode != 5) && (m_TextRam.IsOptEnable(TO_PROXPASS) || !m_ServerEntry.m_bPassOk) ) {
 
 		dlg.m_Title    = m_ServerEntry.m_EntryName;
 		dlg.m_Title   += _T("(Proxy Server)");
@@ -2251,16 +2269,34 @@ SKIPINPUT:
 	case PROTO_PIPE:    m_pSock = new CPipeSock(this);   break; // pipe console
 	}
 
-	if ( m_ServerEntry.m_ProxyMode == 5 )
-		rt = m_pSock->ProxyCommand(m_ServerEntry.m_ProxyCmd);
-	else if ( m_ServerEntry.m_ProxyMode != 0 )
+	switch(ProxyMode) {
+	case 1:	// HTTP
+	case 2:	// SOCKS4
+	case 3:	// SOCKS5
+	case 4:	// HTTP(Basic)
+	case 6:	// HTTP/2
+	case 7:	// HTTP/3
 		rt = m_pSock->ProxyOpen(m_ServerEntry.m_ProxyMode, m_ServerEntry.m_ProxySSLKeep,
 			m_ServerEntry.m_ProxyHost, CExtSocket::GetPortNum(m_ServerEntry.m_ProxyPort),
 			m_ServerEntry.m_ProxyUser, m_ServerEntry.m_ProxyPass, m_ServerEntry.m_HostName,
 			CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
-	else 
-		rt = m_pSock->Open(m_ServerEntry.m_HostName,
-			CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
+		break;
+	case 5:	// ProxyCmd
+		rt = m_pSock->ProxyCommand(m_ServerEntry.m_ProxyCmd);
+		break;
+	case 8:	// SshProxy
+		if ( pProxyDoc == NULL || pProxyDoc->m_pSock == NULL || pProxyDoc->m_pSock->m_Type != ESCT_SSH_MAIN ) {
+			CString msg;
+			msg.Format(_T("SSH Proxy error '%s'\nNot found '%s'"), m_ServerEntry.m_EntryName, m_ServerEntry.m_ProxySsh);
+			::AfxMessageBox(msg, MB_ICONERROR);
+			break;
+		}
+		m_pSock->m_pSshProxy = pProxyDoc->m_pSock;
+		// no break
+	default: // 0=None
+		rt = m_pSock->Open(m_ServerEntry.m_HostName, CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
+		break;
+	}
 
 	if ( !rt ) {
 		SocketClose();

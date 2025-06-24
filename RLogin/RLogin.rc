@@ -378,6 +378,12 @@ BEGIN
         MENUITEM "標準の設定に戻す(&Y)",                IDC_LOADDEFAULT
         MENUITEM SEPARATOR
         MENUITEM "タイトルの変更(&E)",                 IDM_TITLEEDIT
+        POPUP "フォントサイズ(&F)"
+        BEGIN
+            MENUITEM "大きく(&+)",                     IDM_FONT_SIZE_UP
+            MENUITEM "小さく(&-)",                     IDM_FONT_SIZE_DOWN
+            MENUITEM "初期値(&D)",                     IDM_FONT_SIZE_DEF
+        END
         POPUP "漢字コードの変更(&C)"
         BEGIN
             MENUITEM "&1 EUC",                      IDM_KANJI_EUC
@@ -743,7 +749,7 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,210,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.30.5 (2025/05/26)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.30.6 (2025/06/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2025 Culti",IDC_STATIC,44,17,189,8
     LTEXT           "OpenSSL 3.5.0 8 Apr 2025",IDC_STATIC,44,50,189,8
     LTEXT           "Copyright (c) 1998-2025 The OpenSSL Project",IDC_STATIC,44,60,189,8
@@ -1400,39 +1406,42 @@ BEGIN
     EDITTEXT        IDC_STATUS,15,20,200,14,ES_AUTOHSCROLL | ES_READONLY
 END
 
-IDD_PROXYDLG DIALOGEX 0, 0, 239, 301
+IDD_PROXYDLG DIALOGEX 0, 0, 239, 316
 STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Proxy Server"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "使用しない",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,16,21,55,10
-    CONTROL         "HTTP",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,91,21,55,10
-    CONTROL         "HTTP(Basic)",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,166,21,55,10
-    CONTROL         "HTTP/2",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,91,35,55,10
-    CONTROL         "HTTP/3",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,166,35,55,10
-    CONTROL         "SOCKS4",IDC_RADIO6,"Button",BS_AUTORADIOBUTTON,91,49,55,10
-    CONTROL         "SOCKS5",IDC_RADIO7,"Button",BS_AUTORADIOBUTTON,166,49,55,10
-    CONTROL         "使用しない",IDC_SSL_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,16,83,55,10
-    CONTROL         "SSL/TLS",IDC_SSL_RADIO2,"Button",BS_AUTORADIOBUTTON,91,83,55,10
-    CONTROL         "QUIC",IDC_SSL_RADIO3,"Button",BS_AUTORADIOBUTTON,166,83,55,10
-    CONTROL         "コネクション確立後もSSL/TLSを維持する",IDC_SSL_KEEP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,91,98,130,10
-    COMBOBOX        IDC_SERVERNAME,16,144,145,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_SOCKNO,169,144,54,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_USERNAME,16,173,100,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_PASSWORD,123,173,100,13,ES_PASSWORD | ES_AUTOHSCROLL
-    CONTROL         "下記プログラムをパイプで実行する（%Sホスト名 %pポート番号）",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,232,207,10
-    COMBOBOX        IDC_PROXYCMD,16,250,207,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    DEFPUSHBUTTON   "OK",IDOK,50,280,60,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,128,280,60,14
-    CONTROL         "接続時にユーザー名・パスワードの入力を求める",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,193,207,10
-    GROUPBOX        "Select Proxy Protocol",IDC_STATIC,7,7,225,60
-    CTEXT           "Proxy Server Address",IDC_STATIC,19,133,136,8
-    CTEXT           "User Name",IDC_STATIC,16,162,100,8
-    CTEXT           "Password",IDC_STATIC,123,162,100,8
-    CTEXT           "Socket Port",IDC_STATIC,166,133,54,8
-    GROUPBOX        "Server Option",IDC_STATIC,7,120,225,92
-    GROUPBOX        "Over SSL/TLS",IDC_STATIC,7,70,225,47
-    GROUPBOX        "Proxy Command",IDC_STATIC,7,218,225,56
+    CONTROL         "使用しない",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,16,17,55,10
+    CONTROL         "HTTP",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,91,17,55,10
+    CONTROL         "HTTP(Basic)",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,166,17,55,10
+    CONTROL         "HTTP/2",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,91,31,55,10
+    CONTROL         "HTTP/3",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,166,31,55,10
+    CONTROL         "SOCKS4",IDC_RADIO6,"Button",BS_AUTORADIOBUTTON,91,45,55,10
+    CONTROL         "SOCKS5",IDC_RADIO7,"Button",BS_AUTORADIOBUTTON,166,45,55,10
+    CONTROL         "使用しない",IDC_SSL_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,16,73,55,10
+    CONTROL         "SSL/TLS",IDC_SSL_RADIO2,"Button",BS_AUTORADIOBUTTON,91,73,55,10
+    CONTROL         "QUIC",IDC_SSL_RADIO3,"Button",BS_AUTORADIOBUTTON,166,73,55,10
+    CONTROL         "コネクション確立後もSSL/TLSを維持する",IDC_SSL_KEEP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,91,88,130,10
+    COMBOBOX        IDC_SERVERNAME,16,128,145,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_SOCKNO,169,128,54,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_USERNAME,16,156,100,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_PASSWORD,123,156,100,13,ES_PASSWORD | ES_AUTOHSCROLL
+    CONTROL         "下記プログラムをパイプで実行する（%Sホスト名 %pポート番号）",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,205,207,10
+    COMBOBOX        IDC_PROXYCMD,16,220,207,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "下記SSHエントリーを使用してProxy接続します",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,254,207,10
+    COMBOBOX        IDC_PROXYSSH,16,268,207,100,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,50,295,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,128,295,60,14
+    CONTROL         "接続時にユーザー名・パスワードの入力を求める",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,175,207,10
+    GROUPBOX        "Select Proxy Protocol",IDC_STATIC,7,7,225,54
+    CTEXT           "Proxy Server Address",IDC_STATIC,19,117,136,8
+    CTEXT           "User Name",IDC_STATIC,16,145,100,8
+    CTEXT           "Password",IDC_STATIC,123,145,100,8
+    CTEXT           "Socket Port",IDC_STATIC,166,117,54,8
+    GROUPBOX        "Server Option",IDC_STATIC,7,107,225,85
+    GROUPBOX        "Over SSL/TLS",IDC_STATIC,7,63,225,42
+    GROUPBOX        "Proxy Command",IDC_STATIC,7,195,225,46
+    GROUPBOX        "SSH Proxy",IDC_STATIC,7,244,225,46
 END
 
 IDD_SCRNPAGE DIALOGEX 0, 0, 270, 300
@@ -1629,7 +1638,7 @@ BEGIN
     DEFPUSHBUTTON   "接続する",IDOK,41,224,60,14
     PUSHBUTTON      "キャンセル",IDCANCEL,114,224,60,14
     EDITTEXT        IDC_DIGEST,7,37,200,139,ES_CENTER | ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY
-    CTEXT           "このホストの公開鍵を信頼して接続しますか？",IDC_STATIC,7,23,200,8
+    CTEXT           "このホストの公開鍵を信頼して接続しますか？",IDC_TITLE,7,23,200,8
     CTEXT           "",IDC_HOSTNAME,7,7,200,8
     CONTROL         "",IDC_TIMELIMIT,"msctls_progress32",0x0,18,185,178,12
 END
@@ -2357,8 +2366,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,30,5,0
- PRODUCTVERSION 2,30,5,0
+ FILEVERSION 2,30,6,0
+ PRODUCTVERSION 2,30,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2375,12 +2384,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.30.5.0"
+            VALUE "FileVersion", "2.30.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.30.5.0"
+            VALUE "ProductVersion", "2.30.6.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2595,7 +2604,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 232
         TOPMARGIN, 7
-        BOTTOMMARGIN, 294
+        BOTTOMMARGIN, 309
     END
 
     IDD_SCRNPAGE, DIALOG
@@ -5303,6 +5312,9 @@ BEGIN
     IDM_DOCKBARINIT         "ドッキングバーをプログラム初期位置に戻します\nバー位置を初期化"
     IDM_APPCOLEDIT          "メニューやドッキングバーの背景色などを編集します\n各種ウィンドウの色設定"
     IDM_SSHSIG              "SSH鍵によるファイルの署名・検証を行う\nファイル署名検証"
+    IDM_FONT_SIZE_UP        "一時的にフォントサイズを大きくします\nフォント拡大"
+    IDM_FONT_SIZE_DOWN      "一時的にフォントサイズを小さくします\nフォント縮小"
+    IDM_FONT_SIZE_DEF       "デフォルトのフォントサイズに戻します\nフォント初期値"
 END
 
 #endif    // 日本語 (日本) resources

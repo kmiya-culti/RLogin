@@ -1025,6 +1025,22 @@ void CTabBar::SelectActive(int idx)
 	if ( (pWnd = (CChildFrame *)GetAt(idx)) != NULL )
 		pWnd->MDIActivate();
 }
+void CTabBar::DeleteActive()
+{
+	int idx = GetCurSel();
+	CChildFrame *pWnd;
+
+	if ( idx < 0 || idx >= GetSize() )
+		return;
+
+	if ( ++idx >= GetSize() ) {
+		if ( (idx -= 2) < 0 )
+			idx = 0;
+	}
+
+	if ( (pWnd = (CChildFrame *)GetAt(idx)) != NULL )
+		pWnd->MDIActivate();
+}
 int CTabBar::GetIndex(CWnd *pWnd)
 {
 	int n;

@@ -2069,7 +2069,7 @@ void CTextRam::InitText(int Width, int Height)
 		newLines = Height / charHeight;
 
 	} else {
-		newCols = m_DefCols[0];
+		newCols = m_ActCols[0];
 
 		if ( (charWidth = Width / newCols) <= 0 ) {
 			charWidth = 1;
@@ -2080,7 +2080,7 @@ void CTextRam::InitText(int Width, int Height)
 			charHeight = 1;
 
 		if ( IsOptValue(TO_DECCOLM, 1) == 1 ) {
-			newCols = m_DefCols[1];
+			newCols = m_ActCols[1];
 
 			if ( (charWidth = Width / newCols) <= 0 ) {
 				charWidth = 1;
@@ -2684,6 +2684,7 @@ void CTextRam::Init()
 {
 	m_DefCols[0]	= 80;
 	m_DefCols[1]	= 132;
+	memcpy(m_ActCols, m_DefCols, sizeof(m_ActCols));
 	m_Page          = 0;
 	m_DefHisMax		= 2000;
 	m_DefFontSize	= MulDiv(16, SYSTEM_DPI_Y, DEFAULT_DPI_Y);
@@ -2976,6 +2977,7 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 				m_DefCols[0] = index[n][i];
 			if ( (i = index[n].Find(_T("Wide"))) >= 0 )
 				m_DefCols[1] = index[n][i];
+			memcpy(m_ActCols, m_DefCols, sizeof(m_ActCols));
 		}
 
 		if ( (n = index.Find(_T("History"))) >= 0 )
@@ -3710,6 +3712,8 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	m_SshKeepAlive = (stra.GetSize() > 18 ? stra.GetVal(18) : 0);
 	m_LogFile      = (stra.GetSize() > 19 ? stra.GetAt(19) : _T(""));
 	m_DefCols[1]   = (stra.GetSize() > 20 ? stra.GetVal(20) : 132);
+
+	memcpy(m_ActCols, m_DefCols, sizeof(m_ActCols));
 
 	m_DropFileMode = (stra.GetSize() > 21 ? stra.GetVal(21) : 0);
 	for ( n = 0 ; n < 8 ; n++ )
@@ -8048,6 +8052,8 @@ void CTextRam::RESET(int mode)
 
 	if ( mode & RESET_SIZE && m_pDocument != NULL ) {
 		m_bReSize = FALSE;
+		m_FontSize = m_DefFontSize;
+		memcpy(m_ActCols, m_DefCols, sizeof(m_ActCols));
 		m_pDocument->UpdateAllViews(NULL, UPDATE_RESIZE, NULL);
 	}
 
