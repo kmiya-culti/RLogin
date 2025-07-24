@@ -1761,6 +1761,8 @@ const CIdKey & CIdKey::operator = (CIdKey &data)
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
 	case IDKEY_ML_DSA:
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
 	case IDKEY_SLH_DSA:
 		m_PublicKey  = data.m_PublicKey;
 		m_PrivateKey = data.m_PrivateKey;
@@ -2077,6 +2079,8 @@ int CIdKey::Create(int type)
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
 	case IDKEY_ML_DSA:
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
 	case IDKEY_SLH_DSA:
 		m_Type = type;
 		//m_PublicKey.Clear();
@@ -2154,6 +2158,7 @@ int CIdKey::Generate(int type, int bits, LPCTSTR pass, GENSTATUS *gs)
 	EVP_PKEY_CTX *ctx_params = NULL;
 	EVP_PKEY* pkey_params = NULL;
 	BOOL bParams = FALSE;
+	CIdKey secKey;
 
 	switch(type) {
 	case IDKEY_RSA1:
@@ -2173,6 +2178,8 @@ int CIdKey::Generate(int type, int bits, LPCTSTR pass, GENSTATUS *gs)
 		id = EVP_PKEY_ED448;
 		break;
 	case IDKEY_ML_DSA:
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
 	case IDKEY_SLH_DSA:
 		if ( (id = GetDsaPkey(bits)) == NID_undef )
 			return FALSE;
@@ -2292,6 +2299,58 @@ int CIdKey::Generate(int type, int bits, LPCTSTR pass, GENSTATUS *gs)
 		m_Type = type;
 
 NEWRET:
+	if ( type == IDKEY_ML_DSA_ES ) {
+		switch(m_Nid) {
+		case NID_ML_DSA_44:
+		case NID_ML_DSA_65:
+			if ( !secKey.Generate(IDKEY_ECDSA, 256, pass, gs) )
+				goto ERRRET;
+			break;
+		case NID_ML_DSA_87:
+			if ( !secKey.Generate(IDKEY_ECDSA, 384, pass, gs) )
+				goto ERRRET;
+			break;
+		}
+
+		BOOL bErr = TRUE;
+		BN_CTX *bnctx;
+		const BIGNUM *b = EC_KEY_get0_private_key(secKey.m_EcDsa);
+		int len;
+
+		if ( b != NULL && (bnctx = BN_CTX_new()) != NULL ) {
+			if ( (len = (int)EC_POINT_point2oct(EC_KEY_get0_group(secKey.m_EcDsa), EC_KEY_get0_public_key(secKey.m_EcDsa), POINT_CONVERSION_COMPRESSED, NULL, 0, bnctx)) > 0 ) {
+				if ( EC_POINT_point2oct(EC_KEY_get0_group(secKey.m_EcDsa), EC_KEY_get0_public_key(secKey.m_EcDsa), POINT_CONVERSION_COMPRESSED, m_PublicKey.PutSpc(len), len, bnctx) == len )
+					bErr = FALSE;
+			}
+			BN_CTX_free(bnctx);
+		}
+		if ( bErr )
+			goto ERRRET;
+		if ( (len = BN_num_bytes(b)) <= 2 )
+			goto ERRRET;
+		if ( BN_bn2bin(b, m_PrivateKey.PutSpc(len)) != len )
+			goto ERRRET;
+
+		m_Type = type;
+
+	} else if ( type == IDKEY_ML_DSA_ED ) {
+		switch(m_Nid) {
+		case NID_ML_DSA_44:
+		case NID_ML_DSA_65:
+			if ( !secKey.Generate(IDKEY_ED25519, 255, pass, gs) )
+				goto ERRRET;
+			break;
+		case NID_ML_DSA_87:
+			if ( !secKey.Generate(IDKEY_ED448, 448, pass, gs) )
+				goto ERRRET;
+			break;
+		}
+
+		m_PublicKey.Apend(secKey.m_PublicKey.GetPtr(), secKey.m_PublicKey.GetSize());
+		m_PrivateKey.Apend(secKey.m_PrivateKey.GetPtr(), secKey.m_PrivateKey.GetSize());
+		m_Type = type;
+	}
+
 	if ( !WritePrivateKey(m_SecBlob, pass) )
 		goto ERRRET;
 
@@ -2410,6 +2469,8 @@ int CIdKey::ComperePublic(CIdKey *pKey)
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
 	case IDKEY_ML_DSA:
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
 	case IDKEY_SLH_DSA:
 		if ( m_PublicKey.GetSize() == 0 || m_PublicKey.GetSize() != pKey->m_PublicKey.GetSize() )
 			break;
@@ -2510,6 +2571,34 @@ LPCTSTR CIdKey::GetName(int nFlag)
 		m_Work += _T("ssh-mldsa");			// draft-sfluhrer-ssh-mldsa-00
 		m_Work += GetDsaName(m_Nid);
 		break;
+	case IDKEY_ML_DSA_ES:
+		m_Work += _T("ssh-mldsa");
+		switch(m_Nid) {
+		case NID_ML_DSA_44:
+			m_Work += _T("44-es256");
+			break;
+		case NID_ML_DSA_65:
+			m_Work += _T("65-es256");
+			break;
+		case NID_ML_DSA_87:
+			m_Work += _T("87-es384");
+			break;
+		}
+		break;
+	case IDKEY_ML_DSA_ED:
+		m_Work += _T("ssh-mldsa");
+		switch(m_Nid) {
+		case NID_ML_DSA_44:
+			m_Work += _T("44-ed25519");
+			break;
+		case NID_ML_DSA_65:
+			m_Work += _T("65-ed25519");
+			break;
+		case NID_ML_DSA_87:
+			m_Work += _T("87-ed448");
+			break;
+		}
+		break;
 	case IDKEY_SLH_DSA:
 		m_Work += _T("ssh-slh-dsa-");		// draft-josefsson-ssh-sphincs-00
 		m_Work += GetDsaName(m_Nid);
@@ -2557,7 +2646,7 @@ BOOL CIdKey::GetTypeFromName(LPCTSTR name, int &type, int &nid)
 	LPCTSTR last;
 	CString tmp;
 
-#define	TYPENAMETABMAX		38
+#define	TYPENAMETABMAX		44
 	static const TYPENAMETAB TypeNameTab[TYPENAMETABMAX] = {
 		{ _T("dsa"),						IDKEY_DSA2,			NID_undef				},
 		{ _T("ecdsa-sha2-nistb233"),		IDKEY_ECDSA,		NID_sect233r1			},
@@ -2580,8 +2669,14 @@ BOOL CIdKey::GetTypeFromName(LPCTSTR name, int &type, int &nid)
 		{ _T("ssh-ed25519"),				IDKEY_ED25519,		NID_ED25519				},
 		{ _T("ssh-ed448"),					IDKEY_ED448,		NID_ED448				},
 		{ _T("ssh-mldsa44"),				IDKEY_ML_DSA,		NID_ML_DSA_44			},
+		{ _T("ssh-mldsa44-ed25519"),		IDKEY_ML_DSA_ED,	NID_ML_DSA_44			},	// NID_ED25519
+		{ _T("ssh-mldsa44-es256"),			IDKEY_ML_DSA_ES,	NID_ML_DSA_44			},	// NID_X9_62_prime256v1
 		{ _T("ssh-mldsa65"),				IDKEY_ML_DSA,		NID_ML_DSA_65			},
+		{ _T("ssh-mldsa65-ed25519"),		IDKEY_ML_DSA_ED,	NID_ML_DSA_65			},	// NID_ED25519
+		{ _T("ssh-mldsa65-es256"),			IDKEY_ML_DSA_ES,	NID_ML_DSA_65			},	// NID_X9_62_prime256v1
 		{ _T("ssh-mldsa87"),				IDKEY_ML_DSA,		NID_ML_DSA_87			},
+		{ _T("ssh-mldsa87-ed448"),			IDKEY_ML_DSA_ED,	NID_ML_DSA_87			},	// NID_ED448
+		{ _T("ssh-mldsa87-es384"),			IDKEY_ML_DSA_ES,	NID_ML_DSA_87			},	// NID_secp384r1
 		{ _T("ssh-rsa"),					IDKEY_RSA2,			NID_sha1				},
 		{ _T("ssh-slh-dsa-sha2-128f"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_128f	},
 		{ _T("ssh-slh-dsa-sha2-128s"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_128s	},
@@ -2921,6 +3016,199 @@ int CIdKey::XmssSign(CBuffer *bp, LPBYTE buf, int len)
 
 	return TRUE;
 }
+int CIdKey::CompositeHash(CBuffer *bp, LPBYTE buf, int len, LPBYTE rad)
+{
+	// draft-sun-ssh-composite-sigs-01
+	// 3.2.  Composite Sign
+	//	M' <- Prefix || Domain || 0x00 || r || PH(M)
+
+	BYTE *prefix = (BYTE *)"CompositeAlgorithmSignatures2025";	// 32 byte
+	BYTE *domain;
+	const EVP_MD *md = EVP_sha512();
+	int dlen = EVP_MAX_MD_SIZE;
+	u_char digest[EVP_MAX_MD_SIZE];
+
+	switch(m_Type) {
+	case IDKEY_ML_DSA_ES:
+		switch(m_Nid) {
+		case NID_ML_DSA_44:
+			md = EVP_sha256();
+			domain = (BYTE *)"\x06\x0B\x60\x86\x48\x01\x86\xFA\x6B\x50\x09\x01\x03";
+			break;
+		case NID_ML_DSA_65:
+			domain = (BYTE *)"\x06\x0B\x60\x86\x48\x01\x86\xFA\x6B\x50\x09\x01\x08";
+			break;
+		case NID_ML_DSA_87:
+			domain = (BYTE *)"\x06\x0B\x60\x86\x48\x01\x86\xFA\x6B\x50\x09\x01\x0C";
+			break;
+		default:
+			return FALSE;
+		}
+		break;
+	case IDKEY_ML_DSA_ED:
+		switch(m_Nid) {
+		case NID_ML_DSA_44:
+			domain = (BYTE *)"\x06\x0B\x60\x86\x48\x01\x86\xFA\x6B\x50\x09\x01\x02";
+			break;
+		case NID_ML_DSA_65:
+			domain = (BYTE *)"\x06\x0B\x60\x86\x48\x01\x86\xFA\x6B\x50\x09\x01\x0B";
+			break;
+		case NID_ML_DSA_87:
+			domain = (BYTE *)"\x06\x0B\x60\x86\x48\x01\x86\xFA\x6B\x50\x09\x01\x0E";
+			break;
+		default:
+			return FALSE;
+		}
+		break;
+	default:
+		return FALSE;
+	}
+
+	if ( (dlen = MD_digest(md, buf, len, digest, sizeof(digest))) <= 0 )
+		return FALSE;
+
+	bp->Apend(prefix, 32);
+	bp->Apend(domain, 13);
+	bp->Apend((BYTE *)"\x00", 1);
+	bp->Apend(rad, 32);
+	bp->Apend(digest, dlen);
+
+	return TRUE;
+}
+
+/* See FIPS 204 Section 4 Table 1 & Table 2 */
+# define ML_DSA_44_PRIV_LEN 2560
+# define ML_DSA_44_PUB_LEN 1312
+# define ML_DSA_44_SIG_LEN 2420
+
+/* See FIPS 204 Section 4 Table 1 & Table 2 */
+# define ML_DSA_65_PRIV_LEN 4032
+# define ML_DSA_65_PUB_LEN 1952
+# define ML_DSA_65_SIG_LEN 3309
+
+/* See FIPS 204 Section 4 Table 1 & Table 2 */
+# define ML_DSA_87_PRIV_LEN 4896
+# define ML_DSA_87_PUB_LEN 2592
+# define ML_DSA_87_SIG_LEN 4627
+
+int CIdKey::CompositeSign(CBuffer *bp, LPBYTE buf, int len)
+{
+	int n;
+	CIdKey firKey, secKey;
+	BYTE ra[32];
+	CBuffer hash, sig, tmp;
+	int pubLen = 0;
+	int priLen = 0;
+	CBuffer pub(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
+	CBuffer pri(m_PrivateKey.GetPtr(), m_PrivateKey.GetSize());
+	CStringA name = TstrToMbs(GetName());
+	BN_CTX *bnctx;
+	EC_POINT *q;
+	BIGNUM *b;
+
+	firKey.m_Nid = m_Nid;
+	if ( !firKey.Create(IDKEY_ML_DSA) )
+		return FALSE;
+
+	switch(m_Nid) {
+	case NID_ML_DSA_44:
+		secKey.m_Nid = (m_Type == IDKEY_ML_DSA_ES ? NID_X9_62_prime256v1 : NID_ED25519);
+		pubLen = ML_DSA_44_PUB_LEN;
+		priLen = ML_DSA_44_PRIV_LEN;
+		break;
+	case NID_ML_DSA_65:
+		secKey.m_Nid = (m_Type == IDKEY_ML_DSA_ES ? NID_X9_62_prime256v1 : NID_ED25519);
+		pubLen = ML_DSA_65_PUB_LEN;
+		priLen = ML_DSA_65_PRIV_LEN;
+		break;
+	case NID_ML_DSA_87:
+		secKey.m_Nid = (m_Type == IDKEY_ML_DSA_ES ? NID_secp384r1 : NID_ED448);
+		pubLen = ML_DSA_87_PUB_LEN;
+		priLen = ML_DSA_87_PRIV_LEN;
+		break;
+	default:
+		return FALSE;
+	}
+
+	if ( !secKey.Create((secKey.m_Nid == NID_ED25519 ? IDKEY_ED25519 : secKey.m_Nid == NID_ED448 ? IDKEY_ED448 : IDKEY_ECDSA)) )
+		return FALSE;
+
+	if ( pub.GetSize() <= pubLen )
+		return FALSE;
+	firKey.m_PublicKey.Apend(pub.GetPtr(), pubLen);
+	pub.Consume(pubLen);
+
+	if ( secKey.m_Type == IDKEY_ECDSA ) {
+		BOOL bErr = TRUE;
+		if ( (bnctx = BN_CTX_new()) != NULL ) {
+			if ( (q = EC_POINT_new(EC_KEY_get0_group(secKey.m_EcDsa))) != NULL ) {
+				if ( EC_POINT_oct2point(EC_KEY_get0_group(secKey.m_EcDsa), q, pub.GetPtr(), pub.GetSize(), bnctx) == 1 ) {
+					if ( EC_KEY_set_public_key(secKey.m_EcDsa, q) == 1 )
+						bErr = FALSE;
+				}
+				EC_POINT_free(q);
+			}
+			BN_CTX_free(bnctx);
+		}
+		if ( bErr )
+			return FALSE;
+	} else {	// IDKEY_ED25519 or IDKEY_ED448
+		secKey.m_PublicKey.Apend(pub.GetPtr(), pub.GetSize());
+	}
+
+	if ( pri.GetSize() <= priLen )
+		return FALSE;
+	firKey.m_PrivateKey.Apend(pri.GetPtr(), priLen);
+	firKey.m_bSecInit = TRUE;
+	pri.Consume(priLen);
+
+	if ( secKey.m_Type == IDKEY_ECDSA ) {
+		BOOL bErr = TRUE;
+		if ( (b = BN_new()) != NULL ) {
+			if ( BN_bin2bn(pri.GetPtr(), pri.GetSize(), b) != NULL ) {
+				if ( EC_KEY_set_private_key(secKey.m_EcDsa, b) == 1 )
+					bErr = FALSE;
+			}
+			BN_free(b);
+		}
+		if ( bErr )
+			return FALSE;
+		secKey.m_bSecInit = TRUE;
+
+	} else {	// IDKEY_ED25519 or IDKEY_ED448
+		secKey.m_PrivateKey.Apend(pri.GetPtr(), pri.GetSize());
+		secKey.m_bSecInit = TRUE;
+	}
+
+	rand_buf(ra, 32);
+
+	if ( !CompositeHash(&hash, buf, len, ra) )
+		return FALSE;
+
+	tmp.Apend(ra, 32);
+
+	if ( !firKey.Sign(&sig, hash.GetPtr(), hash.GetSize()) )
+		return FALSE;
+
+	n = sig.Get32Bit();	// name
+	sig.Consume(n);
+	n = sig.Get32Bit();	// sig
+	tmp.Apend(sig.GetPtr(), n);
+
+	if ( !secKey.Sign(&sig, hash.GetPtr(), hash.GetSize()) )
+		return FALSE;
+
+	n = sig.Get32Bit();	// name
+	sig.Consume(n);
+	n = sig.Get32Bit();	// sig
+	tmp.Apend(sig.GetPtr(), n);
+
+	bp->Clear();
+	bp->PutStr(name);
+	bp->PutBuf(tmp.GetPtr(), tmp.GetSize());
+
+	return TRUE;
+}
 BOOL CIdKey::SignAlgCheck(LPCTSTR alg)
 {
 	if ( alg == NULL || *alg == _T('\0') )
@@ -2963,21 +3251,9 @@ int CIdKey::Sign(CBuffer *bp, LPBYTE buf, int len)
 	if ( !m_bSecInit )
 		return FALSE;
 
-	int rt = FALSE;
-	EVP_PKEY *pkey = NULL;
-	EVP_MD_CTX *md_ctx = NULL;
-	size_t siglen;
-	CBuffer tmp(-1);
-	const EVP_MD *evp_md = NULL;
 	int type;
 	CStringA name = TstrToMbs(GetName());
-	DSA_SIG *dsig = NULL;
-	const BIGNUM *r = NULL;
-	const BIGNUM *s = NULL;
-	const unsigned char *sigbuf;
-	BYTE sigblob[SIGBLOB_LEN];
-	unsigned int slen, rlen;
-	ECDSA_SIG *edsig = NULL;
+	const EVP_MD *evp_md = NULL;
 
 	switch(m_Type & IDKEY_TYPE_MASK) {
 	case IDKEY_RSA1:
@@ -2995,10 +3271,13 @@ int CIdKey::Sign(CBuffer *bp, LPBYTE buf, int len)
 
 	case IDKEY_ECDSA:
 		if ( (type = GetIndexNid(m_Nid)) < 0 )
-			goto ERRENDOF;
-
+			return FALSE;
 		evp_md = GetEvpMdIdx(type);
 		break;
+
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
+		return CompositeSign(bp, buf, len);
 
 	case IDKEY_XMSS:
 		return XmssSign(bp, buf, len);
@@ -3006,6 +3285,19 @@ int CIdKey::Sign(CBuffer *bp, LPBYTE buf, int len)
 	case IDKEY_UNKNOWN:
 		return FALSE;
 	}
+
+	int rt = FALSE;
+	EVP_PKEY *pkey = NULL;
+	EVP_MD_CTX *md_ctx = NULL;
+	size_t siglen;
+	CBuffer tmp(-1);
+	DSA_SIG *dsig = NULL;
+	const BIGNUM *r = NULL;
+	const BIGNUM *s = NULL;
+	const unsigned char *sigbuf;
+	BYTE sigblob[SIGBLOB_LEN];
+	unsigned int slen, rlen;
+	ECDSA_SIG *edsig = NULL;
 
 	if ( (pkey = GetEvpPkey(GETPKEY_PRIVATEKEY)) == NULL )
 		goto ERRENDOF;
@@ -3110,6 +3402,91 @@ int CIdKey::XmssVerify(CBuffer *sig, LPBYTE data, int datalen)
 
 	return TRUE;
 }
+int CIdKey::CompositeVerify(CBuffer *sig, LPBYTE data, int datalen)
+{
+	CIdKey firKey, secKey;
+	BYTE ra[32];
+	CBuffer hash, tmp;
+	int pubLen = 0;
+	int sigLen = 0;
+	CBuffer pub(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
+	BN_CTX *bnctx;
+	EC_POINT *q;
+
+	firKey.m_Nid = m_Nid;
+	if ( !firKey.Create(IDKEY_ML_DSA) )
+		return FALSE;
+
+	switch(m_Nid) {
+	case NID_ML_DSA_44:
+		secKey.m_Nid = (m_Type == IDKEY_ML_DSA_ES ? NID_X9_62_prime256v1 : NID_ED25519);
+		pubLen = ML_DSA_44_PUB_LEN;
+		sigLen = ML_DSA_44_SIG_LEN;
+		break;
+	case NID_ML_DSA_65:
+		secKey.m_Nid = (m_Type == IDKEY_ML_DSA_ES ? NID_X9_62_prime256v1 : NID_ED25519);
+		pubLen = ML_DSA_65_PUB_LEN;
+		sigLen = ML_DSA_65_SIG_LEN;
+		break;
+	case NID_ML_DSA_87:
+		secKey.m_Nid = (m_Type == IDKEY_ML_DSA_ES ? NID_secp384r1 : NID_ED448);
+		pubLen = ML_DSA_87_PUB_LEN;
+		sigLen = ML_DSA_87_SIG_LEN;
+		break;
+	default:
+		return FALSE;
+	}
+
+	if ( !secKey.Create((secKey.m_Nid == NID_ED25519 ? IDKEY_ED25519 : secKey.m_Nid == NID_ED448 ? IDKEY_ED448 : IDKEY_ECDSA)) )
+		return FALSE;
+
+	if ( pub.GetSize() <= pubLen )
+		return FALSE;
+	firKey.m_PublicKey.Apend(pub.GetPtr(), pubLen);
+	pub.Consume(pubLen);
+
+	if ( secKey.m_Type == IDKEY_ECDSA ) {
+		BOOL bErr = TRUE;
+		if ( (bnctx = BN_CTX_new()) != NULL ) {
+			if ( (q = EC_POINT_new(EC_KEY_get0_group(secKey.m_EcDsa))) != NULL ) {
+				if ( EC_POINT_oct2point(EC_KEY_get0_group(secKey.m_EcDsa), q, pub.GetPtr(), pub.GetSize(), bnctx) == 1 ) {
+					if ( EC_KEY_set_public_key(secKey.m_EcDsa, q) == 1 )
+						bErr = FALSE;
+				}
+				EC_POINT_free(q);
+			}
+			BN_CTX_free(bnctx);
+		}
+		if ( bErr )
+			return FALSE;
+	} else {	// IDKEY_ED25519 or IDKEY_ED448
+		secKey.m_PublicKey.Apend(pub.GetPtr(), pub.GetSize());
+	}
+
+	memcpy(ra, sig->GetPtr(), 32);
+	sig->Consume(32);
+
+	if ( !CompositeHash(&hash, data, datalen, ra) )
+		return FALSE;
+
+	tmp.Clear();
+	tmp.PutStr(TstrToMbs(firKey.GetName()));
+	tmp.PutBuf(sig->GetPtr(), sigLen);
+	sig->Consume(sigLen);
+
+	if ( !firKey.Verify(&tmp, hash.GetPtr(), hash.GetSize()) )
+		return FALSE;
+
+	tmp.Clear();
+	tmp.PutStr(TstrToMbs(secKey.GetName()));
+	tmp.PutBuf(sig->GetPtr(), sig->GetSize());
+
+	if ( !secKey.Verify(&tmp, hash.GetPtr(), hash.GetSize()) )
+		return FALSE;
+
+	return TRUE;
+
+}
 int CIdKey::Verify(CBuffer *bp, LPBYTE data, int datalen)
 {
 	int n;
@@ -3212,6 +3589,10 @@ int CIdKey::Verify(CBuffer *bp, LPBYTE data, int datalen)
 	case IDKEY_SLH_DSA:
 		evp_md = NULL;
 		break;
+
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
+		return CompositeVerify(&sig, data, datalen);
 
 	case IDKEY_XMSS:
 		return XmssVerify(&sig, data, datalen);
@@ -3377,6 +3758,8 @@ int CIdKey::GetBlob(CBuffer *bp)
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
 	case IDKEY_ML_DSA:
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
 	case IDKEY_SLH_DSA:
 		if ( !Create(type & IDKEY_TYPE_MASK) )
 			return FALSE;
@@ -3478,6 +3861,8 @@ int CIdKey::SetBlob(CBuffer *bp, BOOL bCert)
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
 	case IDKEY_ML_DSA:
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
 	case IDKEY_SLH_DSA:
 		bp->PutBuf(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
 		break;
@@ -3580,6 +3965,8 @@ int CIdKey::GetPrivateBlob(CBuffer *bp)
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
 	case IDKEY_ML_DSA:
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
 	case IDKEY_SLH_DSA:
 		if ( !Create(type & IDKEY_TYPE_MASK) )
 			return FALSE;
@@ -3674,6 +4061,8 @@ int CIdKey::SetPrivateBlob(CBuffer *bp)
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
 	case IDKEY_ML_DSA:
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
 	case IDKEY_SLH_DSA:
 		bp->PutBuf(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
 		bp->Put32Bit(m_PrivateKey.GetSize() + m_PublicKey.GetSize());
@@ -4078,6 +4467,8 @@ int CIdKey::WritePublicKey(CString &str, BOOL bAddUser)
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
 	case IDKEY_ML_DSA:
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
 	case IDKEY_SLH_DSA:
 	case IDKEY_XMSS:
 	case IDKEY_UNKNOWN:
@@ -4215,6 +4606,8 @@ int CIdKey::ReadPrivateKey(LPCTSTR str, LPCTSTR pass, BOOL bHost)
 			break;
 
 		case IDKEY_ML_DSA:
+		case IDKEY_ML_DSA_ES:
+		case IDKEY_ML_DSA_ED:
 		case IDKEY_SLH_DSA:
 			nid = tmp.Get32Bit();
 			if ( !IDKEY_REQ(m_Type, type) || m_Nid != nid )
@@ -4303,6 +4696,8 @@ int CIdKey::WritePrivateKey(CString &str, LPCTSTR pass)
 		tmp.Apend(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
 		break;
 	case IDKEY_ML_DSA:
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
 	case IDKEY_SLH_DSA:
 		tmp.Put8Bit(m_Type & IDKEY_TYPE_MASK);
 		tmp.Put32Bit(m_Nid);
@@ -5675,6 +6070,8 @@ int CIdKey::SaveFileFormat(int fmt)
 		//if ( fmt != EXPORT_STYLE_OSSLPFX && fmt != EXPORT_STYLE_OPENSSH )
 			fmt = EXPORT_STYLE_OSSLPFX;
 		break;
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
 	case IDKEY_XMSS:
 		fmt = EXPORT_STYLE_OPENSSH;
 		break;
@@ -5931,6 +6328,8 @@ int CIdKey::GetSize()
 	case IDKEY_ED448:
 		return 448;
 	case IDKEY_ML_DSA:
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
 	case IDKEY_SLH_DSA:
 		return GetDsaSize(m_Nid);
 	case IDKEY_XMSS:
@@ -6102,6 +6501,8 @@ void CIdKey::FingerPrint(CString &str, int digest, int format)
 		work = _T("+---[ED448    ]---+\r\n");
 		break;
 	case IDKEY_ML_DSA:
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
 		work.Format(_T("+--[ML-DSA %4d]--+\r\n"), GetSize());
 		break;
 	case IDKEY_SLH_DSA:
@@ -6316,6 +6717,7 @@ CPermit::CPermit()
 	m_rHost = _T("");
 	m_rPort = 0;
 	m_Type = PFD_REMOTE;
+	m_TimeOut = 0;
 	m_bClose = FALSE;
 }
 CPermit::~CPermit()
@@ -6328,5 +6730,6 @@ const CPermit & CPermit::operator = (CPermit &data)
 	m_rHost	= data.m_rHost;
 	m_rPort	= data.m_rPort;
 	m_Type  = data.m_Type;
+	m_TimeOut = data.m_TimeOut;
 	return *this;
 }

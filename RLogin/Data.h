@@ -475,6 +475,7 @@ public:
 	CStringBinary * Find(LPCTSTR str);
 	CStringBinary * FindValue(int value);
 	int GetSize();
+	int GetIndexList(CPtrArray &list);
 
 	// Node
 	CStringBinary(LPCTSTR str);
@@ -482,6 +483,7 @@ public:
 	CStringBinary * FindNode(LPCTSTR str);
 	CStringBinary * FindNodeValue(int value);
 	void GetSizeNode(int &count);
+	void GetIndexListNode(CPtrArray &list);
 
 #ifdef	DEBUG
 	void Tree(int nest);

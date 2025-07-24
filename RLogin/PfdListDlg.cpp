@@ -25,6 +25,7 @@ CPfdData::CPfdData()
 	m_ConnectPort.Empty();
 	m_ListenType = 0;
 	m_EnableFlag = TRUE;
+	m_TimeOut = 0;
 }
 CPfdData::~CPfdData()
 {
@@ -44,6 +45,7 @@ BOOL CPfdData::GetString(LPCTSTR str)
 	m_ConnectPort = stra[3];
 	m_ListenType  = stra.GetVal(4);
 	m_EnableFlag  = (stra.GetSize() > 5 ? stra.GetVal(5) : TRUE);
+	m_TimeOut     = (stra.GetSize() > 6 ? stra.GetVal(6) : 0);
 
 	return TRUE;
 }
@@ -57,6 +59,7 @@ void CPfdData::SetString(CString &str)
 	stra.Add(m_ConnectPort);
 	stra.AddVal(m_ListenType);
 	stra.AddVal(m_EnableFlag);
+	stra.AddVal(m_TimeOut);
 
 	stra.SetString(str);
 }
@@ -68,6 +71,7 @@ const CPfdData & CPfdData::operator = (CPfdData &data)
 	m_ConnectPort = data.m_ConnectPort;
 	m_ListenType  = data.m_ListenType;
 	m_EnableFlag  = data.m_EnableFlag;
+	m_TimeOut     = data.m_TimeOut;
 
 	return *this;
 }
@@ -402,7 +406,7 @@ void CPfdListDlg::OnEditDelall()
 void CPfdListDlg::OnEditCopy()
 {
 	int n;
-	CString text;
+	CString text, tmp;
 
 	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
 		text += (m_Data[n].m_EnableFlag ? _T("Enable") : _T("Disable")); text += _T("\t");
@@ -410,7 +414,9 @@ void CPfdListDlg::OnEditCopy()
 		text += m_Data[n].m_ListenHost; text += _T("\t");
 		text += m_Data[n].m_ListenPort; text += _T("\t");
 		text += m_Data[n].m_ConnectHost; text += _T("\t");
-		text += m_Data[n].m_ConnectPort; text += _T("\r\n");
+		text += m_Data[n].m_ConnectPort; text += _T("\t");
+		tmp.Format(_T("%d"), m_Data[n].m_TimeOut);
+		text += tmp; text += _T("\r\n");
 	}
 
 	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(text);
@@ -441,6 +447,7 @@ void CPfdListDlg::OnEditPaste()
 				tmp.m_ListenPort = param[3];
 				tmp.m_ConnectHost = param[4];
 				tmp.m_ConnectPort = param[5];
+				tmp.m_TimeOut = (param.GetSize() > 6 ? _tstoi(param[6]) : 0);
 				m_Data.Add(tmp);
 			}
 			line.Empty();

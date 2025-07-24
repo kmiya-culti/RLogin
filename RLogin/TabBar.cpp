@@ -87,6 +87,7 @@ CTabBar::CTabBar()
 	m_pGhostView = NULL;
 	m_bNumber = FALSE;
 	m_ImageCount = 0;
+	m_ImageSize = 16;
 	m_FontSize = 0;
 	m_SetCurTimer = 0;
 	m_GhostWndTimer = 0;
@@ -241,18 +242,20 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	}
 
 	m_TabCtrl.SetMinTabWidth(16);
+	m_TabCtrl.m_bCloseBtn = TRUE;
 	
 	CToolTipCtrl *pToolTip = m_TabCtrl.GetToolTips();
 
 	if ( pToolTip != NULL )
 		pToolTip->SetMaxTipWidth(256);
 
+	m_ImageSize = ICONIMG_SIZE;
 	m_ImageList.Create(ICONIMG_SIZE, ICONIMG_SIZE, ILC_COLOR24 | ILC_MASK, 4, 4);
 
-	// CheckBox ImageList idx, 0=OFF,1=ON,2=NONE
+	// CheckBox ImageList idx, 0=OFF,1=ON,2=NONE,3=CLOSE,4=OPENCLOSE
 	CBitmapEx bitmap;
-	for ( int n = 0 ; n < 3 ; n++ ) {
-		bitmap.LoadResBitmap(IDB_CHECKBOX1 + n, SCREEN_DPI_X, SCREEN_DPI_Y, RGB(255, 0, 0));
+	for ( int n = 0 ; n < 5 ; n++ ) {
+		bitmap.LoadResBitmap(IDB_CHECKBOX1 + n, DEFAULT_DPI_X * ICONIMG_SIZE / 48, DEFAULT_DPI_X * ICONIMG_SIZE / 48, RGB(255, 0, 0));
 		m_ImageList.Add(&bitmap, RGB(255, 0, 0));
 		bitmap.DeleteObject();
 	}
@@ -300,6 +303,39 @@ void CTabBar::FontSizeCheck()
 			m_TabCtrl.SetFont(&m_TabFont);
 			SetFont(&m_TabFont);
 		}
+	}
+
+	if ( m_ImageList.GetImageCount() > 0 && m_ImageSize != ICONIMG_SIZE ) {
+		m_ImageList.DeleteImageList();
+
+		m_ImageSize = ICONIMG_SIZE;
+		m_ImageList.Create(ICONIMG_SIZE, ICONIMG_SIZE, ILC_COLOR24 | ILC_MASK, 4, 4);
+
+		CBitmapEx bitmap;
+		for ( int n = 0 ; n < 5 ; n++ ) {
+			bitmap.LoadResBitmap(IDB_CHECKBOX1 + n, DEFAULT_DPI_X * ICONIMG_SIZE / 48, DEFAULT_DPI_Y * ICONIMG_SIZE / 48, RGB(255, 0, 0));
+			m_ImageList.Add(&bitmap, RGB(255, 0, 0));
+			bitmap.DeleteObject();
+		}
+
+		CPtrArray list;
+		m_ImageFile.GetIndexList(list);
+
+		for ( int n = 0 ; n < (int)list.GetSize() ; n++ ) {
+			if ( list[n] == NULL )
+				continue;
+
+			CClientDC dc(&m_TabCtrl);
+			CBmpFile image;
+			CBitmap *pBitmap;
+			COLORREF bc = RGB(255, 255, 255);
+
+			if ( image.LoadFile((LPCTSTR)list[n]) && (pBitmap = image.GetBitmap(&dc, ICONIMG_SIZE, ICONIMG_SIZE, bc)) != NULL )
+				m_ImageList.Add(pBitmap, bc);
+		}
+
+		m_TabCtrl.SetImageList(&m_ImageList);
+		m_TabCtrl.Invalidate(FALSE);
 	}
 }
 
@@ -394,19 +430,17 @@ void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 BOOL CTabBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 {
 	int n;
-	CRect rect;
 	CPoint point;
 	TCHITTESTINFO htinfo;
-
-	GetCursorPos(&point);
 
 	if ( AfxGetApp()->GetProfileInt(_T("TabBar"), _T("GhostWnd"), 0) )
 		return CControlBarEx::OnSetCursor(pWnd, nHitTest, message);
 
+	GetCursorPos(&point);
+	m_TabCtrl.ScreenToClient(&point);
 	htinfo.pt = point;
-	m_TabCtrl.ScreenToClient(&htinfo.pt);
 	n = m_TabCtrl.HitTest(&htinfo);
-
+	
 	if ( n >= 0 && n == m_TabCtrl.GetCurSel() )
 		n = (-1);
 
@@ -482,6 +516,7 @@ void CTabBar::OnLButtonDblClk(UINT nFlags, CPoint point)
 void CTabBar::OnLButtonDown(UINT nFlags, CPoint point) 
 {
 	int hit = (-3);
+	int hitBtn = (-1);
 	int TypeCol = 0;
 	BOOL bMove = FALSE;
 	BOOL bOtherMove;
@@ -505,7 +540,6 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 	clock_t stc = clock() - (CLOCKS_PER_SEC * 2);
 	int count = m_TabCtrl.GetItemCount();
 	BOOL bIdle = FALSE;
-	BOOL bCheck = FALSE;
 
 	ASSERT(pApp != NULL && pMain != NULL);
 
@@ -513,6 +547,11 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 		CControlBar::OnLButtonDown(nFlags, point);
 		return;
 	}
+
+	capos = point;
+	ClientToScreen(&capos);
+	m_TabCtrl.ScreenToClient(&capos);
+	hitBtn = m_TabCtrl.HitPoint(idx, capos);
 
 	m_TabCtrl.ClientToScreen(rect);
 	ScreenToClient(rect);
@@ -522,19 +561,9 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 		 (hTabWnd = pChild->GetSafeHwnd()) == NULL )
 		return;
 
-	if ( pMain->m_bBroadCast ) {
-		if ( (m_TabCtrl.GetStyle() & TCS_VERTICAL) != 0 ) {
-			if ( (m_TabCtrl.GetStyle() & TCS_RIGHT) != 0 ) {
-				if ( point.y >= (rect.top + 6) && point.y <= (rect.top + 6 + ICONIMG_SIZE) )
-					bCheck = TRUE;
-			} else if ( point.y <= (rect.bottom - 6) && point.y >= (rect.bottom - 6 - ICONIMG_SIZE) )
-				bCheck = TRUE;
-		} else if ( point.x >= (rect.left + 6) && point.x <= (rect.left + 6 + ICONIMG_SIZE) )
-			bCheck = TRUE;
-		if ( bCheck ) {
-			pDoc->m_bCastLock = (pDoc->m_bCastLock ? FALSE : TRUE);
-			return;
-		}
+	if ( pMain->m_bBroadCast && hitBtn == 1 ) {
+		pDoc->m_bCastLock = (pDoc->m_bCastLock ? FALSE : TRUE);
+		return;
 	}
 
 	if ( idx != m_TabCtrl.GetCurSel() && pMain != NULL ) {
@@ -543,6 +572,11 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 		m_TabCtrl.GetItemRect(idx, rect);
 		m_TabCtrl.ClientToScreen(rect);
 		ScreenToClient(rect);
+	}
+
+	if ( m_TabCtrl.m_bCloseBtn && hitBtn == 2 ) {
+		pMain->PostMessage(WM_COMMAND, (WPARAM)ID_FILE_CLOSE);
+		return;
 	}
 
 	switch(pDoc->m_ServerEntry.m_DocType) {
@@ -1081,6 +1115,7 @@ int CTabBar::HitPoint(CPoint point)
 
 	return (-1);					// メインクライアント内
 }
+
 void CTabBar::SetTabTitle(BOOL bNumber)
 {
 	int n;

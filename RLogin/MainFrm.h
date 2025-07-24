@@ -385,6 +385,12 @@ public:
 	RandFolder *m_pRandFolder;
 	LPCTSTR RandomFile(LPCTSTR folder);
 
+	CStringBinary m_ImageFile;
+	CImageList m_ImageList;
+
+	int GetImageIndex(LPCTSTR filename);
+	inline CImageList *GetImageList() { return (m_ImageList.GetSafeHandle() == NULL ? NULL : &m_ImageList); }
+
 // コントロール バー用メンバ
 protected: 
 	CStatusBarEx m_wndStatusBar;

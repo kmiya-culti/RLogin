@@ -154,6 +154,8 @@ CListCtrlExt::CListCtrlExt()
 	m_EditFlag = EDITFLAG_NONE;
 	m_EditItem = 0;
 	m_EditNum = 0;
+	m_ImageSize.cx = MulDiv(14, SYSTEM_DPI_X, DEFAULT_DPI_X);
+	m_ImageSize.cy = MulDiv(14, SYSTEM_DPI_Y, DEFAULT_DPI_Y);
 }
 CListCtrlExt::~CListCtrlExt()
 {
@@ -991,16 +993,6 @@ void CListCtrlExt::OnPaint()
 	if ( (result & CDRF_NOTIFYITEMDRAW) != 0 )
 		flag |= 001;
 
-	if ( bCheck && m_ImageList.GetSafeHandle() == NULL ) {
-		CBitmapEx bitmap;
-		m_ImageList.Create(MulDiv(14, SCREEN_DPI_X, DEFAULT_DPI_X), MulDiv(14, SCREEN_DPI_Y, DEFAULT_DPI_Y), ILC_COLOR24 | ILC_MASK, 2, 2);
-		for ( int n = 0 ; n < 3 ; n++ ) {
-			bitmap.LoadResBitmap(IDB_CHECKBOX1 + n, SCREEN_DPI_X, SCREEN_DPI_Y, RGB(255, 0, 0));
-			m_ImageList.Add(&bitmap, RGB(255, 0, 0));
-			bitmap.DeleteObject();
-		}
-	}
-
 	drec.left = clip.right;
 	drec.right = clip.left;
 	drec.top = clip.bottom;
@@ -1084,11 +1076,44 @@ void CListCtrlExt::OnPaint()
 						if ( irct.left < irct.right ) {
 							lvi.mask = LVIF_IMAGE;
 							lvi.iItem = item;
-							if ( pImage != NULL && GetItem(&lvi) && lvi.iItem >= 0 )
-								pImage->Draw(&dc, lvi.iImage, CPoint(irct.left, irct.top), ILD_TRANSPARENT);
+							if ( pImage != NULL && GetItem(&lvi) && lvi.iItem >= 0 ) {
+								int dsz = irct.right - irct.left;
+								if ( dsz > irct.Height() )
+									dsz = irct.Height();
+								IMAGEINFO info;
+								int isz = dsz;
+								if ( pImage->GetImageInfo(lvi.iImage, &info) )
+									isz = info.rcImage.bottom - info.rcImage.top;
+								if ( isz != dsz ) {
+									CDC TempDC;
+									CBitmap BitMap;
+									TempDC.CreateCompatibleDC(&dc);
+									BitMap.CreateBitmap(isz, isz, TempDC.GetDeviceCaps(PLANES), TempDC.GetDeviceCaps(BITSPIXEL), NULL);
+									TempDC.SelectObject(&BitMap);
+									TempDC.FillSolidRect(0, 0, isz, isz, GetAppColor(APPCOL_CTRLFACE));
+									pImage->Draw(&TempDC, lvi.iImage, CPoint(0, 0), ILD_TRANSPARENT);
+									dc.StretchBlt(irct.left, irct.top + (irct.Height() - isz) / 2, dsz, dsz, &TempDC, 0, 0, isz, isz, SRCCOPY);
+								} else
+									pImage->Draw(&dc, lvi.iImage, CPoint(irct.left, irct.top + (irct.Height() - isz) / 2), ILD_TRANSPARENT);
+							}
 							trct.left  += 4;
-						} else if ( bCheck && m_ImageList.GetSafeHandle() != NULL ) {
-							m_ImageList.Draw(&dc, (GetLVCheck(item) ? 1 : 0), CPoint(mrct.left, mrct.top + (mrct.Height() - MulDiv(14, SCREEN_DPI_Y, DEFAULT_DPI_Y)) / 2), ILD_TRANSPARENT);
+						} else if ( bCheck ) {
+							int sz = irct.left - mrct.left - 2 - 3;
+							if ( sz > mrct.Height() )
+								sz = mrct.Height();
+							if ( m_ImageList.GetSafeHandle() != NULL && m_ImageSize.cy != sz )
+								m_ImageList.DeleteImageList();
+							if ( m_ImageList.GetSafeHandle() == NULL ) {
+								CBitmapEx bitmap;
+								m_ImageSize.cx = m_ImageSize.cy = sz;
+								m_ImageList.Create(m_ImageSize.cx, m_ImageSize.cy, ILC_COLOR24 | ILC_MASK, 2, 2);
+								for ( int n = 0 ; n < 3 ; n++ ) {
+									bitmap.LoadResBitmap(IDB_CHECKBOX1 + n, DEFAULT_DPI_X * m_ImageSize.cx / 48, DEFAULT_DPI_Y * m_ImageSize.cy / 48, RGB(255, 0, 0));
+									m_ImageList.Add(&bitmap, RGB(255, 0, 0));
+									bitmap.DeleteObject();
+								}
+							}
+							m_ImageList.Draw(&dc, (GetLVCheck(item) ? 1 : 0), CPoint(mrct.left, mrct.top + (mrct.Height() - m_ImageSize.cy) / 2), ILD_TRANSPARENT);
 						}
 						mrct.left = irct.right;
 					} else

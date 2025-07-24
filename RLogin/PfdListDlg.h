@@ -15,6 +15,7 @@ public:
 	CString	m_ConnectPort;
 	int m_ListenType;
 	BOOL m_EnableFlag;
+	DWORD m_TimeOut;
 
 	BOOL GetString(LPCTSTR str);
 	void SetString(CString &str);

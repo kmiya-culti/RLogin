@@ -92,8 +92,14 @@ public:
 public:
 	DWORD m_ColTab[7];
 	BOOL m_bGradient;
+	BOOL m_bCloseBtn;
+	int m_MouseOnItem;
+	int m_MouseOnBtn;
+	CByteArray m_CloseBtn;
 
 	void AdjustRect(BOOL bLarger, LPRECT lpRect);
+	void InvalidateCloseBtn(int idx, int btn);
+	int HitPoint(int idx, CPoint point);
 
 public:
 	COLORREF GetColor(int num);
@@ -103,6 +109,8 @@ public:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnPaint();
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnMouseLeave();
 };
 
 //////////////////////////////////////////////////////////////////////

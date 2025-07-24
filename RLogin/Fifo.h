@@ -426,6 +426,7 @@ public:
 	UINT m_nSocketPort;
 	int m_nFamily;
 	int m_nSocketType;
+	int m_TimeOut;
 
 public:
 	CFifoSocket(class CRLoginDoc *pDoc, class CExtSocket *pSock);

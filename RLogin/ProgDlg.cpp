@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "rlogin.h"
+#include "RLoginDoc.h"
 #include "ProgDlg.h"
 #include "ExtSocket.h"
 #include "SyncSock.h"
@@ -254,6 +255,7 @@ CProgDlg::CProgDlg(CWnd* pParent /*=NULL*/)
 	m_UpdatePost = FALSE;
 	m_AutoDelete = FALSE;
 	m_pSock = NULL;
+	m_pDocument = NULL;
 }
 
 void CProgDlg::DoDataExchange(CDataExchange* pDX)
@@ -290,6 +292,8 @@ void CProgDlg::OnCancel()
 		*m_pAbortFlag = TRUE;
 	if ( m_pSock != NULL )
 		m_pSock->SyncAbort();
+	if ( m_pDocument != NULL )
+		m_pDocument->DelaySendAbort();
 //	CDialogExt::OnCancel();
 }
 

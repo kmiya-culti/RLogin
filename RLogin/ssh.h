@@ -228,6 +228,8 @@ public:
 #define	IDKEY_UNKNOWN				00030
 #define	IDKEY_ECDSA					00040
 #define	IDKEY_ML_DSA				00050		// 44/65/87
+#define	IDKEY_ML_DSA_ES				00051		// 44-es256/65-es256/87-es384
+#define	IDKEY_ML_DSA_ED				00052		// 44-ed25519/65-ed25529/87-ed448
 #define	IDKEY_SLH_DSA				00060		// SHA2/SHAKE 128/192/256 S/F
 
 #define	IDKEY_EXT_FLAG				00100		// BIGNUM2 fix
@@ -413,10 +415,13 @@ public:
 	int ChkOldCertHosts(LPCTSTR host);
 
 	int XmssSign(CBuffer *bp, LPBYTE buf, int len);
+	BOOL CompositeHash(CBuffer *bp, LPBYTE buf, int len, LPBYTE rad);
+	int CompositeSign(CBuffer *bp, LPBYTE buf, int len);
 	BOOL SignAlgCheck(LPCTSTR alg);
 	int Sign(CBuffer *bp, LPBYTE buf, int len);
 
 	int XmssVerify(CBuffer *sig, LPBYTE data, int datalen);
+	int CompositeVerify(CBuffer *sig, LPBYTE data, int datalen);
 	int Verify(CBuffer *bp, LPBYTE data, int datalen);
 
 #ifdef	USE_X509
@@ -506,6 +511,8 @@ public:
 	CString m_rHost;
 	int m_rPort;
 	int m_Type;
+	DWORD m_TimeOut;
+
 	BOOL m_bClose;
 
 	const CPermit & operator = (CPermit &data);
@@ -717,10 +724,12 @@ public:
 	CString m_lHost, m_rHost;
 	int m_lPort, m_rPort;
 
+	BOOL m_bHaveClose;
 	BOOL m_bClosed;
 	CFifoBase *m_pFifoBase;
 
 	void *m_pParam;
+	DWORD m_TimeOut;
 
 	CFifoChannel();
 };
@@ -955,6 +964,7 @@ public:
 	CWordArray m_ChnReqMap;
 
 	int m_OpenChanCount;
+	int m_OpenChanCheck;
 
 	CArray<CPermit, CPermit &> m_Permit;
 	CStringArrayExt m_PortFwdTable;
@@ -1038,7 +1048,7 @@ public:
 
 	class CFifoChannel *GetFifoChannel(int id);
 	BOOL ChannelCreate(int id, LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress, UINT nRemotePort);
-	BOOL ChannelOpen(int id, LPCTSTR lpszHostAddress, UINT nHostPort);
+	BOOL ChannelOpen(int id, LPCTSTR lpszHostAddress, UINT nHostPort, DWORD TimeOut);
 	void ChannelClose(int id, int nStat = 0);
 	void ChannelPolling(int id);
 	void ChannelAccept(int id, SOCKET socket);

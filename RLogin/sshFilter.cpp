@@ -164,7 +164,7 @@ UINT CFifoSocks::DecodeSocksWorker(void *pParam)
 }
 void CFifoSocks::DecodeSocks()
 {
-	int n, c;
+#pragma pack(push, 1)
 	struct {
 		BYTE version;
 		BYTE command;
@@ -175,6 +175,9 @@ void CFifoSocks::DecodeSocks()
 			BYTE			bt_addr[4];
 		} dest;
 	} s4_req;
+#pragma pack(pop)
+
+	int n, c;
 	CBuffer tmp;
 	BOOL bS4a = FALSE;
 	BYTE buf[32];
@@ -319,6 +322,7 @@ void CFifoSocks::DecodeSocks()
 
 		if ( strncmp(line, "CONNECT", 7) != 0 )
 			return;
+
 		for ( p = (LPCSTR)line + 7 ; *p == ' ' || *p == '\t' ; p++ );
 
 		m_HostName.Empty();
@@ -415,6 +419,25 @@ void CFifoSocks::DecodeSocks()
 			RecvBaek(m_rFd, tmp.GetPtr(), tmp.GetSize());
 			m_RetCode = 1;
 		}
+
+#ifdef	_DEBUG
+	} else {
+		CStringA line;
+		line += (CHAR)s4_req.version;
+		line += (CHAR)s4_req.command;
+		while ( (c = RecvByte(m_rFd, SOCKS_TIMEOUT)) >= 0 ) {
+			if ( c == '\n' )
+				break;
+			else if ( c != '\0' && c != '\r' && c >= ' ' )
+				line += (CHAR)c;
+			else {
+				CStringA tmp;
+				tmp.Format("\\%02x", c);
+				line += tmp;
+			}
+		}
+		TRACE("CFifoSocks::DecodeSocks unkown command '%s'", line);
+#endif
 	}
 }
 

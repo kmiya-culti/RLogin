@@ -11070,6 +11070,15 @@ int CStringBinary::GetSize()
 
 	return count;
 }
+int CStringBinary::GetIndexList(CPtrArray &list)
+{
+	list.RemoveAll();
+
+	if ( m_pRoot != NULL )
+		m_pRoot->GetIndexListNode(list);
+
+	return (int)list.GetSize();
+}
 
 //////////////////////////////////////////////////////////////////////
 // CStringBinary Node
@@ -11205,6 +11214,20 @@ void CStringBinary::GetSizeNode(int &count)
 
 	if ( m_pRight != NULL )
 		m_pRight->GetSizeNode(count);
+}
+void CStringBinary::GetIndexListNode(CPtrArray &list)
+{
+	if ( m_Value >= 0 ) {
+		while ( m_Value >= list.GetSize() )
+			list.Add(NULL);
+		list[m_Value] = (void *)(LPCTSTR)m_Index;
+	}
+
+	if ( m_pLeft != NULL )
+		m_pLeft->GetIndexListNode(list);
+
+	if ( m_pRight != NULL )
+		m_pRight->GetIndexListNode(list);
 }
 
 #ifdef	DEBUG

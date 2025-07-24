@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define	ICONIMG_SIZE	MulDiv(16, SCREEN_DPI_X, DEFAULT_DPI_X)
+#define	ICONIMG_SIZE	(MulDiv(14, SCREEN_DPI_X, DEFAULT_DPI_X) + 2)
 
 #define	TBTMID_SETCURSOR		1024
 #define	TBTMID_GHOSTWMD			1025
@@ -40,6 +40,7 @@ public:
 	CStringBinary m_ImageFile;
 	CImageList m_ImageList;
 	int m_ImageCount;
+	int m_ImageSize;
 	CString m_FontName;
 	int m_FontSize;
 	UINT_PTR m_SetCurTimer;

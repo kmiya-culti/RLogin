@@ -792,6 +792,12 @@
     <None Include="res\menumap5.bmp">
       <Filter>リソース ファイル</Filter>
     </None>
+    <None Include="res\checkbox3.bmp">
+      <Filter>リソース ファイル</Filter>
+    </None>
+    <None Include="res\checkbox4.bmp">
+      <Filter>リソース ファイル</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="RLogin.rc">

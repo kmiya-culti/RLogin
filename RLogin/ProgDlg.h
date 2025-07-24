@@ -85,6 +85,7 @@ public:
 	BOOL m_UpdatePost;
 	BOOL m_AutoDelete;
 	class CExtSocket *m_pSock;
+	class CRLoginDoc *m_pDocument;
 
 	void SetRange(LONGLONG max, LONGLONG rem);
 	void UpdatePos(LONGLONG pos);

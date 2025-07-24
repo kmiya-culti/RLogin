@@ -96,6 +96,7 @@ CRLoginDoc::CRLoginDoc()
 	m_DelayFlag = DELAY_NON;
 	m_DelayLen = 0;
 	m_TimerIdLine = m_TimerIdRecv = m_TimerIdCrLf = 0;
+	m_pDelayProgDlg = NULL;
 	m_pMainWnd = (CMainFrame *)AfxGetMainWnd();
 	m_SockStatus.Empty();
 	m_pStrScript = NULL;
@@ -1388,6 +1389,31 @@ void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
 	buf.Apend((LPBYTE)((LPCWSTR)tmp), tmp.GetLength() * sizeof(WCHAR));
 	SendBuffer(buf);
 }
+
+void CRLoginDoc::DelaySendAbort()
+{
+	if ( m_pDelayProgDlg == NULL )
+		return;
+
+	m_DelayBuf.Clear();
+	m_bDelayPast = FALSE;
+	m_DelayLen = 0;
+
+	m_pDelayProgDlg->DestroyWindow();
+	m_pDelayProgDlg = NULL;
+}
+void CRLoginDoc::DelaySendUpdate(int len)
+{
+	if ( m_pDelayProgDlg == NULL )
+		return;
+
+	m_pDelayProgDlg->SetPos(m_pDelayProgDlg->m_UpdatePos + len);
+
+	if ( m_DelayBuf.GetSize() == 0 ) {
+		m_pDelayProgDlg->DestroyWindow();
+		m_pDelayProgDlg = NULL;
+	}
+}
 int CRLoginDoc::DelaySend()
 {
 	int ch, n = 0;
@@ -1410,6 +1436,7 @@ int CRLoginDoc::DelaySend()
 			m_DelayLen = 0;
 			if ( m_DelayBuf.GetSize() == 0 )
 				m_bDelayPast = FALSE;
+			DelaySendUpdate(n);
 			return TRUE;
 		}
 	}
@@ -1418,6 +1445,7 @@ int CRLoginDoc::DelaySend()
 		m_DelayBuf.Clear();
 		m_bDelayPast = FALSE;
 		m_DelayLen += n;
+		DelaySendUpdate(n);
 	}
 
 	return FALSE;
@@ -2329,12 +2357,44 @@ void CRLoginDoc::SocketClose()
 }
 void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen, BOOL delaySend)
 {
-	if ( m_pSock == NULL )
+	if ( m_pSock == NULL || nBufLen <= 0 )
 		return;
 
 	if ( delaySend || m_bDelayPast || m_TextRam.IsOptEnable(TO_RLDELAY) ) {
 		m_bDelayPast = TRUE;
 		m_DelayBuf.Apend((LPBYTE)lpBuf, nBufLen);
+
+		if ( m_pDelayProgDlg == NULL ) {
+			int line = 0;
+			int max = m_DelayBuf.GetSize();
+			LPCSTR p = (LPCSTR)m_DelayBuf.GetPtr();
+			
+			for ( int n = 0 ; n < max ; n++, p++ ) {
+				if ( p[0] == '\r' && p[1] == '\n' ) {
+					line++;
+					p++;
+					n++;
+				} else if ( *p == '\r' || *p == '\n' )
+					line++;
+			}
+
+			int msec = m_TextRam.m_DelayUSecChar * max / 1000 + m_TextRam.m_DelayMSecLine * line;
+
+			if ( msec > 3000 ) {
+				CString msg;
+				msg.Format(CStringLoad(IDS_DELAYSENDPROGMSG), msec / 1000);
+				m_pDelayProgDlg = new CProgDlg(NULL);
+				m_pDelayProgDlg->m_AutoDelete = TRUE;
+				m_pDelayProgDlg->m_pDocument = this;
+				m_pDelayProgDlg->Create(IDD_PROGDLG, GetAciveView());
+				m_pDelayProgDlg->SetWindowText(m_ServerEntry.m_EntryName);
+				m_pDelayProgDlg->SetMessage(msg);
+				m_pDelayProgDlg->ShowWindow(SW_SHOW);
+				m_pDelayProgDlg->SetRange((LONGLONG)m_DelayBuf.GetSize(), 0);
+			}
+		} else
+			m_pDelayProgDlg->SetRange((LONGLONG)m_DelayBuf.GetSize(), 0);
+
 		if ( m_DelayFlag == DELAY_NON )
 			DelaySend();
 	} else 

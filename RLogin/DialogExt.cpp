@@ -138,11 +138,16 @@ CTabCtrlExt::CTabCtrlExt()
 	m_ColTab[TABCOL_BODER]   = APPCOL_TABSHADOW;
 
 	m_bGradient = FALSE;
+	m_bCloseBtn = FALSE;
+	m_MouseOnItem = (-1);
+	m_MouseOnBtn  = (-1);
 }
 
 BEGIN_MESSAGE_MAP(CTabCtrlExt, CTabCtrl)
 	ON_WM_PAINT()
 	ON_WM_ERASEBKGND()
+	ON_WM_MOUSEMOVE()
+	ON_WM_MOUSELEAVE()
 END_MESSAGE_MAP()
 
 void CTabCtrlExt::AdjustRect(BOOL bLarger, LPRECT lpRect)
@@ -154,6 +159,91 @@ void CTabCtrlExt::AdjustRect(BOOL bLarger, LPRECT lpRect)
 	lpRect->left   -= 1;
 	lpRect->right  += 1;
 }
+void CTabCtrlExt::InvalidateCloseBtn(int idx, int btn)
+{
+	int id = 0;
+	CRect rect;
+
+	if ( !m_bCloseBtn || !GetItemRect(idx, rect) )
+		return;
+
+	if ( idx < (int)m_CloseBtn.GetSize() ) {
+		if ( btn == 2 )
+			id = 3;
+		else if ( idx == GetCurSel() || btn >= 0 )
+			id = 4;
+
+		TRACE("InvalidateCloseBtn %d %d %d %d\n", idx, btn, id, m_CloseBtn[idx]);
+
+		if ( m_CloseBtn[idx] == (BYTE)id )
+			return;
+	}
+
+	rect.left = rect.right - MulDiv(16, SCREEN_DPI_X, DEFAULT_DPI_X) - 2;
+	rect.right -= 2;
+	rect.top += 2;
+	rect.bottom -= 2;
+
+	InvalidateRect(rect);
+}
+int CTabCtrlExt::HitPoint(int idx, CPoint point)
+{
+	CRect rect, castBtn, closeBtn;
+	int rotation = TABSTYLE_TOP;
+
+	if ( !GetItemRect(idx, rect) || !rect.PtInRect(point) )
+		return (-1);
+
+	if ( (GetStyle() & TCS_VERTICAL) != 0 )
+		rotation = (GetStyle() & TCS_RIGHT) != 0 ? TABSTYLE_RIGHT : TABSTYLE_LEFT;
+	else if ( (GetStyle() & TCS_BOTTOM) != 0 )
+		rotation = TABSTYLE_BOTTOM;
+
+	switch(rotation) {
+	case TABSTYLE_TOP:
+	case TABSTYLE_BOTTOM:
+		castBtn.left = rect.left + 6;
+		castBtn.right = rect.left + ICONIMG_SIZE + 6;
+		castBtn.top = rect.top + 2;
+		castBtn.bottom = rect.bottom - 2;
+
+		closeBtn.left = rect.right - ICONIMG_SIZE - 2;
+		closeBtn.right = rect.right - 2;
+		closeBtn.top = rect.top + 2;
+		closeBtn.bottom = rect.bottom - 2;
+		break;
+	case TABSTYLE_LEFT:
+		castBtn.left = rect.left + 2;
+		castBtn.right = rect.right - 2;
+		castBtn.top = rect.bottom - ICONIMG_SIZE - 6;
+		castBtn.bottom = rect.bottom - 6;
+
+		closeBtn.left = rect.left + 2;
+		closeBtn.right = rect.right - 2;
+		closeBtn.top = rect.top + 2;
+		closeBtn.bottom = rect.top + ICONIMG_SIZE + 2;
+		break;
+	case TABSTYLE_RIGHT:
+		castBtn.left = rect.left + 2;
+		castBtn.right = rect.right - 2;
+		castBtn.top = rect.top + 6;
+		castBtn.bottom = rect.top + ICONIMG_SIZE + 6;
+
+		closeBtn.left = rect.left + 2;
+		closeBtn.right = rect.right - 2;
+		closeBtn.top = rect.bottom - ICONIMG_SIZE - 2;
+		closeBtn.bottom = rect.bottom - 2;
+		break;
+	}
+
+	if ( castBtn.PtInRect(point) )
+		return 1;
+	else if ( closeBtn.PtInRect(point) )
+		return 2;
+	else
+		return 0;
+}
+
 COLORREF CTabCtrlExt::GetColor(int num)
 {
 	if ( (m_ColTab[num] & TABCOL_COLREF) != 0 )
@@ -314,25 +404,64 @@ void CTabCtrlExt::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 		}
 	}
 
-	if ( pImageList != 0 && tci.iImage >= 0 ) {
+	if ( pImageList != NULL ) {
 		IMAGEINFO info;
-		pImageList->GetImageInfo(tci.iImage, &info);
-		CRect ImageRect(info.rcImage);
+		CRect ImageRect(0, 0, ICONIMG_SIZE, ICONIMG_SIZE);
+		BOOL bForcus = (nTabIndex == m_MouseOnItem ? TRUE : FALSE);
+		int id = 0;
 
-		switch(rotation) {
-		case TABSTYLE_TOP:
-		case TABSTYLE_BOTTOM:
-			pImageList->Draw(pDC, tci.iImage, CPoint(base.x, rect.top + (rect.Height() - ImageRect.Height()) / 2 + 1), ILD_TRANSPARENT);
-			base.x += (ImageRect.Width() + TABGAP_SIZE);
-			break;
-		case TABSTYLE_LEFT:
-			pImageList->Draw(pDC, tci.iImage, CPoint(rect.left + (rect.Width() - ImageRect.Width()) / 2 + 1, base.y - ImageRect.Height()), ILD_TRANSPARENT);
-			base.y -= (ImageRect.Height() + TABGAP_SIZE);
-			break;
-		case TABSTYLE_RIGHT:
-			pImageList->Draw(pDC, tci.iImage, CPoint(rect.left + (rect.Width() - ImageRect.Width()) / 2 + 1, base.y), ILD_TRANSPARENT);
-			base.y += (ImageRect.Height() + TABGAP_SIZE);
-			break;
+		if ( m_bCloseBtn ) {
+			if ( bForcus )
+				id = (m_MouseOnBtn == 2 ? 3 : 4);
+			else if ( bSelected )
+				id = 4;
+
+			while ( m_CloseBtn.GetSize() <= nTabIndex )
+				m_CloseBtn.Add(0);
+			m_CloseBtn[nTabIndex] = (BYTE)id;
+		}
+
+		if ( tci.iImage >= 0 ) {
+			if ( pImageList->GetImageInfo(tci.iImage, &info) )
+				ImageRect = info.rcImage;
+
+			switch(rotation) {
+			case TABSTYLE_TOP:
+			case TABSTYLE_BOTTOM:
+				pImageList->Draw(pDC, tci.iImage, CPoint(base.x, rect.top + (rect.Height() - ImageRect.Height()) / 2 + 1), ILD_TRANSPARENT);
+				base.x += (ImageRect.Width() + TABGAP_SIZE);
+				break;
+			case TABSTYLE_LEFT:
+				pImageList->Draw(pDC, tci.iImage, CPoint(rect.left + (rect.Width() - ImageRect.Width()) / 2 + 1, base.y - ImageRect.Height()), ILD_TRANSPARENT);
+				base.y -= (ImageRect.Height() + TABGAP_SIZE);
+				break;
+			case TABSTYLE_RIGHT:
+				pImageList->Draw(pDC, tci.iImage, CPoint(rect.left + (rect.Width() - ImageRect.Width()) / 2 + 1, base.y), ILD_TRANSPARENT);
+				base.y += (ImageRect.Height() + TABGAP_SIZE);
+				break;
+			}
+
+		}
+		
+		if ( id > 0 ) {
+			if ( pImageList->GetImageInfo(id, &info) )
+				ImageRect = info.rcImage;
+
+			switch(rotation) {
+			case TABSTYLE_TOP:
+			case TABSTYLE_BOTTOM:
+				pImageList->Draw(pDC, id, CPoint(rect.right - ImageRect.Width() - 2, rect.top + (rect.Height() - ImageRect.Height()) / 2 + 1), ILD_TRANSPARENT);
+				rect.right = rect.right - ImageRect.Width() - 2;
+				break;
+			case TABSTYLE_LEFT:
+				pImageList->Draw(pDC, id, CPoint(rect.left + (rect.Width() - ImageRect.Width()) / 2 + 1, rect.top + 2), ILD_TRANSPARENT);
+				rect.top = rect.top + ImageRect.Height() + 2;
+				break;
+			case TABSTYLE_RIGHT:
+				pImageList->Draw(pDC, id, CPoint(rect.left + (rect.Width() - ImageRect.Width()) / 2 + 1, rect.bottom - ImageRect.Height() - 2), ILD_TRANSPARENT);
+				rect.bottom = rect.bottom - ImageRect.Height() - 2;
+				break;
+			}
 		}
 	}
 
@@ -591,6 +720,57 @@ BOOL CTabCtrlExt::OnEraseBkgnd(CDC* pDC)
 	GetClientRect(rect);
 	pDC->FillSolidRect(rect, GetColor(TABCOL_BACK));
 	return TRUE;
+}
+void CTabCtrlExt::OnMouseMove(UINT nFlags, CPoint point)
+{
+	if ( !m_bCloseBtn ) {
+		CTabCtrl::OnMouseMove(nFlags, point);
+		return;
+	}
+
+	int item = (-1);
+	int btn = (-1);
+
+	for ( int n = 0 ; n < GetItemCount() ; n++ ) {
+		if ( (btn = HitPoint(n, point)) >= 0 ) {
+			item = n;
+			break;
+		}
+	}
+
+	if ( m_MouseOnItem != item ) {
+		if ( m_MouseOnItem >= 0 )
+			InvalidateCloseBtn(m_MouseOnItem, (-1));
+		if ( (m_MouseOnItem = item) >= 0 )
+			InvalidateCloseBtn(m_MouseOnItem, btn);
+		m_MouseOnBtn = btn;
+	} else if ( m_MouseOnBtn != btn ) {
+		if ( m_MouseOnItem >= 0 )
+			InvalidateCloseBtn(m_MouseOnItem, btn);
+		m_MouseOnBtn = btn;
+	}
+
+	if ( m_MouseOnItem >= 0 ) {
+		TRACKMOUSEEVENT tme;
+		ZeroMemory(&tme, sizeof(tme));
+		tme.cbSize = sizeof(tme);
+		tme.hwndTrack = GetSafeHwnd();
+		tme.dwFlags = /* TME_HOVER | */ TME_LEAVE;
+		tme.dwHoverTime = HOVER_DEFAULT;
+		TrackMouseEvent(&tme);
+	}
+
+	CTabCtrl::OnMouseMove(nFlags, point);
+}
+void CTabCtrlExt::OnMouseLeave()
+{
+	if ( m_MouseOnItem >= 0 ) {
+		InvalidateCloseBtn(m_MouseOnItem, (-1));
+		m_MouseOnItem = (-1);
+		m_MouseOnBtn = (-1);
+	}
+
+	CTabCtrl::OnMouseLeave();
 }
 
 //////////////////////////////////////////////////////////////////////

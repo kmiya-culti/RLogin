@@ -33,6 +33,7 @@ void CPfdParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_CBStringExact(pDX, IDC_CONNECTHOST, m_Data.m_ConnectHost);
 	DDX_CBStringExact(pDX, IDC_CONNECTPORT, m_Data.m_ConnectPort);
 	DDX_Radio(pDX, IDC_RADIO1, m_Data.m_ListenType);
+	DDX_Text(pDX, IDC_TIMEOUT, m_Data.m_TimeOut);
 }
 
 void CPfdParaDlg::DisableWnd()

@@ -113,6 +113,8 @@ void CIdkeySelDLg::InitList()
 		case IDKEY_ED25519: str = _T("ED25519"); break;
 		case IDKEY_ED448:   str = _T("ED448"); break;
 		case IDKEY_ML_DSA:	str = _T("MLDSA"); break;
+		case IDKEY_ML_DSA_ES	:str = _T("MLDSA-ES"); break;
+		case IDKEY_ML_DSA_ED	:str = _T("MLDSA-ED"); break;
 		case IDKEY_SLH_DSA:	str = pKey->IsSlhDsaShake() ? (pKey->IsSlhDsaStype() ? _T("SLHSHAKES") : _T("SLHSHAKEF")) : (pKey->IsSlhDsaStype() ? _T("SLHSHA2S") : _T("SLHSHA2F")); break;
 		case IDKEY_XMSS:    str = _T("XMSS"); break;
 		case IDKEY_UNKNOWN: str = pKey->m_TypeName; break;
@@ -196,7 +198,7 @@ void CIdkeySelDLg::SetBitsList()
 		pCombo->AddString(_T("20"));
 		pCombo->EnableWindow(TRUE);
 		if ( bits < 10 || bits > 20 ) bits = 10;
-	} else if ( m_Type.Compare(_T("MLDSA")) == 0 ) {
+	} else if ( m_Type.Compare(_T("MLDSA")) == 0 || m_Type.Compare(_T("MLDSA-ES")) == 0 || m_Type.Compare(_T("MLDSA-ED")) == 0 ) {
 		pCombo->AddString(_T("44"));
 		pCombo->AddString(_T("65"));
 		pCombo->AddString(_T("87"));
@@ -363,6 +365,8 @@ BOOL CIdkeySelDLg::OnInitDialog()
 
 	if ( (pWnd = GetDlgItem(IDC_IDKEY_TYPE)) != NULL ) {
 		((CComboBox *)pWnd)->AddString(_T("MLDSA"));		// draft-becker-cnsa2-ssh-profile-00
+		((CComboBox *)pWnd)->AddString(_T("MLDSA-ES"));		// draft-sun-ssh-composite-sigs-01
+		((CComboBox *)pWnd)->AddString(_T("MLDSA-ED"));		// draft-sun-ssh-composite-sigs-01
 		//((CComboBox *)pWnd)->AddString(_T("SLHSHA2S"));
 		((CComboBox *)pWnd)->AddString(_T("SLHSHA2F"));		// draft-josefsson-ssh-sphincs-00
 		//((CComboBox *)pWnd)->AddString(_T("SLHSHAKES"));
@@ -662,6 +666,10 @@ void CIdkeySelDLg::OnIdkeyCreate()
 		m_GenIdKeyType = IDKEY_XMSS;
 	else if ( m_Type.Compare(_T("MLDSA")) == 0 )
 		m_GenIdKeyType = IDKEY_ML_DSA;
+	else if ( m_Type.Compare(_T("MLDSA-ES")) == 0 )
+		m_GenIdKeyType = IDKEY_ML_DSA_ES;
+	else if ( m_Type.Compare(_T("MLDSA-ED")) == 0 )
+		m_GenIdKeyType = IDKEY_ML_DSA_ED;
 	else if ( m_Type.Compare(_T("SLHSHA2F"))  == 0 || m_Type.Compare(_T("SLHSHA2S"))  == 0 ||
 			  m_Type.Compare(_T("SLHSHAKEF")) == 0 || m_Type.Compare(_T("SLHSHAKES")) == 0 )
 		m_GenIdKeyType = IDKEY_SLH_DSA;
@@ -679,7 +687,7 @@ void CIdkeySelDLg::OnIdkeyCreate()
 	} else if ( m_GenIdKeyType == IDKEY_XMSS && (m_GenIdKeyBits < 10 || m_GenIdKeyBits > 20) ) {
 		MessageBox(CStringLoad(IDE_XMSSBITSIZEERR), NULL, MB_ICONWARNING);
 		return;
-	} else if ( m_GenIdKeyType == IDKEY_ML_DSA && (m_GenIdKeyBits < 44 || m_GenIdKeyBits > 87) ) {
+	} else if ( (m_GenIdKeyType == IDKEY_ML_DSA || m_GenIdKeyType == IDKEY_ML_DSA_ES || m_GenIdKeyType == IDKEY_ML_DSA_ED) && (m_GenIdKeyBits < 44 || m_GenIdKeyBits > 87) ) {
 		MessageBox(_T("ml-dsa size error use 44/65/87"), NULL, MB_ICONERROR);
 		return;
 	} else if ( m_GenIdKeyType == IDKEY_SLH_DSA && (m_GenIdKeyBits < 128 || m_GenIdKeyBits > 256) ) {

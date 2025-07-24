@@ -54,6 +54,7 @@ public:
 	BOOL m_bSetLVCheck;
 	CHeaderCtrlExt m_HeadCtrl;
 	CImageList m_ImageList;
+	CSize m_ImageSize;
 
 	void SetSelectMarkItem(int item);
 	int GetParamItem(int para);

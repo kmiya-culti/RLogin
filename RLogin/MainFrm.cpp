@@ -2812,6 +2812,28 @@ LPCTSTR CMainFrame::RandomFile(LPCTSTR folder)
 
 	return rp->files[rp->pos];
 }
+int CMainFrame::GetImageIndex(LPCTSTR filename)
+{
+	int idx = (-1);
+	CStringBinary *pNode;
+
+	if ( m_ImageList.GetSafeHandle() == NULL )
+		m_ImageList.Create(ICONIMG_SIZE, ICONIMG_SIZE, ILC_COLOR24 | ILC_MASK, 4, 4);
+	
+	if ( (pNode = m_ImageFile.Find(filename)) != NULL )
+		return pNode->m_Value;
+
+	CClientDC dc(this);
+	CBmpFile image;
+	CBitmap *pBitmap;
+	COLORREF bc = RGB(255, 255, 255);
+
+	if ( image.LoadFile(filename) && (pBitmap = image.GetBitmap(&dc, ICONIMG_SIZE, ICONIMG_SIZE, bc)) != NULL )
+		idx = m_ImageList.Add(pBitmap, bc);
+
+	m_ImageFile[filename].m_Value = idx;
+	return idx;
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame êfíf

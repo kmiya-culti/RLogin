@@ -113,9 +113,11 @@
 #define IDB_CHECKBOX1                   425
 #define IDB_CHECKBOX2                   426
 #define IDB_CHECKBOX3                   427
-#define IDB_BITMAP10                    428
-#define IDB_BITMAP11                    429
-#define IDB_BITMAP12                    430
+#define IDB_CHECKBOX4                   428
+#define IDB_CHECKBOX5                   429
+#define IDB_BITMAP10                    430
+#define IDB_BITMAP11                    432
+#define IDB_BITMAP12                    433
 #define IDI_ACTIVE                      450
 #define IDS_AGENT_DELKEY                500
 #define IDS_ALLINITREQ                  501
@@ -297,6 +299,7 @@
 #define IDS_MESSAGEBOX_TRYAGAIN         677
 #define IDS_MESSAGEBOX_CONTINUE         678
 #define IDS_FILEOVERWRITEMSG            679
+#define IDS_DELAYSENDPROGMSG            680
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -1132,6 +1135,7 @@
 #define IDC_SSHSIG_KEYLIST_SEL          2554
 #define IDC_SSHPROXY                    2554
 #define IDC_PROXYSSH                    2554
+#define IDC_TIMEOUT                     2555
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1293,7 +1297,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        174
 #define _APS_NEXT_COMMAND_VALUE         5164
-#define _APS_NEXT_CONTROL_VALUE         2555
-#define _APS_NEXT_SYMED_VALUE           680
+#define _APS_NEXT_CONTROL_VALUE         2556
+#define _APS_NEXT_SYMED_VALUE           681
 #endif
 #endif

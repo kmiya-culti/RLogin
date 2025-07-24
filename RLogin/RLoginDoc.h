@@ -101,6 +101,7 @@ public:
 	int m_TimerIdLine;
 	int m_TimerIdRecv;
 	int m_TimerIdCrLf;
+	class CProgDlg *m_pDelayProgDlg;
 	CMainFrame *m_pMainWnd;
 	CString m_SockStatus;
 	CStrScript *m_pStrScript;
@@ -153,6 +154,8 @@ public:
 	void OnReceiveChar(DWORD ch, int pos);
 	void OnSendBuffer(CBuffer &buf);
 
+	void DelaySendAbort();
+	void DelaySendUpdate(int len);
 	int DelaySend();
 	void OnDelayReceive(int id);
 

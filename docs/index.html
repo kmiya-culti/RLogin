@@ -6,10 +6,16 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
+TD {		
+				
+				
+				
 	background-color : #ffffff; font-size : 90%; 
 }
-.BOX{
+.BOX{		
+				
+				
+				
 	background-color : silver; 
 }
 -->
@@ -25,8 +31,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.6)</TD>
-            <TD width="20%" align="right">2025/06/25</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.7)</TD>
+            <TD width="20%" align="right">2025/07/25</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -438,6 +444,16 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2025/07/25</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.7/">2.30.7</A></TD>
+            <TD>タブバーに閉じるボタンを追加<BR>
+            送信遅延で予測時間が３秒以上の場合にプログレスを表示<BR>
+            2.30.6でSSH2のReKey時に正しく処理されないバグを修正<BR>
+            mldsa44/65/87-es/edの複合型認証鍵に暫定的に対応<BR>
+            ポートフォワードにタイムアウトの設定を追加<BR>
+            openssl-3.5.1に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2025/06/25</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.6/">2.30.6</A></TD>
             <TD>プロキシ設定にSSH Proxyを追加<BR>
@@ -479,17 +495,6 @@ TD {
             クリップボード取得のタイミングを最後の更新からに変更</TD>
           </TR>
           <TR>
-            <TD align="center">2025/02/26</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.2/">2.30.2</A></TD>
-            <TD>SFTPにショートカットキーを追加<BR>
-            ProxyのHTTP2/3でオーバーフロー時の動作を修正<BR>
-            SSH2のrsa鍵のサイン方式選択を柔軟に修正<BR>
-            メニューのファイルにファイルの署名検証を追加<BR>
-            ACP文字変換内でLastErrorを待避するように変更<BR>
-            openssl-3.4.1に更新<BR>
-            <FONT color="#ff0000">SSHエージェントが動作しないバグを修正して更新</FONT></TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -513,13 +518,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.5.0.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.5.1.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.5.0 openssl-3.5.0-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.5.1 openssl-3.5.1-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -604,7 +609,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.5.0 8 Apr 2025<BR>
+            <P>OpenSSL 3.5.1 1 Jul 2025<BR>
             Copyright (c) 1998-2025 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -3953,7 +3958,7 @@ fi</PRE>
                   参照：<A href="faq.html#SSHCASCADE">SSHによる多段接続</A></TD>
                 </TR>
                 <TR>
-                  <TD align="center">ポートフォワードリスト</TD>
+                  <TD align="center" width="30%">ポートフォワードリスト</TD>
                   <TD>チェックマークを入れたポートフォワードの設定を起動時に実行します。チェックマークを外すと設定は、削除されませんが実行されません<BR>
                   <BR>
                   ※2.29.0からリストを複数選択(ShiftやCtrlを押しながらクリック)して削除などが出来るように変更しました。また右クリックのポップアップメニューですべてをクリップボード経由(TAB区切りのテキスト)で更新などを追加しました</TD>
@@ -3963,11 +3968,11 @@ fi</PRE>
                   <TD>新たに設定を追加します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">編集</TD>
+                  <TD align="center" width="30%">編集</TD>
                   <TD>設定の変更を行います</TD>
                 </TR>
                 <TR>
-                  <TD align="center">削除</TD>
+                  <TD align="center" width="30%">削除</TD>
                   <TD>設定を削除します</TD>
                 </TR>
                 <TR>
@@ -3975,18 +3980,18 @@ fi</PRE>
                   <TD>X11クライアントのポートフォワードを有効にします。X11サーバーをローカルで起動しSSH2で接続するとX11端末のように動作するようになります</TD>
                 </TR>
                 <TR>
-                  <TD align="center">DISPLAY</TD>
+                  <TD align="center" width="30%">DISPLAY</TD>
                   <TD>X11のDISPLAY環境変数のデフォルト値です。環境変数にDISPLAYが設定されていない場合にこの値を使用します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">xauthのチェックを</TD>
+                  <TD align="center" width="30%">xauthのチェックを</TD>
                   <TD rowspan="3" valign="top">X11ポートフォワード開始時にX11サーバーの固有識別子（クッキーデータ）を作成してX11クライアントからの接続時にチェックを行いますが、そのチェックを省きます。また、本来のX11サーバーでxauthによるクッキーが設定されている場合は、個別に指定して置換することもできますが、あまり必要が無いと思います</TD>
                 </TR>
                 <TR>
-                  <TD align="center">Protocol Name</TD>
+                  <TD align="center" width="30%">Protocol Name</TD>
                 </TR>
                 <TR>
-                  <TD align="center">Protocol Data</TD>
+                  <TD align="center" width="30%">Protocol Data</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -4009,20 +4014,24 @@ fi</PRE>
                   <TABLE cellpadding="3">
                     <TBODY>
                       <TR>
-                        <TD valign="top">Local</TD>
+                        <TD valign="top" width="25%">Local</TD>
                         <TD>ローカル側で待機します</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">Local Proxy</TD>
+                        <TD valign="top" width="25%">Local Proxy</TD>
                         <TD>ローカル側のHTTP/SOCKSサーバーで待機します</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">Remote</TD>
+                        <TD valign="top" width="25%">Remote</TD>
                         <TD>リモート側で待機します</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">Remote Proxy</TD>
+                        <TD valign="top" width="25%">Remote Proxy</TD>
                         <TD>リモート側のHTTP/SOCKSサーバーで待機します</TD>
+                      </TR>
+                      <TR>
+                        <TD valign="top" width="25%">タイムアウト</TD>
+                        <TD>この接続で開いたソケットにタイムアウト秒を設定します。指定時間通信が無い場合に接続を切断します。０でタイムアウト処理無しです</TD>
                       </TR>
                     </TBODY>
                   </TABLE>
@@ -4041,7 +4050,7 @@ fi</PRE>
             RLoginが動いているパソコンでダミーのpop3サーバーを開き、接続があった場合には、その内容をSSH2で暗号化して安全にmailxxx.com:pop3に転送します<BR>
             <BR>
             ※2.28.0からSOCKSサーバーに加えてHTTPのCONNECT/GETなどのプロキシーサーバーにも対応しました。簡易な実装なのでユーザー認証などには、対応していませんのでご注意ください</TD>
-            <TD align="left" valign="top"><IMG src="image018.jpg" width="363" height="290" border="0"></TD>
+            <TD align="left" valign="top"><IMG src="image018.jpg" width="363" height="326" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
