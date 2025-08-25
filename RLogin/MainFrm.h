@@ -364,8 +364,6 @@ public:
 	void SpeakUpdate(int x, int y);
 	inline BOOL SpeakViewCheck(class CRLoginView *pWnd) { return (m_bVoiceEvent && m_pSpeakView == pWnd ? TRUE : FALSE); }
 
-	inline CImageList *GetTabImageList() { return &(m_wndTabBar.m_ImageList); }
-	inline int GetTabImageIndex(LPCTSTR filename) { return m_wndTabBar.GetImageIndex(filename); }
 	inline void BarFontCheck() { m_wndTabBar.FontSizeCheck(); m_wndQuickBar.FontSizeCheck(); m_wndVoiceBar.FontSizeCheck(); m_wndTabDlgBar.FontSizeCheck(); m_wndStatusBar.FontSizeCheck(); RecalcLayout(TRUE); }
 	inline void QuickBarInit() { m_wndQuickBar.InitDialog(); }
 	inline void TabDlgShow(BOOL bShow) { ShowControlBar(&m_wndTabDlgBar, bShow, FALSE); }
@@ -384,12 +382,6 @@ public:
 
 	RandFolder *m_pRandFolder;
 	LPCTSTR RandomFile(LPCTSTR folder);
-
-	CStringBinary m_ImageFile;
-	CImageList m_ImageList;
-
-	int GetImageIndex(LPCTSTR filename);
-	inline CImageList *GetImageList() { return (m_ImageList.GetSafeHandle() == NULL ? NULL : &m_ImageList); }
 
 // コントロール バー用メンバ
 protected: 

@@ -5612,7 +5612,7 @@ int Cssh::SSH2MsgGlobalRequest(CBuffer *bp)
 		m_KeepAliveRecvGlobalCount++;
 		success = TRUE;
 
-	} else if ( str.Compare("hostkeys-00@openssh.com") == 0 ) {
+	} else if ( str.Compare("hostkeys-00@openssh.com") == 0 || str.Compare("hostkeys") == 0 ) {		// draft-miller-sshm-hostkey-update-00
 		success = SSH2MsgGlobalHostKeys(bp);
 
 	} else if ( str.Compare("elevation") == 0 ) {	// RFC 8308

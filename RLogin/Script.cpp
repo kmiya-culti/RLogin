@@ -1843,9 +1843,16 @@ LOOP:
 			while ( (ch = GetChar()) != EOF ) {
 				if ( ch == nx )
 					break;
-				else if ( ch == '\\' && nx == '"' )
-					buf.PutWord(LexEscape(GetChar(), NULL));
-				else
+				else if ( ch == '\\' && nx == '"' ) {
+					DWORD code = (DWORD)LexEscape(GetChar(), NULL);
+					if ( code >= 0x00010000L ) {
+						code -= 0x10000L;
+						code = (((code & 0xFFC00L) << 6) | (code & 0x3FF)) | 0xD800DC00L;
+						buf.PutWord((WCHAR)(code >> 16));
+						buf.PutWord((WCHAR)code);
+					} else
+						buf.PutWord((WCHAR)code);
+				} else
 					buf.PutWord(ch);
 			}
 			m_LexTmp.SetBuf(buf.GetPtr(), buf.GetSize());
@@ -1919,9 +1926,16 @@ LOOP:
 		while ( (ch = GetChar()) != EOF ) {
 			if ( ch == '"' )
 				break;
-			else if ( ch == '\\' )
-				save += (WCHAR)LexEscape(GetChar(), NULL);
-			else {
+			else if ( ch == '\\' ) {
+				DWORD code = (DWORD)LexEscape(GetChar(), NULL);
+				if ( code >= 0x00010000L ) {
+					code -= 0x10000L;
+					code = (((code & 0xFFC00L) << 6) | (code & 0x3FF)) | 0xD800DC00L;
+					save += (WCHAR)(code >> 16);
+					save += (WCHAR)code;
+				} else
+					save += (WCHAR)code;
+			} else {
 				save += (WCHAR)ch;
 			}
 		}
@@ -4679,62 +4693,6 @@ int CScript::TekStyle(int idx, CScriptValue &local)
 	return st;
 }
 
-#define	GAUSS_MAX	10
-
-static void gauss(double a[GAUSS_MAX][GAUSS_MAX], int n, double xx[GAUSS_MAX])
-{
-    int i, j, k, l, piv;
-    double p, q, m, b[1][GAUSS_MAX];
-
-    for ( i = 0 ; i < n ; i++ ) {
-		m = 0.0;
-		piv = i;
-
-		for ( l = i ; l < n ; l++ ) {
-			if ( fabs(a[l][i]) > m ) {
-				m = fabs(a[l][i]);
-				piv = l;
-			}
-		}
-
-		if ( piv != i ) {
-			for ( j = 0 ; j < (n + 1) ; j++ ) {
-				b[0][j] = a[i][j];
-				a[i][j] = a[piv][j];
-				a[piv][j] = b[0][j];
-			}
-		}
-    }
-
-    for ( k = 0 ; k < n ; k++ ) {
-		p = a[k][k];
-		a[k][k] = 1.0;
-
-		for ( j = k + 1 ; j < (n + 1) ; j++ ) {
-			if ( p == 0 )
-	    		a[k][j] = 0.0;
-			else
-	    		a[k][j] = a[k][j] / p;
-		}
-
-
-		for ( i = k + 1 ; i < n ; i++ ) {
-			q = a[i][k];
-
-			for ( j = k + 1 ; j < (n + 1) ; j++ )
-				a[i][j] = a[i][j] - q * a[k][j];
-
-			a[i][k] = 0.0;
-		}
-    }
-
-    for ( i = n - 1 ; i >= 0 ; i-- ) {
-		xx[i] = a[i][n];
-
-		for ( j = n - 1 ; j > i ; j-- )
-			xx[i] = xx[i] - a[i][j] * xx[j];
-    }
-}
 static void sai2pow(double x[], double y[], int m, int n, double xx[GAUSS_MAX])
 {
     int i, j, k;
@@ -4751,7 +4709,7 @@ static void sai2pow(double x[], double y[], int m, int n, double xx[GAUSS_MAX])
     for ( i = 0 ; i < n ; i++ ) {
 		for ( j = 0 ; j < n ; j++ ) {
 			for ( k = 0 ; k < m ; k++ )
-			a[i][j] = a[i][j] + pow(x[k], i + j);
+				a[i][j] = a[i][j] + pow(x[k], i + j);
 		}
     }
 
@@ -4760,7 +4718,7 @@ static void sai2pow(double x[], double y[], int m, int n, double xx[GAUSS_MAX])
 			a[i][n] = a[i][n] + pow(x[k], i) * y[k];
     }
 
-    gauss(a, n, xx);
+    Gauss(a, n, xx);
 }
 static double sai2y(double x, int n, double xx[GAUSS_MAX])
 {
@@ -4788,7 +4746,7 @@ static void spline_init(double x[], double y[], int n, double xx[GAUSS_MAX])
 		a[i][n] = y[i];
 	}
 
-	gauss(a, n, xx);
+	Gauss(a, n, xx);
 }
 static double spline_calc(double x, int n, double xx[GAUSS_MAX])
 {

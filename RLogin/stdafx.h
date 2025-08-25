@@ -24,6 +24,7 @@
 //#define	USE_HOSTBOUND		// EXT_INFOのhostkeys-00@openssh.comを有効
 #define	USE_EXTINFOINAUTH		// EXT_INFOのext-info-in-auth@openssh.comを有効
 //#define	USE_FIFOMONITER		// FifoBufferのサイズをデバッグ
+#define	USE_ENTRYICON			// ServerSelectDlgのリストでアイコンを表示する
 
 // Windows バージョン
 

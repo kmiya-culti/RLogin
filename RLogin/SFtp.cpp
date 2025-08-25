@@ -922,7 +922,7 @@ CSFtp::CSFtp(CWnd* pParent /*=NULL*/) : CDialogExt(CSFtp::IDD, pParent)
 	m_RemoteSortItem = 0;
 	m_SortNodeNum = 0;
 
-	m_UpDownCount = 0;
+	m_UpDownCount = m_UpDownDone = 0;
 	m_UpDownRate = 0;
 	m_ProgDiv = 0;
 	m_ProgSize = m_ProgOfs = 0LL;
@@ -1745,7 +1745,7 @@ int CSFtp::RemoteCloseReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 
 	if ( m_DoAbort ) {
 		RemoveWaitQue();
-		m_UpDownCount = 0;
+		m_UpDownCount = m_UpDownDone = 0;
 		m_TotalSize = m_TotalPos = 0;
 		SetUpDownCount(0);
 		SetRangeProg(NULL, 0, 0);
@@ -2100,7 +2100,7 @@ int CSFtp::RemoteCloseWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 
 	if ( m_DoAbort ) {
 		RemoveWaitQue();
-		m_UpDownCount = 0;
+		m_UpDownCount = m_UpDownDone = 0;
 		m_TotalSize = m_TotalPos = 0;
 		SetUpDownCount(0);
 	} else
@@ -2464,7 +2464,7 @@ LRESULT CSFtp::OnThreadEndof(WPARAM wParam, LPARAM lParam)
 
 			if ( m_DoAbort ) {
 				RemoveWaitQue();
-				m_UpDownCount = 0;
+				m_UpDownCount = m_UpDownDone = 0;
 				m_TotalSize = m_TotalPos = 0;
 				SetUpDownCount(0);
 				SetRangeProg(NULL, 0, 0);
@@ -2869,6 +2869,9 @@ void CSFtp::SetUpDownCount(int count)
 {
 	CString tmp;
 
+	if ( count < 0 )
+		m_UpDownDone -= count;
+
 	m_UpDownCount += count;
 	tmp.Format(_T("%d"), m_UpDownCount);
 	m_UpDownStat[0].SetWindowText(tmp);
@@ -2879,6 +2882,7 @@ void CSFtp::SetUpDownCount(int count)
 	else {
 		tmp.Format(_T("SFtp - %s"), (LPCTSTR)m_pSSh->m_pDocument->GetTitle());
 		m_TotalSize = m_TotalPos = 0;
+		m_UpDownDone = 0;
 	}
 
 	SetWindowText(tmp);
@@ -2997,23 +3001,31 @@ void CSFtp::SetPosProg(LONGLONG pos)
 			return;
 
 		// トータルの転送速度
-		d = (double)(m_TotalPos + pos - m_TotalOfs) * (double)CLOCKS_PER_SEC / (double)(now - m_TotalClock);
-
-		// 直近1秒の転送速度
-		if ( m_ClockSize[4].clock != 0 )
-			e = (double)(m_TotalPos + pos - m_TotalOfs - m_ClockSize[4].size) * (double)CLOCKS_PER_SEC / (double)(now - m_ClockSize[4].clock);
-		else
-			e = d;
-
-		if ( d > 0.0 ) {
+		if ( (d = (double)(m_TotalPos + pos - m_TotalOfs) * (double)CLOCKS_PER_SEC / (double)(now - m_TotalClock)) > 0.0 ) {
+#if 0
+			// ファイル数とサイズで連立方程式を解いてみたがあまり良い予想にならなかった 2025/08/08
+			// x[0] * UpDownDone + x[1] * TotalPos = TotalClock
+			double x[GAUSS_MAX];
+			double a[GAUSS_MAX][GAUSS_MAX] = { { 0.0, 0.0, 0.0 }, { (double)(m_UpDownDone), (double)(m_TotalPos + pos - m_TotalOfs) / 1000000.0, (double)(now - m_TotalClock) / (double)CLOCKS_PER_SEC } };
+			Gauss(a, 2, x);
+			n = (int)(x[0] * (double)(m_UpDownCount) + x[1] * (double)(m_TotalSize - m_TotalPos - pos) / 1000000.0);
+#else
 			n = (int)((double)(m_TotalSize - m_TotalPos - pos) / d);
+#endif
 			if ( n >= 3600 )
 				tmp[1].Format(_T("%d:%02d:%02d"), n / 3600, (n % 3600) / 60, n % 60);
 			else if ( n >= 60 )
 				tmp[1].Format(_T("%d:%02d"), n / 60, n % 60);
 			else
 				tmp[1].Format(_T("%d"), n);
-		}
+		} else
+			d = 0.0;
+
+		// 直近1秒の転送速度
+		if ( m_ClockSize[4].clock != 0 )
+			e = (double)(m_TotalPos + pos - m_TotalOfs - m_ClockSize[4].size) * (double)CLOCKS_PER_SEC / (double)(now - m_ClockSize[4].clock);
+		else
+			e = d;
 
 		if ( d > 1048576.0 )
 			tmp[0].Format(_T("%.1fMB/Sec"), d / 1048576.0);

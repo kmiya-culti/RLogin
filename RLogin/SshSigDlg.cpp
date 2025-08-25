@@ -418,6 +418,8 @@ void CSshSigDlg::OnOK()
 		if ( (m_pKey = LoadKey()) == NULL )
 			return;
 
+		FormatErrorReset();
+
 		if ( (m_HashFp = FileOpen(m_DataFile)) == NULL )
 			throw _T("Sign file open error");
 
@@ -441,7 +443,9 @@ void CSshSigDlg::OnOK()
 		return;	// wait OnSignNext
 
 	} catch(LPCTSTR msg) {
-		MessageBox(msg, NULL, MB_ICONERROR);
+		CString tmp(msg);
+		::AddErrorMessage(tmp);
+		MessageBox(tmp, NULL, MB_ICONERROR);
 	}
 
 	if ( m_HashCtx != NULL ) {
@@ -514,7 +518,9 @@ void CSshSigDlg::OnSignNext()
 		UpdateData(FALSE);
 
 	} catch(LPCTSTR msg) {
-		MessageBox(msg, NULL, MB_ICONERROR);
+		CString tmp(msg);
+		::AddErrorMessage(tmp);
+		MessageBox(tmp, NULL, MB_ICONERROR);
 	}
 
 	if ( m_HashFp != NULL ) {
@@ -540,12 +546,14 @@ void CSshSigDlg::OnVerify()
 	m_NameSpaceCombo.AddHis(m_NameSpace);
 
 	try {
-		if ( (m_HashFp = FileOpen(m_DataFile)) == NULL )
-			throw _T("Verify file open error");
-
 		m_pKey = NULL;
 		if ( m_StrictVerify && (m_pKey = LoadKey()) == NULL )
 			return;
+
+		FormatErrorReset();
+
+		if ( (m_HashFp = FileOpen(m_DataFile)) == NULL )
+			throw _T("Verify file open error");
 
 		int st = 0;
 		CString line, text;
@@ -644,7 +652,9 @@ void CSshSigDlg::OnVerify()
 		return;	// wait OnVerifyNext
 
 	} catch(LPCTSTR msg) {
-		MessageBox(msg, NULL, MB_ICONERROR);
+		CString tmp(msg);
+		::AddErrorMessage(tmp);
+		MessageBox(tmp, NULL, MB_ICONERROR);
 	}
 
 	if ( m_HashFp != NULL ) {
@@ -677,7 +687,9 @@ void CSshSigDlg::OnVerifyNext()
 		MessageBox(_T("SSH key verification was successful"), NULL, MB_ICONINFORMATION);
 
 	} catch(LPCTSTR msg) {
-		MessageBox(msg, NULL, MB_ICONERROR);
+		CString tmp(msg);
+		::AddErrorMessage(tmp);
+		MessageBox(tmp, NULL, MB_ICONERROR);
 	}
 
 	if ( m_HashFp != NULL ) {

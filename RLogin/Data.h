@@ -23,6 +23,9 @@ BOOL IsDigits(LPCTSTR p);
 BOOL InStrStr(LPCTSTR str, LPCTSTR ptn);
 LPCTSTR StrToHex(LPCTSTR p, DWORD &val);
 
+#define	GAUSS_MAX	10
+void Gauss(double a[GAUSS_MAX][GAUSS_MAX], int n, double xx[GAUSS_MAX]);
+
 #define	CBUFINITSIZE	32
 #define	CBUFNIMALLOC	256
 #define	CBUFGETMAX		(512 * 1024)

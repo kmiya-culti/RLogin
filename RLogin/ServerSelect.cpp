@@ -47,6 +47,12 @@ CServerSelect::CServerSelect(CWnd* pParent /*=NULL*/)
 	m_pKeyTab   = new CKeyNodeTab;
 	m_pKeyMac   = new CKeyMacTab;
 	m_pParamTab = new CParamTab;
+
+#ifdef	USE_ENTRYICON
+	m_pImageParamTop = NULL;
+	m_bImageThreadAbort = FALSE;
+	m_bImageThreadRun = FALSE;
+#endif
 }
 CServerSelect::~CServerSelect()
 {
@@ -54,6 +60,17 @@ CServerSelect::~CServerSelect()
 	delete m_pKeyTab;
 	delete m_pKeyMac;
 	delete m_pParamTab;
+
+#ifdef	USE_ENTRYICON
+	m_bImageThreadAbort = TRUE;
+	while ( m_bImageThreadRun )
+		Sleep(50);
+	while ( m_pImageParamTop != NULL ) {
+		ImageIndexParam *pData = m_pImageParamTop;
+		m_pImageParamTop = pData->pNext;
+		delete pData;
+	}
+#endif
 }
 
 void CServerSelect::DoDataExchange(CDataExchange* pDX)
@@ -85,6 +102,10 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_COMMAND(ID_EDIT_CHECK, OnCheckEntry)
 	ON_COMMAND(ID_EDIT_COPY, &CServerSelect::OnEditCopy)
 	ON_COMMAND(ID_EDIT_PASTE, &CServerSelect::OnEditPaste)
+
+#ifdef	USE_ENTRYICON
+	ON_COMMAND(IDM_RESET_ALL, &CServerSelect::OnUpdateListIcon)
+#endif
 
 	ON_COMMAND(IDM_SERV_INPORT, &CServerSelect::OnServInport)
 	ON_COMMAND(IDM_SERV_EXPORT, &CServerSelect::OnServExport)
@@ -196,8 +217,17 @@ void CServerSelect::InitList(CStringIndex *pIndex, BOOL bFolder)
 	for ( i = 0 ; i < pIndex->m_TabData.GetSize() ; i++ ) {
 		n = pIndex->m_TabData[i];
 
-		m_List.InsertItem(LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM, i, m_pData->GetAt(n).m_EntryName, 0, 0, 
-			(m_DefaultEntryUid == m_pData->GetAt(n).m_Uid ? 1 : 2), n);
+		int img = (-1);
+
+#ifdef	USE_ENTRYICON
+		if ( !m_pData->GetAt(n).m_IconName.IsEmpty() )
+			img = GetImageIndex(m_pData->GetAt(n).m_IconName);
+
+		if ( img < 0 )
+			img = (m_DefaultEntryUid == m_pData->GetAt(n).m_Uid ? 1 : 2);
+#endif
+
+		m_List.InsertItem(LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM, i, m_pData->GetAt(n).m_EntryName, 0, 0, img, n);
 
 		m_List.SetItemText(i, 1, m_pData->GetAt(n).m_HostName);
 		m_List.SetItemText(i, 2, m_pData->GetAt(n).m_UserName);
@@ -234,6 +264,7 @@ void CServerSelect::InitEntry(int nUpdate)
 	BOOL bNest = FALSE;
 	BOOL bShowTab = FALSE;
 	BOOL bShowTree = FALSE;
+	BOOL bShowIcon = FALSE;
 
 	m_TabEntry.RemoveAll();
 
@@ -243,8 +274,18 @@ void CServerSelect::InitEntry(int nUpdate)
 	m_bTreeUpdate = TRUE;
 	m_Tree.DeleteAllItems();
 
-	for ( n = 0 ; n < m_pData->GetSize() ; n++ )
+	for ( n = 0 ; n < m_pData->GetSize() ; n++ ) {
 		m_TabEntry.AddPath(m_pData->GetAt(n).m_Group, &bNest).m_TabData.Add(n);
+		if ( !m_pData->GetAt(n).m_IconName.IsEmpty() )
+			bShowIcon = TRUE;
+	}
+
+#ifdef	USE_ENTRYICON
+	if ( bShowIcon &&  m_List.GetImageList(LVSIL_SMALL) == NULL ) {
+		m_List.SetImageList(&m_ImageList, LVSIL_SMALL);
+		m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
+	}
+#endif
 
 	for ( n = i = 0 ; n < m_AddGroup.GetSize() ; n++, i++ ) {
 		pIndex = &(m_TabEntry.AddPath(m_AddGroup[n], &bNest));
@@ -403,6 +444,100 @@ void CServerSelect::UpdateListIndex()
 	m_List.SetSortCols(7);
 }
 
+#ifdef	USE_ENTRYICON
+
+static UINT ImageIndexProc(LPVOID pParam)
+{
+	int idx;
+	int count = 0;
+	CClientDC dc(NULL);
+	CBmpFile image;
+	CBitmap *pBitmap = NULL;
+	COLORREF bc = RGB(255, 255, 255);
+	CServerSelect::ImageIndexParam *pData;
+	CServerSelect *pThis = (CServerSelect *)pParam;
+
+	pThis->m_ImageSemaphore.Lock();
+
+	while ( !pThis->m_bImageThreadAbort ) {
+		if ( (pData = pThis->m_pImageParamTop) == NULL )
+			break;
+		pThis->m_pImageParamTop = pData->pNext;
+
+		if ( pThis->m_ImageFile.Find(pData->FileName) == NULL ) {
+			pThis->m_ImageSemaphore.Unlock();
+
+			if ( ++count >= 4 ) {
+				count = 0;
+				pThis->PostMessage(WM_COMMAND, IDM_RESET_ALL);
+			}
+
+			if ( image.LoadFile(pData->FileName) )
+				pBitmap = image.GetBitmap(&dc, pData->ImageSize.cx, pData->ImageSize.cy, bc);
+
+			pThis->m_ImageSemaphore.Lock();
+			if ( pBitmap != NULL ) {
+				idx = pThis->m_ImageList.Add(pBitmap, bc);
+				pThis->m_ImageFile[pData->FileName].m_Value = idx;
+				pBitmap->DeleteObject();
+				pBitmap = NULL;
+			}
+		}
+
+		delete pData;
+	}
+
+	pThis->m_bImageThreadRun = FALSE;
+	pThis->m_ImageSemaphore.Unlock();
+
+	if ( !pThis->m_bImageThreadAbort )
+		pThis->PostMessage(WM_COMMAND, IDM_RESET_ALL);
+
+	return 0;
+}
+
+#endif
+
+int CServerSelect::GetImageIndex(LPCTSTR filename)
+{
+	int idx = (-1);
+	CStringBinary *pNode;
+	
+#ifdef	USE_ENTRYICON
+	m_ImageSemaphore.Lock();
+	if ( (pNode = m_ImageFile.Find(filename)) == NULL ) {
+		ImageIndexParam *pData = new ImageIndexParam;
+		pData->pNext = m_pImageParamTop;
+		m_pImageParamTop = pData;
+		pData->FileName = filename;
+		pData->ImageSize.SetSize(MulDiv(16, m_NowDpi.cx, DEFAULT_DPI_X), MulDiv(16, m_NowDpi.cy, DEFAULT_DPI_Y));
+		if ( !m_bImageThreadRun ) {
+			m_bImageThreadRun = TRUE;
+			AfxBeginThread(ImageIndexProc, this, THREAD_PRIORITY_NORMAL);
+		}
+		m_ImageSemaphore.Unlock();
+	} else {
+		idx = pNode->m_Value;
+		m_ImageSemaphore.Unlock();
+	}
+	return idx;
+#else
+	if ( (pNode = m_ImageFile.Find(filename)) == NULL ) {
+		CClientDC dc(this);
+		CBmpFile image;
+		CBitmap *pBitmap;
+		COLORREF bc = RGB(255, 255, 255);
+
+		if ( image.LoadFile(filename) && (pBitmap = image.GetBitmap(&dc, MulDiv(16, m_NowDpi.cx, DEFAULT_DPI_X), MulDiv(16, m_NowDpi.cy, DEFAULT_DPI_Y), bc)) != NULL )
+			idx = m_ImageList.Add(pBitmap, bc);
+
+		m_ImageFile[filename].m_Value = idx;
+		return idx;
+	} else
+		return pNode->m_Value;
+#endif
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CServerSelect メッセージ ハンドラ
 
@@ -437,8 +572,7 @@ BOOL CServerSelect::OnInitDialog()
 	m_ImageList.Add(&BitMap, RGB(192, 192, 192));
 	BitMap.DeleteObject();
 
-	//m_List.SetImageList(&m_ImageList, LVSIL_SMALL);
-	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
+	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT);
 	m_List.InitColumn(_T("ServerSelect"), InitListTab, 8);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 0);
 
@@ -530,6 +664,10 @@ void CServerSelect::SaveWindowStyle()
 {
 	CRect rect;
 
+#ifdef	USE_ENTRYICON
+	m_bImageThreadAbort = TRUE;
+#endif
+
 	//GetWindowRect(rect);
 	//AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cx"), MulDiv(rect.Width(),  DEFAULT_DPI_X * m_DefFsz.cx, m_NowDpi.cx * m_NowFsz.cx));
 	//AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cy"), MulDiv(rect.Height(), DEFAULT_DPI_Y * m_DefFsz.cy, m_NowDpi.cy * m_NowFsz.cy));
@@ -594,7 +732,7 @@ void CServerSelect::OnOK()
 {
 	int n, i;
 	int count = 0;
-
+	
 	for ( n = 0 ; n < m_pData->GetSize() ; n++ )
 		m_pData->GetAt(n).m_CheckFlag = FALSE;
 
@@ -1447,6 +1585,13 @@ BOOL CServerSelect::IsJsonEntryText(LPCTSTR str)
 
 	return TRUE;
 }
+
+#ifdef	USE_ENTRYICON
+void CServerSelect::OnUpdateListIcon()
+{
+	InitEntry(INIT_CALL_UPDATE);
+}
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 

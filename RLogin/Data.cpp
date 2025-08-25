@@ -127,6 +127,69 @@ LPCTSTR StrToHex(LPCTSTR p, DWORD &val)
 
 	return p;
 }
+/***********************
+	5x - y - z = 0
+	2x + y - 3z = -5
+	x + y + z = 6
+	x = 1, y = 2, z = 3
+	double a[GAUSS_MAX][GAUSS_MAX] = { { 5,-1,-1,0 }, { 2,1,-3,-5 }, { 1,1,1,6 } };
+	double x[GAUSS_MAX];
+	Gauss(a, 3, x);
+************************/
+void Gauss(double a[GAUSS_MAX][GAUSS_MAX], int n, double xx[GAUSS_MAX])
+{
+    int i, j, k, l, piv;
+    double p, q, m, b[1][GAUSS_MAX];
+
+    for ( i = 0 ; i < n ; i++ ) {
+		m = 0.0;
+		piv = i;
+
+		for ( l = i ; l < n ; l++ ) {
+			if ( fabs(a[l][i]) > m ) {
+				m = fabs(a[l][i]);
+				piv = l;
+			}
+		}
+
+		if ( piv != i ) {
+			for ( j = 0 ; j < (n + 1) ; j++ ) {
+				b[0][j] = a[i][j];
+				a[i][j] = a[piv][j];
+				a[piv][j] = b[0][j];
+			}
+		}
+    }
+
+    for ( k = 0 ; k < n ; k++ ) {
+		p = a[k][k];
+		a[k][k] = 1.0;
+
+		for ( j = k + 1 ; j < (n + 1) ; j++ ) {
+			if ( p == 0 )
+	    		a[k][j] = 0.0;
+			else
+	    		a[k][j] = a[k][j] / p;
+		}
+
+
+		for ( i = k + 1 ; i < n ; i++ ) {
+			q = a[i][k];
+
+			for ( j = k + 1 ; j < (n + 1) ; j++ )
+				a[i][j] = a[i][j] - q * a[k][j];
+
+			a[i][k] = 0.0;
+		}
+    }
+
+    for ( i = n - 1 ; i >= 0 ; i-- ) {
+		xx[i] = a[i][n];
+
+		for ( j = n - 1 ; j > i ; j-- )
+			xx[i] = xx[i] - a[i][j] * xx[j];
+    }
+}
 
 //////////////////////////////////////////////////////////////////////
 // CBits

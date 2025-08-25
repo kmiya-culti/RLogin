@@ -410,6 +410,7 @@ public:
 	int CompareNode(int src, int dis);
 
 	int m_UpDownCount;
+	int m_UpDownDone;
 	int m_UpDownRate;
 	int m_ProgDiv;
 	LONGLONG m_ProgSize;

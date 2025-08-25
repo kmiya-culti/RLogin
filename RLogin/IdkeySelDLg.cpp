@@ -364,11 +364,11 @@ BOOL CIdkeySelDLg::OnInitDialog()
 	}
 
 	if ( (pWnd = GetDlgItem(IDC_IDKEY_TYPE)) != NULL ) {
-		((CComboBox *)pWnd)->AddString(_T("MLDSA"));		// draft-becker-cnsa2-ssh-profile-00
+		((CComboBox *)pWnd)->AddString(_T("MLDSA"));		// draft-sfluhrer-ssh-mldsa-04
 		((CComboBox *)pWnd)->AddString(_T("MLDSA-ES"));		// draft-sun-ssh-composite-sigs-01
 		((CComboBox *)pWnd)->AddString(_T("MLDSA-ED"));		// draft-sun-ssh-composite-sigs-01
 		//((CComboBox *)pWnd)->AddString(_T("SLHSHA2S"));
-		((CComboBox *)pWnd)->AddString(_T("SLHSHA2F"));		// draft-josefsson-ssh-sphincs-00
+		//((CComboBox *)pWnd)->AddString(_T("SLHSHA2F"));		// draft-josefsson-ssh-sphincs-00 (Expires 2025/08/08)
 		//((CComboBox *)pWnd)->AddString(_T("SLHSHAKES"));
 		//((CComboBox *)pWnd)->AddString(_T("SLHSHAKEF"));
 	}
@@ -769,7 +769,7 @@ void CIdkeySelDLg::OnEditUpdate()
 
 	int n = (int)m_List.GetItemData(m_EntryNum);
 	CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
-	CEditDlg dlg;
+	CEditDlg dlg(this);
 
 	if ( pKey == NULL )
 		return;

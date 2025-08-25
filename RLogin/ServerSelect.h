@@ -42,6 +42,21 @@ public:
 	CKeyMacTab *m_pKeyMac;
 	CParamTab *m_pParamTab;
 	CImageList m_ImageList;
+	CStringBinary m_ImageFile;
+
+#ifdef	USE_ENTRYICON
+	typedef struct _ImageIndexParam {
+		struct _ImageIndexParam *pNext;
+		CString FileName;
+		CSize ImageSize;
+	} ImageIndexParam;
+
+	ImageIndexParam *m_pImageParamTop;
+	CSemaphore m_ImageSemaphore;
+	BOOL m_bImageThreadAbort;
+	BOOL m_bImageThreadRun;
+#endif
+
 	CPtrArray m_TabData;
 	BOOL m_bShowTabWnd;
 	BOOL m_bShowTreeWnd;
@@ -72,6 +87,7 @@ public:
 	void InitEntry(int nUpdate);
 	void UpdateDefaultEntry(int num);
 	void UpdateListIndex();
+	int GetImageIndex(LPCTSTR filename);
 
 	BOOL GetTrackerRect(CRect &rect, CRect &move);
 	void OffsetTracker(CPoint point);
@@ -119,6 +135,10 @@ protected:
 	afx_msg void OnShortcut();
 	afx_msg void OnEditCopy();
 	afx_msg void OnEditPaste();
+
+#ifdef	USE_ENTRYICON
+	afx_msg void OnUpdateListIcon();
+#endif
 
 	afx_msg void OnUpdateSaveDefault(CCmdUI *pCmdUI);
 	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
