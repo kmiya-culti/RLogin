@@ -401,7 +401,9 @@ public:
 	CStringList m_RemoteCwdHis;
 
 	void SetLocalCwdHis(LPCTSTR cwd);
+	void DelLocalCwdHis(LPCTSTR cwd);
 	void SetRemoteCwdHis(LPCTSTR cwd);
+	void DelRemoteCwdHis(LPCTSTR cwd);
 
 	int m_LocalSortItem;
 	int m_RemoteSortItem;

@@ -552,6 +552,7 @@ void CBuffer::Put24Bit(LONG val)
 }
 void CBuffer::Put32Bit(LONG val)
 {
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER)
 	ReAlloc(4);
 	register LPBYTE p = m_Data + m_Len;
 	p[0] = (BYTE)(val >> 24);
@@ -559,9 +560,19 @@ void CBuffer::Put32Bit(LONG val)
 	p[2] = (BYTE)(val >>  8);
 	p[3] = (BYTE)(val >>  0);
 	m_Len += 4;
+#elif BYTE_ORDER == BIG_ENDIAN
+	ReAlloc(4);
+	*((LONG *)(m_Data + m_Len)) = val;
+	m_Len += 4;
+#else
+	ReAlloc(4);
+	*((unsigned long *)(m_Data + m_Len)) = _byteswap_ulong((unsigned long)val);
+	m_Len += 4;
+#endif
 }
 void CBuffer::Put64Bit(LONGLONG val)
 {
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER)
 	ReAlloc(8);
 	register LPBYTE p = m_Data + m_Len;
 	p[0] = (BYTE)(val >> 56);
@@ -573,6 +584,15 @@ void CBuffer::Put64Bit(LONGLONG val)
 	p[6] = (BYTE)(val >>  8);
 	p[7] = (BYTE)(val >>  0);
 	m_Len += 8;
+#elif BYTE_ORDER == BIG_ENDIAN
+	ReAlloc(8);
+	*((LONGLONG *)(m_Data + m_Len)) = val;
+	m_Len += 8;
+#else
+	ReAlloc(8);
+	*((unsigned __int64 *)(m_Data + m_Len)) = _byteswap_uint64((unsigned __int64)val);
+	m_Len += 8;
+#endif
 }
 void CBuffer::PutBuf(LPBYTE buf, int len)
 {
@@ -721,6 +741,7 @@ LONG CBuffer::Get24Bit()
 }
 LONG CBuffer::Get32Bit()
 {
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER)
 	register LPBYTE p = m_Data + m_Ofs;
 	if ( (m_Ofs += 4) > m_Len ) {
 		m_Len = m_Ofs = 0;
@@ -730,9 +751,25 @@ LONG CBuffer::Get32Bit()
 		   ((LONG)p[1] << 16) |
 		   ((LONG)p[2] <<  8) |
 		   ((LONG)p[3] <<  0);
+#elif BYTE_ORDER == BIG_ENDIAN
+	LONG l = *((LONG *)(m_Data + m_Ofs));
+	if ( (m_Ofs += 4) > m_Len ) {
+		m_Len = m_Ofs = 0;
+		throw _T("CBuffer Get32Bit");
+	}
+	return l;
+#else
+	unsigned long l = *((unsigned long *)(m_Data + m_Ofs));
+	if ( (m_Ofs += 4) > m_Len ) {
+		m_Len = m_Ofs = 0;
+		throw _T("CBuffer Get32Bit");
+	}
+	return (LONG)_byteswap_ulong(l);
+#endif
 }
 LONGLONG CBuffer::Get64Bit()
 {
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER)
 	register LPBYTE p = m_Data + m_Ofs;
 	if ( (m_Ofs += 8) > m_Len ) {
 		m_Len = m_Ofs = 0;
@@ -746,6 +783,21 @@ LONGLONG CBuffer::Get64Bit()
 		   ((LONGLONG)p[5] << 16) |
 		   ((LONGLONG)p[6] <<  8) |
 		   ((LONGLONG)p[7] <<  0);
+#elif BYTE_ORDER == BIG_ENDIAN
+	LONGLONG ll = *((LONGLONG *)(m_Data + m_Ofs));
+	if ( (m_Ofs += 8) > m_Len ) {
+		m_Len = m_Ofs = 0;
+		throw _T("CBuffer Get64Bit");
+	}
+	return ll;
+#else
+	unsigned __int64 ll = *((unsigned __int64 *)(m_Data + m_Ofs));
+	if ( (m_Ofs += 8) > m_Len ) {
+		m_Len = m_Ofs = 0;
+		throw _T("CBuffer Get64Bit");
+	}
+	return (LONGLONG)_byteswap_uint64(ll);
+#endif
 }
 int CBuffer::GetStr(CStringA &str)
 {
@@ -910,18 +962,31 @@ void CBuffer::GetText(CString &str)
 }
 void CBuffer::SET16BIT(LPBYTE pos, int val)
 {
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER)
 	pos[0] = (BYTE)(val >> 8);
 	pos[1] = (BYTE)(val >> 0);
+#elif BYTE_ORDER == BIG_ENDIAN
+	*((unsigned short *)pos) = (unsigned short)val;
+#else
+	*((unsigned short *)pos) = _byteswap_ushort((unsigned short)val);
+#endif
 }
 void CBuffer::SET32BIT(LPBYTE pos, int val)
 {
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER)
 	pos[0] = (BYTE)(val >> 24);
 	pos[1] = (BYTE)(val >> 16);
 	pos[2] = (BYTE)(val >>  8);
 	pos[3] = (BYTE)(val >>  0);
+#elif BYTE_ORDER == BIG_ENDIAN
+	*((unsigned long *)pos) = (unsigned long)val;
+#else
+	*((unsigned long *)pos) = _byteswap_ulong((unsigned long)val);
+#endif
 }
 void CBuffer::SET64BIT(LPBYTE pos, LONGLONG val)
 {
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER)
 	pos[0] = (BYTE)(val >> 56);
 	pos[1] = (BYTE)(val >> 48);
 	pos[2] = (BYTE)(val >> 40);
@@ -930,21 +995,39 @@ void CBuffer::SET64BIT(LPBYTE pos, LONGLONG val)
 	pos[5] = (BYTE)(val >> 16);
 	pos[6] = (BYTE)(val >>  8);
 	pos[7] = (BYTE)(val >>  0);
+#elif BYTE_ORDER == BIG_ENDIAN
+	*((unsigned __int64 *)pos) = _(unsigned __int64)val;
+#else
+	*((unsigned __int64 *)pos) = _byteswap_uint64((unsigned __int64)val);
+#endif
 }
 int CBuffer::PTR16BIT(LPBYTE pos)
 {
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER)
 	return ((int)pos[0] << 8) |
 		   ((int)pos[1] << 0);
+#elif BYTE_ORDER == BIG_ENDIAN
+	return (int)(*((unsigned short *)pos));
+#else	
+	return (int)_byteswap_ushort(*((unsigned short *)pos));
+#endif
 }
 LONG CBuffer::PTR32BIT(LPBYTE pos)
 {
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER)
 	return ((LONG)pos[0] << 24) |
 		   ((LONG)pos[1] << 16) |
 		   ((LONG)pos[2] <<  8) |
 		   ((LONG)pos[3] <<  0);
+#elif BYTE_ORDER == BIG_ENDIAN
+	return *((LONG *)pos);
+#else
+	return (LONG)_byteswap_ulong(*((unsigned long *)pos));
+#endif
 }
 LONGLONG CBuffer::PTR64BIT(LPBYTE pos)
 {
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER)
 	return ((LONGLONG)pos[0] << 56) |
 		   ((LONGLONG)pos[1] << 48) |
 		   ((LONGLONG)pos[2] << 40) |
@@ -953,6 +1036,11 @@ LONGLONG CBuffer::PTR64BIT(LPBYTE pos)
 		   ((LONGLONG)pos[5] << 16) |
 		   ((LONGLONG)pos[6] <<  8) |
 		   ((LONGLONG)pos[7] <<  0);
+#elif BYTE_ORDER == BIG_ENDIAN
+	return *((LONGLONG *)pos);
+#else
+	return (LONGLONG)_byteswap_uint64(*((unsigned __int64 *)pos));
+#endif
 }
 
 #ifdef	_UNICODE
@@ -3551,7 +3639,7 @@ int CStringLoad::IsDigit(LPCTSTR str)
 }
 int CStringLoad::CompareDigit(LPCTSTR dis)
 {
-	int ns, nd;
+	LONGLONG ns, nd;
 	LPCTSTR src = *this;
 
 	while ( *src != _T('\0') ) {

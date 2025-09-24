@@ -1,5 +1,5 @@
 //
-// UNICODE 16.0.0
+// UNICODE 17.0.0
 //
 // Blocks.txt
 
@@ -199,6 +199,7 @@ const UNIBLOCKTAB UniBlockTab[UNIBLOCKTABMAX] = {
 	{ 0x108E0,	_T("Hatran")	},
 	{ 0x10900,	_T("Phoenician")	},
 	{ 0x10920,	_T("Lydian")	},
+	{ 0x10940,	_T("Sidetic")	},
 	{ 0x10980,	_T("Meroitic Hieroglyphs")	},
 	{ 0x109A0,	_T("Meroitic Cursive")	},
 	{ 0x10A00,	_T("Kharoshthi")	},
@@ -250,11 +251,13 @@ const UNIBLOCKTAB UniBlockTab[UNIBLOCKTABMAX] = {
 	{ 0x11AB0,	_T("Unified Canadian Aboriginal Syllabics Extended-A")	},
 	{ 0x11AC0,	_T("Pau Cin Hau")	},
 	{ 0x11B00,	_T("Devanagari Extended-A")	},
+	{ 0x11B60,	_T("Sharada Supplement")	},
 	{ 0x11BC0,	_T("Sunuwar")	},
 	{ 0x11C00,	_T("Bhaiksuki")	},
 	{ 0x11C70,	_T("Marchen")	},
 	{ 0x11D00,	_T("Masaram Gondi")	},
 	{ 0x11D60,	_T("Gunjala Gondi")	},
+	{ 0x11DB0,	_T("Tolong Siki")	},
 	{ 0x11EE0,	_T("Makasar")	},
 	{ 0x11F00,	_T("Kawi")	},
 	{ 0x11FB0,	_T("Lisu Supplement")	},
@@ -275,12 +278,14 @@ const UNIBLOCKTAB UniBlockTab[UNIBLOCKTABMAX] = {
 	{ 0x16B00,	_T("Pahawh Hmong")	},
 	{ 0x16D40,	_T("Kirat Rai")	},
 	{ 0x16E40,	_T("Medefaidrin")	},
+	{ 0x16EA0,	_T("Beria Erfe")	},
 	{ 0x16F00,	_T("Miao")	},
 	{ 0x16FE0,	_T("Ideographic Symbols and Punctuation")	},
 	{ 0x17000,	_T("Tangut")	},
 	{ 0x18800,	_T("Tangut Components")	},
 	{ 0x18B00,	_T("Khitan Small Script")	},
 	{ 0x18D00,	_T("Tangut Supplement")	},
+	{ 0x18D80,	_T("Tangut Components Supplement")	},
 	{ 0x1AFF0,	_T("Kana Extended-B")	},
 	{ 0x1B000,	_T("Kana Supplement")	},
 	{ 0x1B100,	_T("Kana Extended-A")	},
@@ -289,6 +294,7 @@ const UNIBLOCKTAB UniBlockTab[UNIBLOCKTABMAX] = {
 	{ 0x1BC00,	_T("Duployan")	},
 	{ 0x1BCA0,	_T("Shorthand Format Controls")	},
 	{ 0x1CC00,	_T("Symbols for Legacy Computing Supplement")	},
+	{ 0x1CEC0,	_T("Miscellaneous Symbols Supplement")	},
 	{ 0x1CF00,	_T("Znamenny Musical Notation")	},
 	{ 0x1D000,	_T("Byzantine Musical Symbols")	},
 	{ 0x1D100,	_T("Musical Symbols")	},
@@ -307,6 +313,7 @@ const UNIBLOCKTAB UniBlockTab[UNIBLOCKTABMAX] = {
 	{ 0x1E2C0,	_T("Wancho")	},
 	{ 0x1E4D0,	_T("Nag Mundari")	},
 	{ 0x1E5D0,	_T("Ol Onal")	},
+	{ 0x1E6C0,	_T("Tai Yo")	},
 	{ 0x1E7E0,	_T("Ethiopic Extended-B")	},
 	{ 0x1E800,	_T("Mende Kikakui")	},
 	{ 0x1E900,	_T("Adlam")	},
@@ -338,6 +345,7 @@ const UNIBLOCKTAB UniBlockTab[UNIBLOCKTABMAX] = {
 	{ 0x2F800,	_T("CJK Compatibility Ideographs Supplement")	},
 	{ 0x30000,	_T("CJK Unified Ideographs Extension G")	},
 	{ 0x31350,	_T("CJK Unified Ideographs Extension H")	},
+	{ 0x323B0,	_T("CJK Unified Ideographs Extension J")	},
 	{ 0xE0000,	_T("Tags")	},
 	{ 0xE0100,	_T("Variation Selectors Supplement")	},
 	{ 0xF0000,	_T("Supplementary Private Use Area-A")	},

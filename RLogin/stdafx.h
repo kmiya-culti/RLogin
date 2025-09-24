@@ -26,6 +26,14 @@
 //#define	USE_FIFOMONITER		// FifoBufferのサイズをデバッグ
 #define	USE_ENTRYICON			// ServerSelectDlgのリストでアイコンを表示する
 
+#ifndef	USE_NOENDIAN
+#define	LITTLE_ENDIAN		0
+#define	BIG_ENDIAN			1
+#if defined(_M_IX86) || defined(_M_X64) || defined(_M_ARM) || defined(_M_ARM64)
+#define	BYTE_ORDER			LITTLE_ENDIAN
+#endif
+#endif
+
 // Windows バージョン
 
 #define	_WIN32_WINNT_NT4		0x0400	// Windows NT 4.0

@@ -364,6 +364,7 @@ BOOL CIdkeySelDLg::OnInitDialog()
 	}
 
 	if ( (pWnd = GetDlgItem(IDC_IDKEY_TYPE)) != NULL ) {
+		//((CComboBox *)pWnd)->AddString(_T("XMSS"));			// openssh 10.1 remove experimental support for XMSS keys
 		((CComboBox *)pWnd)->AddString(_T("MLDSA"));		// draft-sfluhrer-ssh-mldsa-04
 		((CComboBox *)pWnd)->AddString(_T("MLDSA-ES"));		// draft-sun-ssh-composite-sigs-01
 		((CComboBox *)pWnd)->AddString(_T("MLDSA-ED"));		// draft-sun-ssh-composite-sigs-01

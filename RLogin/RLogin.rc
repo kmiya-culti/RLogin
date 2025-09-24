@@ -751,9 +751,9 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,210,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.30.8 (2025/08/26)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.30.9 (2025/09/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2025 Culti",IDC_STATIC,44,17,189,8
-    LTEXT           "OpenSSL 3.5.2 5 Aug 2025",IDC_STATIC,44,50,189,8
+    LTEXT           "OpenSSL 3.5.3 16 Sep 2025",IDC_STATIC,44,50,189,8
     LTEXT           "Copyright (c) 1998-2025 The OpenSSL Project",IDC_STATIC,44,60,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,80,189,8
@@ -2135,9 +2135,9 @@ BEGIN
     EDITTEXT        IDC_EDIT1,185,182,70,12,ES_AUTOHSCROLL
     LTEXT           "フロー制御する受信バッファの下限(10-50%)",IDC_STATIC,21,198,150,8
     EDITTEXT        IDC_EDIT2,185,197,70,12,ES_AUTOHSCROLL
-    LTEXT           "XOFFの文字コード",IDC_STATIC,21,214,150,8
+    LTEXT           "XOFFの文字コード(^S=19)",IDC_STATIC,21,214,150,8
     EDITTEXT        IDC_EDIT3,185,212,70,12,ES_AUTOHSCROLL
-    LTEXT           "XONの文字コード",IDC_STATIC,21,229,150,8
+    LTEXT           "XONの文字コード(^Q=17)",IDC_STATIC,21,229,150,8
     EDITTEXT        IDC_EDIT4,185,226,70,12,ES_AUTOHSCROLL
     DEFPUSHBUTTON   "OK",IDOK,57,251,70,14
     PUSHBUTTON      "キャンセル",IDCANCEL,146,251,70,14
@@ -2370,8 +2370,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,30,8,0
- PRODUCTVERSION 2,30,8,0
+ FILEVERSION 2,30,9,0
+ PRODUCTVERSION 2,30,9,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2388,12 +2388,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.30.8.0"
+            VALUE "FileVersion", "2.30.9.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.30.8.0"
+            VALUE "ProductVersion", "2.30.9.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -3390,8 +3390,6 @@ BEGIN
 0x4445, 0x3532, 0x3135, 0x0039, 
     IDC_IDKEY_TYPE, 0x403, 6, 0
 0x4445, 0x3434, 0x0038, 
-    IDC_IDKEY_TYPE, 0x403, 5, 0
-0x4d58, 0x5353, "\000" 
     IDC_IDKEY_BITS, 0x403, 3, 0
 0x3031, "\000" 
     IDC_IDKEY_BITS, 0x403, 3, 0

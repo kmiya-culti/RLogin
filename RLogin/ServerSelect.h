@@ -47,6 +47,7 @@ public:
 #ifdef	USE_ENTRYICON
 	typedef struct _ImageIndexParam {
 		struct _ImageIndexParam *pNext;
+		CString EntryName;
 		CString FileName;
 		CSize ImageSize;
 	} ImageIndexParam;
@@ -87,7 +88,7 @@ public:
 	void InitEntry(int nUpdate);
 	void UpdateDefaultEntry(int num);
 	void UpdateListIndex();
-	int GetImageIndex(LPCTSTR filename);
+	int GetImageIndex(LPCTSTR entryname, LPCTSTR filename);
 
 	BOOL GetTrackerRect(CRect &rect, CRect &move);
 	void OffsetTracker(CPoint point);

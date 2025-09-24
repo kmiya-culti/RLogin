@@ -582,6 +582,7 @@ BOOL CKnownHostsDlg::OnInitDialog()
 	SetDlgItemText(IDOK, _T("DELETE"));
 
 	SetSaveProfile(_T("KnownHostsDlg"));
+	AddHelpButton(_T("#DELHOSTKEY"));
 
 	return TRUE;
 }

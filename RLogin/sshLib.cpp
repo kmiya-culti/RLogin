@@ -3148,6 +3148,7 @@ struct umac_ctx {
     AES_KEY	prf_key;				/* Expanded AES key for PDF           */
 };
 
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER)
 #define	endian_big_64(c)	((((UINT64)(((UINT8 *)(c))[0])) << 56) | \
 							 (((UINT64)(((UINT8 *)(c))[1])) << 48) | \
 							 (((UINT64)(((UINT8 *)(c))[2])) << 40) | \
@@ -3166,10 +3167,20 @@ struct umac_ctx {
 						    ((UINT8 *)(p))[1] = (UINT)((i) >> 16), \
 						    ((UINT8 *)(p))[2] = (UINT)((i) >>  8), \
 						    ((UINT8 *)(p))[3] = (UINT)((i) >>  0)
+#elif BYTE_ORDER == BIG_ENDIAN
+#define	endian_big_64(c)	(*((UINT64 *)(c)))
+#define	endian_big_32(c)	(*((UINT32 *)(c)))
+#define	store_big_32(p,i)	(*(((UINT32 *)(p))) = (UINT32)(i))
+#else
+#define	endian_big_64(c)	_byteswap_uint64(*((UINT64 *)(c)))
+#define	endian_big_32(c)	_byteswap_ulong(*((UINT32 *)(c)))
+#define	store_big_32(p,i)	(*(((UINT32 *)(p))) = _byteswap_ulong((UINT32)(i)))
+#endif
+
 
 #define MUL64(a,b)					((UINT64)((UINT64)(UINT32)(a) * (UINT64)(UINT32)(b)))
 
-#ifdef	USE_NOENDIAN
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER) || BYTE_ORDER != LITTLE_ENDIAN
 #define LOAD_UINT32_LITTLE(ptr)		((((UINT32)(((UINT8 *)(ptr))[0])) <<  0) | \
 									 (((UINT32)(((UINT8 *)(ptr))[1])) <<  8) | \
 									 (((UINT32)(((UINT8 *)(ptr))[2])) << 16) | \
@@ -4583,7 +4594,7 @@ int bcrypt_pbkdf(const char *pass, size_t passlen, const unsigned char *salt, si
 
 static inline uint32_t GET_32BIT_LSB_FIRST(const void *vp)
 {
-#ifdef	USE_NOENDIAN
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER) || BYTE_ORDER != LITTLE_ENDIAN
     const uint8_t *p = (const uint8_t *)vp;
     return (((uint64_t)p[0]	 ) |
 			((uint64_t)p[1] <<  8) |
@@ -4596,7 +4607,7 @@ static inline uint32_t GET_32BIT_LSB_FIRST(const void *vp)
 
 static inline void PUT_32BIT_LSB_FIRST(void *vp, uint32_t value)
 {
-#ifdef	USE_NOENDIAN
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER) || BYTE_ORDER != LITTLE_ENDIAN
     uint8_t *p = (uint8_t *)vp;
     p[0] = (uint8_t)(value);
     p[1] = (uint8_t)(value >> 8);
@@ -4609,7 +4620,7 @@ static inline void PUT_32BIT_LSB_FIRST(void *vp, uint32_t value)
 
 static inline uint64_t GET_64BIT_LSB_FIRST(const void *vp)
 {
-#ifdef	USE_NOENDIAN
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER) || BYTE_ORDER != LITTLE_ENDIAN
     const uint8_t *p = (const uint8_t *)vp;
     return (((uint64_t)p[0]	 ) |
 			((uint64_t)p[1] <<  8) |
@@ -4626,7 +4637,7 @@ static inline uint64_t GET_64BIT_LSB_FIRST(const void *vp)
 
 static inline void PUT_64BIT_LSB_FIRST(void *vp, uint64_t value)
 {
-#ifdef	USE_NOENDIAN
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER) || BYTE_ORDER != LITTLE_ENDIAN
     uint8_t *p = (uint8_t *)vp;
     p[0] = (uint8_t)(value);
     p[1] = (uint8_t)(value >> 8);

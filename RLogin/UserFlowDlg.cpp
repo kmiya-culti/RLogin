@@ -41,8 +41,11 @@ void CUserFlowDlg::DoDataExchange(CDataExchange* pDX)
 	for ( n = 0 ; n < 6 ; n++ )
 		DDX_Check(pDX, IDC_CHECK1 + n, m_Check[n]);
 
-	for ( n = 0 ; n < 4 ; n++ )
+	for ( n = 0 ; n < 2 ; n++ )
 		DDX_Text(pDX, IDC_EDIT1 + n, m_Value[2 + n]);
+
+	for ( n = 0 ; n < 2 ; n++ )
+		DDX_Text(pDX, IDC_EDIT3 + n, m_CtrlChar[n]);
 }
 
 BEGIN_MESSAGE_MAP(CUserFlowDlg, CDialogExt)
@@ -74,8 +77,16 @@ BOOL CUserFlowDlg::OnInitDialog()
 
 	m_Value[2] = 100 - 100 * m_pDCB->XoffLim / COMQUEUESIZE;
 	m_Value[3] = 100 * m_pDCB->XonLim / COMQUEUESIZE;
+
 	m_Value[4] = m_pDCB->XoffChar;
 	m_Value[5] = m_pDCB->XonChar;
+
+	for ( int n = 0 ; n < 2 ; n++ ) {
+		if ( m_Value[4 + n] < 32 )
+			m_CtrlChar[n].Format(_T("^%c"), _T('@') + m_Value[4 + n]);
+		else
+			m_CtrlChar[n].Format(_T("%d"), m_Value[4 + n]);
+	}
 
 	UpdateData(FALSE);
 
@@ -87,6 +98,17 @@ BOOL CUserFlowDlg::OnInitDialog()
 void CUserFlowDlg::OnOK()
 {
 	UpdateData(TRUE);
+
+	for ( int n = 0 ; n < 2 ; n++ ) {
+		LPCTSTR p = m_CtrlChar[n];
+
+		if ( p[0] == _T('^') && p[1] >= _T('@') && p[1] <= _T('_') )
+			m_Value[4 + n] = p[1] - _T('@');
+		else if ( *p != _T('\0') )
+			m_Value[4 + n]  = _tstoi(p);
+		else
+			m_Value[4 + n] = 0;
+	}
 
 	if ( m_Value[2] < 50 )
 		m_Value[2] = 50;

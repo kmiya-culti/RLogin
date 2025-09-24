@@ -221,7 +221,7 @@ void CServerSelect::InitList(CStringIndex *pIndex, BOOL bFolder)
 
 #ifdef	USE_ENTRYICON
 		if ( !m_pData->GetAt(n).m_IconName.IsEmpty() )
-			img = GetImageIndex(m_pData->GetAt(n).m_IconName);
+			img = GetImageIndex(m_pData->GetAt(n).m_EntryName, m_pData->GetAt(n).m_IconName);
 
 		if ( img < 0 )
 			img = (m_DefaultEntryUid == m_pData->GetAt(n).m_Uid ? 1 : 2);
@@ -467,11 +467,6 @@ static UINT ImageIndexProc(LPVOID pParam)
 		if ( pThis->m_ImageFile.Find(pData->FileName) == NULL ) {
 			pThis->m_ImageSemaphore.Unlock();
 
-			if ( ++count >= 4 ) {
-				count = 0;
-				pThis->PostMessage(WM_COMMAND, IDM_RESET_ALL);
-			}
-
 			if ( image.LoadFile(pData->FileName) )
 				pBitmap = image.GetBitmap(&dc, pData->ImageSize.cx, pData->ImageSize.cy, bc);
 
@@ -481,6 +476,15 @@ static UINT ImageIndexProc(LPVOID pParam)
 				pThis->m_ImageFile[pData->FileName].m_Value = idx;
 				pBitmap->DeleteObject();
 				pBitmap = NULL;
+
+				if ( ++count >= 4 ) {
+					count = 0;
+					pThis->PostMessage(WM_COMMAND, IDM_RESET_ALL);
+				}
+
+			} else {
+				pThis->m_ImageFile[pData->FileName].m_Value = (-1);
+				ThreadMessageBox(_T("'%s' Failed to load icon image file '%s'"), pData->EntryName, pData->FileName);
 			}
 		}
 
@@ -490,7 +494,7 @@ static UINT ImageIndexProc(LPVOID pParam)
 	pThis->m_bImageThreadRun = FALSE;
 	pThis->m_ImageSemaphore.Unlock();
 
-	if ( !pThis->m_bImageThreadAbort )
+	if ( !pThis->m_bImageThreadAbort && count > 0 )
 		pThis->PostMessage(WM_COMMAND, IDM_RESET_ALL);
 
 	return 0;
@@ -498,7 +502,7 @@ static UINT ImageIndexProc(LPVOID pParam)
 
 #endif
 
-int CServerSelect::GetImageIndex(LPCTSTR filename)
+int CServerSelect::GetImageIndex(LPCTSTR entryname, LPCTSTR filename)
 {
 	int idx = (-1);
 	CStringBinary *pNode;
@@ -509,6 +513,7 @@ int CServerSelect::GetImageIndex(LPCTSTR filename)
 		ImageIndexParam *pData = new ImageIndexParam;
 		pData->pNext = m_pImageParamTop;
 		m_pImageParamTop = pData;
+		pData->EntryName = entryname;
 		pData->FileName = filename;
 		pData->ImageSize.SetSize(MulDiv(16, m_NowDpi.cx, DEFAULT_DPI_X), MulDiv(16, m_NowDpi.cy, DEFAULT_DPI_Y));
 		if ( !m_bImageThreadRun ) {

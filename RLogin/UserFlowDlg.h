@@ -18,6 +18,7 @@ public:
 	DCB *m_pDCB;
 	int m_Value[6];
 	BOOL m_Check[6];
+	CString m_CtrlChar[2];
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート

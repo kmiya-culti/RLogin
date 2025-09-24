@@ -71,22 +71,6 @@ volatile crypto_int64 crypto_int64_optblocker = 0;
 
 __attribute__((unused))
 static inline
-crypto_int16 crypto_int16_load(const unsigned char *crypto_int16_s) {
-  crypto_int16 crypto_int16_z = 0;
-  crypto_int16_z |= ((crypto_int16) (*crypto_int16_s++)) << 0;
-  crypto_int16_z |= ((crypto_int16) (*crypto_int16_s++)) << 8;
-  return crypto_int16_z;
-}
-
-__attribute__((unused))
-static inline
-void crypto_int16_store(unsigned char *crypto_int16_s,crypto_int16 crypto_int16_x) {
-  *crypto_int16_s++ = crypto_int16_x >> 0;
-  *crypto_int16_s++ = crypto_int16_x >> 8;
-}
-
-__attribute__((unused))
-static inline
 crypto_int16 crypto_int16_negative_mask(crypto_int16 crypto_int16_x) {
 #if defined(__GNUC__) && defined(__x86_64__)
   __asm__ ("sarw $15,%0" : "+r"(crypto_int16_x) : : "cc");
@@ -589,28 +573,6 @@ int crypto_int16_bottomzeros_num(crypto_int16 crypto_int16_x) {
 
 #define crypto_int32 int32_t
 #define crypto_int32_unsigned uint32_t
-
-
-
-__attribute__((unused))
-static inline
-crypto_int32 crypto_int32_load(const unsigned char *crypto_int32_s) {
-  crypto_int32 crypto_int32_z = 0;
-  crypto_int32_z |= ((crypto_int32) (*crypto_int32_s++)) << 0;
-  crypto_int32_z |= ((crypto_int32) (*crypto_int32_s++)) << 8;
-  crypto_int32_z |= ((crypto_int32) (*crypto_int32_s++)) << 16;
-  crypto_int32_z |= ((crypto_int32) (*crypto_int32_s++)) << 24;
-  return crypto_int32_z;
-}
-
-__attribute__((unused))
-static inline
-void crypto_int32_store(unsigned char *crypto_int32_s,crypto_int32 crypto_int32_x) {
-  *crypto_int32_s++ = crypto_int32_x >> 0;
-  *crypto_int32_s++ = crypto_int32_x >> 8;
-  *crypto_int32_s++ = crypto_int32_x >> 16;
-  *crypto_int32_s++ = crypto_int32_x >> 24;
-}
 
 __attribute__((unused))
 static inline
@@ -1115,36 +1077,6 @@ int crypto_int32_bottomzeros_num(crypto_int32 crypto_int32_x) {
 
 #define crypto_int64 int64_t
 #define crypto_int64_unsigned uint64_t
-
-
-
-__attribute__((unused))
-static inline
-crypto_int64 crypto_int64_load(const unsigned char *crypto_int64_s) {
-  crypto_int64 crypto_int64_z = 0;
-  crypto_int64_z |= ((crypto_int64) (*crypto_int64_s++)) << 0;
-  crypto_int64_z |= ((crypto_int64) (*crypto_int64_s++)) << 8;
-  crypto_int64_z |= ((crypto_int64) (*crypto_int64_s++)) << 16;
-  crypto_int64_z |= ((crypto_int64) (*crypto_int64_s++)) << 24;
-  crypto_int64_z |= ((crypto_int64) (*crypto_int64_s++)) << 32;
-  crypto_int64_z |= ((crypto_int64) (*crypto_int64_s++)) << 40;
-  crypto_int64_z |= ((crypto_int64) (*crypto_int64_s++)) << 48;
-  crypto_int64_z |= ((crypto_int64) (*crypto_int64_s++)) << 56;
-  return crypto_int64_z;
-}
-
-__attribute__((unused))
-static inline
-void crypto_int64_store(unsigned char *crypto_int64_s,crypto_int64 crypto_int64_x) {
-  *crypto_int64_s++ = (unsigned char)(crypto_int64_x >> 0);
-  *crypto_int64_s++ = (unsigned char)(crypto_int64_x >> 8);
-  *crypto_int64_s++ = (unsigned char)(crypto_int64_x >> 16);
-  *crypto_int64_s++ = (unsigned char)(crypto_int64_x >> 24);
-  *crypto_int64_s++ = (unsigned char)(crypto_int64_x >> 32);
-  *crypto_int64_s++ = (unsigned char)(crypto_int64_x >> 40);
-  *crypto_int64_s++ = (unsigned char)(crypto_int64_x >> 48);
-  *crypto_int64_s++ = (unsigned char)(crypto_int64_x >> 56);
-}
 
 __attribute__((unused))
 static inline

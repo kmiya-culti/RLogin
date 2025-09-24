@@ -1564,6 +1564,23 @@ void OpenSSL_Memory_Test()
 
 BOOL CRLoginApp::InitInstance()
 {
+#if defined(_DEBUG) && !defined(USE_NOENDIAN) && defined(BYTE_ORDER)
+	// BYTE_ORDER check
+	union {
+		short w;
+		char b[2];
+	} d;
+	d.b[0] = '\x01';
+	d.b[1] = '\x02';
+	#if BYTE_ORDER == LITTLE_ENDIAN
+		ASSERT(d.w == 0x0201);
+	#elif BYTE_ORDER == BIG_ENDIAN
+		ASSERT(d.w == 0x0102);
+	#else
+		#error BYTE_ORDER = LITTLE_ENDIAN or BIG_ENDIAN
+	#endif
+#endif
+
 	// LoadLibrary Search Path
 	HMODULE hModule;
 	if ((hModule = GetModuleHandle(_T("kernel32.dll"))) != NULL) {

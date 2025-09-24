@@ -791,10 +791,16 @@ int CTabBar::GetImageIndex(LPCTSTR filename)
 		CBitmap *pBitmap;
 		COLORREF bc = RGB(255, 255, 255);
 
+		FormatErrorReset();
+
 		if ( image.LoadFile(filename) && (pBitmap = image.GetBitmap(&dc, ICONIMG_SIZE, ICONIMG_SIZE, bc)) != NULL )
 			idx = m_ImageList.Add(pBitmap, bc);
 
 		m_ImageFile[filename].m_Value = idx;
+
+		if ( idx == (-1) )
+			ThreadMessageBox(_T("Failed to load icon image file '%s'"), filename);
+
 		return idx;
 
 	} else

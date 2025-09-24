@@ -3839,6 +3839,12 @@ BOOL CGrapWnd::LoadGifAnime(LPBYTE lpBuf, int len)
 	} *pGifImage, *pTmpImage;
 #pragma pack(pop)
 
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER) || BYTE_ORDER != LITTLE_ENDIAN
+#define LOAD_WORD_LITTLE(ptr)	((((WORD)(((UINT8 *)(ptr))[0])) <<  0) | (((WORD)(((UINT8 *)(ptr))[1])) <<  8)
+#else
+#define LOAD_WORD_LITTLE(ptr)	*((WORD *)(ptr))
+#endif
+
 	int n;
 	int head;
 	int pos = 0;
@@ -3870,8 +3876,8 @@ BOOL CGrapWnd::LoadGifAnime(LPBYTE lpBuf, int len)
 	}
 
 	head   = pos;
-	width  = pGifHead->width;
-	height = pGifHead->height;
+	width  = LOAD_WORD_LITTLE(&pGifHead->width);
+	height = LOAD_WORD_LITTLE(&pGifHead->height);
 
 	while ( pos < len ) {
 		if ( lpBuf[pos] == 0x2c ) {			// Image Block
@@ -3885,10 +3891,10 @@ BOOL CGrapWnd::LoadGifAnime(LPBYTE lpBuf, int len)
 			// 正常に背景色・透過色が読めないようだ・・・・？
 
 			// 今回の画像サイズを保存
-			rect.left   = pGifImage->left;
-			rect.top    = pGifImage->top;
-			rect.right  = pGifImage->left + pGifImage->width;
-			rect.bottom = pGifImage->top  + pGifImage->height;
+			rect.left   = LOAD_WORD_LITTLE(&pGifImage->left);
+			rect.top    = LOAD_WORD_LITTLE(&pGifImage->top);
+			rect.right  = LOAD_WORD_LITTLE(&pGifImage->left) + LOAD_WORD_LITTLE(&pGifImage->width);
+			rect.bottom = LOAD_WORD_LITTLE(&pGifImage->top)  + LOAD_WORD_LITTLE(&pGifImage->height);
 
 			// GIFのメモリイメージを作成
 			work.Clear();				// New Image
@@ -3941,7 +3947,7 @@ BOOL CGrapWnd::LoadGifAnime(LPBYTE lpBuf, int len)
 
 			// アニメに保存
 			AddGifAnime(image, width, height, rect, bkidx, bkcol,
-				(pActCtrl != NULL ? (pActCtrl->delay * 10) : 300),
+				(pActCtrl != NULL ? (LOAD_WORD_LITTLE(&pActCtrl->delay) * 10) : 300),
 				(pActCtrl != NULL ?  pActCtrl->motd : 0),
 				(pActCtrl != NULL && pActCtrl->trflag != 0 ? pActCtrl->tridx : (-1)));
 

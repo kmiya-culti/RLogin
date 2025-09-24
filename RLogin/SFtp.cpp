@@ -1491,6 +1491,20 @@ int CSFtp::RemoteSetListRes(int st, class CCmdQue *pQue)
 	CStringBinary actpath;
 
 	if ( st != SSH2_FX_OK ) {
+		DelRemoteCwdHis(pQue->m_Path);
+
+		int n;
+
+		if ( (n = m_RemoteCwd.FindStringExact(0, pQue->m_Path)) != CB_ERR )
+			m_RemoteCwd.DeleteString(n);
+
+		if ( (n = m_RemoteCwd.FindStringExact(0, m_RemoteCurDir)) >= 0 )
+			m_RemoteCwd.SetCurSel(n);
+		else if ( (n = m_RemoteCwd.AddString(m_RemoteCurDir)) >= 0 )
+			m_RemoteCwd.SetCurSel(n);
+		else
+			m_RemoteCwd.SetWindowText(m_RemoteCurDir);
+
 		DispErrMsg(_T("Set Remote Cwd Error"), pQue->m_Path);
 		return TRUE;
 	}
@@ -1623,8 +1637,21 @@ int CSFtp::RemoteSetCwdRes(int type, CBuffer *bp, class CCmdQue *pQue)
 }
 void CSFtp::RemoteSetCwd(LPCTSTR path, BOOL bNoWait)
 {
-	CCmdQue *pQue = new CCmdQue;
+	CCmdQue *pQue;
 
+	m_CmdQueSema.Lock();
+	POSITION pos = m_CmdQue.GetHeadPosition();
+	while ( pos != NULL ) {
+		pQue = m_CmdQue.GetAt(pos);
+		if ( pQue->m_Type == SSH2_FXP_REALPATH && pQue->m_Path.Compare(path) == 0 ) {
+			m_CmdQueSema.Unlock();
+			return;
+		}
+		m_CmdQue.GetNext(pos);
+	}
+	m_CmdQueSema.Unlock();
+
+	pQue = new CCmdQue;
 	pQue->m_Path = path;
 	pQue->m_Len  = 0;
 
@@ -2762,6 +2789,31 @@ void CSFtp::SetLocalCwdHis(LPCTSTR cwd)
 		tmp.Format(_T("LoCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, n);
 		AfxGetApp()->WriteProfileString(_T("CSFtp"), tmp, m_LocalCwdHis.GetNext(pos));
 	}
+
+	for ( ; n < 10 ; n++ ) {
+		tmp.Format(_T("LoCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, n);
+		((CRLoginApp *)AfxGetApp())->DelProfileEntry(_T("CSFtp"), tmp);
+	}
+}
+void CSFtp::DelLocalCwdHis(LPCTSTR cwd)
+{
+	int n;
+	POSITION pos;
+	CString tmp;
+
+	if ( (pos = m_LocalCwdHis.Find(cwd)) != NULL )
+		m_LocalCwdHis.RemoveAt(pos);
+
+	pos = m_LocalCwdHis.GetHeadPosition();
+	for ( n = 0 ; n < 10 && pos != NULL ; n++ ) {
+		tmp.Format(_T("LoCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, n);
+		AfxGetApp()->WriteProfileString(_T("CSFtp"), tmp, m_LocalCwdHis.GetNext(pos));
+	}
+
+	for ( ; n < 10 ; n++ ) {
+		tmp.Format(_T("LoCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, n);
+		((CRLoginApp *)AfxGetApp())->DelProfileEntry(_T("CSFtp"), tmp);
+	}
 }
 void CSFtp::SetRemoteCwdHis(LPCTSTR cwd)
 {
@@ -2777,6 +2829,26 @@ void CSFtp::SetRemoteCwdHis(LPCTSTR cwd)
 	for ( n = 0 ; n < 10 && pos != NULL ; n++ ) {
 		tmp.Format(_T("ReCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, n);
 		AfxGetApp()->WriteProfileString(_T("CSFtp"), tmp, m_RemoteCwdHis.GetNext(pos));
+	}
+}
+void CSFtp::DelRemoteCwdHis(LPCTSTR cwd)
+{
+	int n;
+	POSITION pos;
+	CString tmp;
+
+	if ( (pos = m_RemoteCwdHis.Find(cwd)) != NULL )
+		m_RemoteCwdHis.RemoveAt(pos);
+
+	pos = m_RemoteCwdHis.GetHeadPosition();
+	for ( n = 0 ; n < 10 && pos != NULL ; n++ ) {
+		tmp.Format(_T("ReCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, n);
+		AfxGetApp()->WriteProfileString(_T("CSFtp"), tmp, m_RemoteCwdHis.GetNext(pos));
+	}
+
+	for ( ; n < 10 ; n++ ) {
+		tmp.Format(_T("ReCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, n);
+		((CRLoginApp *)AfxGetApp())->DelProfileEntry(_T("CSFtp"), tmp);
 	}
 }
 
@@ -3006,7 +3078,7 @@ void CSFtp::SetPosProg(LONGLONG pos)
 			// ファイル数とサイズで連立方程式を解いてみたがあまり良い予想にならなかった 2025/08/08
 			// x[0] * UpDownDone + x[1] * TotalPos = TotalClock
 			double x[GAUSS_MAX];
-			double a[GAUSS_MAX][GAUSS_MAX] = { { 0.0, 0.0, 0.0 }, { (double)(m_UpDownDone), (double)(m_TotalPos + pos - m_TotalOfs) / 1000000.0, (double)(now - m_TotalClock) / (double)CLOCKS_PER_SEC } };
+			double a[GAUSS_MAX][GAUSS_MAX] = { { 0.0, 0.0, 0.0 }, { (double)(m_UpDownDone + 1), (double)(m_TotalPos + pos - m_TotalOfs) / 1000000.0, (double)(now - m_TotalClock) / (double)CLOCKS_PER_SEC } };
 			Gauss(a, 2, x);
 			n = (int)(x[0] * (double)(m_UpDownCount) + x[1] * (double)(m_TotalSize - m_TotalPos - pos) / 1000000.0);
 #else
@@ -3524,12 +3596,26 @@ void CSFtp::OnSelendokLocalCwd()
 	int n;
 	CString tmp;
 
-	m_LocalCwd.GetWindowText(tmp);
 	if ( (n = m_LocalCwd.GetCurSel()) != CB_ERR )
 		m_LocalCwd.GetLBText(n, tmp);
+	else
+		m_LocalCwd.GetWindowText(tmp);
 
 	if ( !LocalSetCwd(tmp) ) {
 		SetLastErrorMsg();
+
+		if ( n != CB_ERR ) {
+			m_LocalCwd.DeleteString(n);
+			DelLocalCwdHis(tmp);
+		}
+
+		if ( (n = m_LocalCwd.FindStringExact(0, m_LocalCurDir)) >= 0 )
+			m_LocalCwd.SetCurSel(n);
+		else if ( (n = m_LocalCwd.AddString(m_LocalCurDir)) >= 0 )
+			m_LocalCwd.SetCurSel(n);
+		else
+			m_LocalCwd.SetWindowText(m_LocalCurDir);
+
 		DispErrMsg(_T("Can't Change Directory"), tmp);
 	}
 }
@@ -3538,12 +3624,14 @@ void CSFtp::OnSelendokRemoteCwd()
 {
 	int n;
 	CString tmp;
-	m_RemoteCwd.GetWindowText(tmp);
+
 	if ( (n = m_RemoteCwd.GetCurSel()) != CB_ERR )
 		m_RemoteCwd.GetLBText(n, tmp);
+	else
+		m_RemoteCwd.GetWindowText(tmp);
+
 	if ( tmp.Compare(m_RemoteCurDir) != 0 )
 		RemoteSetCwd(tmp);
-	SendWaitQue();
 }
 
 void CSFtp::OnKillfocusLocalCwd() 
@@ -3551,6 +3639,7 @@ void CSFtp::OnKillfocusLocalCwd()
 	CString tmp;
 
 	m_LocalCwd.GetWindowText(tmp);
+
 	if ( tmp.Compare(m_LocalCurDir) == 0 )
 		return;
 
@@ -3563,10 +3652,11 @@ void CSFtp::OnKillfocusLocalCwd()
 void CSFtp::OnKillfocusRemoteCwd() 
 {
 	CString tmp;
+
 	m_RemoteCwd.GetWindowText(tmp);
+
 	if ( tmp.Compare(m_RemoteCurDir) != 0 )
 		RemoteSetCwd(tmp);
-	SendWaitQue();
 }
 
 void CSFtp::OnDblclkLocalList(NMHDR* pNMHDR, LRESULT* pResult) 

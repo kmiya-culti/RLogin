@@ -7,18 +7,10 @@
 <STYLE type="text/css">
 <!--
 TD {		
-				
-				
-				
-				
-	background-color : #ffffff; font-size : 90%; 
+		background-color : #ffffff; font-size : 90%; 
 }
 .BOX{		
-				
-				
-				
-				
-	background-color : silver; 
+		background-color : silver; 
 }
 -->
 </STYLE>
@@ -33,8 +25,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.8)</TD>
-            <TD width="20%" align="right">2025/08/26</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.9)</TD>
+            <TD width="20%" align="right">2025/09/25</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -179,6 +171,7 @@ TD {
                     <LI><A href="#CMDHIS">コマンド・ヒストリーウィンドウ</A>
                     <LI><A href="#TOOLBAR">ツールバーのカスタマイズ</A>
                     <LI><A href="#RESOURCE">リソースをファイルに保存</A>
+                    <LI><A href="#DELHOSTKEY">登録されたホスト鍵の削除</A>
                     <LI><A href="#SFTPWIND">SFTPによるファイル転送</A>
                     <LI><A href="#SSHSIG">ファイルの署名検証</A>
                   </OL>
@@ -446,6 +439,16 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2025/09/25</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.9/">2.30.9</A></TD>
+            <TD>SFtpのフォルダヒストリー選択でエラー時の処理を修正<BR>
+            認証キーの設定の新規鍵選択でXMSSとSLHSHA2Fを削除<BR>
+            UTF-8の文字幅などをUnicode-17.0.0のデータに更新<BR>
+            バイトオーダーの定義を行って処理関数を使用するように変更<BR>
+            2.30.8のServer Selectリストのアイコン表示がエラーの処理を修正<BR>
+            openssl-3.5.3に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2025/08/26</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.8/">2.30.8</A></TD>
             <TD>Server Selectのリストにアイコンを追加<BR>
@@ -478,18 +481,6 @@ TD {
             ssh2でKexInitが送られてこない場合の処理を追加</TD>
           </TR>
           <TR>
-            <TD align="center">2025/04/25</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.4/">2.30.4</A></TD>
-            <TD>ファイルの署名検証に認証キーの管理ボタンを追加<BR>
-            ml-kem関数をopensslの物に変更<BR>
-            <SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">ssh-mldsa</SPAN>44/65/87,ssh-slh-dsa-sha2-128/192/256fを追加<BR>
-            認証キーのリストを複数選択が出来るように変更<BR>
-            クリップボード取得の待ち時間を300msから20msに変更<BR>
-            背景設定のテキスト指定で%Iが正しく処理されないバグを修正<BR>
-            送信文字列の特殊文字に%fと%Rを追加<BR>
-            openssl-3.5.0に更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -513,13 +504,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.5.1.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.5.3.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.5.1 openssl-3.5.1-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.5.3 openssl-3.5.3-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -604,7 +595,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.5.1 1 Jul 2025<BR>
+            <P>OpenSSL 3.5.3 16 Sep 2025<BR>
             Copyright (c) 1998-2025 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -1412,7 +1403,8 @@ TD {
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2">登録されたホスト鍵の削除(H)</TD>
-                  <TD valign="top">SSHサーバーの登録された信頼するホスト鍵を削除します</TD>
+                  <TD valign="top">SSHサーバーの登録された信頼するホスト鍵を削除します<BR>
+                  参照：<A href="#DELHOSTKEY">登録されたホスト鍵の削除</A></TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$KNOWNHOST_DELETE</TD>
                 </TR>
@@ -3698,16 +3690,15 @@ fi</PRE>
                         PEM/PFX</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         ecdsa-sha2-*<BR>
-                        ssh-ed25519/448<BR>                        ssh-mldsa44/65/87<BR>
-                        ssh-slh-dsa-sha2-128/192/256f</TD>
+                        ssh-ed25519/448<BR>
+                        ssh-mldsa44/65/87</TD>
                       </TR>
                       <TR>
                         <TD valign="top" width="30%">OpenSSH<BR>
                         bcrypt KDF</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         ecdsa-sha2-*<BR>
-                        ssh-ed25519<BR>
-                        ssh-xmss@openssh.com</TD>
+                        ssh-ed25519</TD>
                       </TR>
                       <TR>
                         <TD valign="top" width="30%">ssh.com</TD>
@@ -3742,16 +3733,14 @@ fi</PRE>
                         <TD>ssh-rsa,ssh-dss<BR>
                         ecdsa-sha2-*<BR>
                         ssh-ed25519/448<BR>
-                        ssh-mldsa44/65/87<BR>
-                        ssh-slh-dsa-sha2-128/192/256f</TD>
+                        ssh-mldsa44/65/87</TD>
                       </TR>
                       <TR>
                         <TD valign="top" width="30%">OpenSSH<BR>
                         bcrypt KDF</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         ecdsa-sha2-*<BR>
-                        ssh-ed25519<BR>
-                        ssh-xmss@openssh.com</TD>
+                        ssh-ed25519</TD>
                       </TR>
                       <TR>
                         <TD valign="top" width="30%">PuTTY(Ver2)<BR>
@@ -3761,13 +3750,13 @@ fi</PRE>
                         ssh-ed25519/448</TD>
                       </TR>
                     </TBODY>
-                  </TABLE>※鍵の種類(RSA1/ED25519/ED448/XMSS)により保存できるフォーマットが制限されますので注意</TD>
+                  </TABLE>
+                  ※鍵の種類(RSA1/ED25519/ED448)により保存できるフォーマットが制限されますので注意</TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">RSA1/RSA2/DSA2<BR>
                   ECDSA/ED25519<BR>
-                  ED448/XMSS<BR>
-                  MLDSA/SLHSHA2F</TD>
+                  ED448/MLDSA</TD>
                   <TD>作成する認証キーの種類を指定します（RSA1/RSA2は、基本的に同じですが、エクスポートする際の形式が異なります）<BR>
                   <BR>
                   openssh-5.7以上ならECDSAが利用できます<BR>
@@ -3783,14 +3772,9 @@ fi</PRE>
                   <BR>
                   ECDSA<BR>
                   256/384/521<BR>
-                  <BR>                  XMSS<BR>
-                  10/16/20<BR>
                   <BR>
                   MLDSA<BR>
-                  44/65/87<BR>
-                  <BR>
-                  SLHSHA2F<BR>
-                  128/192/256</TD>
+                  44/65/87</TD>
                   <TD valign="top">認証キーのサイズを指定します。サイズが大きい程、作成するのに時間がかかります。詳しくは<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A>を参照<BR>
                   <BR>
                   <TABLE width="400" cellspacing="1" class="BOX" cellpadding="1">
@@ -3840,17 +3824,6 @@ fi</PRE>
                         <TD align="center" width="20%"></TD>
                       </TR>
                       <TR>
-                        <TD rowspan="2" width="40%">XMSS</TD>
-                        <TD align="center" width="20%">10</TD>
-                        <TD align="center" width="20%">16</TD>
-                        <TD align="center" width="20%">20</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" width="20%">○</TD>
-                        <TD align="center" width="20%">○</TD>
-                        <TD align="center" width="20%">△</TD>
-                      </TR>
-                      <TR>
                         <TD rowspan="2" width="40%">MLDSA</TD>
                         <TD align="center" width="20%">44</TD>
                         <TD align="center" width="20%">65</TD>
@@ -3861,23 +3834,10 @@ fi</PRE>
                         <TD align="center" width="20%">△</TD>
                         <TD align="center" width="20%">○</TD>
                       </TR>
-                      <TR>
-                        <TD rowspan="2" width="40%">SLHSHA2F</TD>
-                        <TD align="center" width="20%">128</TD>
-                        <TD align="center" width="20%">192</TD>
-                        <TD align="center" width="20%">256</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" width="20%">△</TD>
-                        <TD align="center" width="20%">△</TD>
-                        <TD align="center" width="20%">○</TD>
-                      </TR>
                     </TBODY>
                   </TABLE>
                   △推奨しません、〇使用できます、◎推奨します<BR>
-                  ×環境により使用できません<BR>
-                  <BR>
-                  ※XMSS/MLDSA/SLHSHA2Fは、テスト実装です</TD>
+                  ×環境により使用できません</TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">Name</TD>
@@ -3885,8 +3845,7 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">作成</TD>
-                  <TD>作成時にパスフレーズの設定が必要です<BR>
-                  ※XMSSで20の場合は、鍵の作成に１時間程かかります</TD>
+                  <TD>作成時にパスフレーズの設定が必要です。パスフレーズが空白の場合は、暗号化されない鍵になりますのでご注意ください</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -6716,7 +6675,41 @@ function TekClock2() {
     <TR>
       <TD>
       <HR noshade size="0">
-      <P><A name="SFTPWIND"></A><B>4.8 SFTPによるファイル転送</B></P>
+      <P><A name="DELHOSTKEY"></A><B>4.8 登録されたホスト鍵の削除</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">
+            <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD width="30%" colspan="2">Known Host Keys Delete</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">SSHで最初に接続した時に記録されるホスト鍵を確認・削除することが出来ます<BR>
+                  <BR>
+                  通常、再利用するなら削除する必要がありません。サーバー側で更新された場合にも接続時に自動で更新されます。再利用する必要が無い場合などは、左端のチェックマークをチェックして[DELETE]ボタンを押して削除することが出来ます<BR>
+                  <BR>
+                  また、キーリストをダブルクリックすると接続時に確認されるホスト鍵の指紋を見ることが出来ます。同じサーバーアドレス・ポート番号で複数の鍵がある場合は、<A href="#SSHPROTOCOL">暗号方式などの設定</A>で希望のホスト鍵を利用して接続することができます</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            <IMG src="image070.jpg" width="377" height="400" border="0"></TD>
+            <TD valign="top"><IMG src="image069.jpg" width="511" height="395" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="SFTPWIND"></A><B>4.9 SFTPによるファイル転送</B></P>
       <HR noshade size="0">
       </TD>
     </TR>
@@ -6799,7 +6792,7 @@ function TekClock2() {
     <TR>
       <TD>
       <HR noshade size="0">
-      <P><A name="SSHSIG"></A><B>4.9 ファイルの署名検証</B></P>
+      <P><A name="SSHSIG"></A><B>4.10 ファイルの署名検証</B></P>
       <HR noshade size="0">
       </TD>
     </TR>
