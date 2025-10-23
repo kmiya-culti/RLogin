@@ -7,6 +7,7 @@
 #include "RLogin.h"
 #include "IConv.h"
 #include "TextRam.h"
+#include "Iso646Dlg.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -26,6 +27,52 @@ static const WORD DecSGCS[] = {
 	0x25C6,	0x2592,	0x2409,	0x240C,	0x240D,	0x240A,	0x00B0,	0x00B1,	0x2424,	0x240B,	0x2518,	0x2510,	0x250C,	0x2514,	0x253C,	0x23BA,	// 06/00-06/15
 	0x23BB,	0x2500,	0x23BC,	0x23BD,	0x251C,	0x2524,	0x2534,	0x252C,	0x2502,	0x2264,	0x2265,	0x03C0,	0x2260,	0x00A3,	0x00B7,	0x007F,	// 07/00-07/15
 };
+
+static const WORD DecRussian[] = {	// KOI-7
+	0x042E, 0x0410, 0x0411, 0x0426, 0x0414, 0x0415, 0x0424, 0x0413, 0x0425, 0x0418, 0x0419, 0x041A, 0x041B, 0x041C, 0x041D, 0x041E,	// 06/00-06/15
+	0x041F, 0x042F, 0x0420, 0x0421, 0x0422, 0x0423, 0x0416, 0x0412, 0x042C, 0x042B, 0x0417, 0x0428, 0x042D, 0x0429, 0x0427, 0x007F,	// 07/00-07/15
+};
+static const WORD DecHebrew[] = {
+	0x05D0, 0x05D1, 0x05D2, 0x05D3, 0x05D4, 0x05D5, 0x05D6, 0x05D7, 0x05D8, 0x05D9, 0x05DA, 0x05DB, 0x05DC, 0x05DD, 0x05DE, 0x05DF,	// 06/00-06/15
+	0x05E0, 0x05E1, 0x05E2, 0x05E3, 0x05E4, 0x05E5, 0x05E6, 0x05E7, 0x05E8, 0x05E9, 0x05EA, 0x007B, 0x007C, 0x007D, 0x007E, 0x007F,	// 07/00-07/15
+};
+static const WORD DecGreek[] = {
+	0x0060, 0x0391, 0x0392, 0x0393, 0x0394, 0x0395, 0x0396, 0x0397, 0x0398, 0x0399, 0x039A, 0x039B, 0x039C, 0x039D, 0x03A7, 0x039F,	// 06/00-06/15
+	0x03A0, 0x03A1, 0x03A3, 0x03A4, 0x03A5, 0x03A6, 0x039E, 0x03A8, 0x03A9, 0x0079, 0x007A, 0x007B, 0x007C, 0x007D, 0x007E, 0x007F,	// 07/00-07/15
+};
+static const WORD DecTurkishSupp[] = {
+	0x0020, 0x00A1, 0x00A2, 0x00A3, 0x0024, 0x00A5, 0x0026, 0x00A7, 0x00A8, 0x00A9, 0x00AA, 0x00AB, 0x002C, 0x002D, 0x0130, 0x002F,	// 02/00-02/15
+	0x00B0, 0x00B1, 0x00B2, 0x00B3, 0x0034, 0x00B5, 0x00B6, 0x00B7, 0x0038, 0x00B9, 0x00BA, 0x00BB, 0x00BC, 0x00BD, 0x0131, 0x00BF,
+	0x00C0, 0x00C1, 0x00C2, 0x00C3, 0x00C4, 0x00C5, 0x00C6, 0x00C7, 0x00C8, 0x00C9, 0x00CA, 0x00CB, 0x00CC, 0x00CD, 0x00CE, 0x00CF,
+	0x011E, 0x00D1, 0x00D2, 0x00D3, 0x00D4, 0x00D5, 0x00D6, 0x0152, 0x00D8, 0x00D9, 0x00DA, 0x00DB, 0x00DC, 0x0178, 0x015E, 0x00DF,
+	0x00E0, 0x00E1, 0x00E2, 0x00E3, 0x00E4, 0x00E5, 0x00E6, 0x00E7, 0x00E8, 0x00E9, 0x00EA, 0x00EB, 0x00EC, 0x00ED, 0x00EE, 0x00EF,
+	0x011F, 0x00F1, 0x00F2, 0x00F3, 0x00F4, 0x00F5, 0x00F6, 0x0153, 0x00F8, 0x00F9, 0x00FA, 0x00FB, 0x00FC, 0x00FF, 0x015F, 0x007F,	// 07/00-07/15
+};
+static const WORD DecHebrewSupp[] = {
+	0x0020, 0x00A1, 0x00A2, 0x00A3, 0x0024, 0x00A5, 0x0026, 0x00A7, 0x00A8, 0x00A9, 0x00D7, 0x00AB, 0x002C, 0x002D, 0x002E, 0x002F,	// 02/00-02/15
+	0x00B0, 0x00B1, 0x00B2, 0x00B3, 0x0034, 0x00B5, 0x00B6, 0x00B7, 0x0038, 0x00B9, 0x00F7, 0x00BB, 0x00BC, 0x00BD, 0x003E, 0x00BF,
+	0x0040, 0x0041, 0x0042, 0x0043, 0x0044, 0x0045, 0x0046, 0x0047, 0x0048, 0x0049, 0x004A, 0x004B, 0x004C, 0x004D, 0x004E, 0x004F,
+	0x0050, 0x0051, 0x0052, 0x0053, 0x0054, 0x0055, 0x0056, 0x0057, 0x0058, 0x0059, 0x005A, 0x005B, 0x005C, 0x005D, 0x005E, 0x005F,
+	0x05D0, 0x05D1, 0x05D2, 0x05D3, 0x05D4, 0x05D5, 0x05D6, 0x05D7, 0x05D8, 0x05D9, 0x05DA, 0x05DB, 0x05DC, 0x05DD, 0x05DE, 0x05DF,
+	0x05E0, 0x05E1, 0x05E2, 0x05E3, 0x05E4, 0x05E5, 0x05E6, 0x05E7, 0x05E8, 0x05E9, 0x05EA, 0x007B, 0x007C, 0x007D, 0x007E, 0x007F,	// 07/00-07/15
+};
+static const WORD DecGreekSupp[] = {
+	0x0020, 0x00A1, 0x00A2, 0x00A3, 0x0024, 0x00A5, 0x0026, 0x00A7, 0x00A4, 0x00A9, 0x00AA, 0x00AB, 0x002C, 0x002D, 0x002E, 0x002F,	// 02/00-02/15
+	0x00B0, 0x00B1, 0x00B2, 0x00B3, 0x0034, 0x00B5, 0x00B6, 0x00B7, 0x0038, 0x00B9, 0x00BA, 0x00BB, 0x00BC, 0x00BD, 0x003E, 0x00BF,
+	0x03CA, 0x0391, 0x0392, 0x0393, 0x0394, 0x0395, 0x0396, 0x0397, 0x0398, 0x0399, 0x039A, 0x039B, 0x039C, 0x039D, 0x039E, 0x039F,
+	0x0050, 0x03A0, 0x03A1, 0x03A3, 0x03A4, 0x03A5, 0x03A6, 0x03A7, 0x03A8, 0x03A9, 0x03AC, 0x03AD, 0x03AE, 0x03AF, 0x005E, 0x03CC,
+	0x03CB, 0x03B1, 0x03B2, 0x03B3, 0x03B4, 0x03B5, 0x03B6, 0x03B7, 0x03B8, 0x03B9, 0x03BA, 0x03BB, 0x03BC, 0x03BD, 0x03BE, 0x03BF,
+	0x0070, 0x03C0, 0x03C1, 0x03C3, 0x03C4, 0x03C5, 0x03C6, 0x03C7, 0x03C8, 0x03C9, 0x03C2, 0x03CD, 0x03CE, 0x0384, 0x007E, 0x007F,	// 07/00-07/15
+};
+static const WORD DecGraphicSupp[] = {
+	0x0020, 0x0021, 0x0022, 0x0023, 0x0024, 0x0025, 0x0026, 0x0027, 0x0028, 0x0029, 0x002A, 0x002B, 0x002C, 0x002D, 0x002E, 0x002F,	// 02/00-02/15
+	0x0030, 0x0031, 0x0032, 0x0033, 0x0034, 0x0035, 0x0036, 0x0037, 0x0038, 0x0039, 0x003A, 0x003B, 0x003C, 0x003D, 0x003E, 0x003F,
+	0x0040, 0x0041, 0x0042, 0x0043, 0x0044, 0x0045, 0x0046, 0x0047, 0x0048, 0x0049, 0x004A, 0x004B, 0x004C, 0x004D, 0x004E, 0x004F,
+	0x0050, 0x0051, 0x0052, 0x0053, 0x0054, 0x0055, 0x0056, 0x0152, 0x0058, 0x0059, 0x005A, 0x005B, 0x005C, 0x0178, 0x005E, 0x005F,
+	0x0060, 0x0061, 0x0062, 0x0063, 0x0064, 0x0065, 0x0066, 0x0067, 0x0068, 0x0069, 0x006A, 0x006B, 0x006C, 0x006D, 0x006E, 0x006F,
+	0x0070, 0x0071, 0x0072, 0x0073, 0x0074, 0x0075, 0x0076, 0x0153, 0x0078, 0x0079, 0x007A, 0x007B, 0x007C, 0x00FF, 0x007E, 0x007F,	// 07/00-07/15
+};
+
 static const WORD IBM437[] = {
 	0x0020, 0x263A, 0x263B, 0x2665, 0x2666, 0x2663, 0x2660, 0x2022, 0x25D8, 0x25CB, 0x25D9, 0x2642, 0x2640, 0x266A, 0x266B, 0x263C,	// 00/00-00/15 
 	0x25BA, 0x25C4, 0x2195, 0x203C, 0x00B6, 0x00A7, 0x25AC, 0x21A8, 0x2191, 0x2193, 0x2192, 0x2190, 0x221F, 0x2194, 0x25B2, 0x25BC, 
@@ -158,6 +205,8 @@ CIConv::CIConv()
 	m_Right = NULL;
 	ZeroMemory(m_Table, sizeof(m_Table));
 	m_ErrCount = 0;
+	m_CodePage = 0;
+	m_DecTab = NULL;
 }
 
 CIConv::~CIConv()
@@ -264,9 +313,31 @@ DWORD CIConv::SJisToJis(DWORD cd)
 	return (hi << 8 | lo);
 }
 
+typedef struct _DECCHARTAB {
+	LPCTSTR	name;
+	int sc;
+	const WORD *table;
+} DECCHARTAB;
+
+static int IConvNameCmp(const void *src, const void *dis)
+{
+	return _tcscmp((LPCTSTR)src, ((DECCHARTAB *)dis)->name);
+}
 class CIConv *CIConv::GetIConv(LPCTSTR from, LPCTSTR to)
 {
 	int n;
+	int sc = 0x20, ec = 0x80;
+	const WORD *tab;
+	static const DECCHARTAB DecCharTab[] = {
+		{	_T("DEC_GREEK"),			0x60,	DecGreek		},
+		{	_T("DEC_GREEK_SUPP"),		0x20,	DecGreekSupp	},
+		{	_T("DEC_HEBREW"),			0x60,	DecHebrew		},
+		{	_T("DEC_HEBREW_SUPP"),		0x20,	DecHebrewSupp	},
+		{	_T("DEC_RUSSIAN"),			0x60,	DecRussian		},
+		{	_T("DEC_SGCS-GR"),			0x60,	DecSGCS			},
+		{	_T("DEC_TCS-GR"),			0x20,	DecTCS			},
+		{	_T("DEC_TURKISH_SUPP"),		0x20,	DecTurkishSupp	},
+	};
 
 	if ( m_Cd == NULL && m_Mode == 0 ) {
 		m_From = from;
@@ -274,43 +345,59 @@ class CIConv *CIConv::GetIConv(LPCTSTR from, LPCTSTR to)
 		m_Mode = 0;
 
 		if ( _tcscmp(from, _T("EUC-JISX0213")) == 0 )
-			m_Mode |= 001;
+			m_Mode |= 0x01;
 		else if ( _tcscmp(from, _T("SHIFT_JISX0213")) == 0 )
-			m_Mode |= 002;
+			m_Mode |= 0x02;
 		else if ( _tcscmp(from, _T("JIS_X0213-2000.1")) == 0 )
-			m_Mode |= 003;
+			m_Mode |= 0x03;
 		else if ( _tcscmp(from, _T("JIS_X0213-2000.2")) == 0 )
-			m_Mode |= 004;
-		else if ( _tcscmp(from, _T("DEC_TCS-GR")) == 0 )
-			m_Mode |= 005;
-		else if ( _tcscmp(from, _T("DEC_SGCS-GR")) == 0 )
-			m_Mode |= 006;
-		else if ( _tcscmp(from, _T("437")) == 0 || _tcscmp(from, _T("CP437")) == 0 || _tcscmp(from, _T("IBM437")) == 0 || _tcscmp(from, _T("CSPC8CODEPAGE437")) == 0 )
-			m_Mode |= 007;
+			m_Mode |= 0x04;
+		else if ( _tcsncmp(from, _T("DEC_"), 4) == 0 && BinaryFind((void *)from, (void *)DecCharTab, sizeof(DECCHARTAB), sizeof(DecCharTab) / sizeof(DECCHARTAB), IConvNameCmp, &n) ) {
+			m_DecTab = DecCharTab[n].table;
+			m_Mode |= (DecCharTab[n].sc == 0x20 ? 0x05 : 0x06);
+		} else if ( _tcscmp(from, _T("437")) == 0 || _tcscmp(from, _T("CP437")) == 0 || _tcscmp(from, _T("IBM437")) == 0 || _tcscmp(from, _T("CSPC8CODEPAGE437")) == 0 )
+			m_Mode |= 0x07;
+		else if ( (m_CodePage = CIso646Dlg::CodePage(from)) >= 0 )
+			m_Mode |= 0x08;
 
 		if ( _tcscmp(to, _T("EUC-JISX0213")) == 0 )
-			m_Mode |= 010;
+			m_Mode |= 0x0100;
 		else if ( _tcscmp(to, _T("SHIFT_JISX0213")) == 0 )
-			m_Mode |= 020;
+			m_Mode |= 0x0200;
 		else if ( _tcscmp(to, _T("JIS_X0213-2000.1")) == 0 )
-			m_Mode |= 030;
+			m_Mode |= 0x0300;
 		else if ( _tcscmp(to, _T("JIS_X0213-2000.2")) == 0 )
-			m_Mode |= 040;
+			m_Mode |= 0x0400;
+		else if ( _tcsncmp(to, _T("DEC_"), 4) == 0 && BinaryFind((void *)to, (void *)DecCharTab, sizeof(DECCHARTAB), sizeof(DecCharTab) / sizeof(DECCHARTAB), IConvNameCmp, &n) ) {
+			sc = DecCharTab[n].sc;
+			tab = DecCharTab[n].table;
+			m_Mode |= 0x0500;
+		} else if ( (n = CIso646Dlg::CodePage(to)) >= 0 ) {
+			m_CodeIndex.RemoveAll();
+			CIso646Dlg::CodeIndex(n, m_CodeIndex);
+			m_Mode |= 0x0600;
+		}
 
-		if ( (m_Mode & 007) >= 005 )
+		if ( (m_Mode & 0xFF) >= 0x05 )
 			from = _T("UCS-4BE");
-		else if ( (m_Mode & 007) >= 003 )
+		else if ( (m_Mode & 0xFF) >= 0x03 )
 			from = _T("EUC-JISX0213");
 
-		if ( (m_Mode & 070) >= 030 )
-			to   = _T("EUC-JISX0213");
+		if ( (m_Mode & 0xFF00) == 0x0300 || (m_Mode & 0xFF00) == 0x0400 )
+			to = _T("EUC-JISX0213");
+		else if ( (m_Mode & 0xFF00) == 0x0500 ) {
+			m_CodeIndex.RemoveAll();
+			for ( int n = sc ; n < ec ; n++ )
+				m_CodeIndex[(DWORD)tab[n - sc]] = (DWORD)n;
+			to = _T("UCS-4BE");
+		}
 
 	    m_Cd = iconv_open(TstrToMbs(to), TstrToMbs(from));
 
 		if ( m_Cd == (iconv_t)(-1) ) {
 			CString msg;
 			msg.Format(_T("iconv not supported '%s' to '%s'"), from, to); 
-			::AfxMessageBox(msg);
+			CWinApp::ShowAppMessageBox(NULL, msg, MB_ICONERROR, 0);
 		}
 
 		return this;
@@ -496,93 +583,97 @@ DWORD CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 
 	cp = GetIConv(from, to);
 	if ( cp->m_Cd == (iconv_t)(-1) )
-		return 0x0000;
+		return ch;
 
 	if ( (ch & 0xFFFFFF00) == 0 && cp->m_Table[ch] != 0 )
 		return cp->m_Table[ch];
 
 	switch(cp->m_Mode) {
-	case 011:		// EUC-JISX0213 > EUC-JISX0213
+	case 0x0101:		// EUC-JISX0213 > EUC-JISX0213
 		goto ENDOF;
-	case 021:		// EUC-JISX0213 > SHIFT_JISX0213
+	case 0x0201:		// EUC-JISX0213 > SHIFT_JISX0213
 		ch = JisToSJis(ch & 0x17F7F);
 		goto ENDOF;
-	case 031:		// EUC-JISX0213 > JISX0213.1
+	case 0x0301:		// EUC-JISX0213 > JISX0213.1
 		if ( ch >= 0x8F0000 )
 			ch = 0x0000;
 		ch &= 0x7F7F;
 		goto ENDOF;
-	case 041:		// EUC-JISX0213 > JISX0213.2
+	case 0x0401:		// EUC-JISX0213 > JISX0213.2
 		if ( ch < 0x8F0000 )
 			ch = 0x0000;
 		ch &= 0x7F7F;
 		goto ENDOF;
 
-	case 012:		// SHIFT_JISX0213 > EUC-JISX0213
+	case 0x0102:		// SHIFT_JISX0213 > EUC-JISX0213
 		ch = SJisToJis(ch);
 		if ( ch >= 0x10000 )
 			ch |= 0x8F0000;
 		ch |= 0x8080;
 		goto ENDOF;
-	case 022:		// SHIFT_JISX0213 > SHIFT_JISX0213
+	case 0x0202:		// SHIFT_JISX0213 > SHIFT_JISX0213
 		goto ENDOF;
-	case 032:		// SHIFT_JISX0213 > JISX0213.1
+	case 0x0302:		// SHIFT_JISX0213 > JISX0213.1
 		ch = SJisToJis(ch);
 		if ( ch >= 0x10000 )
 			ch = 0x0000;
 		goto ENDOF;
-	case 042:		// SHIFT_JISX0213 > JISX0213.2
+	case 0x0402:		// SHIFT_JISX0213 > JISX0213.2
 		ch = SJisToJis(ch);
 		if ( ch < 0x10000 )
 			ch = 0x0000;
 		ch &= 0x7F7F;
 		goto ENDOF;
 
-	case 003:		// JISX0213.1 > ???
+	case 0x0003:		// JISX0213.1 > ???
 		ch |= 0x8080;
 		break;
-	case 013:		// JISX0213.1 > EUC-JISX0213
+	case 0x0103:		// JISX0213.1 > EUC-JISX0213
 		ch |= 0x8080;
 		goto ENDOF;
-	case 023:		// JISX0213.1 > SHIFT_JISX0213
+	case 0x0203:		// JISX0213.1 > SHIFT_JISX0213
 		ch = JisToSJis(ch);
 		goto ENDOF;
-	case 033:		// JISX0213.1 > JISX0213.1
+	case 0x0303:		// JISX0213.1 > JISX0213.1
 		goto ENDOF;
-	case 043:		// JISX0213.1 > JISX0213.2
+	case 0x0403:		// JISX0213.1 > JISX0213.2
 		ch = 0x0000;
 		goto ENDOF;
 
-	case 004:		// JISX0213.2 > ???
+	case 0x0004:		// JISX0213.2 > ???
 		ch |= 0x8F8080;
 		break;
-	case 014:		// JISX0213.2 > EUC-JISX0213
+	case 0x0104:		// JISX0213.2 > EUC-JISX0213
 		ch |= 0x8F8080;
 		goto ENDOF;
-	case 024:		// JISX0213.2 > SHIFT_JISX0213
+	case 0x0204:		// JISX0213.2 > SHIFT_JISX0213
 		ch = JisToSJis(ch | 0x10000);
 		goto ENDOF;
-	case 034:		// JISX0213.2 > JISX0213.1
+	case 0x0304:		// JISX0213.2 > JISX0213.1
 		ch = 0x0000;
 		goto ENDOF;
-	case 044:		// JISX0213.2 > JISX0213.2
+	case 0x0404:		// JISX0213.2 > JISX0213.2
 		goto ENDOF;
 
-	case 005:		// DEC_TCS-GR > ???
+	case 0x0005:		// DEC_xxx
 		ch &= 0x7F;
 		if ( ch >= 0x0020 && ch <= 0x007F )
-			ch = DecTCS[ch - 0x20];
+			ch = cp->m_DecTab[ch - 0x20];
 		from = _T("UCS-4BE");
 		break;
-	case 006:		// DEC_SGCS-GR > ???
+	case 0x0006:		// DEC_xxx
 		ch &= 0x7F;
 		if ( ch >= 0x0060 && ch <= 0x007F )
-			ch = DecSGCS[ch - 0x60];
+			ch = cp->m_DecTab[ch - 0x60];
 		from = _T("UCS-4BE");
 		break;
-	case 007:		// IBM437
+	case 0x0007:		// IBM437
 		if ( ch >= 0x0000 && ch <= 0x00FF )
 			ch = IBM437[ch];
+		from = _T("UCS-4BE");
+		break;
+	case 0x0008:		// CP0....	NRCS
+		ch = CIso646Dlg::TableMaping(cp->m_CodePage, ch);
 		from = _T("UCS-4BE");
 		break;
 	}
@@ -625,16 +716,21 @@ DWORD CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 	for ( n = (int)(32 - ots) ; n > 0 ;  n-- )
 		ch = (ch << 8) | (unsigned char)(*(otp++));
 
-	switch(cp->m_Mode & 070) {
-	case 030:		// JISX0213.1
+	switch(cp->m_Mode & 0xFF00) {
+	case 0x0300:		// JISX0213.1
 		if ( ch >= 0x8F0000 )
 			ch = 0x0000;
 		ch &= 0x7F7F;
 		break;
-	case 040:	// JISX0213.2
+	case 0x0400:	// JISX0213.2
 		if ( ch < 0x8F0000 )
 			ch = 0x0000;
 		ch &= 0x7F7F;
+		break;
+	case 0x0500:	// DEC....
+	case 0x0600:	// CP0....
+		if ( ch >= 0x20 && ch <= 0x7F && (ch = cp->m_CodeIndex.Find(ch)) == 0 )
+			ch = L'?';
 		break;
 	}
 
@@ -661,6 +757,12 @@ void CIConv::SetListArray(CStringArray &stra)
 	stra.Add(_T("JIS_X0213-2000.2"));
 	stra.Add(_T("DEC_TCS-GR"));
 	stra.Add(_T("DEC_SGCS-GR"));
+	stra.Add(_T("DEC_RUSSIAN"));
+	stra.Add(_T("DEC_HEBREW"));
+	stra.Add(_T("DEC_GREEK"));
+	stra.Add(_T("DEC_TURKISH_SUPP"));
+	stra.Add(_T("DEC_HEBREW_SUPP"));
+	stra.Add(_T("DEC_GREEK_SUPP"));
 }
 
 typedef struct _IconvCheckList {

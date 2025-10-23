@@ -5,10 +5,16 @@
 <TITLE>エスケープシーケンス一覧</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
+TD {
+				
+				
+				
 		background-color : #ffffff; font-size : 90%;
 }
-.BOX{		
+.BOX{
+				
+				
+				
 		background-color : silver;
 }
 -->
@@ -120,12 +126,12 @@ TD {
           <TR>
             <TD width="120">　0E</TD>
             <TD align="center" width="120">SO</TD>
-            <TD width="680">文字バンクをGRに設定</TD>
+            <TD width="680">文字バンクのGLをG1に設定</TD>
           </TR>
           <TR>
             <TD width="120">　0F</TD>
             <TD align="center" width="120">SI</TD>
-            <TD width="680">文字バンクをGLに設定</TD>
+            <TD width="680">文字バンクのGLをG0に設定</TD>
           </TR>
           <TR>
             <TD width="120">　10</TD>
@@ -3574,7 +3580,8 @@ TD {
                   <TD valign="top" colspan="2">※<A href="#DECSDM">DECSDM</A>によりコンソール・外部ウィンドウと表示方法が異なる<BR>
                   ※<I>Pn1,Pn3</I> の設定より、Sixel内のDECGRA(&quot;)のPan(V),Pad(H)が優先されます<BR>
                   ※ 2.17.2よりDECGCI(#Pc;Pu;Px;Py;Pz)のPu=3で0-255のRGBが指定できます<BR>
-                  ※ 2.23.7よりDECGCI(#Pc;3;Px;Py;Pz;Pa)のPaで透明度(255で不透明)を指定できます</TD>
+                  ※ 2.23.7よりDECGCI(#Pc;3;Px;Py;Pz;Pa)のPaで透明度(255で不透明)を指定できます<BR>
+                  ※ 2.29.2よりRLGDSPSZ(%Pn;Px;Py;Pa)で表示サイズをPn=0で文字単位Pn=1で画面割合で計算します。Pa=0で画像アスペクト比を無視、1=維持で計算します</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -4766,6 +4773,12 @@ TD {
             <TD>Reset legacy keyboard emulation (X11R6)</TD>
           </TR>
           <TR>
+            <TD align="center">1070</TD>
+            <TD align="center">*4</TD>
+            <TD>ReGIS/Sixel個別カラーマップ</TD>
+            <TD>共通カラーマップ</TD>
+          </TR>
+          <TR>
             <TD align="center" width="70">2004</TD>
             <TD align="center" width="120">*4</TD>
             <TD width="360">Bracketed&nbsp;Paste&nbsp;Mode 有効</TD>
@@ -4915,6 +4928,12 @@ TD {
             <TD>￥キーでU+00A5を送信</TD>
             <TD>￥キーでU+005Cを送信</TD>
           </TR>
+          <TR>
+            <TD align="center">8460</TD>
+            <TD align="center">*3</TD>
+            <TD>Sixelをフォントから計算</TD>
+            <TD>Sixelを固定値で計算</TD>
+          </TR>
         </TBODY>
       </TABLE>
       <BLOCKQUOTE>
@@ -4944,6 +4963,7 @@ TD {
             <TD align="center" width="60"><FONT size="-1">文字セット</FONT></TD>
             <TD align="center" width="60"><I>Dscs</I></TD>
             <TD align="center" width="200">エントリー名</TD>
+            <TD align="center">*1</TD>
             <TD align="center" width="200">iconvセット</TD>
             <TD align="center">コメント</TD>
           </TR>
@@ -4951,251 +4971,521 @@ TD {
             <TD align="center">94</TD>
             <TD align="center">0</TD>
             <TD>VT100-GRAPHIC</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>DEC_SGCS-GR</TD>
-            <TD><FONT size="-1">DEC Special Graphic</FONT></TD>
+            <TD>DEC Special Graphic</TD>
           </TR>
           <TR>
             <TD align="center">94</TD>
             <TD align="center">1</TD>
-            <TD>IBM437-GR</TD>
             <TD>IBM437</TD>
-            <TD><FONT size="-1">MS-DOS Latin US</FONT></TD>
+            <TD align="center"></TD>
+            <TD>IBM437</TD>
+            <TD>MS-DOS Latin US (DEC_Alt_Chars)</TD>
           </TR>
           <TR>
             <TD align="center">94</TD>
             <TD align="center">2</TD>
+            <TD>IBM437-GR</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
+            <TD>IBM437</TD>
+            <TD>MS-DOS Latin US GR (DEC_Alt_Graphics)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">4</TD>
+            <TD>Dutch (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01102</TD>
+            <TD>Dutch (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">5</TD>
+            <TD>Finnish (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01103</TD>
+            <TD>Finnish (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">6</TD>
+            <TD>Norwegian/Danish (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01105</TD>
+            <TD>Norwegian/Danish (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">7</TD>
+            <TD>Swedish (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01106</TD>
+            <TD>Swedish (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">9</TD>
+            <TD>French Canadian (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01020</TD>
+            <TD>French Canadian (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">&lt;</TD>
+            <TD>DEC_GRAPHICS_SUPP</TD>
+            <TD align="center"></TD>
+            <TD>DEC_GRAPHIC_SUPP</TD>
+            <TD>DEC User-preferred Supplemental</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">=</TD>
+            <TD>Swiss (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01021</TD>
+            <TD>Swiss (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">&gt;</TD>
             <TD>DEC_TCS-GR</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>DEC_TCS-GR</TD>
-            <TD><FONT size="-1">DEC Technical Character Set</FONT></TD>
+            <TD>DEC Technical Character Set</TD>
           </TR>
           <TR>
             <TD align="center">94</TD>
             <TD align="center">@</TD>
             <TD>ISO646-US</TD>
+            <TD align="center"></TD>
             <TD>ISO646-US</TD>
-            <TD><FONT size="-1">IRV of ISO 646 : 1983?</FONT></TD>
+            <TD>IRV of ISO 646 : 1983?</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">A</TD>
+            <TD>United Kingdom (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01101</TD>
+            <TD>United Kingdom (DEC National Replacement Character Set)</TD>
           </TR>
           <TR>
             <TD align="center">94</TD>
             <TD align="center">B</TD>
             <TD>ASCII(ANSI X3.4-1968)</TD>
+            <TD align="center"></TD>
             <TD>ANSI_X3.4-1968</TD>
-            <TD><FONT size="-1">ISO 646, USA Version X3.4 - 1968</FONT></TD>
+            <TD>ISO 646, USA Version X3.4 - 1968</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">C</TD>
+            <TD>Finnish 2 (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01103</TD>
+            <TD>Finnish (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">E</TD>
+            <TD>Norwegian/Danish 2 (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01105</TD>
+            <TD>Norwegian/Danish (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">H</TD>
+            <TD>Swedish 2 (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01106</TD>
+            <TD>Swedish (DEC National Replacement Character Set)</TD>
           </TR>
           <TR>
             <TD align="center">94</TD>
             <TD align="center">I</TD>
             <TD>JIS X 0201-Kana</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>JISX0201-1976</TD>
-            <TD><FONT size="-1">Katakana Character Set JIS C6220-1969?</FONT></TD>
+            <TD>Katakana Character Set JIS C6220-1969?</TD>
           </TR>
           <TR>
             <TD align="center">94</TD>
             <TD align="center">J</TD>
             <TD>JIS X 0201-Roman</TD>
+            <TD align="center"></TD>
             <TD>JISX0201-1976</TD>
-            <TD><FONT size="-1">ISO 646, Japanese Version for Roman Characters JIS C6220-1969?</FONT></TD>
+            <TD>ISO 646, Japanese Version for Roman Characters JIS C6220-1969?</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">K</TD>
+            <TD>German (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01011</TD>
+            <TD>German (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">Q</TD>
+            <TD>French Canadian 2 (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01020</TD>
+            <TD>French Canadian (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">R</TD>
+            <TD>French (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01104</TD>
+            <TD>French (DEC National Replacement Character Set)</TD>
           </TR>
           <TR>
             <TD align="center">94</TD>
             <TD align="center">T</TD>
             <TD>GB 1988-80</TD>
+            <TD align="center"></TD>
             <TD>GB_1988-80</TD>
-            <TD><FONT size="-1">Coded Character Set for Information Interchange, Standard Chinese GB 1988-80</FONT></TD>
+            <TD>Coded Character Set for Information Interchange, Standard Chinese GB 1988-80</TD>
           </TR>
           <TR>
             <TD align="center">94</TD>
-            <TD align="center">&amp;5</TD>
-            <TD>Russian</TD>
-            <TD>CP866</TD>
-            <TD><FONT size="-1">Russian NRCS</FONT></TD>
+            <TD align="center">Y</TD>
+            <TD>Italian (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01012</TD>
+            <TD>Italian (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">Z</TD>
+            <TD>Spanish (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01023</TD>
+            <TD>Spanish (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">`</TD>
+            <TD>Norwegian/Danish 3 (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP01105</TD>
+            <TD>Norwegian/Danish (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">&quot;4</TD>
+            <TD>Hebrew (DECSUPP)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
+            <TD>DEC_HEBREW_SUPP</TD>
+            <TD>Hebrew (DEC Supplemental)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">&quot;&gt;</TD>
+            <TD>Greek (NRCS)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
+            <TD>DEC_GREEK</TD>
+            <TD>Greek (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">&quot;?</TD>
+            <TD>Greek (DECSUPP)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
+            <TD>DEC_GREEK_SUPP</TD>
+            <TD>Greek (DEC Supplemental)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">%0</TD>
+            <TD>Turkish (DECSUPP)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
+            <TD>DEC_TURKISH_SUPP</TD>
+            <TD>Turkish (DEC Supplemental)</TD>
           </TR>
           <TR>
             <TD align="center">94</TD>
             <TD align="center">%2</TD>
-            <TD>Turkish</TD>
+            <TD>Turkish (CP1254)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>CP1254</TD>
-            <TD><FONT size="-1">Turkish NRCS</FONT></TD>
+            <TD>Turkish (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">%3</TD>
+            <TD>Serbo Croatian (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP08509 *2</TD>
+            <TD>Serbo Croatian (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">%6</TD>
+            <TD>Turkish (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>CP08510 *2</TD>
+            <TD>Turkish (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">%=</TD>
+            <TD>Hebrew (NRCS)</TD>
+            <TD align="center"></TD>
+            <TD>DEC_HEBREW</TD>
+            <TD>Hebrew (DEC National Replacement Character Set)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">&amp;3</TD>
+            <TD>Russian (KOI8-R)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
+            <TD>KOI8-R</TD>
+            <TD>Russian (KOI8-R) DEC Cyrillic</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">&amp;4</TD>
+            <TD>Russian (CP866)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
+            <TD>CP866</TD>
+            <TD>Russian (CP866)</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">&amp;5</TD>
+            <TD>Russian (KOI-7)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
+            <TD>DEC_RUSSIAN</TD>
+            <TD>Russian (KOI-7) DEC National Replacement Character Set</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">&amp;6</TD>
+            <TD>Russian (CP1251)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
+            <TD>CP1251</TD>
+            <TD>Russian (CP1251)</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">A</TD>
             <TD>LATIN1 (ISO8859-1)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>LATIN1</TD>
-            <TD><FONT size="-1">Right-hand Part of Latin Alphabet No.1 ISO 8859/1, ECMA-94</FONT></TD>
+            <TD>Right-hand Part of Latin Alphabet No.1 ISO 8859/1, ECMA-94</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">B</TD>
             <TD>LATIN2 (ISO8859-2)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>LATIN2</TD>
-            <TD><FONT size="-1">Right-hand Part of Latin Alphabet No.2 ISO 8859/2, ECMA-94</FONT></TD>
+            <TD>Right-hand Part of Latin Alphabet No.2 ISO 8859/2, ECMA-94</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">C</TD>
             <TD>LATIN3 (ISO8859-3)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>LATIN3</TD>
-            <TD><FONT size="-1">Right-hand Part of Latin Alphabet No.3 ISO DIS 8859/3, ECMA-94</FONT></TD>
+            <TD>Right-hand Part of Latin Alphabet No.3 ISO DIS 8859/3, ECMA-94</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">D</TD>
             <TD>LATIN4 (ISO8859-4)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>LATIN4</TD>
-            <TD><FONT size="-1">Right-hand Part of Latin Alphabet No.4 ISO DIS 8859/4, ECMA-94</FONT></TD>
+            <TD>Right-hand Part of Latin Alphabet No.4 ISO DIS 8859/4, ECMA-94</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">F</TD>
             <TD>GREEK (ISO8859-7)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>ISO8859-7</TD>
-            <TD><FONT size="-1">Right-hand Part of the Latin/Greek Alphabet Standard ELOT 928, ECMA-118,
-            ISO DIS 8859/7</FONT></TD>
+            <TD>Right-hand Part of the Latin/Greek Alphabet Standard ELOT 928, ECMA-118,
+            ISO DIS 8859/7</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">G</TD>
             <TD>ARABIC (ISO8859-6)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>ISO8859-6</TD>
-            <TD><FONT size="-1">Right-hand Part of the Latin/Arabic Alphabet ECMA-114, ISO 8859/6</FONT></TD>
+            <TD>Right-hand Part of the Latin/Arabic Alphabet ECMA-114, ISO 8859/6</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">H</TD>
             <TD>HEBREW (ISO8859-8)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>ISO8859-8</TD>
-            <TD><FONT size="-1">Latin/Hebrew Alphabet Standard ECMA-121</FONT></TD>
+            <TD>Latin/Hebrew Alphabet Standard ECMA-121</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">L</TD>
             <TD>CYRILLIC (ISO8859-5)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>ISO8859-5</TD>
-            <TD><FONT size="-1">Cyrillic part of the Latin/Cyrillic Alphabet</FONT></TD>
+            <TD>Cyrillic part of the Latin/Cyrillic Alphabet</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">M</TD>
             <TD>LATIN5 (ISO8859-9)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>LATIN5</TD>
-            <TD><FONT size="-1">Right-hand part of Latin Alphabet No.5</FONT></TD>
+            <TD>Right-hand part of Latin Alphabet No.5</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">T</TD>
             <TD>THAI (ISO8859-11)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>ISO-8859-11</TD>
-            <TD><FONT size="-1">Thai Set</FONT></TD>
+            <TD>Thai Set</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">V</TD>
             <TD>LATIN6 (ISO8859-10)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>LATIN6</TD>
-            <TD><FONT size="-1">Supplementary Set for Latin Alphabet No. 6</FONT></TD>
+            <TD>Supplementary Set for Latin Alphabet No. 6</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">Y</TD>
             <TD>BALTIC (ISO8859-13)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>ISO-8859-13</TD>
-            <TD><FONT size="-1">Baltic Rim Supplementary Set</FONT></TD>
+            <TD>Baltic Rim Supplementary Set</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">Z</TD>
             <TD>VIETNAMESE (ISO8859-12)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>CP1258</TD>
-            <TD><FONT size="-1">Vietnamese Standard Code for Information Interchange</FONT></TD>
+            <TD>Vietnamese Standard Code for Information Interchange</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">_</TD>
             <TD>CELTIC (ISO8859-14)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>ISO-8859-14</TD>
-            <TD><FONT size="-1">Celtic Supplementary Latin Set</FONT></TD>
+            <TD>Celtic Supplementary Latin Set</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">b</TD>
             <TD>LATIN9 (ISO8859-15)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>ISO-8859-15</TD>
-            <TD><FONT size="-1">European Supplementary Latin Set (&quot;Latin 9&quot;)</FONT></TD>
+            <TD>European Supplementary Latin Set (&quot;Latin 9&quot;)</TD>
           </TR>
           <TR>
             <TD align="center">96</TD>
             <TD align="center">f</TD>
             <TD>ROMANIAN (ISO8859-16)</TD>
+            <TD align="center"><FONT size="-1" style="font-size : 83%;">GR</FONT></TD>
             <TD>ISO-8859-16</TD>
-            <TD><FONT size="-1">Romanian Character Set for Information Interchange</FONT></TD>
+            <TD>Romanian Character Set for Information Interchange</TD>
           </TR>
           <TR>
             <TD align="center">94x94</TD>
             <TD align="center">@</TD>
             <TD>JIS X 0208-1978</TD>
+            <TD align="center"></TD>
             <TD>JIS_X0208-1983</TD>
-            <TD><FONT size="-1">Japanese Character Set JISC C 6226-1978</FONT></TD>
+            <TD>Japanese Character Set JISC C 6226-1978</TD>
           </TR>
           <TR>
             <TD align="center">94x94</TD>
             <TD align="center">A</TD>
             <TD>GB2312-1980</TD>
+            <TD align="center"></TD>
             <TD>GB_2312-80</TD>
-            <TD><FONT size="-1">Chinese Character Set Chinese Standard GB 2312-80</FONT></TD>
+            <TD>Chinese Character Set Chinese Standard GB 2312-80</TD>
           </TR>
           <TR>
             <TD align="center">94x94</TD>
             <TD align="center">B</TD>
             <TD>JIS X 0208-1983</TD>
+            <TD align="center"></TD>
             <TD>JIS_X0208-1983</TD>
-            <TD><FONT size="-1">Japanese Character Set JIS C 6226-1983</FONT></TD>
+            <TD>Japanese Character Set JIS C 6226-1983</TD>
           </TR>
           <TR>
             <TD align="center">94x94</TD>
             <TD align="center">C</TD>
             <TD>KSC5601-1987</TD>
+            <TD align="center"></TD>
             <TD>KS_C_5601-1987</TD>
-            <TD><FONT size="-1">Korean Graphic Character Set, Korean Standard KSC 5601-1987</FONT></TD>
+            <TD>Korean Graphic Character Set, Korean Standard KSC 5601-1987</TD>
           </TR>
           <TR>
             <TD align="center">94x94</TD>
             <TD align="center">D</TD>
             <TD>JIS X 0212-1990</TD>
+            <TD align="center"></TD>
             <TD>JIS_X0212-1990</TD>
-            <TD><FONT size="-1">Supplementary Japanese Graphic Character Set for Information Interchange</FONT></TD>
+            <TD>Supplementary Japanese Graphic Character Set for Information Interchange</TD>
           </TR>
           <TR>
             <TD align="center">94x94</TD>
             <TD align="center">E</TD>
             <TD>ISO-IR-165</TD>
+            <TD align="center"></TD>
             <TD>ISO-IR-165</TD>
-            <TD><FONT size="-1">Blissymbol Graphic Character Set</FONT></TD>
+            <TD>Blissymbol Graphic Character Set</TD>
           </TR>
           <TR>
             <TD align="center">94x94</TD>
             <TD align="center">O</TD>
             <TD>JIS X 0213-2000.1</TD>
+            <TD align="center"></TD>
             <TD>JIS_X0213-2000.1</TD>
-            <TD><FONT size="-1">Japanese Graphic Character Set for Information Interchange --- Plane 1</FONT></TD>
+            <TD>Japanese Graphic Character Set for Information Interchange --- Plane 1</TD>
           </TR>
           <TR>
             <TD align="center">94x94</TD>
             <TD align="center">P</TD>
             <TD>JIS X 0213-2000.2</TD>
+            <TD align="center"></TD>
             <TD>JIS_X0213-2000.2</TD>
-            <TD><FONT size="-1">Japanese Graphic Character Set for Information Interchange --- Plane 2</FONT></TD>
+            <TD>Japanese Graphic Character Set for Information Interchange --- Plane 2</TD>
           </TR>
           <TR>
             <TD align="center">94x94</TD>
             <TD align="center">Q</TD>
             <TD>JIS X 0213-2004.1</TD>
+            <TD align="center"></TD>
             <TD>JIS_X0213-2000.1</TD>
-            <TD><FONT size="-1">Japanese Graphic Character Set for Information Interchange, Plane 1 (Update
-            of ISO-IR 228)</FONT></TD>
+            <TD>Japanese Graphic Character Set for Information Interchange, Plane 1 (Update
+            of ISO-IR 228)</TD>
           </TR>
         </TBODY>
       </TABLE>
+      <BLOCKQUOTE>
+      <TABLE width="900">
+        <TBODY>
+          <TR>
+            <TD align="center">*1:GRの文字セットは、クリップボードにコピーした場合に文字コードが変換され元の文字コードが失われます<BR>
+            GLの文字セットは、クリップボードにコピー時の文字が表示と異なる場合がありますが、元の文字コードを維持します<BR>
+            *2:RLoginオリジナルのコードです</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </BLOCKQUOTE>
       </TD>
     </TR>
     <TR>

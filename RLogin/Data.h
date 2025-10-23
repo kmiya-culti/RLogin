@@ -539,6 +539,23 @@ public:
 	inline void RemoveAll() { m_Data.RemoveAll(); }
 };
 
+class CDwordIndex : CObject
+{
+public:
+	DWORD m_Index;
+	DWORD m_Value;
+	CArray<CDwordIndex, CDwordIndex &> m_Array;
+
+	const CDwordIndex & operator = (CDwordIndex &data);
+	CDwordIndex & operator [] (DWORD index);
+	DWORD Find(DWORD index);
+	CDwordIndex *FindNode(DWORD index);
+
+	inline const DWORD operator = (DWORD value) { return (m_Value = value); }
+	inline operator DWORD () const { return m_Value; }
+	inline void RemoveAll() { m_Array.RemoveAll(); }
+};
+
 class CBmpFile : public CObject
 {
 public:
@@ -760,7 +777,6 @@ public:
 	CString m_ListIndex;
 	CTime m_LastAccess;
 	CServerEntry *m_pList;
-	CBmpFile m_IconImage;
 	int m_AfterId;
 
 	void Init();

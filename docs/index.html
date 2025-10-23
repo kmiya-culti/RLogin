@@ -6,11 +6,13 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
-		background-color : #ffffff; font-size : 90%; 
+TD {
+				
+background-color : #ffffff; font-size : 90%; 
 }
-.BOX{		
-		background-color : silver; 
+.BOX{
+				
+background-color : silver; 
 }
 -->
 </STYLE>
@@ -25,8 +27,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.30.9)</TD>
-            <TD width="20%" align="right">2025/09/25</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.31.0)</TD>
+            <TD width="20%" align="right">2025/10/24</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -137,6 +139,7 @@ TD {
                     <LI><A href="faq.html#WINCOL">外観の色設定</A>
                     <LI><A href="faq.html#FONTVIEW">フォントの表示品質</A>
                     <LI><A href="faq.html#UCSIZE">UTF-8の文字サイズ変更</A>
+                    <LI><A href="faq.html#SIXELOPT">Sixelの表示オプション</A>
                   </OL>
                   </TD>
                 </TR>
@@ -439,6 +442,19 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2025/10/24</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.31.0/">2.31.0</A></TD>
+            <TD>リスト表示で&amp;が表示されないのを修正<BR>
+            xterm互換の文字セットなどを追加・修正<BR>
+            DECDLDのサイズ制限や文字種のバグを修正<BR>
+            外字セットをUnicodeの外字16面に変換して表示<BR>
+            保存画面復帰時に余白をクリアするように変更<BR>
+            <A href="faq.html#SIXELOPT">Sixelの表示方法をオプション</A>に変更しデフォルトを変更<BR>
+            2.30.7でサブツールバーの表示が壊れていたのを修正<BR>
+            エージェント転送がスレッドセーフティでない部分を修正<BR>
+            openssl-3.5.4に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2025/09/25</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.9/">2.30.9</A></TD>
             <TD>SFtpのフォルダヒストリー選択でエラー時の処理を修正<BR>
@@ -504,13 +520,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.5.3.tar.gz</A><BR>
+                  <TD width="200" rowspan="3" valign="top"><A href="http://www.openssl.org/source/">openssl-3.5.4.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.5.3 openssl-3.5.3-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.5.4 openssl-3.5.4-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -519,6 +535,14 @@ TD {
                   Visual Studio x64 Win64 <BR>
                   コマンド プロンプト (2010)</TD>
                   <TD valign="top">perl Configure VC-WIN64A no-shared no-module enable-legacy<BR>
+                  nmake</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">arm64用 out64<BR>
+                  x64_arm64 Cross Tools<BR>
+                  コマンド プロンプト (2022)</TD>
+                  <TD valign="top">rename openssl-3.5.4 openssl-3.5.4-arm64<BR>
+                  perl Configure VC-WIN64-ARM no-shared no-module enable-legacy<BR>
                   nmake</TD>
                 </TR>
                 <TR>
@@ -3786,7 +3810,7 @@ fi</PRE>
                         <TD align="center" width="20%">4096</TD>
                       </TR>
                       <TR>
-                        <TD align="center" width="20%">○</TD>
+                        <TD align="center" width="20%">△</TD>
                         <TD align="center" width="20%">◎</TD>
                         <TD align="center" width="20%">○</TD>
                       </TR>
@@ -3832,7 +3856,7 @@ fi</PRE>
                       <TR>
                         <TD align="center" width="20%">△</TD>
                         <TD align="center" width="20%">△</TD>
-                        <TD align="center" width="20%">○</TD>
+                        <TD align="center" width="20%">△</TD>
                       </TR>
                     </TBODY>
                   </TABLE>
@@ -4473,6 +4497,15 @@ function TekClock2() {
                 </TR>
                 <TR>
                   <TD colspan="2">文字セットがUTF-8の場合に￥キーで送信する文字コードをU+00A5(¥)を送信するようにします。これは、ISO646を理解してASCIIフォントセットの5/12でバックスラッシュ(＼）が表示されるような環境の場合にキーボードの￥キーで￥を送信したい場合を想定しています</TD>
+                </TR>
+                <TR>
+                  <TD align="center" rowspan="2">8460</TD>
+                  <TD>Sixelをフォントから計算</TD>
+                  <TD>Sixelを固定値で計算</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">Sixel表示サイズの元になる値をフォントサイズ・固定値(10pix)から選択<BR>
+                  2.31.0からデフォルトで固定値からSixelの表示サイズを計算するように変更しました。従来からのフォントサイズから表示サイズを決定するようにするならこのオプションをセットしてくだい。さらに画像サイズが画面サイズを超える場合、従来は、縮小表示していましたが2.31.0からSixel画像を左詰で表示するように変更しました。参照：<A href="faq.html#SIXELOPT">Sixelの表示オプション</A></TD>
                 </TR>
               </TBODY>
             </TABLE>

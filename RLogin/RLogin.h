@@ -347,6 +347,11 @@ public:
 	CWnd *m_pSshSigDlgWnd;
 	void RemoveSshSigDlg(class CSshSigDlg *pWnd);
 
+	CSemaphore m_ImageSemaphore;
+	CPtrArray m_ImageTable;
+	CStringBinary m_ImageIndex;
+	CBmpFile *GetImageFile(LPCTSTR filename);
+
 	CRLoginApp();
 
 // オーバーライド

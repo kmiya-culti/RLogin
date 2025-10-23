@@ -56,6 +56,7 @@ public:
 	CSemaphore m_ImageSemaphore;
 	BOOL m_bImageThreadAbort;
 	BOOL m_bImageThreadRun;
+	CString m_ImageErrorMsg;
 #endif
 
 	CPtrArray m_TabData;

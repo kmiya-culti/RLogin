@@ -229,7 +229,6 @@ BOOL CFontParaDlg::OnInitDialog()
 
 	CodeSetName(m_CodeSet, m_BankTemp, m_CodeTemp);
 	m_CharSetTemp = CharSetName(m_pData->m_CharSet);
-	m_ShiftTemp = (m_pData->m_Shift != 0 ? TRUE : FALSE);
 	m_ZoomTemp[0].Format(_T("%d"), m_pData->m_ZoomH);
 	m_ZoomTemp[1].Format(_T("%d"), m_pData->m_ZoomW);
 	m_OffsTemp[0].Format(_T("%d"), m_pData->m_OffsetH);
@@ -241,6 +240,12 @@ BOOL CFontParaDlg::OnInitDialog()
 	m_Iso646Name[0] = m_pData->m_Iso646Name[0];
 	m_Iso646Name[1] = m_pData->m_Iso646Name[1];
 	memcpy(m_Iso646Tab, m_pData->m_Iso646Tab, sizeof(m_Iso646Tab));
+
+	switch(m_pData->m_Maps) {
+	case FONTMAPS_GL:	m_ShiftTemp = FALSE; break;
+	case FONTMAPS_GLGR:	m_ShiftTemp = FALSE; break;
+	case FONTMAPS_GR:	m_ShiftTemp = TRUE;  break;
+	}
 
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_FONTCODE)) != NULL ) {
 		if ( m_CodeTemp.GetLength() == 1 && m_CodeTemp[0] >= _T('a') && m_CodeTemp[0] <= _T('z') )
@@ -283,7 +288,6 @@ void CFontParaDlg::OnOK()
 
 	m_CodeSet            = CodeSetNo(m_BankTemp, m_CodeTemp);
 	m_pData->m_CharSet   = CharSetNo(m_CharSetTemp);
-	m_pData->m_Shift     = (m_ShiftTemp ? 0x80 : 0x00);
 	m_pData->m_ZoomH     = _tstoi(m_ZoomTemp[0]);
 	m_pData->m_ZoomW     = _tstoi(m_ZoomTemp[1]);
 	m_pData->m_OffsetH   = _tstoi(m_OffsTemp[0]);
@@ -298,6 +302,8 @@ void CFontParaDlg::OnOK()
 	m_pData->m_Iso646Name[1] = m_Iso646Name[1];
 	memcpy(m_pData->m_Iso646Tab, m_Iso646Tab, sizeof(m_Iso646Tab));
 	m_pData->m_OverZero = m_OverZero;
+
+	m_pData->m_Maps = m_ShiftTemp ? FONTMAPS_GR : FONTMAPS_GL;
 
 	m_FontNameTab[m_FontNum] = m_FontName;
 

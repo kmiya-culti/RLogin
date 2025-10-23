@@ -641,7 +641,7 @@ void CCharSetPage::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 			if ( (m_ListIndex & SET_MASK) <= SET_96 ) {
 				sample.Empty();
 				for ( LPCSTR p = "012 abcABC \\|~" ; *p != '\0' ; p++ ) {
-					wc.d = iconv.IConvChar(m_FontTab[m_ListIndex].m_IContName, _T("UTF-16BE"), *p | m_FontTab[m_ListIndex].m_Shift);
+					wc.d = iconv.IConvChar(m_FontTab[m_ListIndex].m_IContName, _T("UTF-16BE"), *p | (m_FontTab[m_ListIndex].m_Maps == FONTMAPS_GR ? 0x80 : 0x00));
 					if ( (wc.d & 0xFFFF0000) != 0 ) {
 						sample += wc.c[1];
 						sample += wc.c[0];

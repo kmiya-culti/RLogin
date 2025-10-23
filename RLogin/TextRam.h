@@ -84,7 +84,7 @@
 // どれか１つ
 #define	ATT_MIRROR		0x20000000		// Mirror Draw
 #define	ATT_OVERCHAR	0x40000000		// Over Write Charctor
-//						0x60000000
+#define	ATT_GAIJI		0x60000000		// U+100000-10FFFD 16面外字
 //						0x80000000
 //						0xA0000000
 //						0xC0000000
@@ -228,6 +228,7 @@
 #define	TO_TTCTH		457			// 8200 画面クリア(ED 2)時にカーソルを左上に移動する。
 #define	TO_RLBOLDHC		458			// ボールド文字で高輝度を無効にする
 #define	TO_RLYENKEY		459			// UTF-8の場合に\キーでU+00A5を送信する
+#define	TO_RLSIXELSIZE	460			// Sixelの表示サイズを固定値/現在の文字サイズで計算する
 
 // RLogin SockOpt		1000-1511(0-511)
 #define	TO_RLTENAT		1406		// 自動ユーザー認証を行わない
@@ -381,10 +382,6 @@
 #define	OSC52_WRITE		002
 
 #define	USFTCMAX		96
-#define	USFTWMAX		24
-#define	USFTHMAX		36
-#define	USFTLNSZ		((USFTHMAX + 5) / 6)
-#define	USFTCHSZ		(USFTWMAX * USFTLNSZ)
 
 #define	DELAY_NON		0
 #define	DELAY_PAUSE		1
@@ -688,10 +685,14 @@ public:
 #define	FONTSTYLE_UNDER			004
 #define	FONTSTYLE_FULLWIDTH		010
 
+#define	FONTMAPS_GL				0x00
+#define	FONTMAPS_GLGR			0x40
+#define	FONTMAPS_GR				0x80
+
 class CFontNode : public CObject
 {
 public:
-	BYTE m_Shift;
+	int m_Maps;
 	int m_ZoomW;
 	int m_ZoomH;
 	int m_OffsetW;
@@ -713,7 +714,7 @@ public:
 	int m_MapType;
 	CString m_UniBlock;
 	CString m_Iso646Name[2];
-	DWORD m_Iso646Tab[12];
+	DWORD m_Iso646Tab[13];
 	CString m_OverZero;
 	COLORREF *m_pTransColor;
 	int m_JpSet;
@@ -765,6 +766,7 @@ class CFontTab : public COptObject
 public:
 	CFontNode *m_Data;
 	CUniBlockTab m_UniBlockTab;
+	CStringBinary m_IndexList[4];
 
 	void InitUniBlock();
 
@@ -775,7 +777,7 @@ public:
 	void DiffIndex(CFontTab &orig, CStringIndex &index);
 
 	int Find(LPCTSTR entry);
-	int IndexFind(int code, LPCTSTR name);
+	int IndexFind(int code, LPCTSTR name, BOOL bNew = TRUE);
 	void IndexRemove(int idx);
 	inline CFontNode & operator[](int nIndex) { return m_Data[nIndex]; }
 	const CFontTab & operator = (CFontTab &data);
@@ -1337,13 +1339,14 @@ public:
 	BOOL IsEmptyLine(int sy);
 	void GetCellSize(int *x, int *y);
 	void GetScreenSize(int *pCx, int *pCy, int *pSx, int *pSy);
+	void GetViewSize(int *pCx, int *pCy, int *pSx, int *pSy);
 
 	BOOL SpeakLine(int cols, int line, CString &text, CArray<CCurPos, CCurPos &> &pos);
 	BOOL SpeakCheck(CCurPos sPos, CCurPos ePos, LPCTSTR str);
 
 	void DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop);
 	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, DrawWork &prop);
-	void DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, DrawWork &prop);
+	void DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, BOOL bRevs, DrawWork &prop);
 	void DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop);
 	void DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop);
 	void DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop);
@@ -1943,12 +1946,11 @@ public:
 	class CGrapWnd *pGrapListType;
 
 	class CGrapWnd *GetGrapWnd(int index);
-	class CGrapWnd *CmpGrapWnd(class CGrapWnd *pWnd);
 	void AddGrapWnd(class CGrapWnd *pWnd);
 	void RemoveGrapWnd(class CGrapWnd *pWnd);
 	void *LastGrapWnd(int type);
 	void ChkGrapWnd(int sec);
-	void SizeGrapWnd(class CGrapWnd *pWnd, int cx, int cy, BOOL bAspect);
+	void SizeGrapWnd(class CGrapWnd *pWnd, int cx, int cy, BOOL bAspect, BOOL biTerm);
 	void DispGrapWnd(class CGrapWnd *pGrapWnd, BOOL bNextCols);
 
 	// iTerm2

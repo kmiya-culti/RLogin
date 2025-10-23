@@ -627,6 +627,7 @@ class CFifoAgent : public CFifoThread
 public:
 	class CFifoChannel *m_pChan;
 	CBuffer m_RecvBuffer;
+	CArray<CIdKey, CIdKey &> m_IdKeyTab;
 
 public:
 	CFifoAgent(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CFifoChannel *pChan);

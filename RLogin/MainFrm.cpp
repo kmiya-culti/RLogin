@@ -3659,66 +3659,6 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 
 void CMainFrame::InitMenuBitmap()
 {
-#if 0
-	int n, cx, cy;
-	CDC dc[2];
-	CBitmap BitMap;
-	CBitmap *pOld[2];
-	CBitmap *pBitmap;
-	BITMAP mapinfo;
-	CMenuBitMap *pMap;
-
-	// リソースデータベースからメニューイメージを作成
-	cx = GetSystemMetrics(SM_CXMENUCHECK);
-	cy = GetSystemMetrics(SM_CYMENUCHECK);
-
-	dc[0].CreateCompatibleDC(NULL);
-	dc[1].CreateCompatibleDC(NULL);
-
-	CResDataBase *pResData = &(((CRLoginApp *)::AfxGetApp())->m_ResDataBase);
-
-	// Add Menu Image From Bitmap Resource
-	for ( n = 0 ; n < 3 ; n++ )
-		pResData->AddBitmap(MAKEINTRESOURCE(IDB_MENUMAP1 + n));
-
-	// MenuMap RemoveAll
-	for ( int n = 0 ; n < m_MenuMap.GetSize() ; n++ ) {
-		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) == NULL )
-			continue;
-		pMap->m_Bitmap.DeleteObject();
-		delete pMap;
-	}
-	m_MenuMap.RemoveAll();
-
-	for ( n = 0 ; n < pResData->m_Bitmap.GetSize() ; n++ ) {
-		if ( pResData->m_Bitmap[n].m_hBitmap == NULL )
-			continue;
-
-		pBitmap = CBitmap::FromHandle(pResData->m_Bitmap[n].m_hBitmap);
-
-		if ( pBitmap == NULL || !pBitmap->GetBitmap(&mapinfo) )
-			continue;
-
-		if ( (pMap = new CMenuBitMap) == NULL )
-			continue;
-
-		pMap->m_Id = pResData->m_Bitmap[n].m_ResId;
-		pMap->m_Bitmap.CreateBitmap(cx, cy, dc[1].GetDeviceCaps(PLANES), dc[1].GetDeviceCaps(BITSPIXEL), NULL);
-		m_MenuMap.Add(pMap);
-
-		pOld[0] = dc[0].SelectObject(pBitmap);
-		pOld[1] = dc[1].SelectObject(&(pMap->m_Bitmap));
-
-		dc[1].FillSolidRect(0, 0, cx, cy, GetSysColor(COLOR_MENU));
-		dc[1].TransparentBlt(0, 0, cx, cy, &(dc[0]), 0, 0, (mapinfo.bmWidth <= mapinfo.bmHeight ? mapinfo.bmWidth : mapinfo.bmHeight), mapinfo.bmHeight, RGB(192, 192, 192));
-
-		dc[0].SelectObject(pOld[0]);
-		dc[1].SelectObject(pOld[1]);
-	}
-
-	dc[0].DeleteDC();
-	dc[1].DeleteDC();
-#else
 	int n, cx, cy;
 	CImage Image;
 	CDC TmpDC;
@@ -3748,6 +3688,7 @@ void CMainFrame::InitMenuBitmap()
 		delete pMap;
 	}
 	m_MenuMap.RemoveAll();
+	m_MenuMapIndex.RemoveAll();
 
 	TmpDC.CreateCompatibleDC(NULL);
 
@@ -3806,11 +3747,10 @@ void CMainFrame::InitMenuBitmap()
 		pMap->m_Bitmap.Attach(Image);
 		Image.Detach();
 
-		m_MenuMap.Add(pMap);
+		m_MenuMapIndex[(DWORD)pMap->m_Id] = (DWORD)m_MenuMap.Add(pMap);
 	}
 
 	TmpDC.DeleteDC();
-#endif
 }
 void CMainFrame::SetMenuBitmap(CMenu *pMenu)
 {
@@ -3824,13 +3764,12 @@ void CMainFrame::SetMenuBitmap(CMenu *pMenu)
 }
 CBitmap *CMainFrame::GetMenuBitmap(UINT nId)
 {
-	int n;
+	CDwordIndex *pNode;
 	CMenuBitMap *pMap;
 
-	for ( n = 0 ; n < m_MenuMap.GetSize() ; n++ ) {
-		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) != NULL && pMap->m_Id == nId )
-			return &(pMap->m_Bitmap);
-	}
+	if ( (pNode = m_MenuMapIndex.FindNode(nId)) != NULL && pNode->m_Value < (DWORD)m_MenuMap.GetSize() && (pMap = (CMenuBitMap *)m_MenuMap[(int)pNode->m_Value]) != NULL )
+		return &(pMap->m_Bitmap);
+
 	return NULL;
 }
 BOOL CMainFrame::TrackPopupMenuIdle(CMenu *pMenu, UINT nFlags, int x, int y, CWnd* pWnd, LPCRECT lpRect)

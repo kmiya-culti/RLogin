@@ -17,17 +17,22 @@ public:
 public:
 	CComboBox m_FontSet;
 	CComboBox m_DispSet;
-	CStatic m_ViewBox[24];
-	CString m_CharCode[12];
+	CStatic m_ViewBox[26];
+	CString m_CharCode[13];
 
 	int m_CharSet;
 	CString m_FontName;
 	CString m_FontSetName;
 	CString m_DispSetName;
-	DWORD m_Iso646Tab[12];
+	DWORD m_Iso646Tab[13];
 	CFont m_Font;
 
 	void SetViewBox(int num, DWORD code);
+
+	static BOOL Iso646Maping(LPCTSTR name, DWORD code[13]);
+	static int CodePage(LPCTSTR name);
+	static DWORD TableMaping(int idx, DWORD ch);
+	static void CodeIndex(int idx, CDwordIndex &code);
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート

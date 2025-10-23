@@ -535,8 +535,6 @@ protected:
 protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnNMClickSyslink(NMHDR *pNMHDR, LRESULT *pResult);
-public:
-	afx_msg void OnStnClickedVersionstr();
 };
 
 CAboutDlg::CAboutDlg() : CDialogExt(CAboutDlg::IDD)
@@ -587,7 +585,6 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogExt)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK1, &CAboutDlg::OnNMClickSyslink)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK2, &CAboutDlg::OnNMClickSyslink)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK3, &CAboutDlg::OnNMClickSyslink)
-	ON_STN_CLICKED(IDC_VERSIONSTR, &CAboutDlg::OnStnClickedVersionstr)
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
@@ -2100,6 +2097,14 @@ int CRLoginApp::ExitInstance()
 		delete m_pWsaData;
 		m_pWsaData = NULL;
 	}
+
+	for ( int n = 0 ; n < (int)m_ImageTable.GetSize() ; n++ ) {
+		CBmpFile *pMap = (CBmpFile *)m_ImageTable[n];
+		if ( pMap != NULL )
+			delete pMap;
+	}
+	m_ImageTable.RemoveAll();
+	m_ImageIndex.RemoveAll();
 
 	return CWinApp::ExitInstance();
 }
@@ -4737,7 +4742,28 @@ void CRLoginApp::SetVoice(LPCTSTR str, long rate)
 	pMain->SpeakUpdate(pMain->m_SpeakActive[2], pMain->m_SpeakActive[1] - pMain->m_SpeakActive[0]);
 }
 
-void CAboutDlg::OnStnClickedVersionstr()
+CBmpFile *CRLoginApp::GetImageFile(LPCTSTR filename)
 {
-	// TODO: ここにコントロール通知ハンドラー コードを追加します。
+	m_ImageSemaphore.Lock();
+
+	int idx = (-1);
+	CBmpFile *pMap = NULL;
+	CStringBinary *pNode = m_ImageIndex.Find(filename);
+
+	if ( pNode != NULL ) {
+		if ( pNode->m_Value != (-1) && pNode->m_Value < (int)m_ImageTable.GetSize() )
+			pMap = (CBmpFile *)m_ImageTable[pNode->m_Value];
+
+	} else if ( (pMap = new CBmpFile) != NULL ) {
+		if ( pMap->LoadFile(filename) ) {
+			idx = (int)m_ImageTable.Add(pMap);
+		} else {
+			delete pMap;
+			pMap = NULL;
+		}
+		m_ImageIndex[filename] = idx;
+	}
+
+	m_ImageSemaphore.Unlock();
+	return pMap;
 }

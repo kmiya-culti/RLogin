@@ -20,9 +20,8 @@
 #define	ASP_DIV				1000
 
 #define	GRAPLIST_INDEX		0
-#define	GRAPLIST_IMAGE		1
-#define	GRAPLIST_TYPE		2
-#define	GRAPLIST_MAX		3
+#define	GRAPLIST_TYPE		1
+#define	GRAPLIST_MAX		2
 
 #define	GRAPMAX_X			(32 * 1024)
 #define	GRAPMAX_Y			(32 * 1024)
@@ -112,6 +111,7 @@ public:
 	int m_DspX;
 	int m_DspY;
 	BOOL m_DspA;
+	BOOL m_DspFlag;
 	CDC m_TempDC;
 	CBitmap *m_pActMap;
 	CBitmap m_Bitmap[3];
@@ -119,9 +119,11 @@ public:
 	int m_ImageIndex;
 	int m_BlockX;
 	int m_BlockY;
+	int m_BlockTop;
 	int m_CellX;
 	int m_CellY;
-	DWORD m_Crc;
+	int m_FullX;
+	int m_FullY;
 	int m_Use;
 	int m_Alive;
 	class CGrapWnd *m_pList[GRAPLIST_MAX];
@@ -131,6 +133,7 @@ public:
 	clock_t m_GifAnimeClock;
 	CArray<CGifAnime, CGifAnime &> m_GifAnime;
 	CHistogram *m_pHistogram;
+	clock_t m_StartClock;
 
 	void SaveBitmap(int type);
 	BOOL SaveImage(HANDLE hBitmap, const GUID &guid, CBuffer &buf);
@@ -138,7 +141,6 @@ public:
 	CBitmap *GetBitmap(int width, int height);
 	int Compare(CGrapWnd *pWnd);
 	void Copy(CGrapWnd *pWnd);
-	void SetMapCrc();
 	void InitColMap();
 	void DrawBlock(CDC *pDC, LPCRECT pRect, COLORREF bc, BOOL bEraBack, int sx, int sy, int ex, int ey, int scW, int scH, int chW, int chH, int cols, int lines);
 	HANDLE GetBitmapBlock(COLORREF bc, int sx, int sy, int ex, int ey, int chW, int chH, int cols, int lines, BITMAP *pMap = NULL);
@@ -153,6 +155,7 @@ public:
 	int m_SixelStat;
 	int m_SixelWidth, m_SixelHeight;
 	int m_SixelPointX, m_SixelPointY, m_SixelRepCount;
+	int m_SixelIndexY;
 	DWORD m_SixelColorIndex, m_SixelValue;
 	DWORD m_SixelTrueColor;
 	BOOL m_SixelValueInit;
@@ -163,6 +166,7 @@ public:
 	COLORREF m_SixelTransColor;
 	BYTE *m_pAlphaMap;
 	WORD *m_pIndexMap;
+	class CGrapWnd *m_pSaveGrapWnd;
 
 	void SixelMaxInit();
 	void SixelStart(int aspect, int mode, int grid, COLORREF bc = 0);

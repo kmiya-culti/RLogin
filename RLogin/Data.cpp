@@ -3802,6 +3802,56 @@ void CPtrIndex::RemoveAt(void *pVal)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CDwordIndex
+
+const CDwordIndex & CDwordIndex::operator = (CDwordIndex &data)
+{
+	m_Index = data.m_Index;
+	m_Value = data.m_Value;
+
+	m_Array.RemoveAll();
+	for ( INT_PTR n = 0 ; n < data.m_Array.GetSize() ; n++ )
+		m_Array.Add(data.m_Array[n]);
+
+	return *this;
+}
+static int IndexComp(const void *src, const void *dis)
+{
+	return (*((DWORD *)src) - ((CDwordIndex *)dis)->m_Index);
+}
+CDwordIndex & CDwordIndex::operator [] (DWORD index)
+{
+	int n;
+
+	if ( !BinaryFind((void *)&index, m_Array.GetData(), sizeof(CDwordIndex), (int)m_Array.GetSize(), IndexComp, &n) ) {
+		CDwordIndex tmpData;
+		tmpData.m_Index = index;
+		tmpData.m_Value = 0;
+		m_Array.InsertAt(n, tmpData);
+	}
+
+	return m_Array[n];
+}
+DWORD CDwordIndex::Find(DWORD index)
+{
+	int n;
+
+	if ( BinaryFind((void *)&index, m_Array.GetData(), sizeof(CDwordIndex), (int)m_Array.GetSize(), IndexComp, &n) )
+		return m_Array[n].m_Value;
+
+	return 0;
+}
+CDwordIndex *CDwordIndex::FindNode(DWORD index)
+{
+	int n;
+
+	if ( BinaryFind((void *)&index, m_Array.GetData(), sizeof(CDwordIndex), (int)m_Array.GetSize(), IndexComp, &n) )
+		return &(m_Array[n]);
+
+	return NULL;
+}
+
+//////////////////////////////////////////////////////////////////////
 // CBmpFile
 
 CBmpFile::CBmpFile()
@@ -6228,6 +6278,7 @@ BOOL CServerEntryTab::SetMenuEntry(CMenu *pMenu, int IdOfs)
 	int cy = GetSystemMetrics(SM_CYMENUCHECK);
 	COLORREF bc = GetSysColor(COLOR_MENU);
 	CClientDC dc(NULL);
+	CBmpFile *pImage;
 
 	if ( m_Data.GetSize() <= 0 )
 		return FALSE;
@@ -6247,9 +6298,9 @@ BOOL CServerEntryTab::SetMenuEntry(CMenu *pMenu, int IdOfs)
 	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
 		if ( m_Data[n].m_IconName.IsEmpty() )
 			continue;
-		if ( !m_Data[n].m_IconImage.LoadFile(m_Data[n].m_IconName) )
+		if ( (pImage = theApp.GetImageFile(m_Data[n].m_IconName)) == NULL )
 			continue;
-		if ( (bp = m_Data[n].m_IconImage.GetBitmap(&dc, cx, cy, bc)) == NULL )
+		if ( (bp = pImage->GetBitmap(&dc, cx, cy, bc)) == NULL )
 			continue;
 
 		pMenu->SetMenuItemBitmaps(n + IdOfs, MF_BYCOMMAND, bp, NULL);
@@ -6261,11 +6312,6 @@ void CServerEntryTab::DelMenuEntry(CMenu *pMenu)
 {
 	if ( pMenu->GetSafeHmenu() != NULL )
 		pMenu->DestroyMenu();
-
-	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
-		if ( m_Data[n].m_IconImage.m_Bitmap.GetSafeHandle() != NULL )
-			m_Data[n].m_IconImage.m_Bitmap.DeleteObject();
-	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -8305,7 +8351,7 @@ static LPCTSTR InitAlgo[12]= {
 	_T("zlib,none"),
 
 	_T("aes256-ctr,aes192-ctr,aes128-ctr,") \
-	_T("chacha20-poly1305@openssh.com,chacha20-poly1305,") \
+	_T("chacha20-poly1305,chacha20-poly1305@openssh.com,") \
 	_T("camellia256-ctr,camellia192-ctr,camellia128-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
@@ -8332,7 +8378,7 @@ static LPCTSTR InitAlgo[12]= {
 	_T("zlib@openssh.com,zlib,none"),
 
 	_T("aes256-ctr,aes192-ctr,aes128-ctr,") \
-	_T("chacha20-poly1305@openssh.com,chacha20-poly1305,") \
+	_T("chacha20-poly1305,chacha20-poly1305@openssh.com,") \
 	_T("camellia256-ctr,camellia192-ctr,camellia128-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
@@ -8359,7 +8405,7 @@ static LPCTSTR InitAlgo[12]= {
 	_T("zlib@openssh.com,zlib,none"),
 
 	_T("mlkem768x25519-sha256,mlkem768nistp256-sha256,mlkem1024nistp384-sha384,") \
-	_T("sntrup761x25519-sha512@openssh.com,sntrup761x25519-sha512,") \
+	_T("sntrup761x25519-sha512,sntrup761x25519-sha512@openssh.com,") \
 	_T("curve25519-sha256,curve25519-sha256@libssh.org,curve448-sha512,") \
 	_T("ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,") \
 	_T("mlkem512-sha256,mlkem768-sha256,mlkem1024-sha384,") \
@@ -8373,10 +8419,10 @@ static LPCTSTR InitAlgo[12]= {
 	_T("ssh-ed25519,ssh-ed448,") \
 	_T("ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521-cert-v01@openssh.com,") \
 	_T("ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,") \
-	_T("ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,") \
-	_T("rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss,") \
-	_T("ssh-mldsa44,ssh-mldsa65,ssh-mldsa87,ssh-slh-dsa-sha2-256f,") \
-	_T("ssh-xmss-cert-v01@openssh.com,ssh-xmss@openssh.com"),
+	_T("rsa-sha2-512,rsa-sha2-256,") \
+	_T("ssh-mldsa-44,ssh-mldsa-65,ssh-mldsa-87,") \
+	_T("ssh-mldsa44-ed25519,ssh-mldsa65-ed25519,ssh-mldsa87-ed448,") \
+	_T("ssh-rsa,ssh-dss"),
 
 	_T("publickey,hostbased,gssapi-with-mic,password,keyboard-interactive"),
 };

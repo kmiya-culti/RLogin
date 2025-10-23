@@ -1042,7 +1042,7 @@ void CListCtrlExt::OnPaint()
 				mrct.right += lvc.cx;
 
 				if ( mrct.left < clip.right && mrct.right > clip.left ) {
-					UINT fmt = DT_SINGLELINE | DT_WORD_ELLIPSIS | DT_VCENTER;
+					UINT fmt = DT_SINGLELINE | DT_WORD_ELLIPSIS | DT_VCENTER | DT_NOPREFIX;
 					CString text = GetItemText(item, subItem);
 					trct = mrct;
 

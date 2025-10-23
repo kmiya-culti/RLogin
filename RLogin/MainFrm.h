@@ -193,6 +193,7 @@ public:
 	BOOL m_bGlassStyle;
 	BOOL m_bCharTooltip;
 	CPtrArray m_MenuMap;
+	CDwordIndex m_MenuMapIndex;
 	int m_SplitType;
 	int m_ExecCount;
 	HMENU m_StartMenuHand;

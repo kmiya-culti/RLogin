@@ -4817,6 +4817,11 @@ int Cssh::SSH2MsgExtInfo(CBuffer *bp)
 		} else
 			bp->GetStr(value);
 
+		// 最初のSSH_MSG_EXT_INFOのみ定義するのが正しいようだが"ext-info-in-auth@openssh.com"で
+		// ユーザーごとに設定を変更するのが良いようにも思う・・・
+		// 将来的には、m_ExtInfo[user][nameT]でユーザーごとに定義が必要か？
+		// "server-sig-algs", "hostkeys-00@openssh.com"あたりがユーザーごとの設定かもしれない・・・
+
 		nameT = LocalStr(name);
 		m_ExtInfo[nameT] = LocalStr(value);
 	}

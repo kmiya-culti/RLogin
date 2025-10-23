@@ -19,7 +19,7 @@ public:
 	enum { IDD = IDD_FONTPARADLG };
 
 public:
-	BOOL	m_ShiftTemp;
+	BOOL m_ShiftTemp;
 	CString	m_CharSetTemp;
 	CString	m_ZoomTemp[2];
 	CString	m_OffsTemp[2];
@@ -33,7 +33,7 @@ public:
 	int m_FontSize;
 	CString m_UniBlock;
 	CString m_Iso646Name[2];
-	DWORD m_Iso646Tab[12];
+	DWORD m_Iso646Tab[13];
 	CString m_OverZero;
 
 	int m_CodeSet;

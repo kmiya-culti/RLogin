@@ -2276,13 +2276,9 @@ void CTextRam::fc_TEXT(DWORD ch)
 	case SET_94:
 		//if ( (ch &= 0x7F) == 0x7F )
 		//	break;
-		//INSMDCK(1);
-		//PUT1BYTE(ch, m_BankNow);
-		//break;
 	case SET_96:
-		ch &= 0x7F;
 		INSMDCK(1);
-		PUT1BYTE(ch, m_BankNow);
+		PUT1BYTE(ch & 0x7F, m_BankNow);
 		break;
 	case SET_94x94:
 		if ( (ch & 0x7F) < 0x21 || (ch & 0x7F) > 0x7E )
@@ -2579,15 +2575,15 @@ void CTextRam::fc_UTF85(DWORD ch)
 		//
 		// DRCSMMv2
 		//       cc		0x20-0x7F = SET_94, 0xA0-0xFF = SET_96
-		if ( (cf & UNI_GAIJI) != 0 && IsOptEnable(TO_DRCSMMv1) ) {
-			n = UCS2toUCS4(m_BackChar);
-			CString tmp;
-			tmp.Format(_T(" %c"), (n >> 8) & 0xFF);
-			INSMDCK(1);
-			PUT1BYTE(n & 0x7F, m_FontTab.IndexFind(((n & 0x80) == 0 ? SET_94 : SET_96), tmp));
-			m_LastFlag = cf;
-			goto BREAK;
-		}
+		//if ( (cf & UNI_GAIJI) != 0 && IsOptEnable(TO_DRCSMMv1) ) {
+		//	n = UCS2toUCS4(m_BackChar);
+		//	CString tmp;
+		//	tmp.Format(_T(" %c"), (n >> 8) & 0xFF);
+		//	INSMDCK(1);
+		//	PUT1BYTE(n & 0x7F, m_FontTab.IndexFind(((n & 0x80) == 0 ? SET_94 : SET_96), tmp));
+		//	m_LastFlag = cf;
+		//	goto BREAK;
+		//}
 
 		if ( (cf & UNI_WID) != 0 )
 			n = 2;
@@ -3627,12 +3623,24 @@ void CTextRam::fc_OSC_CMD(DWORD ch)
 
 			int n;
 			CString tmp;
+
 			if ( m_OscMode == 'P' && BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), (int)m_DcsExt.GetSize(), ProcCodeCmp, &n) && m_DcsExt[n].proc == &CTextRam::fc_DECSIXEL ) {
 				tmp.Format(_T("Sixel - %s"), (LPCTSTR)m_pDocument->m_ServerEntry.m_EntryName);
 				if ( m_pWorkGrapWnd != NULL )
 					m_pWorkGrapWnd->DestroyWindow();
 				m_pWorkGrapWnd = new CGrapWnd(this);
 				m_pWorkGrapWnd->Create(NULL, tmp);
+
+				if ( (m_pWorkGrapWnd->m_ImageIndex = GetAnsiPara(3, -1, 0, (m_bTraceActive ? 4095 : 1023))) == (-1) ) {
+					m_pWorkGrapWnd->m_ImageIndex = m_ImageIndex++;
+					if ( m_ImageIndex >= 4096 )		// index max 12 bit
+						m_ImageIndex = 1024;		// 1024 - 4095
+				}
+				if ( (m_pWorkGrapWnd->m_pSaveGrapWnd = GetGrapWnd(m_pWorkGrapWnd->m_ImageIndex)) != NULL )
+					RemoveGrapWnd(m_pWorkGrapWnd->m_pSaveGrapWnd);
+				AddGrapWnd(m_pWorkGrapWnd);
+				m_pWorkGrapWnd->m_Use++;
+
 				m_pWorkGrapWnd->SixelStart(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), GetBackColor(m_AttNow));
 			}
 		}
@@ -3817,10 +3825,6 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 {
 	// DCS ('P' << 24) | 'q'					DECSIXEL Sixel graphics
 
-	int idx;
-	CString tmp;
-	CGrapWnd *pGrapWnd, *pTempWnd;
-
 	fc_POP(ch);
 	m_pActGrapWnd = NULL;
 	
@@ -3832,50 +3836,35 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 
 	} else {								// Sixel Scroll Mode Enable (DECSDM = reset)
 
-		pGrapWnd = NULL;
-		idx = GetAnsiPara(3, -1, 0, (m_bTraceActive ? 4095 : 1023));
-
+		CGrapWnd *pGrapWnd = NULL;
 		m_pWorkGrapWnd->SixelEndof();
 
-		ChkGrapWnd(10);	// Delete Non Display GrapWnd
+		if ( m_pWorkGrapWnd->m_pActMap != NULL && m_pWorkGrapWnd->m_SixelWidth > 0 && m_pWorkGrapWnd->m_SixelHeight > 0 ) {
+			SizeGrapWnd(m_pWorkGrapWnd, m_pWorkGrapWnd->m_DspX, m_pWorkGrapWnd->m_DspY, m_pWorkGrapWnd->m_DspA, m_pWorkGrapWnd->m_DspFlag);
 
-		if ( m_pWorkGrapWnd->m_SixelWidth > 0 && m_pWorkGrapWnd->m_SixelHeight > 0 ) {
+			if ( m_pWorkGrapWnd->m_pSaveGrapWnd != NULL ) {
+				m_pWorkGrapWnd->m_pSaveGrapWnd->DestroyWindow();
+				m_pWorkGrapWnd->m_pSaveGrapWnd = NULL;
+			}
+
+			m_pWorkGrapWnd->m_Use--;
 			pGrapWnd = m_pWorkGrapWnd;
 			m_pWorkGrapWnd = NULL;
 
-			if ( pGrapWnd->m_pActMap == NULL ) {
-				pGrapWnd->DestroyWindow();
-				pGrapWnd = NULL;
-			} else {
-				SizeGrapWnd(pGrapWnd, pGrapWnd->m_DspX, pGrapWnd->m_DspY, pGrapWnd->m_DspA);
-				if ( idx == (-1) && (pTempWnd = CmpGrapWnd(pGrapWnd)) != NULL && pTempWnd->m_BlockX == pGrapWnd->m_BlockX && pTempWnd->m_BlockY == pGrapWnd->m_BlockY ) {
-					pGrapWnd->DestroyWindow();
-					pGrapWnd = pTempWnd;
-				}
-			}
 		} else {
+			RemoveGrapWnd(m_pWorkGrapWnd);
+			if ( m_pWorkGrapWnd->m_pSaveGrapWnd != NULL ) {
+				AddGrapWnd(m_pWorkGrapWnd->m_pSaveGrapWnd);
+				pGrapWnd = m_pWorkGrapWnd->m_pSaveGrapWnd;
+			}
 			m_pWorkGrapWnd->DestroyWindow();
 			m_pWorkGrapWnd = NULL;
 		}
 
-		if ( pGrapWnd == NULL && (idx == (-1) || (pGrapWnd = GetGrapWnd(idx)) == NULL) )
+		if ( pGrapWnd == NULL )
 			return;
 
-		if ( pGrapWnd->m_ImageIndex == (-1) ) {
-			if ( (pGrapWnd->m_ImageIndex = idx) == (-1) ) {
-				pGrapWnd->m_ImageIndex = m_ImageIndex++;
-				if ( m_ImageIndex >= 4096 )		// index max 12 bit
-					m_ImageIndex = 1024;		// 1024 - 4095
-			}
-
-			if ( (pTempWnd = GetGrapWnd(pGrapWnd->m_ImageIndex)) != NULL )
-				pTempWnd->DestroyWindow();
-
-			AddGrapWnd(pGrapWnd);
-		}
-
 		m_pActGrapWnd = pGrapWnd;
-
 		DispGrapWnd(pGrapWnd, IsOptEnable(TO_RLSIXPOS));
 	}
 }
@@ -3951,13 +3940,12 @@ void CTextRam::fc_DECDLD(DWORD ch)
 	//		_ _ _ _ _ _ _ _ _ _ b2
 	//		_ _ _ _ _ _ _ _ _ _ b3 Group C
 
-	int n, i, x, b, idx;
+	int n, i, x, idx;
 	LPCSTR p;
 	int Pfn, Pcn, Pe, Pcss, Pt;
 	int Pcmw = 10, Pcmh = 0;
 	CString Pscs;
 	CStringArrayExt node, data;
-	BYTE map[USFTCHSZ];
 	CGrapWnd *pGrapWnd;
 
 	fc_POP(ch);
@@ -4000,7 +3988,7 @@ void CTextRam::fc_DECDLD(DWORD ch)
 		}
 	}
 
-	if ( Pcmw < 5 || Pcmh < 1 )
+	if ( Pcmw < 5 || Pcmh < 1 || Pcmw > 1024 || Pcmh > 1024 )
 		return;
 
 	p = (LPCSTR)m_OscPara;
@@ -4073,19 +4061,33 @@ void CTextRam::fc_DECDLD(DWORD ch)
 		pGrapWnd->DestroyWindow();
 
 	} else {
-		node.GetString(MbsToTstr(p), _T(';'));
-		for ( n = 0 ; n < node.GetSize() && (Pcn + n) < 0x80 ; n++ ) {
-			data.GetString(node[n], _T('/'));
-			memset(map, 0, USFTCHSZ);
-			for ( i = 0 ; i < data.GetSize() && i < USFTLNSZ ; i++ ) {
-				for ( x = 0 ; x < data[i].GetLength() && x < USFTWMAX ; x++ ) {
-					if ( (b = data[i][x] - 0x3F) < 0 )
-						b = 0;
-					map[x + i * USFTWMAX] = b;
-				}
+		int lnsz = (Pcmh + 5) / 6;
+		BYTE *map = new BYTE[Pcmw * lnsz];
+
+		n = 0;
+		i = 0;
+		x = 0;
+		memset(map, 0, Pcmw * lnsz);
+
+		for ( ; *p != '\0' ; p++ ) {
+			if ( *p >=  0x3F && *p <= (0x3F + 0x3F) ) {
+				if ( (Pcn + n) < 0x80 && i < lnsz && x < Pcmw )
+					map[x + i * Pcmw] = *p - 0x3F;
+				x++;
+			} else if ( *p == '/' ) {
+				i++;
+				x = 0;
+			} else if ( *p == ';' ) {
+				if ( (Pcn + n) < 0x80 )
+					m_FontTab[idx].SetUserFont(Pcn + n, Pcmw, Pcmh, map);
+				n++;
+				i = 0;
+				x = 0;
+				memset(map, 0, Pcmw * lnsz);
 			}
-			m_FontTab[idx].SetUserFont(Pcn + n, Pcmw, Pcmh, map);
 		}
+
+		delete [] map;
 	}
 
 	DISPUPDATE();
@@ -8816,14 +8818,16 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 				if ( (n = index[i].Find(_T("preserveAspectRatio"))) >= 0 && !index[i][n].m_bString )
 					bAspect = ((int)index[i][n] == 0 ? FALSE : TRUE);
 
-				SizeGrapWnd(pGrapWnd, cx, cy, bAspect);
+				SizeGrapWnd(pGrapWnd, cx, cy, bAspect, TRUE);
 
 				pGrapWnd->m_ImageIndex = m_ImageIndex++;
 				if ( m_ImageIndex >= 4096 )		// index max 12 bit
 					m_ImageIndex = 1024;		// 1024 - 4095
 
-				if ( (pTempWnd = GetGrapWnd(pGrapWnd->m_ImageIndex)) != NULL )
+				if ( (pTempWnd = GetGrapWnd(pGrapWnd->m_ImageIndex)) != NULL ) {
+					RemoveGrapWnd(pTempWnd);
 					pTempWnd->DestroyWindow();
+				}
 
 				AddGrapWnd(pGrapWnd);
 				DispGrapWnd(pGrapWnd, TRUE);

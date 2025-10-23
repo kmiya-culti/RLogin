@@ -787,14 +787,16 @@ int CTabBar::GetImageIndex(LPCTSTR filename)
 	
 	if ( (pNode = m_ImageFile.Find(filename)) == NULL ) {
 		CClientDC dc(&m_TabCtrl);
-		CBmpFile image;
+		CBmpFile *pImage;
 		CBitmap *pBitmap;
 		COLORREF bc = RGB(255, 255, 255);
 
 		FormatErrorReset();
 
-		if ( image.LoadFile(filename) && (pBitmap = image.GetBitmap(&dc, ICONIMG_SIZE, ICONIMG_SIZE, bc)) != NULL )
+		if ( (pImage = theApp.GetImageFile(filename)) != NULL && (pBitmap = pImage->GetBitmap(&dc, ICONIMG_SIZE, ICONIMG_SIZE, bc)) != NULL ) {
 			idx = m_ImageList.Add(pBitmap, bc);
+			pBitmap->DeleteObject();
+		}
 
 		m_ImageFile[filename].m_Value = idx;
 

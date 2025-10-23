@@ -122,6 +122,7 @@ static const struct _OptListTab {
 	{	TO_TTCTH,		IDT_TERM_LIST65	},
 	{	TO_RLBOLDHC,	IDT_TERM_LIST66	},
 	{	TO_RLYENKEY,	IDT_TERM_LIST68	},
+	{	TO_RLSIXELSIZE,	IDT_TERM_LIST69 },
 	{	0,				0				}
 };
 

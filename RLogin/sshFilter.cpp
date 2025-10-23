@@ -446,7 +446,12 @@ void CFifoSocks::DecodeSocks()
 
 CFifoAgent::CFifoAgent(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CFifoChannel *pChan) : CFifoThread(pDoc, pSock)
 {
+	ASSERT(pDoc != NULL && pSock != NULL && pChan != NULL);
+
 	m_pChan = pChan;
+
+	for ( int n = 0 ; n < ((Cssh *)m_pSock)->m_IdKeyTab.GetSize() ; n++ )
+		m_IdKeyTab.Add(((Cssh *)m_pSock)->m_IdKeyTab[n]);
 }
 void CFifoAgent::OnRead(int nFd)
 {
@@ -517,10 +522,10 @@ CIdKey *CFifoAgent::GetIdKey(CIdKey *key, LPCTSTR pass)
 {
 	int n;
 
-	for ( n = 0 ; n < ((Cssh *)m_pSock)->m_IdKeyTab.GetSize() ; n++ ) {
-		if ( ((Cssh *)m_pSock)->m_IdKeyTab[n].Compere(key) == 0 ) {
-			if ( pass == NULL || ((Cssh *)m_pSock)->m_IdKeyTab[n].InitPass(pass) )
-				return &(((Cssh *)m_pSock)->m_IdKeyTab[n]);
+	for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
+		if ( m_IdKeyTab[n].Compere(key) == 0 ) {
+			if ( pass == NULL || m_IdKeyTab[n].InitPass(pass) )
+				return &(m_IdKeyTab[n]);
 		}
 	}
 
@@ -540,8 +545,8 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 				CIdKey *pKey;
 				CBuffer data, work;
 
-				for ( n = 0 ; n < ((Cssh *)m_pSock)->m_IdKeyTab.GetSize() ; n++ ) {
-					pKey = &(((Cssh *)m_pSock)->m_IdKeyTab[n]);
+				for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
+					pKey = &(m_IdKeyTab[n]);
 					if ( pKey->m_Type == IDKEY_RSA1 ) {
 						BIGNUM const *e = NULL, *n = NULL;
 
@@ -647,12 +652,12 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 					Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
 
 					if ( key.m_Cert != 0 ) {
-						for ( n = 0 ; n < ((Cssh *)m_pSock)->m_IdKeyTab.GetSize() ; n++ ) {
-							pkey = &(((Cssh *)m_pSock)->m_IdKeyTab[n]);
+						for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
+							pkey = &(m_IdKeyTab[n]);
 							if ( pkey->m_Cert == 0 && pkey->ComperePublic(&key) == 0 ) {
 								pkey->m_Cert = key.m_Cert;
 								pkey->m_CertBlob = key.m_CertBlob;
-								((CMainFrame *)AfxGetMainWnd())->m_IdKeyTab.UpdateUid(pkey->m_Uid);
+								//((CMainFrame *)AfxGetMainWnd())->m_IdKeyTab.UpdateUid(pkey->m_Uid);
 							}
 						}
 					} else {
@@ -684,9 +689,9 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 				key.GetBlob(&blob);
 
 				if ( !IsLocked() && (pKey = GetIdKey(&key, NULL)) != NULL ) {
-					for ( n = 0 ; n < ((Cssh *)m_pSock)->m_IdKeyTab.GetSize() ; n++ ) {
-						if ( pKey->m_Uid == ((Cssh *)m_pSock)->m_IdKeyTab[n].m_Uid ) {
-							((Cssh *)m_pSock)->m_IdKeyTab.RemoveAt(n);
+					for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
+						if ( pKey->m_Uid == m_IdKeyTab[n].m_Uid ) {
+							m_IdKeyTab.RemoveAt(n);
 							break;
 						}
 					}

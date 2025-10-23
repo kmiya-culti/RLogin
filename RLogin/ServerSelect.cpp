@@ -451,11 +451,12 @@ static UINT ImageIndexProc(LPVOID pParam)
 	int idx;
 	int count = 0;
 	CClientDC dc(NULL);
-	CBmpFile image;
+	CBmpFile *pImage;
 	CBitmap *pBitmap = NULL;
 	COLORREF bc = RGB(255, 255, 255);
 	CServerSelect::ImageIndexParam *pData;
 	CServerSelect *pThis = (CServerSelect *)pParam;
+	CString msg;
 
 	pThis->m_ImageSemaphore.Lock();
 
@@ -467,8 +468,8 @@ static UINT ImageIndexProc(LPVOID pParam)
 		if ( pThis->m_ImageFile.Find(pData->FileName) == NULL ) {
 			pThis->m_ImageSemaphore.Unlock();
 
-			if ( image.LoadFile(pData->FileName) )
-				pBitmap = image.GetBitmap(&dc, pData->ImageSize.cx, pData->ImageSize.cy, bc);
+			if ( (pImage = theApp.GetImageFile(pData->FileName)) != NULL )
+				pBitmap = pImage->GetBitmap(&dc, pData->ImageSize.cx, pData->ImageSize.cy, bc);
 
 			pThis->m_ImageSemaphore.Lock();
 			if ( pBitmap != NULL ) {
@@ -477,14 +478,16 @@ static UINT ImageIndexProc(LPVOID pParam)
 				pBitmap->DeleteObject();
 				pBitmap = NULL;
 
-				if ( ++count >= 4 ) {
-					count = 0;
-					pThis->PostMessage(WM_COMMAND, IDM_RESET_ALL);
-				}
-
 			} else {
 				pThis->m_ImageFile[pData->FileName].m_Value = (-1);
-				ThreadMessageBox(_T("'%s' Failed to load icon image file '%s'"), pData->EntryName, pData->FileName);
+				if ( !pThis->m_ImageErrorMsg.IsEmpty() )
+					pThis->m_ImageErrorMsg += _T("\n\n");
+				pThis->m_ImageErrorMsg += FormatErrorMessage(msg, _T("'%s' Failed to load icon image file '%s'"), pData->EntryName, pData->FileName);
+			}
+
+			if ( ++count >= 4 ) {
+				count = 0;
+				pThis->PostMessage(WM_COMMAND, IDM_RESET_ALL);
 			}
 		}
 
@@ -496,6 +499,9 @@ static UINT ImageIndexProc(LPVOID pParam)
 
 	if ( !pThis->m_bImageThreadAbort && count > 0 )
 		pThis->PostMessage(WM_COMMAND, IDM_RESET_ALL);
+
+	// FormatErrorMessage -> AddErrorMessage -> ERR_get_error
+	OPENSSL_thread_stop();
 
 	return 0;
 }
@@ -1594,6 +1600,15 @@ BOOL CServerSelect::IsJsonEntryText(LPCTSTR str)
 #ifdef	USE_ENTRYICON
 void CServerSelect::OnUpdateListIcon()
 {
+	m_ImageSemaphore.Lock();
+	if ( !m_ImageErrorMsg.IsEmpty() ) {
+		CString msg(m_ImageErrorMsg);
+		m_ImageErrorMsg.Empty();
+		m_ImageSemaphore.Unlock();
+		::AfxMessageBox(msg, MB_ICONERROR);
+	} else
+		m_ImageSemaphore.Unlock();
+
 	InitEntry(INIT_CALL_UPDATE);
 }
 #endif

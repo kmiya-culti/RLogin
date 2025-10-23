@@ -5,17 +5,11 @@
 <TITLE>RLogin使い方説明</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
-				
-				
-				
+TD {		
 				
 		background-color : #ffffff; font-size : 90%;
 }
-.BOX{
-				
-				
-				
+.BOX{		
 				
 		background-color : silver;
 }
@@ -403,7 +397,7 @@ fi</PRE>
       <TABLE width="1250" cellpadding="5">
         <TBODY>
           <TR>
-            <TD width="600" valign="top">SSHで公開鍵認証を行うには、まず認証鍵を用意する必要がありサーバー管理者が用意される以外は、自分で作成します。<BR>
+            <TD width="600" valign="top">SSHで公開鍵認証を行うには、まず認証鍵を用意する必要がありサーバー管理者が用意される以外は、自分で作成します。 参照：<A href="#SSHAGEANT">SSHエージェントを利用</A><BR>
             <BR>
             作成にはssh-keygenやputty、Tera Termなどでファイルとして作成する方法とRLoginが内部で管理する<A href="./#SSHKEYSET">認証キーの設定</A>による方法があります。<BR>
             <BR>
@@ -451,9 +445,9 @@ fi</PRE>
                   <TD align="center" width="30">256</TD>
                   <TD align="center" width="30">384</TD>
                   <TD align="center" width="30">521</TD>
-                  <TD align="center" width="30">768</TD>
                   <TD align="center" width="30">1024</TD>
                   <TD align="center" width="30">2048</TD>
+                  <TD align="center">3072</TD>
                   <TD align="center" width="30">4096</TD>
                   <TD align="center" width="30">8192</TD>
                 </TR>
@@ -463,8 +457,8 @@ fi</PRE>
                   <TD align="center">-</TD>
                   <TD align="center">-</TD>
                   <TD align="center">-</TD>
+                  <TD align="center">-</TD>
                   <TD align="center">△</TD>
-                  <TD align="center">○</TD>
                   <TD align="center">◎</TD>
                   <TD align="center">○</TD>
                   <TD align="center">△</TD>
@@ -475,11 +469,11 @@ fi</PRE>
                   <TD align="center">-</TD>
                   <TD align="center">-</TD>
                   <TD align="center">-</TD>
-                  <TD align="center">△</TD>
-                  <TD align="center">△</TD>
                   <TD align="center">×</TD>
-                  <TD align="center">×</TD>
-                  <TD align="center">×</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
                 </TR>
                 <TR>
                   <TD>ECDSA</TD>
@@ -489,7 +483,7 @@ fi</PRE>
                   <TD align="center">○</TD>
                   <TD align="center">-</TD>
                   <TD align="center">-</TD>
-                  <TD align="center">-</TD>
+                  <TD align="center"></TD>
                   <TD align="center">-</TD>
                   <TD align="center">-</TD>
                 </TR>
@@ -501,7 +495,7 @@ fi</PRE>
                   <TD align="center">-</TD>
                   <TD align="center">-</TD>
                   <TD align="center">-</TD>
-                  <TD align="center">-</TD>
+                  <TD align="center"></TD>
                   <TD align="center">-</TD>
                   <TD align="center">-</TD>
                 </TR>
@@ -511,7 +505,7 @@ fi</PRE>
             まず暗号方式では、古いサーバーや互換性を考えるならRSAの2048ビットあたりが無難ですが暗号強度的に不満がありRSAの4096/8192なら計算速度的に不満があります。もしサーバーがopenssh-5.7以上ならECDSAの256ビット、openssh-6.5以上ならED25519が最近の暗号方式なので安全かもしれません。DSAは、互換性や暗号強度を考えると使用しないほうが無難です。<BR>
             （追記：DSAは、openssh-7.0以降デフォルトで使用出来ません）<BR>
             <BR>
-            RLoginで管理するならED25519&gt;ECDSA-256&gt;RSA-2048の３つを作成してアクセストライさせれば古いサーバーでもどれかで認証せるような設定が可能です。<BR>
+            RLoginで管理するならED25519&gt;ECDSA-256&gt;RSA-3072の３つを作成してアクセストライさせれば古いサーバーでもどれかで認証せるような設定が可能です。<BR>
             <BR>
             認証鍵が用意できれば次にそのペアとなる公開鍵をサーバー側の自分のホームにある設定ファイル「~/.ssh/authorized_keys」に新規・追加する必要があります。<BR>
             <BR>
@@ -529,7 +523,7 @@ fi</PRE>
             cat &gt;&gt;~/.ssh/authorized_keys<BR>
             「メニュー」「編集」「貼り付け」をして<S>Enter(改行)</S>CTRL+D(eof)で設定します。<BR>
             <BR>
-            ※2.30.4から公開鍵をクリップボードに転送時に改行コードを追加しました<BR>
+            ※2.30.4から複数の公開鍵を選択してクリップボードに転送するようにし改行コードも追加しました<BR>
             <BR>
             ※authorized_keysファイルを新規作成する場合には、&quot;chmod 600 authorized_keys&quot;などでアクセスパーミッションを設定しないとサーバー側で怒られるかもしれません。(.sshディレクトリーも同様に&quot;chmod
             755 .ssh&quot;などのgw/ow属性のオフがsshサーバーで確認されます）<BR>
@@ -544,8 +538,7 @@ fi</PRE>
             Decode: zlib + aes256-ctr + hmac-sha2-512-etm@openssh.com<BR>
             UserAuth: publickey ecdsa-sha2-nistp256<BR>
             </TD>
-            <TD valign="top"><IMG src="image219.jpg" width="459" height="445" border="0"><BR>
-            <IMG src="image220.jpg" width="469" height="193" border="0"></TD>
+            <TD valign="top"><IMG src="image219.jpg" width="448" height="475" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -1805,7 +1798,7 @@ done</PRE>
             A&quot;が&quot;\033[A&quot;、&quot;SS3 A&quot;が&quot;\033OA&quot;です。<BR>
             <BR>
             ※ 2.25.4よりキーパッドのキーコードも整理しました（xterm R6 互換モード時のみDECPAMが有効になりますのでご注意ください）<BR>
-            <TABLE border="1" cellpadding="5">
+            <TABLE cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
                   <TD colspan="2" align="center"><SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: -webkit-center; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">DECPNM<BR>
@@ -1904,7 +1897,7 @@ done</PRE>
             </TABLE>
             </TD>
             <TD valign="top">
-            <TABLE border="1" cellpadding="5">
+            <TABLE cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
                   <TD width="100" align="center"></TD>
@@ -2357,6 +2350,113 @@ let &amp;t_te .= &quot;\e[?8428r\eP5#u\e\\&quot;
             cc -O wcwidth.c<BR>
             LANG=ja_JP.UTF-8; a.out<BR>
             <IMG src="image299.jpg" width="511" height="395" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="SIXELOPT"></A>5.26 Sixelの表示オプション</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top" align="left">
+            <TABLE cellpadding="3" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD colspan="3">Sixel関連の表示オプション<BR>
+                  参照：<A href="index.html#TERMOPT">制御コードのオプション設定</A></TD>
+                </TR>
+                <TR>
+                  <TD align="center" valign="middle" width="80">Pn</TD>
+                  <TD align="center" width="230">設定 DECSET （CSI ?Pn h)</TD>
+                  <TD align="center">解除 DECRST （CSI ?Pn l)</TD>
+                </TR>
+                <TR>
+                  <TD align="center" valign="middle" rowspan="2" width="80">80</TD>
+                  <TD>Sixelを別ウィンドウで表示</TD>
+                  <TD>Sixelスクロールモード表示</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">このオプションをセットすると常に別ウィンドウでSixel画像を表示します（この機能は、RLoginオリジナルです）。Sixelスクロールモードでは、端末のコンソールに画像を表示します</TD>
+                </TR>
+                <TR>
+                  <TD align="center" valign="middle" rowspan="2" width="80">1070</TD>
+                  <TD>ReGIS/Sixel個別カラーマップ</TD>
+                  <TD>共通カラーマップ</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">このオプションをセットするとReGis/Sixelのカラーパレットを常に初期化して個別に再設定します。共通カラーマップは、同じカラーパレットを次に表示する画像でも使用します</TD>
+                </TR>
+                <TR>
+                  <TD align="center" valign="middle" rowspan="2" width="80">8452</TD>
+                  <TD>Sixel画像の右にカーソル</TD>
+                  <TD>Sixel画像の下にカーソル</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">画像表示後のカーソル位置を指定します。このオプションをセットすると画面下でのスクロールの挙動が変化し最画面下でのオートスクロールを抑制しますが、続けてSixel画像を表示した場合は、画面右に画像が寄ってしまいますのでご注意ください</TD>
+                </TR>
+                <TR>
+                  <TD align="center" valign="middle" rowspan="2" width="80">8460</TD>
+                  <TD>Sixelをフォントから計算</TD>
+                  <TD>Sixelを固定値で計算</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">Sixel表示サイズの元になる値をフォントサイズ・固定値(10pix)から選択します。<BR>
+                  2.31.0以前は、フォントサイズ（画面サイズ）からSixel画像の表示サイズを計算して実画像サイズで表示するようにしていましたが、多くの端末では、固定値の10ピクセルで計算して画像サイズを文字数で簡単に計算できるようにしています。横600pixの場合は、300pix/10pix=30文字で表すことになりフォントサイズに依存せずに表示画像サイズを拡大、縮小して表示します</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top"><IMG src="image302.jpg" width="521" height="423" border="0"><BR>
+            画像サイズ横300pixの場合<BR>
+            DECRST 8460では、300/10=30文字で表示<BR>
+            DECSET 8460では、フォント6x12の場合300/6=50文字で表示</TD>
+          </TR>
+          <TR>
+            <TD valign="top" align="left">
+            <TABLE width="600" cellpadding="3" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD colspan="4">DECSIXELの独自データ拡張<BR>
+                  参照：<A href="ctrlcode.html#DCS">DCS 一覧</A></TD>
+                </TR>
+                <TR>
+                  <TD align="center" valign="middle" rowspan="5" width="80">RLGDSPSZ</TD>
+                  <TD valign="top" colspan="3">%Pu;Px;Py;Pa </TD>
+                </TR>
+                <TR>
+                  <TD valign="top" rowspan="2">Pu</TD>
+                  <TD valign="top">0</TD>
+                  <TD valign="top">Px=表示サイズを文字数で指定<BR>
+                  Py=表示サイズを文字行数で指定</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">1</TD>
+                  <TD valign="top">Px=表示サイズを画面横サイズの％で指定 (0-100)<BR>
+                  Py=表示サイズを画面縦サイズの％で指定 (0-100)</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" rowspan="2">Pa</TD>
+                  <TD valign="top">0</TD>
+                  <TD valign="top">元画像のアスペクト比を無視して表示する</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">1</TD>
+                  <TD valign="top">元画像のアスペクト比を維持して表示する</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top"><IMG src="image303.jpg" width="525" height="201" border="0"><BR>
+            Sixelデータに%0;40を指定して表示した場合</TD>
           </TR>
         </TBODY>
       </TABLE>

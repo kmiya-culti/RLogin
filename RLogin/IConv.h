@@ -24,6 +24,9 @@ public:
 	class CIConv *m_Right;
 	DWORD m_Table[256];
 	int m_ErrCount;
+	int m_CodePage;
+	CDwordIndex m_CodeIndex;
+	const WORD *m_DecTab;
 
 	DWORD JisToSJis(DWORD cd);
 	DWORD SJisToJis(DWORD cd);

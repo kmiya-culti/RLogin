@@ -177,11 +177,12 @@ CGrapWnd::CGrapWnd(class CTextRam *pTextRam)
 	m_Maps = 0;
 	m_DspX = m_DspY = 0;
 	m_DspA = TRUE;
+	m_DspFlag = FALSE;
 	m_pActMap = m_pOldMap = NULL;
 	m_ImageIndex = (-1);
-	m_BlockX = m_BlockY = 0;
+	m_BlockX = m_BlockY = m_BlockTop = 0;
 	m_CellX = m_CellY = 0;
-	m_Crc = 0;
+	m_FullX = m_FullY = 0;
 	m_Use = 0;
 	m_Alive = 0;
 	ZeroMemory(m_pList, sizeof(m_pList));
@@ -190,6 +191,7 @@ CGrapWnd::CGrapWnd(class CTextRam *pTextRam)
 	m_GifAnimePos = 0;
 	m_GifAnimeClock = 0;
 	m_pHistogram = NULL;
+	m_StartClock = 0;
 
 	m_SixelStat = 0;
 	m_SixelWidth = m_SixelHeight = 0;
@@ -202,6 +204,7 @@ CGrapWnd::CGrapWnd(class CTextRam *pTextRam)
 	m_SixelBackColor = m_SixelTransColor = 0;
 	m_pAlphaMap = NULL;
 	m_pIndexMap = NULL;
+	m_pSaveGrapWnd = NULL;
 
 	m_BitPen = 0;
 	m_MulPen = 0;
@@ -394,59 +397,68 @@ void CGrapWnd::OnPaint()
 }
 void CGrapWnd::DrawBlock(CDC *pDC, LPCRECT pRect, COLORREF bc, BOOL bEraBack, int sx, int sy, int ex, int ey, int scW, int scH, int chW, int chH, int cols, int lines)
 {
-	int mx, my, ox, oy;
-	int vx, vy, dx, dy;
 	int smd;
 	CDC TempDC;
 	CBitmap *pOldMap;
 	CRect box, rect(*pRect);
 	BLENDFUNCTION bf;
 
-	if ( m_pActMap == NULL || sx >= ex || sy >= ey )
+	ASSERT(sx < ex && sy < ey);
+
+	box.left   = m_FullX * sx / m_BlockX;
+	box.top    = m_FullY * sy / m_BlockY;
+	box.right  = m_FullX * ex / m_BlockX;
+	box.bottom = m_FullY * ey / m_BlockY;
+
+	if ( m_pActMap == NULL ) {
+		if ( m_SixelTempDC.GetSafeHdc() != NULL && box.left < m_SixelWidth || box.top < m_SixelPointY ) {
+			if ( box.right > m_SixelWidth ) {
+				int n = (box.right - m_SixelWidth) * (scW * m_BlockX / cols) / m_FullX;
+				rect.right -= n;
+				box.right = m_SixelWidth;
+			}
+
+			if ( box.bottom > m_SixelPointY ) {
+				int n = (box.bottom - m_SixelPointY) * (scH * m_BlockY / lines) / m_FullY;
+				rect.bottom -= n;
+				box.bottom = m_SixelPointY;
+			}
+
+			smd = pDC->SetStretchBltMode(HALFTONE);
+
+			if ( bEraBack ) {
+				if ( rect.right < pRect->right )
+					pDC->FillSolidRect(pRect->right, rect.top, pRect->right - rect.right, rect.Height(), bc);
+				if ( rect.bottom < pRect->bottom )
+					pDC->FillSolidRect(rect.left, rect.bottom, rect.Width(), pRect->bottom - rect.bottom, bc);
+
+				pDC->StretchBlt(rect.left, rect.top, rect.Width(), rect.Height(),
+					&m_SixelTempDC, box.left, box.top, box.Width(), box.Height(), SRCCOPY);
+			} else
+				pDC->TransparentBlt(rect.left, rect.top, rect.Width(), rect.Height(),
+					&m_SixelTempDC, box.left, box.top, box.Width(), box.Height(), bc);
+
+			pDC->SetStretchBltMode(smd);
+
+		} else if ( bEraBack )
+			pDC->FillSolidRect(pRect, bc);
+
 		return;
+	}
 
-	dx = scW * m_BlockX / cols;
-	dy = scH * m_BlockY / lines;
-
-	mx = dx * ASP_DIV * m_CellX / m_AspX / chW;
-	my = dy * ASP_DIV * m_CellY / m_AspY / chH;
-
-	ox = (mx - m_MaxX) / 2;
-	oy = (my - m_MaxY) / 2;
-
-	box.left   = mx * sx / m_BlockX - ox;
-	box.top    = my * sy / m_BlockY - oy;
-	box.right  = mx * ex / m_BlockX - ox;
-	box.bottom = my * ey / m_BlockY - oy;
-
-	if ( box.Width() <= 0 )
-		box.right = box.left + 1;
-
-	if ( box.Height() <= 0 )
-		box.bottom = box.top + 1;
-
-	dx = rect.Width();
-	dy = rect.Height();
-	vx = box.Width();
-	vy = box.Height();
-
-	if ( box.left < 0 ) {
-		rect.left -= (box.left * dx / vx);
-		box.left = 0;
+	if ( box.left >= m_MaxX || box.top >= m_MaxY ) {
+		if ( bEraBack )
+			pDC->FillSolidRect(pRect, bc);
+		return;
 	}
 
 	if ( box.right > m_MaxX ) {
-		rect.right -= ((box.right - m_MaxX) * dx / vx);
+		rect.right -= (box.right - m_MaxX) * (scW * m_BlockX / cols) / m_FullX;
 		box.right = m_MaxX;
 	}
 
-	if ( box.top < 0 ) {
-		rect.top -= (box.top * dy / vy);
-		box.top = 0;
-	}
-
 	if ( box.bottom > m_MaxY ) {
-		rect.bottom -= ((box.bottom - m_MaxY) * dy / vy);
+		rect.bottom -= (box.bottom - m_MaxY) * (scH * m_BlockY / lines) / m_FullY;
 		box.bottom = m_MaxY;
 	}
 
@@ -486,15 +498,8 @@ void CGrapWnd::DrawBlock(CDC *pDC, LPCRECT pRect, COLORREF bc, BOOL bEraBack, in
 	}
 
 	if ( bEraBack ) {
-		if ( rect.left > pRect->left )
-			pDC->FillSolidRect(pRect->left, pRect->top, rect.left - pRect->left, pRect->bottom - pRect->top, bc);
-
 		if ( rect.right < pRect->right )
 			pDC->FillSolidRect(rect.right, pRect->top, pRect->right - rect.right, pRect->bottom - pRect->top, bc);
-
-		if ( rect.top > pRect->top )
-			pDC->FillSolidRect(pRect->left, pRect->top, pRect->right - pRect->left, rect.top - pRect->top, bc);
-
 		if ( rect.bottom < pRect->bottom )
 			pDC->FillSolidRect(pRect->left, rect.bottom, pRect->right - pRect->left, pRect->bottom - rect.bottom, bc);
 
@@ -925,7 +930,7 @@ int CGrapWnd::Compare(CGrapWnd *pWnd)
 {
 	BITMAP src, dis;
 
-	if ( m_Type != pWnd->m_Type || m_Crc != pWnd->m_Crc )
+	if ( m_Type != pWnd->m_Type )
 		return 1;
 
 	if ( m_pActMap == NULL || pWnd->m_pActMap == NULL )
@@ -940,23 +945,7 @@ int CGrapWnd::Compare(CGrapWnd *pWnd)
 	if ( src.bmType != dis.bmType || src.bmPlanes != dis.bmPlanes || src.bmBitsPixel != dis.bmBitsPixel || src.bmWidthBytes != dis.bmWidthBytes )
 		return (-1);
 
-#if 1
 	return 0;
-#else
-	int n, c;
-	BYTE *map;
-
-	n = src.bmWidthBytes * src.bmHeight;
-	map = new BYTE[n * 2];
-
-	m_pActMap->GetBitmapBits(n, map);
-	pWnd->m_pActMap->GetBitmapBits(n, map + n);
-
-	c = memcmp(map, map + n, n);
-	delete [] map;
-
-	return c;
-#endif
 }
 void CGrapWnd::Copy(CGrapWnd *pWnd)
 {
@@ -971,7 +960,6 @@ void CGrapWnd::Copy(CGrapWnd *pWnd)
 	m_AspY = pWnd->m_AspY;
 
 	m_ImageIndex = (-1);
-	m_Crc = pWnd->m_Crc;
 
 	m_Maps = 0;
 	m_pActMap = NULL;
@@ -990,37 +978,6 @@ void CGrapWnd::Copy(CGrapWnd *pWnd)
 		m_Bitmap[m_Maps].Attach(hHandle);
 		m_pActMap = &(m_Bitmap[m_Maps]);
 	}
-}
-void CGrapWnd::SetMapCrc()
-{
-	int n, len;
-	BYTE *map, *s;
-	BITMAP bitmap;
-	extern const unsigned long crc32tab[];
-
-	m_Crc = 0;
-
-	if ( m_pActMap == NULL || !m_pActMap->GetBitmap(&bitmap) )
-		return;
-
-	len = bitmap.bmWidthBytes * bitmap.bmHeight * bitmap.bmPlanes;
-	map = s = new BYTE[len];
-	len = m_pActMap->GetBitmapBits(len, map);
-
-	for ( n = 0 ; n < len ; n++ )
-		m_Crc = crc32tab[(m_Crc ^ *(s++)) & 0xff] ^ ((m_Crc >> 8) & 0x00ffffff);
-
-	for ( n = 0, s = (BYTE *)(&m_AspX), len = sizeof(m_AspX) ; n < len ; n++ )
-		m_Crc = crc32tab[(m_Crc ^ *(s++)) & 0xff] ^ ((m_Crc >> 8) & 0x00ffffff);
-	for ( n = 0, s = (BYTE *)(&m_AspY), len = sizeof(m_AspY) ; n < len ; n++ )
-		m_Crc = crc32tab[(m_Crc ^ *(s++)) & 0xff] ^ ((m_Crc >> 8) & 0x00ffffff);
-
-	for ( n = 0, s = (BYTE *)(&m_BlockX), len = sizeof(m_BlockX) ; n < len ; n++ )
-		m_Crc = crc32tab[(m_Crc ^ *(s++)) & 0xff] ^ ((m_Crc >> 8) & 0x00ffffff);
-	for ( n = 0, s = (BYTE *)(&m_BlockY), len = sizeof(m_BlockY) ; n < len ; n++ )
-		m_Crc = crc32tab[(m_Crc ^ *(s++)) & 0xff] ^ ((m_Crc >> 8) & 0x00ffffff);
-
-	delete [] map;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2951,6 +2908,7 @@ void CGrapWnd::SixelStart(int aspect, int mode, int grid, COLORREF bc)
 	m_SixelColorIndex = 0;
 	m_SixelValue      = 0;
 	m_SixelValueInit  = FALSE;
+	m_SixelIndexY     = 0;
 
 	m_SixelParam.RemoveAll();
 	ZeroMemory(m_SixelMaxTab, sizeof(m_SixelMaxTab));
@@ -2963,14 +2921,25 @@ void CGrapWnd::SixelStart(int aspect, int mode, int grid, COLORREF bc)
 	m_DspX = 0;
 	m_DspY = 0;
 	m_DspA = TRUE;
+	m_DspFlag = FALSE;
 
 	m_Type = TYPE_SIXEL;
 	m_pActMap = NULL;
 	m_Maps = 0;
-	m_Crc = 0;
 	m_TransIndex = (-1);
 	m_bHaveAlpha = FALSE;
 	m_pIndexMap = NULL;
+
+	m_BlockX = m_BlockY = m_BlockTop = 0;
+
+	if ( m_pTextRam->IsOptEnable(TO_RLSIXELSIZE) ) {
+		m_pTextRam->GetCellSize(&m_CellX, &m_CellY);
+	} else {
+		m_CellX = 10;
+		m_CellY = 10 * m_pTextRam->m_DefFontHw / 10;
+	}
+
+	m_StartClock = clock();
 
 	// DECTID < 5(VT220) なら背景色をデフォルト白色でパレットをモノクロに
 	// mode == 1 なら背景色を補色に
@@ -3067,9 +3036,10 @@ void CGrapWnd::SixelStart(int aspect, int mode, int grid, COLORREF bc)
 	m_pAlphaMap = new BYTE[m_MaxX * m_MaxY];
 	ZeroMemory(m_pAlphaMap, m_MaxX * m_MaxY);
 
-	if ( mode == 5 ) {	// sixel or mode
+	if ( mode == 5 ) {	// sixel ormode
 		m_pIndexMap = new WORD[m_MaxX * m_MaxY];
 		ZeroMemory(m_pIndexMap, m_MaxX * m_MaxY * sizeof(WORD));
+		m_SixelIndexY = 0;
 	}
 }
 void CGrapWnd::SixelResize()
@@ -3144,6 +3114,7 @@ void CGrapWnd::SixelData(int ch)
 
 			} else if ( ch == '%' ) {		// RLGDSPSZ									%Pn:Px;Py;Pa
 				m_SixelStat = 5;
+				m_DspFlag = TRUE;
 
 			} else if ( ch == '$' ) {		// DECGCR Graphics Carriage Return			$
 				m_SixelPointX   = 0;
@@ -3153,6 +3124,56 @@ void CGrapWnd::SixelData(int ch)
 				m_SixelPointX   = 0;
 				m_SixelPointY  += 6;
 				m_SixelRepCount = 1;
+
+				m_BlockX = (m_SixelWidth  * m_AspX / ASP_DIV + m_CellX - 1) / m_CellX;
+				m_BlockY = (m_SixelPointY * m_AspY / ASP_DIV) / m_CellY;
+				m_FullX = (m_CellX * m_BlockX) * ASP_DIV / m_AspX;
+				m_FullY = (m_CellY * m_BlockY) * ASP_DIV / m_AspY;
+
+				if ( !m_DspFlag && (clock() - m_StartClock) >= 500 && m_BlockTop < m_BlockY && !m_pTextRam->IsOptEnable(TO_DECSDM) ) {
+					if ( m_pIndexMap != NULL ) {
+						while ( m_SixelIndexY < m_SixelPointY ) {
+							for ( int x = 0 ; x < m_SixelWidth ; x++ )
+								m_SixelTempDC.SetPixelV(x, m_SixelIndexY, m_ColMap[m_pIndexMap[x + m_SixelIndexY * m_MaxX]]);
+							m_SixelIndexY++;
+						}
+					}
+
+					while ( m_BlockTop < m_BlockY ) {
+						if ( m_BlockTop > 0 )
+							m_pTextRam->ONEINDEX();
+
+						int x = 0;
+						CCharCell *vp = m_pTextRam->GETVRAM(m_pTextRam->m_CurX, m_pTextRam->m_CurY);
+						for ( x ; x < m_BlockX && (m_pTextRam->m_CurX + x) < m_pTextRam->m_Margin.right ; x++ ) {
+							vp->m_Vram.pack.image.id = m_ImageIndex;
+							vp->m_Vram.pack.image.ix = x;
+							vp->m_Vram.pack.image.iy = m_BlockTop;
+							vp->m_Vram.bank = SET_96 | 'A';
+							vp->m_Vram.eram = m_pTextRam->m_AttNow.std.eram;
+							vp->m_Vram.mode = CM_IMAGE;
+							vp->m_Vram.attr = m_pTextRam->m_AttNow.std.attr;
+							vp->m_Vram.font = m_pTextRam->m_AttNow.std.font;
+							vp->m_Vram.fcol = m_pTextRam->m_AttNow.std.fcol;
+							vp->m_Vram.bcol = m_pTextRam->m_AttNow.std.bcol;
+							vp->m_Atime     = m_pTextRam->m_Atime;
+
+							// 拡張frgbはpack.imageと重なるので注意！！
+							if ( (m_pTextRam->m_AttNow.eatt & EATT_BRGBCOL) != 0 ) {
+								vp->m_Vram.attr |= ATT_EXTVRAM;
+								vp->SetEatt(EATT_BRGBCOL);
+								vp->SetBrgb(m_pTextRam->m_AttNow.brgb);
+							}
+
+							vp++;
+						}
+
+						m_pTextRam->DISPVRAM(m_pTextRam->m_CurX, m_pTextRam->m_CurY, x, 1);
+						m_BlockTop++;
+					}
+
+					m_StartClock = clock();
+				}
 
 			} else if ( ch >= '?' && ch <= '\x7E' ) {
 
@@ -3490,15 +3511,6 @@ void CGrapWnd::ListRemove(class CGrapWnd **pTop, int idx)
 		pPos = pPos->m_pList[idx];
 	}
 }
-class CGrapWnd *CGrapWnd::ListFindImage(class CGrapWnd *pPos)
-{
-	while ( pPos != NULL ) {
-		if ( Compare(pPos) == 0 )
-			return pPos;
-		pPos = pPos->m_pList[GRAPLIST_IMAGE];
-	}
-	return NULL;
-}
 class CGrapWnd *CGrapWnd::ListFindIndex(class CGrapWnd *pPos, int index)
 {
 	while ( pPos != NULL ) {
@@ -3596,7 +3608,6 @@ void CGrapWnd::SetImage(CImage &image, BOOL bCheckAlpha)
 	m_Type = TYPE_SIXEL;
 	m_pActMap = NULL;
 	m_Maps = 0;
-	m_Crc = 0;
 
 	if ( m_Bitmap[0].GetSafeHandle() != NULL )
 		m_Bitmap[0].DeleteObject();
@@ -3635,8 +3646,6 @@ void CGrapWnd::SetImage(CImage &image, BOOL bCheckAlpha)
 	m_pActMap = &(m_Bitmap[m_Maps]);
 	m_pActMap->Attach((HBITMAP)image);
 	image.Detach();
-
-	SetMapCrc();
 }
 void CGrapWnd::AddGifAnime(CImage &image, int width, int height, CRect &rect, int bkidx, COLORREF bkcol, int delay, int motd, int trsidx)
 {
