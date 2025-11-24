@@ -1324,7 +1324,7 @@ void CScriptValue::Debug(CString &str)
 	int n;
 	CScriptValue *sp;
 	CString tmp;
-	static LPCTSTR typestr[] = {
+	static const LPCTSTR typestr[] = {
 		_T("int"),		_T("double"),	_T("complex"),	_T("int64"),	_T("str"),
 		_T("wstr"),		_T("dstr"),		_T("pbyte"),	_T("pwchar"),	_T("pdchar"),
 		_T("pdouble"),	_T("ident"),	_T("ptr"),		_T("empty") };

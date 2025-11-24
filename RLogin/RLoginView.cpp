@@ -279,8 +279,10 @@ CRLoginView::CRLoginView()
 	m_HisMin = 0;
 	m_HisOfs = 0;
 	m_pBitmap = NULL;
-	m_ClipFlag = 0;
+	m_ClipFlag = m_ClipFlagSave = 0;
 	m_ClipStaPosSave.SetSize(-1, -1);
+	m_ClipEndPosSave.SetSize(-1, -1);
+	m_ClipBasePos.SetSize(-1, -1);
 	m_ClipTimer = 0;
 	m_ClipKeyFlags = 0;
 	m_KeyMacFlag = FALSE;
@@ -2514,7 +2516,7 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 
 			if ( --m_GoziData[n].m_GoziCount < 0 ) {
 				m_GoziData[n].m_GoziCount = 24 + rand() % 32;
-				static int move_tab[] = { 1, 2, 4, 5, 6, 8, 9, 10, 0, 0, 0 };
+				static const int move_tab[] = { 1, 2, 4, 5, 6, 8, 9, 10, 0, 0, 0 };
 				move = move_tab[rand() % 11];
 				anime = rand() % 6;
 
@@ -2879,16 +2881,21 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 
 	if ( m_ClipFlag == 1 && m_ClipStaPos == m_ClipEndPos ) { // && !IsClipLineMode() ) {
 		if ( pDoc->m_TextRam.IsOptEnable(TO_RLSTAYCLIP) || !pDoc->m_TextRam.IsOptEnable(TO_RLCKCOPY) ) {
-			if ( (m_ClipKeyFlags & MK_SHIFT) == 0 ) {
+			if ( (m_ClipKeyFlags & MK_SHIFT) == 0 || m_ClipStaPosSave == CCurPos(-1, -1) || m_ClipEndPosSave == CCurPos(-1, -1) ) {
+				m_ClipBasePos    = pos;
 				m_ClipStaPosSave = m_ClipStaPos;
+				m_ClipEndPosSave = m_ClipEndPos;
+				m_ClipFlagSave   = 0;
 				m_ClipFlag = 0;
 
-			} else if ( m_ClipStaPosSave != CCurPos(-1, -1) ) {
-				if ( m_ClipStaPosSave > m_ClipStaPos )
-					m_ClipEndPos = m_ClipStaPosSave;
-				else
+			} else {
+				if ( m_ClipStaPos < m_ClipBasePos || (m_ClipStaPos == m_ClipBasePos && m_ClipStaPosSave != m_ClipStaPos) ) {
+					m_ClipEndPos = m_ClipEndPosSave;
+					m_ClipStaPosSave = m_ClipStaPos;
+				} else {
 					m_ClipStaPos = m_ClipStaPosSave;
-
+					m_ClipEndPosSave = m_ClipEndPos;
+				}
 				m_ClipKeyFlags &= ~MK_SHIFT;
 				m_ClipFlag = 6;
 			}
@@ -2916,6 +2923,8 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 
 	} else {
 		m_ClipStaPosSave = m_ClipStaPos;
+		m_ClipEndPosSave = m_ClipEndPos;
+		m_ClipFlagSave   = m_ClipFlag;
 		m_ClipFlag = 6;
 	}
 
@@ -2951,7 +2960,7 @@ void CRLoginView::OnLButtonDblClk(UINT nFlags, CPoint point)
 		return;
 	}
 
-	m_ClipStaPos = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
+	m_ClipBasePos = m_ClipStaPos = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
 	pDoc->m_TextRam.EditWordPos(&m_ClipStaPos, &m_ClipEndPos);
 
 	m_ClipStaOld = m_ClipStaPos;
@@ -3155,9 +3164,11 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 		if ( pos < m_ClipStaPos ) {
 			m_ClipFlag = 4;
 			m_ClipStaPos = pos;
+			m_ClipBasePos = m_ClipEndPos;
 		} else if ( pos > m_ClipEndPos ) {
 			m_ClipFlag = 3;
 			m_ClipEndPos = pos;
+			m_ClipBasePos = m_ClipStaPos;
 		}
 		break;
 

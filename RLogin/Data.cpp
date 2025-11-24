@@ -86,6 +86,25 @@ BOOL IsDigits(LPCTSTR p)
 	}
 	return TRUE;
 }
+BOOL IsListEntry(LPCTSTR p)
+{
+	if ( _tcsncmp(p, _T("List"), 4) != 0 )
+		return FALSE;
+	p += 4;
+
+	if ( *p < _T('0') || *p > _T('9') )
+		return FALSE;
+	p++;
+
+	if ( *p < _T('0') || *p > _T('9') )
+		return FALSE;
+	p++;
+
+	while ( *p >= _T('0') && *p <= _T('9') )
+		p++;
+
+	return (*p == _T('\0') ? TRUE : FALSE);
+}
 BOOL InStrStr(LPCTSTR str, LPCTSTR ptn)
 {
 	LPCTSTR p = _tcsstr(str, ptn);
@@ -305,6 +324,15 @@ CBuffer::CBuffer(int size)
 	m_Ofs = m_Len = 0;
 	m_Max = size;
 	m_Data = new BYTE[m_Max];
+}
+CBuffer::CBuffer(CBuffer &data)
+{
+	m_bZero = data.m_bZero;
+	m_Ofs = data.m_Ofs;
+	m_Len = data.m_Len;
+	m_Max = data.m_Max;
+	m_Data = new BYTE[m_Max];
+	memcpy(m_Data, data.m_Data, data.m_Max);
 }
 CBuffer::CBuffer()
 {
@@ -2290,6 +2318,269 @@ void CBuffer::IshEncNjis(LPBYTE buf, int len)
 }
 
 //////////////////////////////////////////////////////////////////////
+
+BOOL CBuffer::GzipDecode(LPBYTE buf, int len)
+{
+	int ret, n;
+	z_stream stream;
+	Bytef outbuf[4096];
+
+	Clear();
+	ZeroMemory(&stream, sizeof(stream));
+
+	if ( inflateInit2(&stream, 47) != Z_OK )
+		return FALSE;
+
+	stream.avail_in = (uInt)len;
+	stream.next_in  = (z_const Bytef *)buf;
+
+	for ( ; ; ) {
+		stream.next_out = outbuf;
+		stream.avail_out = sizeof(outbuf);
+
+		ret = inflate(&stream, Z_NO_FLUSH);
+
+		if ( (n = (int)sizeof(outbuf) - (int)stream.avail_out) > 0 )
+			Apend((LPBYTE)outbuf, n);
+
+		if ( ret == Z_STREAM_END || ret != Z_OK )
+			break;
+
+		stream.avail_out = 0;
+	}
+
+	inflateEnd(&stream);
+
+	return (ret == Z_STREAM_END ? TRUE : FALSE);
+}
+BOOL CBuffer::GzipEncode(LPBYTE buf, int len)
+{
+	int ret, n;
+	z_stream  stream;
+	Bytef outbuf[4096];
+
+	Clear();
+	ZeroMemory(&stream, sizeof(stream));
+
+	memset( &stream, 0, sizeof(z_stream) );
+
+	if ( deflateInit2(&stream, Z_BEST_COMPRESSION, Z_DEFLATED, 31, 8, Z_DEFAULT_STRATEGY) != Z_OK )
+		return FALSE;
+
+	stream.avail_in = (uInt)len;
+	stream.next_in  = (z_const Bytef *)buf;
+
+	for ( ; ; ) {
+		stream.next_out = outbuf;
+		stream.avail_out = sizeof(outbuf);
+
+		ret = deflate(&stream, Z_FINISH);
+
+		if ( (n = (int)sizeof(outbuf) - (int)stream.avail_out) > 0 )
+			Apend((LPBYTE)outbuf, n);
+
+		if ( ret == Z_STREAM_END || ret != Z_OK )
+			break;
+
+		stream.avail_out = 0;
+   }
+
+   deflateEnd(&stream);
+
+   return (ret == Z_STREAM_END ? TRUE : FALSE);
+}
+
+void CBuffer::EscDecode(LPBYTE buf, int len, LPCTSTR to)
+{
+	int n, c;
+	LPCSTR p = (LPCSTR)buf;
+	LPCSTR e = p + len;
+
+#ifdef	USE_EXTESCSTR
+	CBuffer tmp;
+	LPCSTR s;
+	CIConv iconv;
+	CStringA str;
+#endif
+
+	while ( p < e ) {
+		switch(*p) {
+		case '\\':
+			if ( ++p >= e )
+				break;
+			switch(*p) {
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7':
+				c = *(p++) - '0';
+				for ( n = 0 ; n < 2 && p < e ; n++ ) {
+					if ( *p >= '0' && *p <= '7' )
+						c = c * 8 + (*(p++) - '0');
+					else
+						break;
+				}
+				PutByte(c);
+				break;
+			case 'x':
+				if ( ++p >= e )
+					break;
+				for ( c = n = 0 ; n < 2 && p < e ; n++ ) {
+					if ( *p >= '0' && *p <= '9' )
+						c = c * 16 + (*(p++) - '0');
+					else if ( *p >= 'a' && *p <= 'f' )
+						c = c * 16 + (*(p++) - 'a' + 10);
+					else if ( *p >= 'A' && *p <= 'F' )
+						c = c * 16 + (*(p++) - 'A' + 10);
+					else
+						break;
+				}
+				PutByte(c);
+				break;
+
+#ifdef	USE_EXTESCSTR
+			case 'u':
+				if ( ++p >= e )
+					break;
+				// 000000-FFFFFF
+				for ( c = n = 0 ; n < 6 && p < e ; n++ ) {
+					if ( *p >= '0' && *p <= '9' )
+						c = c * 16 + (*(p++) - '0');
+					else if ( *p >= 'a' && *p <= 'f' )
+						c = c * 16 + (*(p++) - 'a' + 10);
+					else if ( *p >= 'A' && *p <= 'F' )
+						c = c * 16 + (*(p++) - 'A' + 10);
+					else
+						break;
+				}
+				if ( to != NULL ) {
+					tmp.Clear();
+					if ( c >= 0x10000 ) {
+						// 010000-10FFFF
+						if ( (c -= 0x10000) <= 0xFFFFF ) {
+							tmp.PutWord((c >> 10)    | 0xD800);
+							tmp.PutWord((c & 0x03FF) | 0xDC00);
+						} else
+							tmp.PutWord(L'?');
+					} else {
+						// 000000-00FFFF
+						tmp.PutWord(c);
+					}
+
+					iconv.StrToRemote(to, &tmp, this);
+				}
+				break;
+			case '{':
+				s = p;
+				if ( ++p >= e )
+					break;
+				str.Empty();
+				while ( p < e && *p != '}' )
+					str += *(p++);
+				if ( *p == '}' ) {
+					p++;
+					if ( !str.IsEmpty() && CTextRam::FuncNameCode(str, this) )
+						s = p;
+				}
+				while ( s < p )
+					PutByte((int)(*(s++)));
+				break;
+#endif
+
+			case 'a': PutByte(0x07); p++; break;
+			case 'b': PutByte(0x08); p++; break;
+			case 'e': PutByte(0x1B); p++; break;
+			case 'f': PutByte(0x0C); p++; break;
+			case 'n': PutByte(0x0A); p++; break;
+			case 'r': PutByte(0x0D); p++; break;
+			case 't': PutByte(0x09); p++; break;
+			case 'v': PutByte(0x0B); p++; break;
+			default:  PutByte(*(p++)); break;
+			}
+			break;
+		default:
+			PutByte(*(p++));
+			break;
+		}
+	}
+}
+void CBuffer::EscDecodeW(LPCTSTR buf, int len)
+{
+	int n, c;
+	LPCTSTR p = (LPCTSTR)buf;
+	LPCTSTR e = p + len;
+
+	while ( p < e ) {
+		switch(*p) {
+		case _T('\\'):
+			if ( ++p >= e )
+				break;
+			switch(*p) {
+			case _T('0'): case _T('1'): case _T('2'): case _T('3'): case _T('4'):
+			case _T('5'): case _T('6'): case _T('7'):
+				c = *(p++) - _T('0');
+				for ( n = 0 ; n < 2 && p < e ; n++ ) {
+					if ( *p >= _T('0') && *p <= _T('7') )
+						c = c * 8 + (*(p++) - _T('0'));
+					else
+						break;
+				}
+				PutWord(c);
+				break;
+			case _T('x'):
+				if ( ++p >= e )
+					break;
+				for ( c = n = 0 ; n < 2 && p < e ; n++ ) {
+					if ( *p >= _T('0') && *p <= _T('9') )
+						c = c * 16 + (*(p++) - _T('0'));
+					else if ( *p >= _T('a') && *p <= _T('f') )
+						c = c * 16 + (*(p++) - _T('a') + 10);
+					else if ( *p >= _T('A') && *p <= _T('F') )
+						c = c * 16 + (*(p++) - _T('A') + 10);
+					else
+						break;
+				}
+				PutWord(c);
+				break;
+			case _T('u'):
+				if ( ++p >= e )
+					break;
+				for ( c = n = 0 ; n < 6 && p < e ; n++ ) {
+					if ( *p >= _T('0') && *p <= _T('9') )
+						c = c * 16 + (*(p++) - _T('0'));
+					else if ( *p >= _T('a') && *p <= _T('f') )
+						c = c * 16 + (*(p++) - _T('a') + 10);
+					else if ( *p >= _T('A') && *p <= _T('F') )
+						c = c * 16 + (*(p++) - _T('A') + 10);
+					else
+						break;
+				}
+				if ( c >= 0x10000 ) {
+					if ( (c -= 0x10000) <= 0xFFFFF ) {
+						PutWord((c >> 10)    | 0xD800);
+						PutWord((c & 0x03FF) | 0xDC00);
+					} else
+						PutWord(_T('?'));
+				} else
+					PutWord(c);
+				break;
+			case _T('a'): PutWord(0x07); p++; break;
+			case _T('b'): PutWord(0x08); p++; break;
+			case _T('e'): PutWord(0x1B); p++; break;
+			case _T('f'): PutWord(0x0C); p++; break;
+			case _T('n'): PutWord(0x0A); p++; break;
+			case _T('r'): PutWord(0x0D); p++; break;
+			case _T('t'): PutWord(0x09); p++; break;
+			case _T('v'): PutWord(0x0B); p++; break;
+			default:  PutWord(*(p++)); break;
+			}
+			break;
+		default:
+			PutWord(*(p++));
+			break;
+		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
 //	RFC 9000 - QUIC: A UDP-Based Multiplexed and Secure Transport
 //	16. Variable-Length Integer Encoding
 //	+======+========+=============+=======================+
@@ -3128,6 +3419,25 @@ const CStringArrayExt & CStringArrayExt::operator = (CStringArrayExt &data)
 		Add(data[n]);
 	return *this;
 }
+static int StrArrayComp(const void *src, const void *dis)
+{
+	return _tcscmp((LPCTSTR)*((CString *)src), (LPCTSTR)*((CString *)dis));
+}
+static int StrArrayNoCaseComp(const void *src, const void *dis)
+{
+	return _tcsicmp((LPCTSTR)*((CString *)src), (LPCTSTR)*((CString *)dis));
+}
+void CStringArrayExt::Sort(BOOL bNoCase)
+{
+	qsort(GetData(), GetSize(), sizeof(CString), bNoCase ? StrArrayNoCaseComp : StrArrayComp);
+}
+int CStringArrayExt::FindSort(LPCTSTR str, BOOL bNoCase)
+{
+	int n;
+	if ( BinaryFind(&CString(str), GetData(), sizeof(CString), (int)GetSize(), bNoCase ? StrArrayNoCaseComp : StrArrayComp, &n) )
+		return n;
+	return (-1);
+}
 int CStringArrayExt::Find(LPCTSTR str)
 {
 	for ( int n = 0 ; n < GetSize() ; n++ ) {
@@ -3152,7 +3462,6 @@ int CStringArrayExt::Match(LPCTSTR str)
 	}
 	return (-1);
 }
-
 
 CStrNode *CStringArrayExt::ParseWord(LPCTSTR *ptr)
 {
@@ -3324,9 +3633,6 @@ void CStringArrayExt::GetParam(LPCTSTR str)
 	top = ParseList(&str, FALSE);
 	ParseNode(top, NULL, tmp);
 	delete top;
-
-	//for ( int n = 0 ; n < GetSize() ; n++ )
-	//	TRACE("%s\n", TstrToMbs((*this)[n]));
 }
 void CStringArrayExt::GetCmds(LPCTSTR cmds)
 {
@@ -3363,42 +3669,6 @@ void CStringArrayExt::GetCmds(LPCTSTR cmds)
 
 	if ( !tmp.IsEmpty() )
 		Add(tmp);
-}
-void CStringArrayExt::AddSort(LPCTSTR str)
-{
-	int n, c;
-	int b = 0;
-	int m = (int)GetSize() - 1;
-
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = GetAt(n).Compare(str)) == 0 )
-			return;
-		else if ( c > 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
-
-	InsertAt(b, str);
-}
-int CStringArrayExt::FindSort(LPCTSTR str)
-{
-	int n, c;
-	int b = 0;
-	int m = (int)GetSize() - 1;
-
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = GetAt(n).Compare(str)) == 0 )
-			return n;
-		else if ( c > 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
-
-	return (-1);
 }
 int CStringArrayExt::Compare(CStringArrayExt &data)
 {
@@ -6079,7 +6349,7 @@ void CServerEntryTab::Serialize(int mode)
 		pApp->GetProfileKeys(_T("ServerEntryTab"), entry);
 		m_Data.RemoveAll();
 		for ( n = 0 ; n < entry.GetSize() ; n++ ) {
-			if ( entry[n].Left(4).Compare(_T("List")) != 0 || _tcschr(_T("0123456789"), entry[n][4]) == NULL )
+			if ( !IsListEntry(entry[n]) )
 				continue;
 			uid = _tstoi(entry[n].Mid(4));
 			tmp.Init();
@@ -6137,7 +6407,7 @@ void CServerEntryTab::Serialize(int mode)
 		pApp->GetProfileKeys(m_pSection, entry);
 		m_Data.RemoveAll();
 		for ( n = 0 ; n < entry.GetSize() ; n++ ) {
-			if ( entry[n].Left(4).Compare(_T("List")) != 0 || _tcschr(_T("0123456789"), entry[n][4]) == NULL )
+			if ( !IsListEntry(entry[n]) )
 				continue;
 			uid = _tstoi(entry[n].Mid(4));
 			tmp.Init();
@@ -7380,20 +7650,35 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 {
 	int n;
 	CStringArrayExt tmp;
+	int ext = (-1);
 
 	stra.RemoveAll();
-	for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
-		if ( m_Node[n].m_Code == (-1) )
-			continue;
-		tmp.RemoveAll();
-		tmp.AddVal(m_Node[n].m_Code);
-		tmp.AddVal(m_Node[n].m_Mask);
-		tmp.Add(m_Node[n].GetMaps());
-		stra.AddArray(tmp);
+
+	if ( theApp.IsPrivateProfile() && (sizeof(InitKeyTab) / sizeof(struct _InitKeyTab) - 1) == (int)m_Node.GetSize() ) {
+		ext = (-2);
+		for ( n = 0 ; InitKeyTab[n].maps != NULL ; n++ ) {
+			int i;
+			if ( !Find(InitKeyTab[n].code, InitKeyTab[n].mask, &i) || _tcscmp(m_Node[i].GetMaps(), InitKeyTab[n].maps) != 0 ) {
+				ext = (-1);
+				break;
+			}
+		}
+	}
+
+	if ( ext == (-1) ) {
+		for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
+			if ( m_Node[n].m_Code == (-1) )
+				continue;
+			tmp.RemoveAll();
+			tmp.AddVal(m_Node[n].m_Code);
+			tmp.AddVal(m_Node[n].m_Mask);
+			tmp.Add(m_Node[n].GetMaps());
+			stra.AddArray(tmp);
+		}
 	}
 
 	tmp.RemoveAll();
-	tmp.AddVal(-1);
+	tmp.AddVal(ext);
 	tmp.AddVal(14);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
@@ -7410,11 +7695,17 @@ void CKeyNodeTab::GetArray(CStringArrayExt &stra)
 		else if ( tmp.GetSize() < 3 ) {
 			if ( tmp.GetVal(0) == (-1) )
 				fix = tmp.GetVal(1);
+			else if ( tmp.GetVal(0) == (-2) )
+				break;
 			continue;
 		}
 		Add(tmp.GetVal(0), tmp.GetVal(1), tmp.GetAt(2));
 	}
-	BugFix(fix);
+
+	if ( m_Node.GetSize() == 0 )
+		Init();
+	else if ( fix > 0 )
+		BugFix(fix);
 }
 void CKeyNodeTab::DiffIndex(CKeyNodeTab &orig, CStringIndex &index)
 {
@@ -8345,7 +8636,7 @@ void CKeyMacTab::SetHisMenu(CMenu *pMenu)
 #define	META_CLEFIA_STRING	_T("")
 #endif
 
-static LPCTSTR InitAlgo[12]= {
+static const LPCTSTR InitAlgo[12]= {
 	_T("blowfish,3des,des"),
 	_T("crc32"),
 	_T("zlib,none"),
@@ -8444,8 +8735,8 @@ static const ttymode_node def_ttymode[] = {
 		{ 70,1 },	{ 72,1 },	{ 73,0 },	{ 74,0 },	{ 75,0 },
 	//	CS7			CS8			PARENB		PARODD
 		{ 90,1 },	{ 91,1 },	{ 92,0 },	{ 93,0 },
-	//	OSPEED			ISPEED
-		{ 129,38400 },	{ 128,38400 },
+	//	ISPEED			OSPEED
+		{ 128,38400 },	{ 129,38400 },
 		{ 0, 0 }
 	};
 
@@ -8490,6 +8781,10 @@ void CParamTab::Init()
 	m_TransmitLimit = 1000;
 	m_PluginAuth.Empty();
 }
+static int TtyModeOpcodeCmp(const void *src, const void *dis)
+{
+	return (int)(INT_PTR)src - (int)((ttymode_node *)dis)->opcode;
+}
 void CParamTab::SetArray(CStringArrayExt &stra)
 {
 	int n;
@@ -8504,8 +8799,20 @@ void CParamTab::SetArray(CStringArrayExt &stra)
 	stra.SetAt(0, _T("IdKeyList Entry"));
 	m_IdKeyList.SetString(stra[1]);
 
-	for ( n = 0 ; n < 9 ; n++ )
-		stra.AddArray(m_AlgoTab[n]);
+	if ( theApp.IsPrivateProfile() ) {
+		for ( n = 0 ; n < 9 ; n++ ) {
+			m_AlgoTab[n].SetString(str, _T(','));
+			str.TrimRight(_T(','));
+			if ( str.Compare(InitAlgo[n]) != 0 )
+				stra.AddArray(m_AlgoTab[n]);
+			else
+				stra.Add(_T(""));
+			stra.AddArray(m_AlgoTab[n]);
+		}
+	} else {
+		for ( n = 0 ; n < 9 ; n++ )
+			stra.AddArray(m_AlgoTab[n]);
+	}
 
 	for ( n = 0 ; n < m_PortFwd.GetSize() ; n++ )
 		stra.Add(m_PortFwd[n]);
@@ -8516,15 +8823,41 @@ void CParamTab::SetArray(CStringArrayExt &stra)
 	stra.AddBin(m_OptTab, sizeof(m_OptTab));
 	stra.Add(m_Reserve);
 
-	for ( n = 9 ; n < 12 ; n++ )
-		stra.AddArray(m_AlgoTab[n]);
+	if ( theApp.IsPrivateProfile() ) {
+		for ( n = 9 ; n < 12 ; n++ ) {
+			m_AlgoTab[n].SetString(str, _T(','));
+			str.TrimRight(_T(','));
+			if ( str.Compare(InitAlgo[n]) != 0 )
+				stra.AddArray(m_AlgoTab[n]);
+			else
+				stra.Add(_T(""));
+		}
+	} else {
+		for ( n = 9 ; n < 12 ; n++ )
+			stra.AddArray(m_AlgoTab[n]);
+	}
 
 	stra.AddVal(m_SelIPver);
 
 	str.Empty();
-	for ( n = 0 ; n < m_TtyMode.GetSize() ; n++ ) {
-		fmt.Format(_T("%d=%d,"), m_TtyMode[n].opcode, m_TtyMode[n].param);
-		str += fmt;
+	{
+		BOOL bc = FALSE;
+		int mx = sizeof(def_ttymode) / sizeof(ttymode_node) - 1;
+		if ( theApp.IsPrivateProfile() && mx == (int)m_TtyMode.GetSize() ) {
+			bc = TRUE;
+			for ( int i = 0 ; i < (int)m_TtyMode.GetSize() ; i++ ) {
+				if ( !BinaryFind((void *)(m_TtyMode[i].opcode), (void *)def_ttymode, sizeof(ttymode_node), mx, TtyModeOpcodeCmp, &n) || def_ttymode[n].param != m_TtyMode[i].param ) {
+					bc = FALSE;
+					break;
+				}
+			}
+		}
+		if ( !bc ) {
+			for ( n = 0 ; n < m_TtyMode.GetSize() ; n++ ) {
+				fmt.Format(_T("%d=%d,"), m_TtyMode[n].opcode, m_TtyMode[n].param);
+				str += fmt;
+			}
+		}
 	}
 	stra.Add(str);
 
@@ -8545,7 +8878,7 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 	CIdKey key;
 	CRLoginApp *pApp  = (CRLoginApp *)AfxGetApp();
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
-	CStringBinary idx;
+	CStringBinary idx, chk;
 	CStringArrayExt list, node;
 	ttymode_node ttymode;
 
@@ -8561,14 +8894,19 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 		stra.GetArray(i++, m_AlgoTab[n]);
 
 		idx.RemoveAll();
+		chk.RemoveAll();
+
+		for ( a = 0 ; a < m_AlgoTab[n].GetSize() ; a++ )
+			chk[m_AlgoTab[n][a]] = a;
+
 		list.GetString(InitAlgo[n], _T(','));
 		for ( a = 0 ; a < list.GetSize() ; a++ ) {
-			if ( m_AlgoTab[n].Find(list[a]) < 0 )
+			if ( chk.Find(list[a]) == NULL )
 				m_AlgoTab[n].Add(list[a]);
 			idx[list[a]] = a;
 		}
 		for ( a = 0 ; a < m_AlgoTab[n].GetSize() ; a++ ) {
-			if ( idx[m_AlgoTab[n][a]] < 0 ) {
+			if ( idx.Find(m_AlgoTab[n][a]) == NULL ) {
 				m_AlgoTab[n].RemoveAt(a);
 				a--;
 			}
@@ -8610,14 +8948,19 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 		stra.GetArray(i++, m_AlgoTab[n]);
 
 		idx.RemoveAll();
+		chk.RemoveAll();
+
+		for ( a = 0 ; a < m_AlgoTab[n].GetSize() ; a++ )
+			chk[m_AlgoTab[n][a]] = a;
+
 		list.GetString(InitAlgo[n], _T(','));
 		for ( a = 0 ; a < list.GetSize() ; a++ ) {
-			if ( m_AlgoTab[n].Find(list[a]) < 0 )
+			if ( chk.Find(list[a]) == NULL )
 				m_AlgoTab[n].Add(list[a]);
 			idx[list[a]] = a;
 		}
 		for ( a = 0 ; a < m_AlgoTab[n].GetSize() ; a++ ) {
-			if ( idx[m_AlgoTab[n][a]] < 0 ) {
+			if ( idx.Find(m_AlgoTab[n][a]) == NULL ) {
 				m_AlgoTab[n].RemoveAt(a);
 				a--;
 			}
@@ -8641,6 +8984,10 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 					m_TtyMode.Add(ttymode);
 				}
 			}
+		} else {
+			m_TtyMode.RemoveAll();
+			for ( n = 0 ; def_ttymode[n].opcode != 0 ; n++ )
+				m_TtyMode.Add(def_ttymode[n]);
 		}
 	}
 
@@ -12335,6 +12682,12 @@ BOOL CCurPos::operator < (SIZE size)
 		return (cx < size.cx ? TRUE : FALSE);
 	else
 		return (cy < size.cy ? TRUE : FALSE);
+}
+void CCurPos::Center(CCurPos &sta, CCurPos &end, int cols)
+{
+	LONGLONG n = ((sta.cx + (LONGLONG)sta.cy * cols) + (end.cx + (LONGLONG)end.cy * cols)) / 2;
+	cx = (LONG)(n % cols);
+	cy = (LONG)(n / cols);
 }
 
 //////////////////////////////////////////////////////////////////////

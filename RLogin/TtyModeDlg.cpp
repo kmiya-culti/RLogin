@@ -323,7 +323,7 @@ void CColEditDlg::OnEditPasteAll()
 	CString str, tmp;
 	CStringArrayExt line, pam;
 	CStringIndex json;
-	static LPCTSTR colname[] = {
+	static const LPCTSTR colname[] = {
 		_T("black"), _T("red"), _T("green"), _T("yellow"), _T("blue"), _T("purple"), _T("cyan"), _T("white"),
 		_T("brightBlack"), _T("brightRed"), _T("brightGreen"), _T("brightYellow"), _T("brightBlue"), _T("brightPurple"), _T("brightCyan"), _T("brightWhite"),
 	};
@@ -731,7 +731,7 @@ static const int AppColList[] = {
 	(-1)
 };
 
-static LPCTSTR ColNameList[] = {
+static const LPCTSTR ColNameList[APPCOL_SYSMAX] = {
 	{ _T("SCROLLBAR") },				{ _T("BACKGROUND") },				{ _T("ACTIVECAPTION") },
 	{ _T("INACTIVECAPTION") },			{ _T("MENU") },						{ _T("WINDOW") },
 	{ _T("WINDOWFRAME") },				{ _T("MENUTEXT") },					{ _T("WINDOWTEXT") },

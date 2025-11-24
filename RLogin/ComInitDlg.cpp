@@ -115,7 +115,7 @@ BOOL CComInitDlg::GetComDeviceList(LPCTSTR name)
 void CComInitDlg::CommPropCombo(int Type, CComboBox *pCombo, COMMPROP *pCommProp)
 {
 	int n;
-	static struct _MaxBaud {
+	static const struct _MaxBaud {
 		DWORD bits;
 		LPCTSTR name;
 	} MaxBaudTab[] = {
@@ -129,7 +129,7 @@ void CComInitDlg::CommPropCombo(int Type, CComboBox *pCombo, COMMPROP *pCommProp
 		{ BAUD_USER,		_T("460800") },		{ BAUD_USER,		_T("512000") },		{ BAUD_USER,		_T("921600") },
 		{ 0,			NULL },
 	};
-	static struct _SettableData {
+	static const struct _SettableData {
 		DWORD bits;
 		LPCTSTR name;
 	} SettableDataTab[] = {
@@ -137,7 +137,7 @@ void CComInitDlg::CommPropCombo(int Type, CComboBox *pCombo, COMMPROP *pCommProp
 		{ DATABITS_7,			_T("7") },				{ DATABITS_8,			_T("8") },
 		{ 0,			NULL },
 	};
-	static struct _SelParty {
+	static const struct _SelParty {
 		DWORD bits;
 		LPCTSTR name;
 	} SelPartyTab[] = {
@@ -146,7 +146,7 @@ void CComInitDlg::CommPropCombo(int Type, CComboBox *pCombo, COMMPROP *pCommProp
 		{ PARITY_SPACE,			ParityBitsName[4] },
 		{ 0,			NULL },
 	};
-	static struct _StopBits {
+	static const struct _StopBits {
 		DWORD bits;
 		LPCTSTR name;
 	} StopBitsTab[] = {

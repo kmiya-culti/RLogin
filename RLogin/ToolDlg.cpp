@@ -10,7 +10,7 @@
 //////////////////////////////////////////////////////////////////////
 // CToolDlg ダイアログ
 
-static WORD ToolBarCtrlId[] = { IDR_MAINFRAME, IDR_TOOLBAR2 };
+static const WORD ToolBarCtrlId[] = { IDR_MAINFRAME, IDR_TOOLBAR2 };
 
 IMPLEMENT_DYNAMIC(CToolDlg, CDialogExt)
 

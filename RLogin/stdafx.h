@@ -25,6 +25,8 @@
 #define	USE_EXTINFOINAUTH		// EXT_INFOのext-info-in-auth@openssh.comを有効
 //#define	USE_FIFOMONITER		// FifoBufferのサイズをデバッグ
 #define	USE_ENTRYICON			// ServerSelectDlgのリストでアイコンを表示する
+//#define	USE_EXTESCSTR		// DECDMACで拡張エスペープ文字を有効にする
+//#define	USE_PRIPROEXT		// プライベートプロファイルのサイズ制限を拡張
 
 #ifndef	USE_NOENDIAN
 #define	LITTLE_ENDIAN		0
@@ -69,6 +71,7 @@
 #define	_MSC_VER_VS17			1910	// Visual Studio 2017
 #define	_MSC_VER_VS19			1920	// Visual Studio 2019
 #define	_MSC_VER_VS22			1930	// Visual Studio 2022
+#define	_MSC_VER_VS26			1950	// Visual Studio 2026
 
 #ifndef _SECURE_ATL
   #define _SECURE_ATL

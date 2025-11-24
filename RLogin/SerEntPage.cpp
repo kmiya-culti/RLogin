@@ -132,7 +132,7 @@ void CSerEntPage::SetEnableWind()
 	}
 }
 
-static LPCTSTR	DefPortName[] = { _T(""), _T("login"), _T("telnet"), _T("ssh"), _T("COM1"), _T("") };
+static const LPCTSTR	DefPortName[] = { _T(""), _T("login"), _T("telnet"), _T("ssh"), _T("COM1"), _T("") };
 
 /////////////////////////////////////////////////////////////////////////////
 // CSerEntPage メッセージ ハンドラ

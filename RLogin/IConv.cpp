@@ -515,9 +515,10 @@ BOOL CIConv::IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out)
 
 	return (res == (-1) ? FALSE : TRUE);
 }
-void CIConv::StrToRemote(LPCTSTR to, CBuffer *in, CBuffer *out)
+BOOL CIConv::StrToRemote(LPCTSTR to, CBuffer *in, CBuffer *out)
 {
 	CBuffer bIn;
+	BOOL rt = TRUE;
 
 	bIn.Apend(in->GetPtr(), in->GetSize());
 	CTextRam::MsToIconvUniStr(to, (LPWSTR)bIn.GetPtr(), bIn.GetSize() / sizeof(WCHAR));
@@ -529,10 +530,13 @@ void CIConv::StrToRemote(LPCTSTR to, CBuffer *in, CBuffer *out)
 			// iconv error recovery
 			bIn.Consume(sizeof(WCHAR));
 			out->PutByte('?');
+			rt = FALSE;
 		}
 	}
+
+	return rt;
 }
-void CIConv::StrToRemote(LPCTSTR to, LPCTSTR in, CStringA &out)
+BOOL CIConv::StrToRemote(LPCTSTR to, LPCTSTR in, CStringA &out)
 {
 #ifdef	_UNICODE
 	CBuffer bIn((LPBYTE)in, (int)_tcslen(in) * sizeof(TCHAR));
@@ -541,9 +545,10 @@ void CIConv::StrToRemote(LPCTSTR to, LPCTSTR in, CStringA &out)
 	CBuffer bIn((LPBYTE)(LPCWSTR)str, str.GetLength() * sizeof(WCHAR));
 #endif
 	CBuffer bOut;
-
-	StrToRemote(to, &bIn, &bOut);
+	BOOL rt = StrToRemote(to, &bIn, &bOut);
 	out = (LPCSTR)bOut;
+
+	return rt;
 }
 void CIConv::RemoteToStr(LPCTSTR from, CBuffer *in, CBuffer *out)
 {

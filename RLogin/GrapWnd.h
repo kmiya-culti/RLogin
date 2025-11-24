@@ -172,7 +172,7 @@ public:
 	void SixelStart(int aspect, int mode, int grid, COLORREF bc = 0);
 	void SixelResize();
 	void SixelData(int ch);
-	void SixelEndof(BOOL bAlpha = FALSE);
+	void SixelEndof(BOOL bAlpha = FALSE, int NoiseFilter = 0);
 	void SetSixel(int aspect, int mode, int grid, LPCSTR str, COLORREF bc = 0);
 
 	// Grap Image Load

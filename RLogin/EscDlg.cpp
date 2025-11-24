@@ -114,7 +114,7 @@ void CEscDlg::InitParaList()
 {
 	int n;
 	CString tmp;
-	static struct _InitParaListTab {
+	static const struct _InitParaListTab {
 		int	id;
 		LPCTSTR		name;
 		int			memo;

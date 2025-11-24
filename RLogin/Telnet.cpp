@@ -611,7 +611,7 @@ void CTelnet::GetStatus(CString &str)
 {
 	int n;
 	CString tmp;
-	static LPCTSTR optsts[] = { _T("OFF"), _T("ON"), _T("WOFF"), _T("WON"), _T("ROFF"), _T("RON") };
+	static const LPCTSTR optsts[] = { _T("OFF"), _T("ON"), _T("WOFF"), _T("WON"), _T("ROFF"), _T("RON") };
 
 	CExtSocket::GetStatus(str);
 

@@ -81,7 +81,7 @@ const CPfdData & CPfdData::operator = (CPfdData &data)
 
 IMPLEMENT_DYNAMIC(CPfdListDlg, CDialogExt)
 
-static LPCTSTR	ListenTypeName[] = { _T("local"), _T("Lproxy"), _T("remote"), _T("Rproxy") };
+static const LPCTSTR	ListenTypeName[] = { _T("local"), _T("Lproxy"), _T("remote"), _T("Rproxy") };
 
 CPfdListDlg::CPfdListDlg(CWnd* pParent /*=NULL*/)
 	: CDialogExt(CPfdListDlg::IDD, pParent)

@@ -938,6 +938,8 @@ void CUniBlockTab::SetBlockCode(LPCTSTR str, int index)
 //////////////////////////////////////////////////////////////////////
 // CFontTab
 
+static CFontTab DefFontTab;
+
 CFontTab::CFontTab()
 {
 	m_Data = new CFontNode[CODE_MAX];
@@ -1110,10 +1112,12 @@ void CFontTab::SetArray(CStringArrayExt &stra)
 	for ( n = 0 ; n < CODE_MAX ; n++ ) {
 		if ( m_Data[n].m_EntryName.IsEmpty() )
 			continue;
-		m_Data[n].SetArray(tmp);
 		str.Format(_T("%d"), n);
-		tmp.InsertAt(0, str);
-		tmp.SetString(str);
+		if ( !theApp.IsPrivateProfile() || m_Data[n].Compare(DefFontTab.m_Data[n]) != 0 ) {
+			m_Data[n].SetArray(tmp);
+			tmp.InsertAt(0, str);
+			tmp.SetString(str);
+		}
 		stra.Add(str);
 	}
 }
@@ -1136,6 +1140,8 @@ void CFontTab::GetArray(CStringArrayExt &stra)
 		if ( (i = tmp.GetVal(0)) < 0 || i >= CODE_MAX )
 			continue;
 		tmp.RemoveAt(0);
+		if ( tmp.GetSize() < 1 )
+			DefFontTab[i].SetArray(tmp);
 		m_Data[i].GetArray(tmp);
 		if ( m_Data[i].m_IndexName.IsEmpty() ) {
 			if ( i == SET_UNICODE )
@@ -1915,7 +1921,7 @@ CTextRam::CTextRam()
 
 	m_ColTab = new COLORREF[EXTCOL_MAX + EXTCOL_MATRIX];
 	m_Kan_Buf = new BYTE[KANBUFMAX];
-	m_Macro = new CBuffer[MACROMAX];
+	MacroCtx = new struct _MacroCtx[MACROMAX];
 	m_SaveParam.m_TabMap = NULL;
 	m_StsParam.m_TabMap = NULL;
 
@@ -2141,7 +2147,7 @@ CTextRam::~CTextRam()
 
 	delete [] m_ColTab;
 	delete [] m_Kan_Buf;
-	delete [] m_Macro;
+	delete [] MacroCtx;
 
 	if ( m_SaveParam.m_TabMap != NULL )
 		delete [] m_SaveParam.m_TabMap;
@@ -2902,12 +2908,13 @@ void CTextRam::Init()
 	m_StsLed  = 0;
 	SetRetChar(FALSE);
 
-	for ( int n = 0 ; n < 64 ; n++ )
-		m_Macro[n].Clear();
+	for ( int n = 0 ; n < MACROMAX ; n++ ) {
+		MacroCtx[n].bExec = FALSE;
+		MacroCtx[n].buffer.Clear();
+	}
 
 	m_ClipFlag = 0;
 	m_ClipCrLf = OSCCLIP_LF;
-	memset(m_MacroExecFlag, 0, sizeof(m_MacroExecFlag));
 	m_ShellExec.GetString(_T("http://|https://|ftp://|mailto://"), _T('|'));
 	m_InlineExt.GetString(_T("doc|txt|pdf|mp3|avi|mpg"), _T('|'));
 	m_ScrnOffset.SetRect(0, 0, 0, 0);
@@ -4308,7 +4315,15 @@ void CTextRam::SetKanjiMode(int mode)
 }
 int CTextRam::Write(LPBYTE lpBuf, int nBufLen, BOOL *sync)
 {
-	int n;
+	if ( m_ReserveBuffer.GetSize() > 0 ) {
+		for ( int i = 0 ; i < 2048 && i < m_ReserveBuffer.GetSize() ; i++ )
+			fc_FuncCall(m_ReserveBuffer.GetByte());
+
+		FLUSH();
+		return 0;
+	}
+
+	int len = 0;
 
 	if ( m_LineEditMode == LINEEDIT_SAVE )
 		LOADRAM();
@@ -4316,8 +4331,8 @@ int CTextRam::Write(LPBYTE lpBuf, int nBufLen, BOOL *sync)
 	m_UpdateFlag = FALSE;
 	time(&m_Atime);
 
-	for ( n = 0 ; n < nBufLen && !m_UpdateFlag ; n++ ) {
-		fc_Call(lpBuf[n]);
+	while ( len < nBufLen && !m_UpdateFlag ) {
+		fc_Call(lpBuf[len++]);
 		if ( m_RetSync ) {
 			m_RetSync = FALSE;
 			*sync = TRUE;
@@ -4338,8 +4353,7 @@ int CTextRam::Write(LPBYTE lpBuf, int nBufLen, BOOL *sync)
 	}
 
 	FLUSH();
-
-	return n;
+	return len;
 }
 void CTextRam::LineEditCwd(int ex, int sy, CStringW &cwd)
 {
@@ -5629,7 +5643,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	CRect box(rect), tmp;
 	int bd_size = prop.pView->m_CharHeight / 16;
 	static const DWORD PenExtTab[3][4]  = {	{ 3, 1, 3, 1 }, { 2, 1, 2, 1 },	{ 1, 1, 1, 1 } };
-	static int SinTab[] = { 0, 87, 174, 259, 342, 423, 500, 574, 643, 707, 766, 819, 866, 906, 940, 966, 985, 996, 1000 };
+	static const int SinTab[] = { 0, 87, 174, 259, 342, 423, 500, 574, 643, 707, 766, 819, 866, 906, 940, 966, 985, 996, 1000 };
 
 	if ( bd_size <= 0 )
 		bd_size = 1;
@@ -5994,7 +6008,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	CFontNode *pFontNode = &(m_FontTab[prop.bank]);
 	CDC workDC, mirDC, *pSaveDC = NULL;
 	CBitmap *pOldMap, *pOldMirMap = NULL, MirMap;
- 	static BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
+ 	static const BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
 
 	mode = ETO_CLIPPED;
 	if ( bEraBack )
@@ -6595,7 +6609,7 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 
 	if ( prop.idx != (-1) ) {
 		// Image Draw
-		if ( (pWnd = GetGrapWnd(prop.idx)) != NULL ) {
+		if ( (pWnd = GetGrapWnd(prop.idx)) != NULL && pWnd->m_BlockX > 0 && pWnd->m_BlockY > 0 ) {
 			pWnd->DrawBlock(pDC, rect, bcol, bEraBack, prop.stx, prop.sty, prop.edx, prop.sty + 1,
 				prop.pView->m_Width, prop.pView->m_Height, prop.pView->m_CharWidth, prop.pView->m_CharHeight, prop.pView->m_Cols, prop.pView->m_Lines);
 			if ( pWnd->IsGifAnime() && !prop.print )
@@ -6946,14 +6960,19 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			if ( pView->m_ClipFlag > 1 && x >= 0 && x < m_Cols && top != NULL ) {
 				cpos = GetCalcPos((work.zoom != 0 ? (x * 2) : x), y - pView->m_HisOfs + pView->m_HisMin);
 				if ( spos <= cpos && cpos <= epos ) {
+					int att = work.attr | ATT_CLIP;
+#ifdef	_DEBUG
+					if ( cpos == pView->m_ClipBasePos )
+						att ^= ATT_BLINK;
+#endif
 					if ( pView->IsClipRectMode() ) {
 						if ( work.zoom != 0 ) {
 							if ( (x * 2) >= csx && (x * 2) <= cex )
-								work.attr |= ATT_CLIP;
+								work.attr = att;
 						} else if ( x >= csx && x <= cex )
-							work.attr |= ATT_CLIP;
+							work.attr = att;
 					} else
-						work.attr |= ATT_CLIP;
+						work.attr = att;
 				}
 			}
 
@@ -7725,16 +7744,16 @@ void IconvCheck()
 {
 	int n, i, c, d;
 	CIConv iconv;
-	static DWORD sjisTab[9] = {
+	static const DWORD sjisTab[9] = {
 		0x005c,		0x007e,		0x815c,		0x8160,		0x8161,		0x817c,		0x8191,		0x8192,		0x81ca
 	};
-	static DWORD eucTab[9] = {
+	static const DWORD eucTab[9] = {
 		0x005c,		0x007e,		0xa1bd,		0xa1c1,		0xa1c2,		0xa1dd,		0xa1f1,		0xa1f2,		0xa2cc
 	};
-	static LPCTSTR sjisName[] = {
+	static const LPCTSTR sjisName[] = {
 		_T("CP932"),			_T("SHIFT-JIS"),		_T("SHIFT_JISX0213"),	
 	};
-	static LPCTSTR eucName[] = {
+	static const LPCTSTR eucName[] = {
 		_T("EUCJP-MS"),			_T("EUC-JP"),			_T("EUC-JISX0213"),	
 	};
 
@@ -8229,6 +8248,8 @@ void CTextRam::DispGrapWnd(class CGrapWnd *pGrapWnd, BOOL bNextCols)
 		} else
 			LOCATE(m_CurX, m_CurY);
 	}
+
+	pGrapWnd->m_BlockTop = 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -8441,9 +8462,10 @@ void CTextRam::RESET(int mode)
 
 	if ( mode & RESET_SAVE ) {
 		SaveParam(&m_SaveParam);
-		for ( int n = 0 ; n < 64 ; n++ )
-			m_Macro[n].Clear();
-		memset(m_MacroExecFlag, 0, sizeof(m_MacroExecFlag));
+		for ( int n = 0 ; n < MACROMAX ; n++ ) {
+			MacroCtx[n].bExec = FALSE;
+			MacroCtx[n].buffer.Clear();
+		}
 	}
 
 	if ( mode & RESET_TEK ) {

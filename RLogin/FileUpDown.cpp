@@ -15,7 +15,7 @@
 #include <sys/stat.h>
 #include <sys/utime.h>
 
-static LPCSTR CrLfStr[] = { "\r", "\n", "\r\n" };
+static const LPCSTR CrLfStr[] = { "\r", "\n", "\r\n" };
 
 CFileUpDown::CFileUpDown(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, pWnd)
 {

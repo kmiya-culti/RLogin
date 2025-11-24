@@ -278,6 +278,7 @@ static int rlg_cipher_ctr(struct mt_ctr_ctx *mt_ctx, u_char *dest, const u_char 
 #define	PARAM_CTS_FLAG				0004
 #define	PARAM_TLS1_MULTIBLOCK_FLAG	0010
 #define	PARAM_HAS_RAND_KEY_FLAG		0020
+#define	PARAM_ENCRYPT_THEN_MAC		0040
 
 static int ssh_ctr_cipher(struct ssh_cipher_ctx *ssh_ctx, unsigned char *out, size_t *outl, size_t outsize, const unsigned char *in, size_t inl)
 {
@@ -320,6 +321,14 @@ static int rlg_get_params(OSSL_PARAM params[], unsigned int mode, size_t blklen,
 			else
 				rc = 0;
 			break;
+#ifdef	OSSL_CIPHER_PARAM_ENCRYPT_THEN_MAC		// openssl-3.6.0
+		case (OSSL_PARAM_INTEGER << 6) | 'e':
+			if (strcmp(p->key, OSSL_CIPHER_PARAM_ENCRYPT_THEN_MAC) == 0)
+				OSSL_PARAM_set_int(p, (flag & PARAM_ENCRYPT_THEN_MAC) != 0);
+			else
+				rc = 0;
+			break;
+#endif
 		case (OSSL_PARAM_INTEGER << 6) | 'h':
 			if ( strcmp(p->key, OSSL_CIPHER_PARAM_HAS_RAND_KEY) == 0 )
 				OSSL_PARAM_set_int(p, (flag & PARAM_HAS_RAND_KEY_FLAG) != 0);
@@ -368,7 +377,7 @@ static int rlg_get_params(OSSL_PARAM params[], unsigned int mode, size_t blklen,
 }
 static const OSSL_PARAM *ssh_gettable_params(struct prov_ctx_st *prov_ctx)
 {
-	static OSSL_PARAM params[] = {
+	static const OSSL_PARAM params[] = {
 		OSSL_PARAM_int(OSSL_CIPHER_PARAM_AEAD, 0),
 		OSSL_PARAM_int(OSSL_CIPHER_PARAM_CUSTOM_IV, 0),
 		OSSL_PARAM_int(OSSL_CIPHER_PARAM_CTS, 0),
@@ -419,7 +428,7 @@ static int ssh_get_ctx_params(struct ssh_cipher_ctx *ssh_ctx, OSSL_PARAM params[
 }
 static const OSSL_PARAM *ssh_gettable_ctx_params(struct ssh_cipher_ctx *ssh_ctx, struct prov_ctx_st *prov_ctx)
 {
-	static OSSL_PARAM params[] = {
+	static const OSSL_PARAM params[] = {
 		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_KEYLEN, 0),
 		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_IVLEN, 0),
 		OSSL_PARAM_octet_string(OSSL_CIPHER_PARAM_IV, NULL, 0),
@@ -454,7 +463,7 @@ static int ssh_set_ctx_params(struct ssh_cipher_ctx *ssh_ctx, const OSSL_PARAM p
 }
 static const OSSL_PARAM *ssh_settable_ctx_params(struct ssh_cipher_ctx *ssh_ctx, struct prov_ctx_st *prov_ctx)
 {
-	static OSSL_PARAM params[] = {
+	static const OSSL_PARAM params[] = {
 		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_KEYLEN, 0),
 		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_IVLEN, 0),
 		OSSL_PARAM_END,
@@ -2354,7 +2363,7 @@ static int chachapoly_get_ctx_params(struct chachapoly_ctx_st *chachapoly_ctx, O
 }
 static const OSSL_PARAM *chachapol_gettable_ctx_params(struct ssh_cipher_ctx *ssh_ctx, struct prov_ctx_st *prov_ctx)
 {
-	static OSSL_PARAM params[] = {
+	static const OSSL_PARAM params[] = {
 		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_KEYLEN, 0),
 		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_IVLEN, 0),
 		OSSL_PARAM_octet_string(OSSL_CIPHER_PARAM_IV, NULL, 0),
@@ -2412,7 +2421,7 @@ static int chachapoly_set_ctx_params(struct chachapoly_ctx_st *chachapoly_ctx, c
 }
 static const OSSL_PARAM *chachapol_settable_ctx_params(struct ssh_cipher_ctx *ssh_ctx, struct prov_ctx_st *prov_ctx)
 {
-	static OSSL_PARAM params[] = {
+	static const OSSL_PARAM params[] = {
 		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_KEYLEN, 0),
 		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_IVLEN, 0),
 		OSSL_PARAM_octet_string(OSSL_CIPHER_PARAM_AEAD_TLS1_IV_FIXED, NULL, 0),
@@ -2497,7 +2506,7 @@ static void rlg_provider_teardown(struct prov_ctx_st *prov_ctx)
 }
 static const OSSL_PARAM *rlg_provider_gettable_params(struct prov_ctx_st *prov_ctx)
 {
-	static OSSL_PARAM params[] = {
+	static const OSSL_PARAM params[] = {
 		OSSL_PARAM_utf8_string(OSSL_PROV_PARAM_NAME, NULL, 0),
 		OSSL_PARAM_utf8_string(OSSL_PROV_PARAM_VERSION, NULL, 0),
 		OSSL_PARAM_utf8_string(OSSL_PROV_PARAM_BUILDINFO, NULL, 0),

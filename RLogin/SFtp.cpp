@@ -237,10 +237,10 @@ void CFileNode::AutoRename(LPCTSTR p, CString &tmp, int mode)
 	LPCTSTR s;
 	LPCTSTR ext = (mode == 0 ? _T("%00%") : _T("!"));
 
-	static LPCTSTR renStr = _T("\\<>:\"/?*%");
-//	static LPCTSTR renTab[] = { _T("Åè"),  _T("ÅÉ"),  _T("ÅÑ"),  _T("ÅF"),  _T("Åh"),  _T("Å^"),  _T("ÅH"),  _T("Åñ"),  _T("Åì") };
-	static LPCWSTR renTab[] = { L"\uFFE5", L"\uFF1C", L"\uFF1E", L"\uFF1A", L"\u201D", L"\uFF0F", L"\uFF1F", L"\uFF0A", L"\uFF05" };
-	static LPCTSTR badTab[] = {
+	static const LPCTSTR renStr = _T("\\<>:\"/?*%");
+//	static const LPCTSTR renTab[] = { _T("Åè"),  _T("ÅÉ"),  _T("ÅÑ"),  _T("ÅF"),  _T("Åh"),  _T("Å^"),  _T("ÅH"),  _T("Åñ"),  _T("Åì") };
+	static const LPCWSTR renTab[] = { L"\uFFE5", L"\uFF1C", L"\uFF1E", L"\uFF1A", L"\u201D", L"\uFF0F", L"\uFF1F", L"\uFF0A", L"\uFF05" };
+	static const LPCTSTR badTab[] = {
 		_T("AUX"),		_T("CLOCK$"),	_T("COM1"),		_T("COM2"),		_T("COM3"),		// 5
 		_T("COM4"),		_T("COM5"),		_T("COM6"),		_T("COM7"),		_T("COM8"),		// 10
 		_T("COM9"),		_T("CON"),		_T("CONFIG$"),	_T("LPT1"),		_T("LPT2"),		// 15
@@ -269,7 +269,7 @@ void CFileNode::AutoRename(LPCTSTR p, CString &tmp, int mode)
 	if ( (n = tmp.GetLength()) == 0 )
 		return;
 
-	if ( tmp[n - 1] == _T(' ') || tmp[n - 1] == _T('.') || BinaryFind((void *)(LPCTSTR)tmp, badTab, sizeof(char *), 24, (int (*)(const void *, const void *))_tcsicmp, NULL) )
+	if ( tmp[n - 1] == _T(' ') || tmp[n - 1] == _T('.') || BinaryFind((void *)(LPCTSTR)tmp, (void *)badTab, sizeof(LPCTSTR), 24, (int (*)(const void *, const void *))_tcsicmp, NULL) )
 		tmp += ext;
 }
 LPCTSTR CFileNode::GetLocalPath(LPCTSTR dir, class CSFtp *pWnd)

@@ -6,16 +6,10 @@
 <STYLE type="text/css">
 <!--
 TD {
-				
-				
-				
-		background-color : #ffffff; font-size : 90%;
+background-color : #ffffff; font-size : 90%;
 }
 .BOX{
-				
-				
-				
-		background-color : silver;
+background-color : silver;
 }
 -->
 </STYLE>
@@ -3285,7 +3279,7 @@ TD {
           <TR>
             <TD width="120">DCS <FONT size="-1"><I>Pn</I></FONT> | <I><FONT size="-1">P...</FONT></I> ST</TD>
             <TD align="center" width="120">DECUDK</TD>
-            <TD width="680">ファンクションキーに文字列を設定
+            <TD width="680"><A name="DECUDK"></A>ファンクションキーに文字列を設定
             <TABLE cellpadding="1">
               <TBODY>
                 <TR>
@@ -3361,7 +3355,7 @@ TD {
           <TR>
             <TD width="120">DCS <FONT size="-1"><I>Pn</I></FONT> p <I><FONT size="-1">P...</FONT></I> ST</TD>
             <TD align="center" width="120">DECREGIS</TD>
-            <TD width="680">ReGISグラフィックウィンドウを開く<BR>
+            <TD width="680"><A name="DECREGIS"></A>ReGISグラフィックウィンドウを開く<BR>
             <TABLE cellpadding="1">
               <TBODY>
                 <TR>
@@ -3379,11 +3373,11 @@ TD {
           <TR>
             <TD width="120">DCS <FONT size="-1"><I>Pn </I></FONT>q <I><FONT size="-1">P...</FONT></I> ST</TD>
             <TD align="center" width="120">DECSIXEL</TD>
-            <TD width="680">Sixelグラフィックウィンドウを開く<BR>
+            <TD width="680"><A name="DECSIXEL"></A>Sixelグラフィックウィンドウを開く<BR>
             <TABLE cellpadding="1">
               <TBODY>
                 <TR>
-                  <TD colspan="2">DCS <FONT size="-1"><I>Pn1 ; Pn2 ; Pn3 ; Pn4 </I></FONT>q <I><FONT size="-1">P...</FONT></I> ST</TD>
+                  <TD colspan="2">DCS <FONT size="-1"><I>Pn1 ; Pn2 ; Pn3 ; Pn4 ; Pn5</I></FONT> q <I><FONT size="-1">P...</FONT></I> ST</TD>
                 </TR>
                 <TR>
                   <TD width="120" valign="top"><FONT size="-1"><I>Pn1</I></FONT> = [0],1...9</TD>
@@ -3577,6 +3571,11 @@ TD {
                   ※これは2.17.3以降の独自拡張です</TD>
                 </TR>
                 <TR>
+                  <TD valign="top"><FONT size="-1"><I>Pn5</I></FONT> = 0 ... 100</TD>
+                  <TD>強度0-100でノイズフィルター画像処理します<BR>
+                  ※これは、2.31.1以降の独自拡張です</TD>
+                </TR>
+                <TR>
                   <TD valign="top" colspan="2">※<A href="#DECSDM">DECSDM</A>によりコンソール・外部ウィンドウと表示方法が異なる<BR>
                   ※<I>Pn1,Pn3</I> の設定より、Sixel内のDECGRA(&quot;)のPan(V),Pad(H)が優先されます<BR>
                   ※ 2.17.2よりDECGCI(#Pc;Pu;Px;Py;Pz)のPu=3で0-255のRGBが指定できます<BR>
@@ -3590,7 +3589,7 @@ TD {
           <TR>
             <TD width="120">DCS <FONT size="-1"><I>Pn </I></FONT>{ <I><FONT size="-1">P...</FONT></I> ST</TD>
             <TD align="center" width="120">DECDLD</TD>
-            <TD width="680">ユーザーフォントの設定<BR>
+            <TD width="680"><A name="DECDLD"></A>ユーザーフォントの設定<BR>
             <TABLE cellpadding="1">
               <TBODY>
                 <TR>
@@ -4013,29 +4012,104 @@ TD {
             <TD width="120">DCS <FONT size="-1"><I>Pn</I></FONT> ! z <I><FONT size="-1">P...</FONT></I> ST</TD>
             <TD align="center" width="120">DECDMAC</TD>
             <TD width="680"><A name="DECDMAC"></A>マクロの定義<BR>
-            <TABLE cellpadding="1">
+            <TABLE cellpadding="2">
               <TBODY>
                 <TR>
-                  <TD colspan="2">DCS <I><FONT size="-1">Pid ; Pdt ; Pen ! z D...D</FONT></I> ST</TD>
+                  <TD colspan="3">DCS <I><FONT size="-1">Pid ; Pdt ; Pen ! z D...D</FONT></I> ST</TD>
                 </TR>
                 <TR>
                   <TD width="120"><FONT size="-1"><I>Pid</I></FONT> = [0]-63</TD>
-                  <TD><A href="#DECINVM">DECINVM</A>で使用するマクロ番号</TD>
+                  <TD colspan="2"><A href="#DECINVM">DECINVM</A>で使用するマクロ番号</TD>
                 </TR>
                 <TR>
                   <TD width="120" valign="top"><FONT size="-1"><I>Pdt</I></FONT> = [0],1</TD>
-                  <TD>0 <I><FONT size="-1">Pid</FONT></I>のマクロをクリア<BR>
+                  <TD colspan="2">0 <I><FONT size="-1">Pid</FONT></I>のマクロをクリア<BR>
                   1 すべてのマクロをクリア</TD>
                 </TR>
                 <TR>
-                  <TD width="120" valign="top"><FONT size="-1"><I>Pen</I></FONT> = [0],1</TD>
-                  <TD>0 <FONT size="-1"><I>D...D</I></FONT> は、テキスト<BR>
-                  1 <FONT size="-1"><I>D...D</I></FONT> は、16進数エンコード＋リピート</TD>
+                  <TD width="120" valign="top"><FONT size="-1"><I>Pen</I></FONT> = [0],1,2,3</TD>
+                  <TD colspan="2"><FONT size="-1"><I>D...D</I></FONT> のデータ形式を選択します<BR>
+                  ※ 2,3は、2.31.1以降の独自拡張です</TD>
                 </TR>
                 <TR>
-                  <TD width="120" valign="top"><FONT size="-1"><I>D...D</I></FONT></TD>
-                  <TD>基本16進数エンコードにリピート指定文字「！」<BR>
+                  <TD width="120" valign="top" rowspan="4"><FONT size="-1"><I>D...D</I></FONT></TD>
+                  <TD align="center" valign="top"><FONT size="-1"><I>Pen = </I></FONT>0</TD>
+                  <TD>基本制御文字を省くテキスト文字列</TD>
+                </TR>
+                <TR>
+                  <TD align="center" valign="top"><FONT size="-1"><I>Pen = </I></FONT>1</TD>
+                  <TD>16進数エンコードにリピート指定文字「！」<BR>
                   例　ABCxyzxyzxyzDEF = 414243!3;78797a;444546</TD>
+                </TR>
+                <TR>
+                  <TD align="center" valign="top"><FONT size="-1"><I>Pen = </I></FONT>2</TD>
+                  <TD>0と同じ制御文字を省くテキスト文字列ですが<BR>
+                  下記のエスケープ文字を使用できます
+                        <TABLE cellpadding="2" cellspacing="1" bgcolor="#999999">
+                          <TBODY>
+                            <TR>
+                              <TD>\a</TD>
+                              <TD>07</TD>
+                              <TD>BEL</TD>
+                            </TR>
+                            <TR>
+                              <TD>\b</TD>
+                              <TD>08</TD>
+                              <TD><SPAN style="color: rgb(0, 0, 0); font-family: &quot;Noto Sans JP&quot;; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: -webkit-center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">BS</SPAN></TD>
+                            </TR>
+                            <TR>
+                              <TD>\t</TD>
+                              <TD>09</TD>
+                              <TD>TAB</TD>
+                            </TR>
+                            <TR>
+                              <TD>\n</TD>
+                              <TD>0A</TD>
+                              <TD>LF</TD>
+                            </TR>
+                            <TR>
+                              <TD>\v</TD>
+                              <TD>0B</TD>
+                              <TD>VT</TD>
+                            </TR>
+                            <TR>
+                              <TD>\f</TD>
+                              <TD>0C</TD>
+                              <TD>FF</TD>
+                            </TR>
+                            <TR>
+                              <TD>\r</TD>
+                              <TD>0D</TD>
+                              <TD>CR</TD>
+                            </TR>
+                            <TR>
+                              <TD>\e</TD>
+                              <TD>1B</TD>
+                              <TD>ESC</TD>
+                            </TR>
+                            <TR>
+                              <TD>\\</TD>
+                              <TD>5C</TD>
+                              <TD>\</TD>
+                            </TR>
+                            <TR>
+                              <TD>\000</TD>
+                              <TD>0-7</TD>
+                              <TD>８進数表記</TD>
+                            </TR>
+                            <TR>
+                              <TD>\x00</TD>
+                              <TD>0-9,A-F</TD>
+                              <TD>１６進数表記</TD>
+                            </TR>
+                          </TBODY>
+                        </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD align="center" valign="top"><FONT size="-1"><I>Pen = </I></FONT>3</TD>
+                  <TD>base64でエンコードされた文字列（gzipは、オプション）<BR>
+                  例　<FONT size="-1">echo -en '\033P0;0;2!z' ; (cat img.six | gzip | base64) ; echo -en '\033\\</FONT>'</TD>
                 </TR>
               </TBODY>
             </TABLE>

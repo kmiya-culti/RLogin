@@ -98,9 +98,9 @@ public:
 	INT_PTR m_SmoothTimer;
 	INT_PTR m_RclickTimer;
 
-	int m_ClipFlag;
-	CCurPos m_ClipStaPosSave;
-	CCurPos m_ClipStaPos, m_ClipEndPos;
+	int m_ClipFlag, m_ClipFlagSave;
+	CCurPos m_ClipStaPosSave, m_ClipEndPosSave;
+	CCurPos m_ClipStaPos, m_ClipEndPos, m_ClipBasePos;
 	CCurPos m_ClipStaOld, m_ClipEndOld;
 	UINT m_ClipTimer;
 	CPoint m_ClipSavePoint;

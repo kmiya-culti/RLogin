@@ -6,11 +6,9 @@
 <STYLE type="text/css">
 <!--
 TD {		
-				
 		background-color : #ffffff; font-size : 90%;
 }
 .BOX{		
-				
 		background-color : silver;
 }
 -->
@@ -1436,7 +1434,9 @@ function OnClickOk(id) {
           <TR>
             <TD valign="top" width="600">マウスの左クリック（文字単位）／左ダブルクリック（文字列単位）による範囲指定は、左ボタンを放すまでキーボードのShift（行単位）やCtrl（矩形範囲）との併用などで随時変更することが出来ます。<BR>
             <BR>
-            一般的には、マウスのクリック時にShift/Ctrl/Altをチェックして範囲方法を決定することが多いようですが、RLoginではマウスボタンを放した時点で決定しています。</TD>
+            一般的には、マウスのクリック時にShift/Ctrl/Altをチェックして範囲方法を決定することが多いようですが、RLoginではマウスボタンを放した時点で決定しています。<BR>
+            <BR>
+            また、<A href="index.html#CLIPOPT">範囲指定の表示が残る設定</A>の場合、左クリックとShift+左クリックで（ドラッグしないで）範囲指定することが出来ます。この場合Shift+左クリックは、最初の左クリック位置を基準に前方・後方を拡張・縮小します。</TD>
             <TD valign="top"><IMG src="image238.jpg" width="586" height="352" border="0"></TD>
           </TR>
           <TR>
@@ -2410,7 +2410,7 @@ let &amp;t_te .= &quot;\e[?8428r\eP5#u\e\\&quot;
                 </TR>
                 <TR>
                   <TD colspan="2">Sixel表示サイズの元になる値をフォントサイズ・固定値(10pix)から選択します。<BR>
-                  2.31.0以前は、フォントサイズ（画面サイズ）からSixel画像の表示サイズを計算して実画像サイズで表示するようにしていましたが、多くの端末では、固定値の10ピクセルで計算して画像サイズを文字数で簡単に計算できるようにしています。横600pixの場合は、300pix/10pix=30文字で表すことになりフォントサイズに依存せずに表示画像サイズを拡大、縮小して表示します</TD>
+                  2.31.0以前は、フォントサイズ（画面サイズ）からSixel画像の表示サイズを計算して実画像サイズで表示するようにしていましたが、多くの端末では、固定値の10ピクセルで計算して画像サイズを文字数で簡単に計算できるようにしています。横300pixの場合は、300pix/10pix=30文字で表すことになりフォントサイズに依存せずに表示画像サイズを拡大、縮小して表示します</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -2426,7 +2426,7 @@ let &amp;t_te .= &quot;\e[?8428r\eP5#u\e\\&quot;
               <TBODY>
                 <TR>
                   <TD colspan="4">DECSIXELの独自データ拡張<BR>
-                  参照：<A href="ctrlcode.html#DCS">DCS 一覧</A></TD>
+                  参照：<A href="ctrlcode.html#DECSIXEL">DECSIXEL</A></TD>
                 </TR>
                 <TR>
                   <TD align="center" valign="middle" rowspan="5" width="80">RLGDSPSZ</TD>

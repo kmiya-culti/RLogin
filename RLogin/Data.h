@@ -20,6 +20,7 @@
 int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void *, const void *), int *base);
 BOOL IsZeroMemory(void *ptr, int len);
 BOOL IsDigits(LPCTSTR p);
+BOOL IsListEntry(LPCTSTR p);
 BOOL InStrStr(LPCTSTR str, LPCTSTR ptn);
 LPCTSTR StrToHex(LPCTSTR p, DWORD &val);
 
@@ -175,6 +176,12 @@ public:
 	LPCSTR IshDecNjis(LPCSTR str);
 	void IshEncNjis(LPBYTE buf, int len);
 
+	BOOL GzipDecode(LPBYTE buf, int len);
+	BOOL GzipEncode(LPBYTE buf, int len);
+
+	void EscDecode(LPBYTE buf, int len, LPCTSTR to = NULL);
+	void EscDecodeW(LPCTSTR buf, int len);
+
 	int HuffmanEncodeLength(LPBYTE buf, int len);
 	void HuffmanEncode(LPBYTE buf, int len);
 	BOOL HuffmanDecode(LPBYTE buf, int len);
@@ -223,6 +230,7 @@ public:
 	CBuffer(LPCWSTR str);
 	CBuffer(LPBYTE pData, int len);
 	CBuffer(int size);
+	CBuffer(CBuffer &data);
 	CBuffer();
 	~CBuffer();
 };
@@ -308,12 +316,12 @@ public:
 	void GetBuffer(CBuffer &buf);
 	const CStringArrayExt & operator = (CStringArrayExt &data);
 	void Serialize(CArchive& ar);
+	void Sort(BOOL bNoCase = FALSE);
+	int FindSort(LPCTSTR str, BOOL bNoCase = FALSE);
 	int Find(LPCTSTR str);
 	int FindVal(int value) { CString str;  str.Format(_T("%d"), value); return Find(str); }
 	int FindNoCase(LPCTSTR str);
 	int Match(LPCTSTR str);
-	void AddSort(LPCTSTR str);
-	int FindSort(LPCTSTR str);
 	int Compare(CStringArrayExt &data);
 
 	CStrNode *ParseWord(LPCTSTR *ptr);
@@ -1276,6 +1284,8 @@ public:
 	BOOL operator <= (SIZE size);
 	BOOL operator >  (SIZE size);
 	BOOL operator <  (SIZE size);
+
+	void Center(CCurPos &sta, CCurPos &end, int cols);
 
 	inline void SetSize(int ix, int iy) { cx = ix; cy = iy; }
 

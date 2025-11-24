@@ -2542,7 +2542,7 @@ LPCTSTR CIdKey::GetName(int nFlag)
 		m_Work += _T("rsa1");
 		break;
 	case IDKEY_RSA2:
-	if ( (nFlag & IDKEY_NAME_SIGN) != 0 ) {
+		if ( (nFlag & IDKEY_NAME_SIGN) != 0 ) {
 			switch(m_Nid) {
 			case NID_sha1:	 m_Work += _T("ssh-rsa"); break;
 			case NID_sha256: m_Work += _T("rsa-sha2-256"); break;
@@ -2747,7 +2747,7 @@ int CIdKey::ChkOldCertHosts(LPCTSTR host)
 
 	pApp->GetProfileKeys(_T("CertHosts"), entry);
 	for ( n = 0 ; n < entry.GetSize() ; n++ ) {
-		if ( entry[n].Left(4).Compare(_T("List")) != 0 || _tcschr(_T("0123456789"), entry[n][4]) == NULL )
+		if ( !IsListEntry(entry[n]) )
 			continue;
 		work = pApp->GetProfileString(_T("CertHosts"), entry[n], _T(""));
 		if ( work.Compare(dig) == 0 ) {
@@ -6625,7 +6625,7 @@ void CIdKeyTab::Serialize(int mode)
 		pApp->GetProfileKeys(m_pSection, entry);
 		m_Data.RemoveAll();
 		for ( n = 0 ; n < entry.GetSize() ; n++ ) {
-			if ( entry[n].Left(4).Compare(_T("List")) != 0 || _tcschr(_T("0123456789"), entry[n][4]) == NULL )
+			if ( !IsListEntry(entry[n]) )
 				continue;
 			if ( tmp.GetString(pApp->GetProfileString(m_pSection, entry[n], _T(""))) )
 				m_Data.Add(tmp);

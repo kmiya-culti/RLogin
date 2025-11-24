@@ -640,6 +640,22 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 	if ( !pCmdInfo->m_Path.IsEmpty() )
 		m_CmdsPath = pCmdInfo->m_Path;
 
+	if ( pCmdInfo->m_DarkOff  )
+		m_CmdsPath += _T(" /darkoff");
+
+	if ( !pCmdInfo->m_Opt.IsEmpty() ) {
+		tmp.Format(_T(" /opt %s"), CCommandLineInfoEx::ShellEscape(pCmdInfo->m_Opt));
+		m_CmdLine += tmp;
+	}
+
+	if ( !pCmdInfo->m_Profile.IsEmpty() ) {
+		tmp.Format(_T(" /profile %s"), CCommandLineInfoEx::ShellEscape(pCmdInfo->m_Profile));
+		m_CmdLine += tmp;
+	} else if ( theApp.IsPrivateProfile() ) {
+		tmp.Format(_T(" /profile %s"), CCommandLineInfoEx::ShellEscape(theApp.m_pszProfileName));
+		m_CmdLine += tmp;
+	}
+
 	if ( m_ServerEntry.m_DocType == DOCTYPE_SESSION && (m_ServerEntry.m_HostName.IsEmpty() || m_ServerEntry.m_UserName.IsEmpty() || m_ServerEntry.m_PassName.IsEmpty() ) )
 		m_bReqDlg = TRUE;
 }

@@ -43,7 +43,7 @@ void CDefParamDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CDefParamDlg, CDialogExt)
 END_MESSAGE_MAP()
 
-static struct _DefParaCheckTab {
+static const struct _DefParaCheckTab {
 	int		OptNum;
 	BOOL	TrueFalse;
 } DefParamCheckTab[] = {

@@ -3519,7 +3519,7 @@ void CMainFrame::OnUpdateIndicatorSock(CCmdUI* pCmdUI)
 {
 	int n = 7;
 	CRLoginDoc *pDoc;
-	static LPCTSTR ProtoName[] = { 
+	static const LPCTSTR ProtoName[] = { 
 		_T("TCP"), _T("Login"), _T("Telnet"), _T("COM"), _T("PIPE"), _T("SSH"), _T("PFD"), _T("") };
 
 	if ( (pDoc = GetMDIActiveDocument()) != NULL && pDoc->m_pSock != NULL )

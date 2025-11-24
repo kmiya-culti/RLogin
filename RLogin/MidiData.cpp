@@ -916,8 +916,8 @@ BOOL CMidiData::SaveFile(LPCTSTR fileName)
 //////////////////////////////////////////////////////////////////////
 
 					//		A	A#	B	C	C#	D	D#	E	F	F#	G	G#
-static int NoteTab[] = {	9,		11,	0,		2,		4,	5,		7		};
-static LPCSTR NoteName[] = { "c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b" };
+static const int NoteTab[] = {	9,		11,	0,		2,		4,	5,		7		};
+static const LPCSTR NoteName[] = { "c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b" };
 
 int CMidiData::ParseChar()
 {

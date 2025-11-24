@@ -138,8 +138,8 @@ void CComMoniDlg::DrawGrapData(CDC *pDC, CRect &rect)
 	int max = m_pSock->m_pComConf->dcb.BaudRate / 10;
 	CPen PenLine[4];
 	CPen *pOldPen;
-	static DWORD ModStsBits[5] = { MS_RLSD_ON, MS_DSR_ON, MS_CTS_ON, MS_RING_ON, 0x8000 };
-	static COLORREF ModStsCol[5] = { RGB(255, 255, 0), RGB(255, 0, 255), RGB(0, 255, 255), RGB(255, 255, 255), RGB(255, 0, 0) };
+	static const DWORD ModStsBits[5] = { MS_RLSD_ON, MS_DSR_ON, MS_CTS_ON, MS_RING_ON, 0x8000 };
+	static const COLORREF ModStsCol[5] = { RGB(255, 255, 0), RGB(255, 0, 255), RGB(0, 255, 255), RGB(255, 255, 255), RGB(255, 0, 0) };
 
 	pDC->FillSolidRect(rect, RGB(0, 0, 0));
 

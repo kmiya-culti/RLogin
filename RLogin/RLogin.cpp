@@ -77,6 +77,7 @@ CCommandLineInfoEx::CCommandLineInfoEx()
 	m_Cwd.Empty();
 	m_DarkOff = FALSE;
 	m_Opt.Empty();
+	m_Profile.Empty();
 }
 void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast)
 {
@@ -143,6 +144,8 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 			m_DarkOff = TRUE;
 		else if ( _tcsicmp(_T("opt"), pszParam) == 0 )
 			m_PasStat = 18;
+		else if ( _tcsicmp(_T("profile"), pszParam) == 0 )
+			m_PasStat = 19;
 		else
 			break;
 		ParseLast(bLast);
@@ -274,6 +277,13 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 		if ( bFlag )
 			break;
 		m_Opt = pszParam;
+		ParseLast(bLast);
+		return;
+	case 19:		// profile
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_Profile = pszParam;
 		ParseLast(bLast);
 		return;
 	}
@@ -478,6 +488,11 @@ void CCommandLineInfoEx::GetString(CString &str)
 
 	if ( !m_Opt.IsEmpty() ) {
 		tmp.Format(_T(" /opt %s"), ShellEscape(m_Opt));
+		str += tmp;
+	}
+
+	if ( !m_Profile.IsEmpty() ) {
+		tmp.Format(_T(" /profile %s"), ShellEscape(m_Profile));
 		str += tmp;
 	}
 }
@@ -1666,9 +1681,19 @@ BOOL CRLoginApp::InitInstance()
 
 	if ( m_BaseDir.IsEmpty() )
 		m_BaseDir = m_ExecDir;
+	
+	// DDE、file open など標準のシェル コマンドのコマンド ラインを解析します。
+	CCommandLineInfoEx cmdInfo;
+	ParseCommandLine(cmdInfo);
+	m_pCmdInfo = &cmdInfo;
 
 	// ユーザープロファイルの検索
-	if ( GetExtFilePath(NULL, _T(".ini"), iniFileName) ) {
+	if ( !cmdInfo.m_Profile.IsEmpty() ) {
+		free((void*)m_pszProfileName);
+		m_pszProfileName = _tcsdup(cmdInfo.m_Profile);
+		bInitFile = TRUE;
+
+	} else if ( GetExtFilePath(NULL, _T(".ini"), iniFileName) ) {
 		free((void*)m_pszProfileName);
 		m_pszProfileName = _tcsdup(iniFileName);
 		bInitFile = TRUE;
@@ -1829,11 +1854,6 @@ BOOL CRLoginApp::InitInstance()
 
 	AddDocTemplate(pDocTemplate);
 
-	// DDE、file open など標準のシェル コマンドのコマンド ラインを解析します。
-	CCommandLineInfoEx cmdInfo;
-	ParseCommandLine(cmdInfo);
-	m_pCmdInfo = &cmdInfo;
-
 	// inuseオプションで別プロセスを見つけたら終了
 	if ( cmdInfo.m_InUse != INUSE_NONE && InUseCheck(cmdInfo.m_InUse == INUSE_ALLWIN ? TRUE : FALSE) )
 		return FALSE;
@@ -1930,12 +1950,12 @@ BOOL CRLoginApp::InitInstance()
 	}
 
 	// ユーザープロファイルの更新を確認
-	if ( m_pszRegistryKey == NULL && GetProfileInt(_T("RLoginApp"), _T("CompressPrivateProfile"), 0) == 0 ) {
-		if ( ::AfxMessageBox(IDS_COMPPRIVATEPROFILE, MB_ICONWARNING | MB_YESNO) != IDYES )
-			return FALSE;
-		WriteProfileInt(_T("RLoginApp"), _T("CompressPrivateProfile"), 1);
-		pMainFrame->m_ServerEntryTab.Serialize(TRUE);
-	}
+	//if ( m_pszRegistryKey == NULL && GetProfileInt(_T("RLoginApp"), _T("CompressPrivateProfile"), 0) == 0 ) {
+	//	if ( ::AfxMessageBox(IDS_COMPPRIVATEPROFILE, MB_ICONWARNING | MB_YESNO) != IDYES )
+	//		return FALSE;
+	//	WriteProfileInt(_T("RLoginApp"), _T("CompressPrivateProfile"), 1);
+	//	pMainFrame->m_ServerEntryTab.Serialize(TRUE);
+	//}
 
 	// クイックバーの初期化
 	pMainFrame->QuickBarInit();
@@ -2690,12 +2710,160 @@ void CRLoginApp::SendBroadCastMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 
 //////////////////////////////////////////////////////////////////////
 
+DWORD CRLoginApp::GetPrivateProfileExtension(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPTSTR lpDefault, LPTSTR pData, DWORD nSize)
+{
+	int n, num;
+	DWORD dw, len;
+	CString entry;
+	TCHAR data[256];
+
+	entry.Format(_T("%s_#NUM"), lpszEntry);
+	if ( ::GetPrivateProfileString(lpszSection, entry, NULL, data, 256, m_pszProfileName) == 0 )
+		return ::GetPrivateProfileString(lpszSection, lpszEntry, lpDefault, pData, nSize, m_pszProfileName);
+
+	len = 0;
+	num = _tstoi(data);
+	for ( n = 1 ; n < num && nSize > 0 ; n++ ) {
+		entry.Format(_T("%s_#%d"), lpszEntry, n);
+		if ( (dw = ::GetPrivateProfileString(lpszSection, entry, NULL, pData, nSize, m_pszProfileName)) == 0 )
+			break;
+		len += dw;
+		pData += dw;
+		nSize -= dw;
+	}
+	return len;
+}
+void CRLoginApp::DeletePrivateProfileExtension(LPCTSTR lpszSection, LPCTSTR lpszEntry)
+{
+	CString entry;
+	entry.Format(_T("%s_#NUM"), lpszEntry);
+
+	TCHAR data[256];
+	DWORD dw = ::GetPrivateProfileString(lpszSection, entry, NULL, data, 256, m_pszProfileName);
+
+	if ( dw > 0 ) {
+		int num = _tstoi(data);
+		::WritePrivateProfileString(lpszSection, entry, NULL, m_pszProfileName);
+		for ( int n = 1 ; n < num ; n++ ) {
+			entry.Format(_T("%s_#%d"), lpszEntry, n);
+			::WritePrivateProfileString(lpszSection, entry, NULL, m_pszProfileName);
+		}
+	}
+}
+BOOL CRLoginApp::WritePrivateProfileExtension(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszValue)
+{
+	int n;
+	int num, len;
+	CString entry, str;
+
+	if ( lpszValue == NULL ) {
+		::WritePrivateProfileString(lpszSection, lpszEntry, NULL, m_pszProfileName);
+		DeletePrivateProfileExtension(lpszSection, lpszEntry);
+		return TRUE;
+	}
+
+	if ( (len = (int)_tcslen(lpszValue)) < 0x10000 ) {
+		if ( !::WritePrivateProfileString(lpszSection, lpszEntry, lpszValue, m_pszProfileName) )
+			return FALSE;
+		DeletePrivateProfileExtension(lpszSection, lpszEntry);
+		return TRUE;
+	}
+
+	TCHAR *tmp = new TCHAR [0x10000];
+	for ( num = 1 ; len > 0 ; len -= n ) {
+		if ( (n = len) > 0xFFFF )
+			n = 0xFFFF;
+		memcpy(tmp, lpszValue, n);
+		tmp[n] = _T('\0');
+
+		entry.Format(_T("%s_#%d"), lpszEntry, num++);
+		if ( !::WritePrivateProfileString(lpszSection, entry, tmp, m_pszProfileName) ) {
+			delete [] tmp;
+			return FALSE;
+		}
+
+		lpszValue += n;
+	}
+	delete [] tmp;
+
+	entry.Format(_T("%s_#NUM"), lpszEntry);
+	str.Format(_T("%d"), num);
+	::WritePrivateProfileString(lpszSection, entry, str, m_pszProfileName);
+	::WritePrivateProfileString(lpszSection, lpszEntry, NULL, m_pszProfileName);
+
+	return TRUE;
+}
+
+BOOL CRLoginApp::GetPrivateProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBYTE *ppData, UINT *pBytes)
+{
+	DWORD dw;
+	int max = (16 * 1024);
+	LPTSTR pData = new TCHAR [max];
+
+	for ( ; ; ) {
+#ifdef	USE_PRIPROEXT
+		dw = GetPrivateProfileExtension(lpszSection, lpszEntry, NULL, pData, max);
+#else
+		dw = ::GetPrivateProfileString(lpszSection, lpszEntry, NULL, pData, max, m_pszProfileName);
+#endif
+		if ( dw < (DWORD)(max - 1) )
+			break;
+		max *= 2;
+		delete [] pData;
+		pData = new TCHAR [max];
+	}
+
+	if ( dw == 0 ) {
+		delete [] pData;
+		*ppData = NULL;
+		*pBytes = 0;
+		return FALSE;
+	}
+
+	int c;
+	UINT n;
+	LPCTSTR p = (LPCTSTR)pData;
+	LPBYTE s = (LPBYTE)pData;
+
+	*ppData = (LPBYTE)pData;
+
+	for ( n = 0 ; *p != _T('\0') ; n++ ) {
+		c = *(p++) - _T('A');
+		c += ((*(p++) - 'A') << 4);
+		*(s++) = (BYTE)c;
+	}
+
+	*pBytes = n;
+
+	return TRUE;
+}
+BOOL CRLoginApp::WritePrivateProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBYTE pData, UINT nBytes)
+{
+	// GetPrivateProfileString dw <= 0xFFFFの制限あり
+	ASSERT((nBytes * 2 + 1) <= 0xFFFF);
+
+	CBuffer buf;
+
+	for ( UINT n = 0 ; n < nBytes ; n++, pData++ ) {
+		buf.PutWord((*pData & 0x0F) + 'A');
+		buf.PutWord(((*pData & 0xF0) >> 4) + 'A');
+	}
+
+#ifdef	USE_PRIPROEXT
+	return WritePrivateProfileExtension(lpszSection, lpszEntry, (LPCTSTR)buf);
+#else
+	return ::WritePrivateProfileString(lpszSection, lpszEntry, (LPCTSTR)buf, m_pszProfileName);
+#endif
+}
+
 BOOL CRLoginApp::GetProfileBinary(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBYTE* ppData, UINT* pBytes)
 {
 	if ( m_pszRegistryKey != NULL )
 		return CWinApp::GetProfileBinary(lpszSection, lpszEntry, ppData, pBytes);
 
 	else {	// private profile
+		ASSERT(m_pszProfileName != NULL);
+
 		LPCTSTR p;
 		CString compEntry, origEntry;
 
@@ -2706,12 +2874,12 @@ BOOL CRLoginApp::GetProfileBinary(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBYTE
 			lpszEntry = origEntry;
 		}
 
-		if ( CWinApp::GetProfileBinary(lpszSection, lpszEntry, ppData, pBytes) && *ppData != NULL )
+		if ( GetPrivateProfileBuffer(lpszSection, lpszEntry, ppData, pBytes) && *ppData != NULL )
 			return TRUE;
 
 		compEntry.Format(_T("%s_#"), lpszEntry);
 
-		if ( !CWinApp::GetProfileBinary(lpszSection, compEntry, ppData, pBytes) || *ppData == NULL )
+		if ( !GetPrivateProfileBuffer(lpszSection, compEntry, ppData, pBytes) || *ppData == NULL )
 			return FALSE;
 
 		if ( *pBytes < sizeof(UINT) )	// ???
@@ -2740,6 +2908,8 @@ BOOL CRLoginApp::WriteProfileBinary(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBY
 		return CWinApp::WriteProfileBinary(lpszSection, lpszEntry, pData, nBytes);
 
 	else {	// private profile
+		ASSERT(m_pszProfileName != NULL);
+
 		LPCTSTR p;
 		uLong compSize = compressBound(nBytes);
 		BYTE *compBuff = new BYTE[compSize + sizeof(UINT)];
@@ -2757,11 +2927,19 @@ BOOL CRLoginApp::WriteProfileBinary(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBY
 		compEntry.Format(_T("%s_#"), lpszEntry);
 
 		if ( nBytes <= 32 || compress2(compBuff + sizeof(UINT), &compSize, pData, nBytes, 9) != Z_OK || nBytes <= (compSize + sizeof(UINT)) ) {
-			bRet = CWinApp::WriteProfileBinary(lpszSection, lpszEntry, pData, nBytes);
+			bRet = WritePrivateProfileBuffer(lpszSection, lpszEntry, pData, nBytes);
+#ifdef	USE_PRIPROEXT
+			WritePrivateProfileExtension(lpszSection, compEntry, NULL);
+#else
 			WritePrivateProfileString(lpszSection, compEntry, NULL, m_pszProfileName);
+#endif
 		} else {
-			bRet = CWinApp::WriteProfileBinary(lpszSection, compEntry, compBuff, compSize + sizeof(UINT));
+			bRet = WritePrivateProfileBuffer(lpszSection, compEntry, compBuff, compSize + sizeof(UINT));
+#ifdef	USE_PRIPROEXT
+			WritePrivateProfileExtension(lpszSection, lpszEntry, NULL);
+#else
 			WritePrivateProfileString(lpszSection, lpszEntry, NULL, m_pszProfileName);
+#endif
 		}
 
 		delete [] compBuff;
@@ -2772,22 +2950,134 @@ CString CRLoginApp::GetProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPC
 {
 	if ( m_pszRegistryKey != NULL )
 		return CWinApp::GetProfileString(lpszSection, lpszEntry, lpszDefault);
-	else {
+
+	else {	// private profile
 		ASSERT(m_pszProfileName != NULL);
+
 		if (lpszDefault == NULL)
 			lpszDefault = _T("");	// don't pass in NULL
 
 		DWORD dw;
-		CBuffer work(64 * 1024 * sizeof(TCHAR));
+		CBuffer work(8 * 1024 * sizeof(TCHAR));
+		CString wstrEntry;
+
+		wstrEntry.Format(_T("%s_W"), lpszEntry);
 		for ( ; ; ) {
-			dw = ::GetPrivateProfileString(lpszSection, lpszEntry, lpszDefault, (LPTSTR)work.m_Data, work.m_Max / sizeof(TCHAR), m_pszProfileName);
-			if ( dw < (work.m_Max  / sizeof(TCHAR) - 1) )
+#ifdef	USE_PRIPROEXT
+			dw = GetPrivateProfileExtension(lpszSection, wstrEntry, NULL, (LPTSTR)work.m_Data, work.m_Max / sizeof(TCHAR));
+#else
+			dw = ::GetPrivateProfileString(lpszSection, wstrEntry, NULL, (LPTSTR)work.m_Data, work.m_Max / sizeof(TCHAR), m_pszProfileName);
+#endif
+			if ( dw < (DWORD)(work.m_Max / sizeof(TCHAR) - 1) )
 				break;
 			work.ReAlloc(work.m_Max * 2);
 		}
+
+		if ( dw > 0 ) {
+			CBuffer tmp;
+			LPCTSTR p = (LPCTSTR)work.m_Data;
+			TCHAR c;
+			while ( *p != _T('\0') ) {
+				if ( *p == _T('\\') ) {
+					switch(*(++p)) {
+					case _T('u'):
+						p++;
+						c = 0;
+						for ( int n = 0 ; n < 4 ; n++ ) {
+							if ( *p >= '0' && *p <= '9' )
+								c = c * 16 + (*(p++) - '0');
+							else if ( *p >= 'a' && *p <= 'f' )
+								c = c * 16 + (*(p++) - 'a' + 10);
+							else if ( *p >= 'A' && *p <= 'F' )
+								c = c * 16 + (*(p++) - 'A' + 10);
+							else
+								break;
+						}
+						tmp.PutWord(c);
+						break;
+					default:
+						tmp.PutWord(*(p++));
+						break;
+					}
+				} else
+					tmp.PutWord(*(p++));
+			}
+			tmp.PutWord(_T('\0'));
+			work.Swap(tmp);
+
+		} else {
+			for ( ; ; ) {
+#ifdef	USE_PRIPROEXT
+				dw = GetPrivateProfileExtension(lpszSection, lpszEntry, lpszDefault, (LPTSTR)work.m_Data, work.m_Max / sizeof(TCHAR));
+#else
+				dw = ::GetPrivateProfileString(lpszSection, lpszEntry, lpszDefault, (LPTSTR)work.m_Data, work.m_Max / sizeof(TCHAR), m_pszProfileName);
+#endif
+				if ( dw < (work.m_Max  / sizeof(TCHAR) - 1) )
+					break;
+				work.ReAlloc(work.m_Max * 2);
+			}
+		}
+
 		return (LPCTSTR)work.m_Data;
 	}
 }
+BOOL CRLoginApp::WriteProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszValue)
+{
+	if ( m_pszRegistryKey != NULL )
+		return CWinApp::WriteProfileString(lpszSection, lpszEntry, lpszValue);
+
+	else {	// private profile
+		ASSERT(m_pszProfileName != NULL);
+
+		if ( lpszSection == NULL || lpszEntry == NULL || lpszValue == NULL )
+			return ::WritePrivateProfileString(lpszSection, lpszEntry, lpszValue, m_pszProfileName);
+
+		BOOL bRet;
+		CString wstrEntry;
+		CStringA mbs(lpszValue);
+		CString str(mbs);
+
+		wstrEntry.Format(_T("%s_W"), lpszEntry);
+
+		if ( str.Compare(lpszValue) != 0 ) {
+			LPCTSTR p = lpszValue;
+			str.Empty();
+			while ( *p != _T('\0') ) {
+				mbs = *p;
+				if ( *p != _T('?') && (mbs.IsEmpty() || mbs.Compare("?") == 0) ) {
+					CString fmt;
+					fmt.Format(_T("\\u%04X"), *(p++));
+					str += fmt;
+				} else if ( *p == _T('\\') ) {
+					str += *p;
+					str += *(p++);
+				} else
+					str += *(p++);
+			}
+
+#ifdef	USE_PRIPROEXT
+			bRet = WritePrivateProfileExtension(lpszSection, wstrEntry, str);
+			WritePrivateProfileExtension(lpszSection, lpszEntry, NULL);
+#else
+			ASSERT(str.GetLength() < 0x10000);
+			bRet = ::WritePrivateProfileString(lpszSection, wstrEntry, str, m_pszProfileName);
+			::WritePrivateProfileString(lpszSection, lpszEntry, NULL, m_pszProfileName);
+#endif
+			return bRet;
+		}
+
+#ifdef	USE_PRIPROEXT
+		bRet = WritePrivateProfileExtension(lpszSection, lpszEntry, lpszValue);
+		WritePrivateProfileExtension(lpszSection, wstrEntry, NULL);
+#else
+		ASSERT(_tcslen(lpszValue) < 0x10000);
+		bRet = ::WritePrivateProfileString(lpszSection, lpszEntry, lpszValue, m_pszProfileName);
+		::WritePrivateProfileString(lpszSection, wstrEntry, NULL, m_pszProfileName);
+#endif
+		return bRet;
+	}
+}
+
 void CRLoginApp::GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lpBuf, int nBufLen, void *lpDef)
 {
 	LPBYTE pData = NULL;
@@ -2858,10 +3148,18 @@ void CRLoginApp::GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra)
 {
 	int n, mx;
 	CString entry;
+	CStringArrayExt keys;
 	CMutexLock Mutex(lpszSection);
-	
+
 	stra.RemoveAll();
 	mx = GetProfileInt(lpszSection, _T("ListMax"), 0);
+
+	GetProfileKeys(lpszSection, keys);
+	for ( n = 0 ; n < (int)keys.GetSize() ; n++ ) {
+		if ( IsListEntry(keys[n]) && _tstoi((LPCTSTR)keys[n] + 4) >= mx )
+			DelProfileEntry(lpszSection, keys[n]);
+	}
+	
 	for ( n = 0 ; n < mx ; n++ ) {
 		entry.Format(_T("List%02d"), n);
 		stra.Add(GetProfileString(lpszSection, entry, _T("")));
@@ -2869,9 +3167,15 @@ void CRLoginApp::GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra)
 }
 void CRLoginApp::WriteProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra)
 {
-	int n;
+	int n, mx;
 	CString entry;
 	CMutexLock Mutex(lpszSection);
+
+	mx = GetProfileInt(lpszSection, _T("ListMax"), 0);
+	for ( n = (int)stra.GetSize() ; n < mx ; n++ ) {
+		entry.Format(_T("List%02d"), n);
+		DelProfileEntry(lpszSection, entry);
+	}
 
 	for ( n = 0 ; n < stra.GetSize() ; n++ ) {
 		entry.Format(_T("List%02d"), n);
@@ -2889,6 +3193,7 @@ int CRLoginApp::GetProfileSeqNum(LPCTSTR lpszSection, LPCTSTR lpszEntry)
 void CRLoginApp::GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &stra)
 {
 	stra.RemoveAll();
+
 	if ( m_pszRegistryKey != NULL ) {
 		HKEY hAppKey;
 		if ( (hAppKey = GetAppRegistryKey()) == NULL )
@@ -2903,10 +3208,15 @@ void CRLoginApp::GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &stra)
 		}
 		RegCloseKey(hAppKey);
 
-	} else {
+	} else {	// private profile
+		ASSERT(m_pszProfileName != NULL);
+
 		DWORD dw, sz = 64 * 1024;
 		CString key;
 		TCHAR *p, *work = new TCHAR[sz];
+#ifdef	USE_PRIPROEXT
+		TCHAR *s;
+#endif
 		for ( ; ; ) {
 			dw = GetPrivateProfileSection(lpszSection, work, sz, m_pszProfileName);
 			if ( dw < (sz - 2) )
@@ -2921,6 +3231,12 @@ void CRLoginApp::GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &stra)
 				key += *(p++);
 			if ( key.Right(2).Compare(_T("_#")) == 0 )
 				key.Delete(key.GetLength() - 2, 2);
+#ifdef	USE_PRIPROEXT
+			else if ( key.Right(5).Compare(_T("_#NUM")) == 0 )
+				key.Delete(key.GetLength() - 5, 5);
+			else if ( (s = (TCHAR *)_tcsrchr(key, _T('_'))) != NULL && s != NULL && *(s++) == _T('#') && IsDigits(s) )
+				key.Empty();
+#endif
 			if ( !key.IsEmpty() )
 				stra.Add(key);
 			while ( *(p++) != _T('\0') )
@@ -2938,12 +3254,23 @@ void CRLoginApp::DelProfileEntry(LPCTSTR lpszSection, LPCTSTR lpszEntry)
 		RegDeleteValue(hSecKey, lpszEntry);
 		RegCloseKey(hSecKey);
 
-	} else {
+	} else {	// private profile
+		ASSERT(m_pszProfileName != NULL);
+
+#ifdef	USE_PRIPROEXT
+		WritePrivateProfileExtension(lpszSection, lpszEntry, NULL);
+#else
 		WritePrivateProfileString(lpszSection, lpszEntry, NULL, m_pszProfileName);
+#endif
 
 		CString compEntry;
 		compEntry.Format(_T("%s_#"), lpszEntry);
+
+#ifdef	USE_PRIPROEXT
+		WritePrivateProfileExtension(lpszSection, compEntry, NULL);
+#else
 		WritePrivateProfileString(lpszSection, compEntry, NULL, m_pszProfileName);
+#endif
 	}
 }
 void CRLoginApp::DelProfileSection(LPCTSTR lpszSection)
@@ -2955,7 +3282,9 @@ void CRLoginApp::DelProfileSection(LPCTSTR lpszSection)
 		RegDeleteKey(hAppKey, lpszSection);
 		RegCloseKey(hAppKey);
 
-	} else {
+	} else {	// private profile
+		ASSERT(m_pszProfileName != NULL);
+
 		WritePrivateProfileString(lpszSection, NULL, NULL, m_pszProfileName);
 	}
 }
@@ -2974,7 +3303,9 @@ BOOL CRLoginApp::AliveProfileKeys(LPCTSTR lpszSection)
 			RegCloseKey(hAppKey);
 		}
 
-	} else {
+	} else {	// private profile
+		ASSERT(m_pszProfileName != NULL);
+
 		TCHAR tmp[256];
 		if ( GetPrivateProfileSection(lpszSection, tmp, 256, m_pszProfileName) != 0 )
 			rt = TRUE;
@@ -2987,7 +3318,7 @@ void CRLoginApp::RegisterShellRemoveAll()
 {
 	int n;
 	CString strTemp;
-	static LPCTSTR protoName[] = { _T("ssh"), _T("telnet"), _T("login"), NULL };
+	static const LPCTSTR protoName[] = { _T("ssh"), _T("telnet"), _T("login"), NULL };
 
 	RegisterDelete(HKEY_CURRENT_USER, _T("Software\\RegisteredApplications"), _T("RLogin"));
 
@@ -3283,6 +3614,7 @@ BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file, BOOL bRLoginApp)
 	HKEY hSubKey;
 	CStringA mbs;
 	BOOL bCompCheck = FALSE;
+	CString str;
 
 	for ( n = 0 ; ; n++ ) {
 		len = 1024;
@@ -3318,6 +3650,11 @@ BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file, BOOL bRLoginApp)
 		if ( RegQueryValueEx(hKey, name, NULL, &type, pData, &size) != ERROR_SUCCESS )
 			continue;
 
+		if ( name[0] == _T('\0') ) {
+			name[0] = _T('@');
+			name[1] = _T('\0');
+		}
+
 		switch(type) {
 		case REG_DWORD:
 			if ( size == 0 )
@@ -3328,31 +3665,85 @@ BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file, BOOL bRLoginApp)
 				bCompCheck = TRUE;
 			break;
 		case REG_SZ:
-			if ( size == 0 )
+			if ( size == 0 ) {
 				mbs.Format("%s=\r\n", TstrToMbs(name));
-			else {
-				*((LPTSTR)(pData + size)) = L'\0';
-				mbs.Format("%s=%s\r\n", TstrToMbs(name), TstrToMbs((LPCTSTR)pData));
+				break;
 			}
+			*((LPTSTR)(pData + size)) = L'\0';
+			str = TstrToMbs((LPCTSTR)pData);
+			if ( str.Compare((LPCTSTR)pData) != 0 ) {
+				LPCTSTR p = (LPCTSTR)pData;
+				str.Empty();
+				while ( *p != _T('\0') ) {
+					mbs = *p;
+					if ( *p != _T('?') && (mbs.IsEmpty() || mbs.Compare("?") == 0) ) {
+						CString fmt;
+						fmt.Format(_T("\\u%04X"), *(p++));
+						str += fmt;
+					} else if ( *p == _T('\\') ) {
+						str += *p;
+						str += *(p++);
+					} else
+						str += *(p++);
+				}
+				ASSERT(str.GetLength() < 0x10000);
+				mbs.Format("%s_W=%s\r\n", TstrToMbs(name), TstrToMbs(str));
+				break;
+			}
+			ASSERT(_tcslen((LPCTSTR)pData) < 0x10000);
+			mbs.Format("%s=%s\r\n", TstrToMbs(name), TstrToMbs((LPCTSTR)pData));
 			break;
 		case REG_BINARY:
-			mbs.Format("%s=", TstrToMbs(name));
+			mbs.Format("%s", TstrToMbs(name));
 			if ( size > 32 ) {
 				uLong compSize = compressBound(size);
 				BYTE *compBuff = new BYTE[compSize + sizeof(UINT)];
 				*((UINT *)compBuff) = size;
 				if ( compress2(compBuff + sizeof(UINT), &compSize, pData, size, 9) == Z_OK && size > (compSize + sizeof(UINT)) ) {
-					mbs.Format("%s_#=", TstrToMbs(name));
+					mbs += _T("_#");
 					size = compSize + sizeof(UINT);
 					memcpy(pData, compBuff, size);
 				}
 				delete [] compBuff;
 			}
+#ifdef	USE_PRIPROEXT
+			if ( size > 0x7FFF ) {
+				// GetPrivateProfileString dw <= 0xFFFFの制限あり	size * 2 + 1 = 0x7FFF * 2 + 1 = 0xFFFF
+				int num = 1;
+				int pos = 0;
+				CStringA base(mbs), entry;
+				mbs.Empty();
+				while ( size > 0 ) {
+					DWORD max = (size <= 0x7FFF ? size : 0x7FFF);
+					entry.Format("%s_#%d=", base, num++);
+					mbs += entry;
+					for ( len = 0 ; len < max ; len++ ) {
+						mbs += (CHAR)('A' + (pData[pos] & 0x0F));
+						mbs += (CHAR)('A' + ((pData[pos] >> 4) & 0x0F));
+						pos++;
+					}
+					mbs += "\r\n";
+					size -= max;
+				}
+				entry.Format("%s_#NUM=%d\r\n", base, num);
+				mbs += entry;
+			} else {
+				mbs += "=";
+				for ( len = 0 ; len < size ; len++ ) {
+					mbs += (CHAR)('A' + (pData[len] & 0x0F));
+					mbs += (CHAR)('A' + ((pData[len] >> 4) & 0x0F));
+				}
+				mbs += "\r\n";
+			}
+#else
+			ASSERT(size < 0x7FFF);
+			mbs += "=";
 			for ( len = 0 ; len < size ; len++ ) {
 				mbs += (CHAR)('A' + (pData[len] & 0x0F));
 				mbs += (CHAR)('A' + ((pData[len] >> 4) & 0x0F));
 			}
 			mbs += "\r\n";
+#endif
 			break;
 		default:
 			// XXX Error
@@ -4433,7 +4824,7 @@ BOOL CRLoginApp::DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLO
 	CEmojiImage *pBack, *pEmoji;
 	int width, height;
 	CTextRam::DrawWork *pProp = (CTextRam::DrawWork *)pParam;
- 	static BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
+ 	static const BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
 
 	for ( int n = 0 ; str[n] != _T('\0') ; n++ )
 		hash = hash + (int)str[n];

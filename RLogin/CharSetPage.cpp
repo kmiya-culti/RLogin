@@ -95,7 +95,7 @@ END_MESSAGE_MAP()
 void CCharSetPage::InitList()
 {
 	int n, i;
-	static LPCTSTR bankTab[] = { _T("94"), _T("96"), _T("94x94"), _T("96x96") };
+	static const LPCTSTR bankTab[] = { _T("94"), _T("96"), _T("94x94"), _T("96x96") };
 
 	m_List.DeleteAllItems();
 	for ( n = i = 0 ; n < CODE_MAX ; n++ ) {

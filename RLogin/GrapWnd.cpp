@@ -562,8 +562,8 @@ void CGrapWnd::SaveBitmap(int type)
 	CDC TempDC, SaveDC;
 	CBitmap *pOldBitMap;
 	CImage image;
-	static LPCTSTR extname[] = { _T("gif"), _T("jpg"), _T("png"), _T("bmp") };
-	static LPCTSTR defname[] = { _T("*.gif"), _T("*.jpg"), _T("*.png"), _T("*.bmp") };
+	static const LPCTSTR extname[] = { _T("gif"), _T("jpg"), _T("png"), _T("bmp") };
+	static const LPCTSTR defname[] = { _T("*.gif"), _T("*.jpg"), _T("*.png"), _T("*.bmp") };
 	CFileDialog dlg(FALSE, extname[type], defname[type], OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGGRAPHICS) , this);
 
 	if ( m_pActMap == NULL || DpiAwareDoModal(dlg) != IDOK )
@@ -3388,7 +3388,7 @@ void CGrapWnd::SixelData(int ch)
 		break;	// No Loop !!!
 	}
 }
-void CGrapWnd::SixelEndof(BOOL bAlpha)
+void CGrapWnd::SixelEndof(BOOL bAlpha, int NoiseFilter)
 {
 	if ( m_MaxX > m_SixelWidth || m_MaxY > m_SixelHeight ) {
 		m_MaxX = m_SixelWidth;
@@ -3402,6 +3402,9 @@ void CGrapWnd::SixelEndof(BOOL bAlpha)
 		for ( int y = 0 ; y < m_MaxY ; y++ ) {
 			for ( int x = 0 ; x < m_MaxX ; x++ ) {
 				int i = m_pIndexMap[x + y * m_MaxX];
+
+				if ( i >= SIXEL_PALET )
+					continue;
 
 				if ( m_ColMap[i] == m_SixelTransColor )
 					m_SixelTransColor = (-1);
@@ -3464,6 +3467,72 @@ void CGrapWnd::SixelEndof(BOOL bAlpha)
 					m_SixelTempDC.SetPixelV(x, y, m_SixelTransColor);
 			}
 		}
+	}
+
+	if ( NoiseFilter > 0 ) {
+		static const struct {
+			int x, y, d;
+		} maps[8] = {
+			{ -1, -1,  70 }, { 0, -1, 100 }, { 1, -1,  70 },
+			{ -1,  0, 100 },				 { 1,  0, 100 },
+			{ -1,  1,  70 }, { 0,  1, 100 }, { 1,  1,  70 },
+		};
+		double max = 255 * 2 + 255 * 6 + 255;
+		double e = (double)(NoiseFilter * 2) / 100.0 + 2.0;
+		CImage tmp;
+
+		tmp.CreateEx(m_MaxX, m_MaxY, 32, BI_RGB, NULL, CImage::createAlphaChannel);
+		::BitBlt(tmp.GetDC(), 0, 0, m_MaxX, m_MaxY, m_SixelTempDC, 0, 0, SRCCOPY);
+		tmp.ReleaseDC();
+
+		for ( int y = 0 ; y < m_MaxY ; y++ ) {
+			for ( int x = 0 ; x < m_MaxX ; x++ ) {
+				BYTE *rgb = (BYTE *)tmp.GetPixelAddress(x, y);
+
+				int tr = rgb[0] * 100;
+				int tg = rgb[1] * 100;
+				int tb = rgb[2] * 100;
+				int td = 100;
+				int tl = rgb[0] * 2 + rgb[1] * 6 + rgb[2];
+
+				for ( int n = 0 ; n < 8 ; n++ ) {
+					int dx = x + maps[n].x;
+					int dy = y + maps[n].y;
+					int dd = maps[n].d * NoiseFilter / 100;
+					if ( dx < 0 || dx >= m_MaxX || dy < 0 || dy >= m_MaxY )
+						continue;
+
+					BYTE *drgb = (BYTE *)tmp.GetPixelAddress(dx, dy);
+					int dl = drgb[0] * 2 + drgb[1] * 6 + drgb[2];
+
+					int dv = abs(dl - tl);
+					double d = (max - (double)dv) / max;
+					dd = (int)((double)dd * pow(d, e));
+
+					if ( dd <= 0 )
+						continue;
+
+					tr += (drgb[0] * dd);
+					tg += (drgb[1] * dd);
+					tb += (drgb[2] * dd);
+					td += dd;
+				}
+
+				rgb[0] = (tr + td / 2) / td;
+				rgb[1] = (tg + td / 2) / td;
+				rgb[2] = (tb + td / 2) / td;
+
+				if ( m_bHaveAlpha )
+					rgb[3] = m_pAlphaMap[x + y * m_MaxX];
+			}
+		}
+
+		m_Bitmap[m_Maps].DeleteObject();
+		m_Bitmap[m_Maps].Attach(tmp);
+		tmp.Detach();
+
+		if ( m_BlockX > 0 || m_BlockY > 0 )
+			m_pTextRam->DISPVRAM(m_pTextRam->m_CurX, m_pTextRam->m_CurY - m_BlockY - 1, m_BlockX, m_BlockY);
 	}
 
 	m_SixelTempDC.DeleteDC();

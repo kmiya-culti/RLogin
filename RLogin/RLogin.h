@@ -140,6 +140,7 @@ public:
 	CString m_Script;
 	BOOL m_ReqDlg;
 	BOOL m_DarkOff;
+	CString m_Profile;
 
 	CCommandLineInfoEx();
 	virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
@@ -243,9 +244,20 @@ public:
 	void AddIdleProc(int Type, void *pParam);
 	void DelIdleProc(int Type, void *pParam);
 
+	inline BOOL IsPrivateProfile() { return ((m_pszRegistryKey == NULL && m_pszProfileName != NULL) ? TRUE : FALSE); }
+
+	DWORD GetPrivateProfileExtension(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPTSTR lpDefault, LPTSTR pData, DWORD nSize);
+	void DeletePrivateProfileExtension(LPCTSTR lpszSection, LPCTSTR lpszEntry);
+	BOOL WritePrivateProfileExtension(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszValue);
+
+	BOOL GetPrivateProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBYTE *ppData, UINT *pBytes);
+	BOOL WritePrivateProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBYTE pData, UINT nBytes);
+
 	virtual BOOL GetProfileBinary(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBYTE* ppData, UINT* pBytes);
 	virtual BOOL WriteProfileBinary(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBYTE pData, UINT nBytes);
 	virtual CString GetProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszDefault = NULL);
+	virtual BOOL WriteProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszValue);
+
 	void GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lpBuf, int nBufLen, void *lpDef = NULL);
 	void GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffer &Buf);
 	void GetProfileStringArray(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringArrayExt &stra);

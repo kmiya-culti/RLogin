@@ -1177,8 +1177,11 @@ public:
 	CTabFlag m_TabFlag;
 	BOOL m_RetSync;
 	CString m_StrPara;
-	DWORD m_MacroExecFlag[MACROMAX / 32];
-	CBuffer *m_Macro;
+
+	struct _MacroCtx {
+		BOOL bExec;
+		CBuffer buffer;
+	} *MacroCtx;
 
 	int m_FirmVer;
 	int m_UnitId;
@@ -1259,6 +1262,8 @@ public:
 	CStringArrayExt m_TitleStack;
 	CRect m_Margin;
 	class CGrapWnd *m_pImageWnd;
+
+	CBuffer m_ReserveBuffer;
 
 	CTextRam();
 	virtual ~CTextRam();
@@ -1532,6 +1537,10 @@ public:
 	inline void fc_Call(DWORD ch) { (this->*m_pCallPoint)(ch); }
 	void fc_Case(int stage);
 	void fc_Push(int stage);
+
+	static DWORD CTextRam::EscProcCode(void (CTextRam::*proc)(DWORD ch), const CTextRam::PROCTAB *pProcTab);
+	static DWORD CTextRam::CsiProcCode(void (CTextRam::*proc)(DWORD ch), const CTextRam::CSIEXTTAB *pCsiTab);
+	static BOOL CTextRam::FuncNameCode(LPCSTR param, CBuffer *buf);
 
 	ESCNAMEPROC *FindProcName(void (CTextRam::*proc)(DWORD ch));
 
@@ -1823,6 +1832,7 @@ public:
 	void fc_DECSACE(DWORD ch);
 	void fc_DECRQCRA(DWORD ch);
 	void fc_DECINVM(DWORD ch);
+	void fc_RLINVMC(DWORD ch);
 	void fc_DECSR(DWORD ch);
 	void fc_DECPQPLFM(DWORD ch);
 	void fc_DECAC(DWORD ch);

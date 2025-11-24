@@ -439,6 +439,7 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ 				('*'  << 8) | 'x',		&CTextRam::fc_DECSACE		},	// DECSACE Select Attribute and Change Extent
 	{ 				('*'  << 8) | 'y',		&CTextRam::fc_DECRQCRA		},	// DECRQCRA Request Checksum of Rectangle Area
 	{ 				('*'  << 8) | 'z',		&CTextRam::fc_DECINVM		},	// DECINVM Invoke Macro
+	{ ('?' << 16) | ('*'  << 8) | 'z',		&CTextRam::fc_RLINVMC		},	// RLINVMC Invoke Macro Chacel
 //	{ 				('*'  << 8) | '|',		&CTextRam::fc_POP			},	// DECSNLS Select number of lines per screen
 //	{ 				('*'  << 8) | '}',		&CTextRam::fc_POP			},	// DECLFKC Local Function Key Control
 	{ 				('+'  << 8) | 'p',		&CTextRam::fc_DECSR			},	// DECSR Secure Reset
@@ -586,7 +587,7 @@ static CTextRam::ESCNAMEPROC fc_CtrlNameTab[] = {
 	{ _T("VT"),			&CTextRam::fc_VT,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
 };
 
-#define	ESCNAMETABMAX	58
+#define	ESCNAMETABMAX	59
 static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	_T("ACS"),		&CTextRam::fc_ACS,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("APC"),		&CTextRam::fc_APC,		NULL,	PROCTYPE_ESC,	TRACE_NON	},
@@ -641,6 +642,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	_T("SS2"),		&CTextRam::fc_SS2,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("SS3"),		&CTextRam::fc_SS3,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("SSA"),		&CTextRam::fc_SSA,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("ST"),		&CTextRam::fc_POP,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("USR"),		&CTextRam::fc_USR,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("V5CUP"),	&CTextRam::fc_V5CUP,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("V5EX"),		&CTextRam::fc_V5EX,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
@@ -1335,6 +1337,103 @@ void CTextRam::fc_Push(int stage)
 
 //////////////////////////////////////////////////////////////////////
 // ESC/CSI Proc Name Func...
+
+DWORD CTextRam::EscProcCode(void (CTextRam::*proc)(DWORD ch), const CTextRam::PROCTAB *pProcTab)
+{
+	DWORD code = 0;
+	for ( ; pProcTab->proc != NULL ; pProcTab++ ) {
+		if ( proc == pProcTab->proc ) {
+			code = (DWORD)pProcTab->sc;
+			break;
+		}
+	}
+	return code;
+}
+DWORD CTextRam::CsiProcCode(void (CTextRam::*proc)(DWORD ch), const CTextRam::CSIEXTTAB *pCsiTab)
+{
+	DWORD code = 0;
+	for ( ; pCsiTab->proc != NULL ; pCsiTab++ ) {
+		if ( proc == pCsiTab->proc ) {
+			code = (DWORD)pCsiTab->code;
+			break;
+		}
+	}
+	return code;
+}
+BOOL CTextRam::FuncNameCode(LPCSTR param, CBuffer *buf)
+{
+	int n;
+	DWORD code = 0;
+	CString func;
+	CStringBinary *pFunc;
+	static CStringBinary FuncList;
+
+	while ( *param != '\0' ) {
+		if ( *param == ';' || *param == ':' || *param == ',' ) {
+			param++;
+			break;
+		} else
+			func += *(param++);
+	}
+
+	if ( (pFunc = FuncList.Find(func)) == NULL ) {
+		if ( BinaryFind((void *)(LPCTSTR)func, (void *)fc_CtrlNameTab, sizeof(ESCNAMEPROC), CTRLNAMETABMAX, ProcNameCmp, &n) ) {
+			if ( (code = EscProcCode(fc_CtrlNameTab[n].data.proc, fc_CtrlTab)) != 0 )
+				code <<= 16;
+		} else if ( BinaryFind((void *)(LPCTSTR)func, (void *)fc_EscNameTab, sizeof(ESCNAMEPROC), ESCNAMETABMAX, ProcNameCmp, &n) ) {
+			if ( (code = EscProcCode(fc_EscNameTab[n].data.proc, fc_Esc2Tab)) != 0 )
+				code = 0x01000000 | (code << 16);	// \033
+		} else if ( BinaryFind((void *)(LPCTSTR)func, (void *)fc_CsiNameTab, sizeof(ESCNAMEPROC), CSINAMETABMAX, ProcNameCmp, &n) ) {
+			if ( (code = EscProcCode(fc_CsiNameTab[n].data.proc, fc_AnsiTab)) != 0 )
+				code |= 0x02000000;		// \033[
+			else if ( (code = EscProcCode(fc_CsiNameTab[n].data.proc, fc_Ext1Tab)) != 0 )
+				code |= 0x023F0000;		// ('?' << 16)
+			else if ( (code = EscProcCode(fc_CsiNameTab[n].data.proc, fc_Ext2Tab)) != 0 )
+				code |= 0x02002400;		// ('$' << 8)
+			else if ( (code = EscProcCode(fc_CsiNameTab[n].data.proc, fc_Ext3Tab)) != 0 )
+				code |= 0x02002000;		// (' ' << 8)
+			else if ( (code = CsiProcCode(fc_CsiNameTab[n].data.proc, fc_CsiExtTab)) != 0 )
+				code |= 0x02000000;
+		} else if ( BinaryFind((void *)(LPCTSTR)func, (void *)fc_DcsNameTab, sizeof(ESCNAMEPROC), DCSNAMETABMAX, ProcNameCmp, &n) ) {
+			if ( (code = CsiProcCode(fc_DcsNameTab[n].data.proc, fc_DcsExtTab)) != 0 )
+				code |= 0x03000000;		// \033P
+		}
+
+		FuncList[func].m_Value = (int)code;
+	} else
+		code = (DWORD)(pFunc->m_Value);
+
+	if ( code == 0 )
+		return FALSE;
+
+	switch(code >> 24) {
+	case 0x01:
+		buf->PutByte(0x1B);
+		break;
+	case 0x02:
+		buf->PutByte(0x1B);
+		buf->PutByte('[');
+		break;
+	case 0x03:
+		buf->PutByte(0x1B);
+		buf->PutByte('P');
+		break;
+	}
+
+	if ( (code & 0xFF0000) != 0 )
+		buf->PutByte((code >> 16) & 0xFF);
+
+	while ( *param != '\0' )
+		buf->PutByte(*(param++));
+
+	if ( (code & 0x00FF00) != 0 )
+		buf->PutByte((code >> 8) & 0xFF);
+
+	if ( (code & 0x0000FF) != 0 )
+		buf->PutByte(code & 0xFF);
+
+	return TRUE;
+}
 
 CTextRam::ESCNAMEPROC *CTextRam::FindProcName(void (CTextRam::*proc)(DWORD ch))
 {
@@ -3837,7 +3936,7 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 	} else {								// Sixel Scroll Mode Enable (DECSDM = reset)
 
 		CGrapWnd *pGrapWnd = NULL;
-		m_pWorkGrapWnd->SixelEndof();
+		m_pWorkGrapWnd->SixelEndof(FALSE, GetAnsiPara(4, 0, 0, 100));
 
 		if ( m_pWorkGrapWnd->m_pActMap != NULL && m_pWorkGrapWnd->m_SixelWidth > 0 && m_pWorkGrapWnd->m_SixelHeight > 0 ) {
 			SizeGrapWnd(m_pWorkGrapWnd, m_pWorkGrapWnd->m_DspX, m_pWorkGrapWnd->m_DspY, m_pWorkGrapWnd->m_DspA, m_pWorkGrapWnd->m_DspFlag);
@@ -4521,22 +4620,37 @@ void CTextRam::fc_DECDMAC(DWORD ch)
 	int Pid = GetAnsiPara(0, 0, 0);
 	int Pdt = GetAnsiPara(1, 0, 0);
 	int Pen = GetAnsiPara(2, 0, 0);
+	CBuffer tmp;
 
-	if ( Pid >= MACROMAX || Pdt > 1 || Pen > 1 || (m_MacroExecFlag[Pid / 32] & (1 << (Pid % 32))) != 0 )
+	if ( Pid >= MACROMAX || Pdt > 1 )
 		goto ENDRET;
 
 	if ( Pdt == 1 ) {
-		for ( n = 0 ; n < MACROMAX ; n++ ) {
-			if ( (m_MacroExecFlag[n / 32] & (1 << (n % 32))) == 0 )
-				m_Macro[n].Clear();
-		}
-	} else
-		m_Macro[Pid].Clear();
+		for ( n = 0 ; n < MACROMAX ; n++ )
+			MacroCtx[n].buffer.Clear();
+	} else {
+		MacroCtx[Pid].buffer.Clear();
+	}
 
-	if ( Pen == 1 )
-		GetHexPara(MbsToTstr((LPCSTR)m_OscPara), m_Macro[Pid]);
-	else
-		m_Macro[Pid] = m_OscPara;
+	switch(Pen) {
+	case 0:
+		MacroCtx[Pid].buffer = m_OscPara;
+		break;
+	case 1:
+		GetHexPara(MbsToTstr((LPCSTR)m_OscPara), MacroCtx[Pid].buffer);
+		break;
+	case 2:
+		MacroCtx[Pid].buffer.EscDecode(m_OscPara.GetPtr(), m_OscPara.GetSize(), m_SendCharSet[m_KanjiMode]);
+		break;
+	case 3:
+		tmp.Base64Decode((LPCSTR)m_OscPara);
+		if ( !MacroCtx[Pid].buffer.GzipDecode(tmp.GetPtr(), tmp.GetSize()) )
+			MacroCtx[Pid].buffer.Swap(tmp);
+		break;
+	}
+
+	tmp.Format("\033[?%d*z", Pid);
+	MacroCtx[Pid].buffer.Apend(tmp.GetPtr(), tmp.GetSize());
 
 ENDRET:
 	fc_POP(ch);
@@ -7092,9 +7206,9 @@ void CTextRam::fc_DECDSR(DWORD ch)
 			// DCS Pn ! ~ Ps ST
 			int Pid = GetAnsiPara(1, 0, 0);
 			int sum = 0;
-			if ( Pid < 64 ) {
-				LPBYTE p = m_Macro[Pid].GetPtr();
-				for ( int n = m_Macro[Pid].GetSize() ; n > 0 ; n-- )
+			if ( Pid < MACROMAX ) {
+				LPBYTE p = MacroCtx[Pid].buffer.GetPtr();
+				for ( int n = MacroCtx[Pid].buffer.GetSize() ; n > 0 ; n-- )
 					sum += *(p++);
 			}
 			UNGETSTR(_T("%s%d!~%04x%s"), m_RetChar[RC_DCS], Pid, sum & 0xFFFF, m_RetChar[RC_ST]);
@@ -8010,19 +8124,36 @@ void CTextRam::fc_DECINVM(DWORD ch)
 {
 	// CSI ('*' << 8) | 'z'		DECINVM Invoke Macro
 
-	int n;
-	LPBYTE p;
 	int Pid = GetAnsiPara(0, 0, 0);
 
 	fc_POP(ch);		// XXXXXXXXX fc_Call‚Ì•K‚¸‘O‚É
 
-	if ( Pid < MACROMAX && (m_MacroExecFlag[Pid / 32] & (1 << (Pid % 32))) == 0 ) {
-		m_MacroExecFlag[Pid / 32] |= (1 << (Pid % 32));
-		p = m_Macro[Pid].GetPtr();
-		for ( n = 0 ; n < m_Macro[Pid].GetSize() ; n++ )
-			fc_FuncCall(*(p++));
-		m_MacroExecFlag[Pid / 32] &= ~(1 << (Pid % 32));
+	if ( Pid < MACROMAX && !MacroCtx[Pid].bExec && MacroCtx[Pid].buffer.GetSize() > 0 ) {
+		MacroCtx[Pid].bExec = TRUE;
+
+		BOOL bResv = m_ReserveBuffer.GetSize() > 0 ? TRUE : FALSE;
+
+		m_ReserveBuffer.Insert(MacroCtx[Pid].buffer.GetPtr(), MacroCtx[Pid].buffer.GetSize());
+		
+		if ( !bResv && !m_UpdateFlag ) {
+			for ( int i = 0 ; !m_UpdateFlag && i < 1024 && m_ReserveBuffer.GetSize() > 0 ; i++ )
+				fc_FuncCall(m_ReserveBuffer.GetByte());
+
+			if ( m_ReserveBuffer.GetSize() > 0 )
+				m_UpdateFlag = TRUE;
+		}
 	}
+}
+void CTextRam::fc_RLINVMC(DWORD ch)
+{
+	// CSI ('?' << 16) | ('*' << 8) | 'z'		fc_RLINVMC Invoke Macro Cancel
+
+	int Pid = GetAnsiPara(0, 0, 0);
+
+	if ( Pid < MACROMAX && MacroCtx[Pid].bExec )
+		MacroCtx[Pid].bExec = FALSE;
+
+	fc_POP(ch);
 }
 void CTextRam::fc_DECSR(DWORD ch)
 {

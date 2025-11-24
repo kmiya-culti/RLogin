@@ -588,6 +588,7 @@ void CPipeSock::GetPathMaps(CStringMaps &maps)
 	if ( (sz = GetEnvironmentVariable(_T("PATHEXT"), _T(""), 0)) > 0 )
 		GetEnvironmentVariable(_T("PATHEXT"), tmp.GetBufferSetLength(sz), sz);
 	exts.GetString(tmp, _T(';'));
+	exts.Sort(TRUE);
 	tmp.ReleaseBuffer();
 
 	maps.RemoveAll();
@@ -599,7 +600,7 @@ void CPipeSock::GetPathMaps(CStringMaps &maps)
 			if ( finder.IsDirectory() || finder.IsTemporary() )
 				continue;
 			tmp = finder.GetFileName();
-			if ( (a = tmp.ReverseFind('.')) >= 0 && exts.FindNoCase(tmp.Mid(a)) >= 0 ) {
+			if ( (a = tmp.ReverseFind('.')) >= 0 && exts.FindSort(tmp.Mid(a), TRUE) >= 0 ) {
 				wstr = (tmp.Mid(a).CompareNoCase(_T(".exe")) == 0 ? tmp.Left(a) : tmp);
 				maps.Add(wstr);
 			}

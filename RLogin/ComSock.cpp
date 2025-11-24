@@ -711,7 +711,7 @@ void CComSock::ComMoniter()
 		m_pComMoni->DestroyWindow();
 }
 
-static struct _ComTab {
+static const struct _ComTab {
 		LPCTSTR	name;
 		int		mode;
 		int		value;

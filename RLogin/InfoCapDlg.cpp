@@ -559,7 +559,7 @@ static const LV_COLUMN InitListTab[6] = {
 	{ LVCF_TEXT | LVCF_WIDTH, 0, 250, _T("Memo"),	0, 0 },
 };
 
-static LPCTSTR	TypeStr[] = { _T(" "), _T("#"), _T("="), _T("@") };
+static const LPCTSTR TypeStr[] = { _T(" "), _T("#"), _T("="), _T("@") };
 
 /************************** Update 2018/01/31
 static LPCTSTR	TermCap = _T("rlogin-color:")\
