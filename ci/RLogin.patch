@@ -1,0 +1,103 @@
+commit 79cd231f297ca87a8349d6e546a1466505f90389
+Author: Hayaki Saito <saito.hayaki@revamp.co.jp>
+Date:   Wed Dec 17 00:29:29 2025 +0900
+
+    ci: add Windows CI workflow for building RLogin
+
+diff --git a/RLogin/RLogin.vcxproj b/RLogin/RLogin.vcxproj
+index 3420142..8f840d7 100755
+--- a/RLogin/RLogin.vcxproj
++++ b/RLogin/RLogin.vcxproj
+@@ -30,29 +30,34 @@
+     <ProjectGuid>{BE11FEB8-C751-4A03-97ED-648D89717202}</ProjectGuid>
+     <RootNamespace>RLogin</RootNamespace>
+     <Keyword>MFCProj</Keyword>
++    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+   </PropertyGroup>
+   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+     <ConfigurationType>Application</ConfigurationType>
+     <UseOfMfc>Static</UseOfMfc>
+     <CharacterSet>Unicode</CharacterSet>
++    <PlatformToolset>v143</PlatformToolset>
+   </PropertyGroup>
+   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+     <ConfigurationType>Application</ConfigurationType>
+     <UseOfMfc>Static</UseOfMfc>
+     <CharacterSet>Unicode</CharacterSet>
++    <PlatformToolset>v143</PlatformToolset>
+   </PropertyGroup>
+   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+     <ConfigurationType>Application</ConfigurationType>
+     <UseOfMfc>Static</UseOfMfc>
+     <CharacterSet>Unicode</CharacterSet>
+     <WholeProgramOptimization>true</WholeProgramOptimization>
++    <PlatformToolset>v143</PlatformToolset>
+   </PropertyGroup>
+   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+     <ConfigurationType>Application</ConfigurationType>
+     <UseOfMfc>Static</UseOfMfc>
+     <CharacterSet>Unicode</CharacterSet>
+     <WholeProgramOptimization>true</WholeProgramOptimization>
++    <PlatformToolset>v143</PlatformToolset>
+   </PropertyGroup>
+   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+   <ImportGroup Label="ExtensionSettings">
+@@ -165,7 +170,11 @@
+       <TargetMachine>MachineX86</TargetMachine>
+     </Link>
+     <PostBuildEvent>
+-      <Command>signtool sign /fd SHA256 /f ..\..\DigSig\kmiya.pfx "$(OutDir)$(TargetName)$(TargetExt)"
++      <Command>if exist "..\..\DigSig\kmiya.pfx" (
++  signtool sign /fd SHA256 /f ..\..\DigSig\kmiya.pfx "$(OutDir)$(TargetName)$(TargetExt)"
++) else (
++  echo "Skip signing: certificate not found at ..\..\DigSig\kmiya.pfx"
++)
+ powershell Compress-Archive -Path "$(OutDir)$(TargetName)$(TargetExt)" -DestinationPath "$(OutDir)..\rlogin_x32.zip" -Force</Command>
+     </PostBuildEvent>
+     <Manifest>
+@@ -218,7 +227,11 @@ powershell Compress-Archive -Path "$(OutDir)$(TargetName)$(TargetExt)" -Destinat
+       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+     </Link>
+     <PostBuildEvent>
+-      <Command>signtool sign /fd SHA256 /f ..\..\DigSig\kmiya.pfx "$(OutDir)$(TargetName)$(TargetExt)"
++      <Command>if exist "..\..\DigSig\kmiya.pfx" (
++  signtool sign /fd SHA256 /f ..\..\DigSig\kmiya.pfx "$(OutDir)$(TargetName)$(TargetExt)"
++) else (
++  echo "Skip signing: certificate not found at ..\..\DigSig\kmiya.pfx"
++)
+ powershell Compress-Archive -Path "$(OutDir)$(TargetName)$(TargetExt)" -DestinationPath "$(OutDir)..\rlogin_x64.zip" -Force</Command>
+     </PostBuildEvent>
+     <Manifest>
+@@ -555,4 +568,4 @@ powershell Compress-Archive -Path "$(OutDir)$(TargetName)$(TargetExt)" -Destinat
+       <UserProperties RESOURCE_FILE="RLogin.rc" />
+     </VisualStudio>
+   </ProjectExtensions>
+-</Project>
+\ No newline at end of file
++</Project>
+diff --git a/RLogin/stdafx.h b/RLogin/stdafx.h
+index 6d946e8..5fbd2bd 100755
+--- a/RLogin/stdafx.h
++++ b/RLogin/stdafx.h
+@@ -128,6 +128,20 @@
+ #include <afx.h>
+ #include <afxdlgs.h>
+ 
++#if defined(_MSC_VER)
++#include <intrin.h>
++// Provide overloads so both int-based refcounts can call Interlocked APIs safely.
++#if 0
++static __forceinline long _InterlockedExchangeAdd(volatile long* target, long value) {
++    return ::_InterlockedExchangeAdd(target, value);
++}
++#endif
++static __forceinline long _InterlockedExchangeAdd(volatile int* target, int value) {
++    return ::_InterlockedExchangeAdd(reinterpret_cast<volatile long*>(target), static_cast<long>(value));
++}
++#pragma intrinsic(_InterlockedExchangeAdd)
++#endif
++
+ #define	SECURITY_WIN32
+ #include <Security.h>
+ #include <wincrypt.h>
