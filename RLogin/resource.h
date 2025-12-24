@@ -471,6 +471,7 @@
 #define IDT_APPCOL_TITLE24              991
 #define IDT_SSHSIG_CANCEL               992
 #define IDT_TERM_LIST69                 993
+#define IDT_TERM_LIST70                 994
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002
@@ -992,10 +993,10 @@
 #define IDC_CODESET9                    2422
 #define IDC_CODESET10                   2423
 #define IDC_CODESET11                   2424
-#define IDC_CODESET12                   2425
-#define IDC_CODESET13                   2426
 #define IDC_CTRLCODE1                   2424
+#define IDC_CODESET12                   2425
 #define IDC_CTRLCODE2                   2425
+#define IDC_CODESET13                   2426
 #define IDC_CTRLCODE3                   2426
 #define IDC_CTRLCONV1                   2427
 #define IDC_CTRLCONV2                   2428
@@ -1072,6 +1073,8 @@
 #define IDC_USERFLOW                    2489
 #define IDC_DEFCONF                     2490
 #define IDC_SERVERTREE                  2491
+#define IDC_SENDWAITL2                  2491
+#define IDC_SENDWAITB                   2491
 #define IDC_EDITCTRL                    2492
 #define IDC_CTRLTITLE1                  2493
 #define IDC_CTRLTITLE2                  2494

@@ -98,11 +98,11 @@ void CCharSetPage::InitList()
 	static const LPCTSTR bankTab[] = { _T("94"), _T("96"), _T("94x94"), _T("96x96") };
 
 	m_List.DeleteAllItems();
-	for ( n = i = 0 ; n < CODE_MAX ; n++ ) {
+	for ( n = i = 0 ; n < m_FontTab.GetSize() ; n++ ) {
 		if ( m_FontTab[n].m_EntryName.IsEmpty() )
 			continue;
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, i, m_FontTab[n].m_EntryName, 0, 0, 0, n);
-		m_List.SetItemText(i, 1, (n == SET_UNICODE ? _T("") : bankTab[n >> 8]));
+		m_List.SetItemText(i, 1, (n == UNICODE_INDEX ? _T("") : bankTab[m_FontTab[n].m_CodeSet]));
 		m_List.SetItemText(i, 2, m_FontTab[n].m_IndexName);
 		m_List.SetItemText(i, 3, CFontParaDlg::CharSetName(m_FontTab[n].m_CharSet));
 		m_List.SetItemText(i, 4, m_FontTab[n].m_FontName[m_AltFont]);
@@ -205,7 +205,11 @@ void CCharSetPage::DoInit()
 		m_DefFontTab[n] = m_pSheet->m_pTextRam->m_DefFontName[n];
 	m_DefFontName = m_DefFontTab[m_AltFont];
 
-	memcpy(m_BankTab, m_pSheet->m_pTextRam->m_BankTab, sizeof(m_BankTab));
+	for ( int n = 0 ; n < 5 ; n++ ) {
+		for ( int i = 0 ; i < 4 ; i++ )
+			m_BankTab[n][i] = m_FontTab.IndexFind(m_pSheet->m_pTextRam->m_FontTab[m_pSheet->m_pTextRam->m_BankTab[n][i]].m_CodeSet, m_pSheet->m_pTextRam->m_FontTab[m_pSheet->m_pTextRam->m_BankTab[n][i]].m_IndexName);
+	}
+
 	m_CharBank1  = m_FontTab[m_BankTab[m_KanjiCode][0]].GetEntryName();
 	m_CharBank2  = m_FontTab[m_BankTab[m_KanjiCode][1]].GetEntryName();
 	m_CharBank3  = m_FontTab[m_BankTab[m_KanjiCode][2]].GetEntryName();
@@ -248,7 +252,7 @@ BOOL CCharSetPage::OnInitDialog()
 	for ( i = 0 ; i < 4 ; i++ )
 		pCombo[i] = (CComboBox *)GetDlgItem(IDC_CHARBANK1 + i);
 
-	for ( n = 0 ; n < CODE_MAX ; n++ ) {
+	for ( n = 0 ; n < m_FontTab.GetSize() ; n++ ) {
 		pStr = m_FontTab[n].m_EntryName;
 		if ( *pStr == _T('\0') )
 			continue;
@@ -288,7 +292,10 @@ BOOL CCharSetPage::OnApply()
 	m_BankTab[m_KanjiCode][2] = m_FontTab.Find(m_CharBank3);
 	m_BankTab[m_KanjiCode][3] = m_FontTab.Find(m_CharBank4);
 
-	memcpy(m_pSheet->m_pTextRam->m_BankTab, m_BankTab, sizeof(m_BankTab));
+	for ( int n = 0 ; n < 5 ; n++ ) {
+		for ( int i = 0 ; i < 4 ; i++ )
+			m_pSheet->m_pTextRam->m_BankTab[n][i] = m_pSheet->m_pTextRam->m_FontTab.IndexFind(m_FontTab[m_BankTab[n][i]].m_CodeSet, m_FontTab[m_BankTab[n][i]].m_IndexName);
+	}
 
 	m_pSheet->m_pTextRam->SetOption(TO_RLNOCHKFONT, m_bDisableCharSet);
 
@@ -319,10 +326,10 @@ void CCharSetPage::OnCharSet(UINT nID)
 	m_BankTab[oldCode][2] = m_FontTab.Find(m_CharBank3);
 	m_BankTab[oldCode][3] = m_FontTab.Find(m_CharBank4);
 
-	m_CharBank1  = m_FontTab[m_BankTab[m_KanjiCode][0]].m_EntryName;
-	m_CharBank2  = m_FontTab[m_BankTab[m_KanjiCode][1]].m_EntryName;
-	m_CharBank3  = m_FontTab[m_BankTab[m_KanjiCode][2]].m_EntryName;
-	m_CharBank4  = m_FontTab[m_BankTab[m_KanjiCode][3]].m_EntryName;
+	m_CharBank1  = m_FontTab[m_BankTab[m_KanjiCode][0]].GetEntryName();
+	m_CharBank2  = m_FontTab[m_BankTab[m_KanjiCode][1]].GetEntryName();
+	m_CharBank3  = m_FontTab[m_BankTab[m_KanjiCode][2]].GetEntryName();
+	m_CharBank4  = m_FontTab[m_BankTab[m_KanjiCode][3]].GetEntryName();
 
 	UpdateData(FALSE);
 
@@ -334,7 +341,7 @@ void CCharSetPage::OnFontListNew()
 	CFontParaDlg dlg;
 	CFontNode tmp;
 
-	dlg.m_CodeSet = 255;
+	dlg.m_CodeSet = (-1);
 	dlg.m_pData   = &tmp;
 	dlg.m_FontNum = m_AltFont;
 	dlg.m_pFontTab = &m_FontTab;
@@ -344,8 +351,9 @@ void CCharSetPage::OnFontListNew()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	m_FontTab[dlg.m_CodeSet] = tmp;
+	m_FontTab[m_FontTab.IndexFind(tmp.m_CodeSet, tmp.m_IndexName)] = tmp;
 	m_FontTab.InitUniBlock();
+
 	InitList();
 	m_List.SetSelectMarkItem(m_List.GetParamItem(dlg.m_CodeSet));
 
@@ -370,6 +378,7 @@ void CCharSetPage::OnFontListEdit()
 		return;
 
 	tmp = m_FontTab[n];
+
 	dlg.m_CodeSet = n;
 	dlg.m_pData   = &tmp;
 	dlg.m_FontNum = m_AltFont;
@@ -380,12 +389,14 @@ void CCharSetPage::OnFontListEdit()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
+	m_FontTab.IndexRemove(n);
+
 	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
 		if ( n != pos && m_List.GetItemState(n, LVIS_SELECTED) != 0 )
 			save.Add((DWORD)m_List.GetItemData(n));
 	}
 
-	m_FontTab[dlg.m_CodeSet] = tmp;
+	m_FontTab[m_FontTab.IndexFind(tmp.m_CodeSet, tmp.m_IndexName)] = tmp;
 	m_FontTab.InitUniBlock();
 
 	InitList();
@@ -441,6 +452,7 @@ void CCharSetPage::OnEditDups()
 		return;
 
 	tmp = m_FontTab[n];
+
 	dlg.m_CodeSet = n;
 	dlg.m_pData   = &tmp;
 	dlg.m_FontNum = m_AltFont;
@@ -451,9 +463,11 @@ void CCharSetPage::OnEditDups()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	m_FontTab[dlg.m_CodeSet] = tmp;
+	m_FontTab[m_FontTab.IndexFind(tmp.m_CodeSet, tmp.m_IndexName)] = tmp;
 	m_FontTab.InitUniBlock();
+
 	InitList();
+
 	m_List.SetSelectMarkItem(m_List.GetParamItem(dlg.m_CodeSet));
 
 	SetModified(TRUE);
@@ -515,6 +529,16 @@ void CCharSetPage::OnEditDelall()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
+	int cset[5][4];
+	CString dscs[5][4];
+
+	for ( int n = 0 ; n < 5 ; n++ ) {
+		for ( int i = 0 ; i < 4 ; i++ ) {
+			cset[n][i] = m_FontTab[m_BankTab[n][i]].m_CodeSet;
+			dscs[n][i] = m_FontTab[m_BankTab[n][i]].m_IndexName;
+		}
+	}
+
 	switch(dlg.m_InitType) {
 	case 0:		// Init Default Entry
 		m_FontTab.Serialize(FALSE);
@@ -533,6 +557,11 @@ void CCharSetPage::OnEditDelall()
 			m_FontTab.Serialize(FALSE, tmp);
 		}
 		break;
+	}
+
+	for ( int n = 0 ; n < 5 ; n++ ) {
+		for ( int i = 0 ; i < 4 ; i++ )
+			m_BankTab[n][i] = m_FontTab.IndexFind(cset[n][i], dscs[n][i]);
 	}
 
 	UpdateData(TRUE);
@@ -638,7 +667,7 @@ void CCharSetPage::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 		if ( m_ListIndex >= 0 ) {
 			CIConv iconv;
 			union { DWORD d; WCHAR c[2]; } wc;
-			if ( (m_ListIndex & SET_MASK) <= SET_96 ) {
+			if ( m_FontTab[m_ListIndex].m_CodeSet <= SET_96 ) {
 				sample.Empty();
 				for ( LPCSTR p = "012 abcABC \\|~" ; *p != '\0' ; p++ ) {
 					wc.d = iconv.IConvChar(m_FontTab[m_ListIndex].m_IContName, _T("UTF-16BE"), *p | (m_FontTab[m_ListIndex].m_Maps == FONTMAPS_GR ? 0x80 : 0x00));

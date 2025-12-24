@@ -33,7 +33,7 @@ CFifoCom::CFifoCom(class CRLoginDoc *pDoc, class CExtSocket *pSock) : CFifoASync
 	m_ThreadMode = THREAD_NONE;
 	m_pComThread = NULL;
 
-	m_SendWait[0] = m_SendWait[1] = m_SendWait[2] = 0;
+	m_SendWait[0] = m_SendWait[1] = m_SendWait[2] = m_SendWait[3] = 0;
 	m_SendCrLf = '\r';
 }
 CFifoCom::~CFifoCom()
@@ -116,6 +116,17 @@ int CFifoCom::CalcReadByte()
 
 	return ByteSec;
 }
+void CFifoCom::CalcWriteByteMsec(int ByteSec, int &maxSize, int &maxMsec)
+{
+	if ( ByteSec <= 0 )
+		return;
+	maxMsec = 50;
+	if ( (maxSize = ByteSec * maxMsec / 1000) < 10 ) {
+		if ( maxSize < 1 )
+			maxSize = 1;
+		maxMsec = maxSize * 1000 / ByteSec;
+	}
+}
 void CFifoCom::OnReadWriteProc()
 {
 	int len, pos;
@@ -123,8 +134,8 @@ void CFifoCom::OnReadWriteProc()
 
 	DWORD dw;
 	BOOL bRes;
-	BYTE ReadBuf[COMBUFSIZE];
-	BYTE WriteBuf[COMBUFSIZE];
+	BYTE *ReadBuf = new BYTE [COMBUFSIZE];
+	BYTE *WriteBuf = new BYTE [COMBUFSIZE];
 
 	OVERLAPPED ReadOverLap;
 	OVERLAPPED WriteOverLap;
@@ -141,6 +152,10 @@ void CFifoCom::OnReadWriteProc()
 	clock_t WriteReqClock = clock();
 	CEvent WriteTimerEvent;
 	UINT WriteTimerId = 0;
+	int WriteTotal = 0;
+	clock_t WriteTotalClock = clock();
+	int WriteMaxMsec = 50;
+	int WriteMaxSize = 100;
 
 	DWORD ComEvent = 0;
 	DWORD LastModemStatus;
@@ -175,6 +190,7 @@ void CFifoCom::OnReadWriteProc()
 		ReadByte = CalcReadByte();
 	}
 
+	CalcWriteByteMsec(m_SendWait[3], WriteMaxSize, WriteMaxMsec);
 	LastModemStatus = pSock->m_ModemStatus;
 	
 	SendFdEvents(FIFO_STDOUT, FD_CONNECT, NULL);
@@ -200,7 +216,8 @@ void CFifoCom::OnReadWriteProc()
 
 			if ( bRes ) {
 				GetCommModemStatus(m_hCom, &pSock->m_ModemStatus);
-				ClearCommError(m_hCom, &dw, &(pSock->m_ComStat)); pSock->m_CommError |= dw;
+				ClearCommError(m_hCom, &dw, &(pSock->m_ComStat));
+				pSock->m_CommError |= dw;
 
 				if ( pSock->m_pComMoni != NULL && pSock->m_pComMoni->m_hWnd != NULL && pSock->m_pComMoni->m_bActive )
 					pSock->m_pComMoni->PostMessage(WM_COMMAND, (WPARAM)ID_COMM_EVENT_MONI);
@@ -278,7 +295,8 @@ void CFifoCom::OnReadWriteProc()
 				} else {
 					// m_SendWait[0] = WC = msec/byte
 					// m_SendWait[1] = WL = msec/byte
-					// m_SendWait[2] = 1000 / GyteSec = msec/byte
+					// m_SendWait[2] = 1000 / ByteSec = msec/byte
+					// m_SendWait[3] = ByteSec * WB / 100
 					if ( m_SendWait[0] != 0 ) {
 						WriteWaitMsec = m_SendWait[2] + m_SendWait[m_SendWait[1] != 0 && WriteBuf[0] == m_SendCrLf ? 1 : 0];
 						len = 1;
@@ -292,6 +310,20 @@ void CFifoCom::OnReadWriteProc()
 								WriteWaitMsec += m_SendWait[2];
 						}
 						len = pos;
+					} else if ( m_SendWait[3] != 0 ) {
+						if ( WriteTotal == 0 || (int)(clock() - WriteTotalClock) >= WriteMaxMsec ) {
+							WriteTotalClock = clock();
+							WriteTotal = 0;
+						}
+						if ( (WriteTotal + len) > WriteMaxSize )
+							len = WriteMaxSize - WriteTotal;
+						if ( (WriteTotal += len) >= WriteMaxSize ) {
+							if ( (WriteWaitMsec = WriteMaxMsec - (int)(clock() - WriteTotalClock)) <= 0 )
+								WriteWaitMsec = 0;
+							WriteTotal = 0;
+						} else
+							WriteWaitMsec = 0;
+
 					} else {
 						WriteWaitMsec = 0;
 					}
@@ -418,9 +450,12 @@ void CFifoCom::OnReadWriteProc()
 								EscapeCommFunction(m_hCom, CLRRTS);
 							else if ( pSock->m_pComConf->dcb.fDtrControl == RTS_CONTROL_ENABLE )
 								EscapeCommFunction(m_hCom, SETRTS);
+							int bs = pSock->GetByteSec();
 							m_SendWait[0] = pSock->m_SendWait[0];
 							m_SendWait[1] = pSock->m_SendWait[1];
-							m_SendWait[2] = 1000 / pSock->GetByteSec();
+							m_SendWait[2] = 1000 / bs;
+							m_SendWait[3] = bs * pSock->m_SendWait[2] / 100;
+							CalcWriteByteMsec(m_SendWait[3], WriteMaxSize, WriteMaxMsec);
 							m_SendCrLf    = pSock->m_SendCrLf;
 							bDsrSensitivity = (pSock->m_pComConf->dcb.fDsrSensitivity != 0 ? TRUE : FALSE);
 							bOutxDsrFlow = (pSock->m_pComConf->dcb.fOutxDsrFlow != 0 ? TRUE : FALSE);
@@ -454,6 +489,9 @@ ERRENDOF:
 	CloseHandle(ReadOverLap.hEvent);
 	CloseHandle(WriteOverLap.hEvent);
 	CloseHandle(CommOverLap.hEvent);
+
+	delete [] ReadBuf;
+	delete [] WriteBuf;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -470,6 +508,7 @@ CComSock::CComSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 
 	m_SendWait[0] = 0;
 	m_SendWait[1] = 0;
+	m_SendWait[2] = 0;
 	m_SendCrLf    = 0;
 
 	m_ComEvent    = 0;
@@ -540,6 +579,7 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 	((CFifoCom *)m_pFifoLeft)->m_SendWait[0] = m_SendWait[0];
 	((CFifoCom *)m_pFifoLeft)->m_SendWait[1] = m_SendWait[1];
 	((CFifoCom *)m_pFifoLeft)->m_SendWait[2] = 1000 / bs;
+	((CFifoCom *)m_pFifoLeft)->m_SendWait[3] = bs * m_SendWait[2] / 100;
 
 	if ( m_pComConf->dcb.fDtrControl == DTR_CONTROL_DISABLE )
 		EscapeCommFunction(m_hCom, CLRDTR);
@@ -807,6 +847,8 @@ void CComSock::SetDcdParam(CStringArrayExt &param)
 			m_SendWait[0] = _tstoi((LPCTSTR)param[n] + 3);
 		} else if ( _tcsncmp(param[n], _T("WL="), 3) == 0 ) {
 			m_SendWait[1] = _tstoi((LPCTSTR)param[n] + 3);
+		} else if ( _tcsncmp(param[n], _T("WB="), 3) == 0 ) {
+			m_SendWait[2] = _tstoi((LPCTSTR)param[n] + 3);
 
 		} else if ( (i = _tstoi(param[n])) >= 100 ) {
 			m_pComConf->dcb.BaudRate = i;
@@ -909,6 +951,7 @@ BOOL CComSock::LoadComConf(LPCTSTR ComSetStr, int ComPort, BOOL bOpen)
 
 	m_SendWait[0] = 0;
 	m_SendWait[1] = 0;
+	m_SendWait[2] = 0;
 
 	SetDcdParam(param);
 
@@ -975,6 +1018,10 @@ BOOL CComSock::SaveComConf(CString &str)
 	}
 	if ( m_SendWait[1] != 0 ) {
 		tmp.Format(_T("WL=%d;"), m_SendWait[1]);
+		str += tmp;
+	}
+	if ( m_SendWait[2] != 0 ) {
+		tmp.Format(_T("WB=%d;"), m_SendWait[2]);
 		str += tmp;
 	}
 

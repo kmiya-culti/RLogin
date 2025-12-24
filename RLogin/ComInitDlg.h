@@ -36,7 +36,7 @@ public:
 	WORD m_XonLim;
 	char m_XonChar;
 	char m_XoffChar;
-	int m_SendWait[2];
+	int m_SendWait[3];
 	CStringIndex m_ComDevList;
 
 	static void CommPropCombo(int Type, CComboBox *pCombo, COMMPROP *pCommProp);

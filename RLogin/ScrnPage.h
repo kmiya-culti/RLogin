@@ -54,6 +54,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnUpdateCheck(UINT nId);
 	afx_msg void OnUpdateEdit();
+	afx_msg void OnUpdateEditResize();
 	afx_msg void OnUpdateEditOpt();
 	afx_msg void OnUpdateEditCaret();
 	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);

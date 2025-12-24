@@ -1221,7 +1221,7 @@ void CRLoginView::ImmSetPos(int x, int y)
 		return;
 
 	CRLoginDoc *pDoc = GetDocument();
-	LPCTSTR fontName = pDoc->m_TextRam.m_FontTab[SET_94x94 | '@'].m_FontName[0];
+	LPCTSTR fontName = pDoc->m_TextRam.m_FontTab[pDoc->m_TextRam.m_FontTab.IndexFind(SET_94x94, _T("@"))].m_FontName[0];
 
 	if ( ImmGetCompositionFont(hIMC, &LogFont) && (LogFont.lfWidth != m_CharWidth || LogFont.lfHeight != m_CharHeight || _tcscmp(LogFont.lfFaceName, fontName) != 0) ) {
 		LogFont.lfWidth  = m_CharWidth;
@@ -3014,12 +3014,14 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 		if ( !m_bVramTipDisp || m_VramTipPos.cx != x || m_VramTipPos.cy != y ) {
 			CCharCell *vp = pDoc->m_TextRam.GETVRAM(x, y);
 			LPCTSTR p = (LPCTSTR)*vp;
-			CString msg, uc;
+			CFontNode *pFontNode = &(pDoc->m_TextRam.m_FontTab[vp->m_Vram.bank]);
+			CString msg, uc, drcs;
 			static const LPCTSTR attr[] = { 
 				_T("1"), _T("2"), _T("3"), _T("4"), _T("5"), _T("7"), _T("8"), _T("9"),
 				_T("6"), _T("21"), _T("51"), _T("52"), _T("53"), _T("60"), _T("61"), _T("62"),
 				_T("63"), _T("64"), _T("?"), _T("50")
 			};
+			static const LPCTSTR cset[] = { _T("94"), _T("96"), _T("94x94"), _T("96x96") };
 
 			if ( (vp->m_Vram.attr & ATT_MASK) != 0 ) {
 				uc.Empty();
@@ -3034,6 +3036,14 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 			}
 
 			msg.Format(_T("%d, %d (%d:%d) %s\n"), x + 1, y + m_HisOfs - m_HisMin + 1, vp->m_Vram.fcol, vp->m_Vram.bcol, (LPCTSTR)uc);
+
+			if ( pFontNode->m_CodeSet < SET_UNICODE ) {
+				uc.Format(_T("%s(%s)\n"), cset[pFontNode->m_CodeSet], pFontNode->m_IndexName);
+				msg += uc;
+
+				if ( pDoc->m_TextRam.DrcsStr(p, vp->m_Vram.bank, drcs) )
+					p = drcs;
+			}
 
 			if ( IS_IMAGE(vp->m_Vram.mode) ) {
 				CGrapWnd *gp = pDoc->m_TextRam.GetGrapWnd(vp->m_Vram.pack.image.id);

@@ -73,9 +73,9 @@ BEGIN_MESSAGE_MAP(CScrnPage, CTreePage)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_SCRNSIZE1, IDC_SCRNSIZE2, OnUpdateCheck)
 	ON_EN_CHANGE(IDC_SCSZCOLS, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_SCSZCOLS2, OnUpdateEdit)
-	ON_CBN_EDITCHANGE(IDC_SCSZFONT,  OnUpdateEdit)
-	ON_CBN_SELCHANGE(IDC_SCSZFONT,	 OnUpdateEdit)
-	ON_CBN_SELCHANGE(IDC_FONTHW,     OnUpdateEdit)
+	ON_CBN_EDITCHANGE(IDC_SCSZFONT,  OnUpdateEditResize)
+	ON_CBN_SELCHANGE(IDC_SCSZFONT,	 OnUpdateEditResize)
+	ON_CBN_SELCHANGE(IDC_FONTHW,     OnUpdateEditResize)
 	ON_CBN_SELCHANGE(IDC_VISUALBELL, OnUpdateEditOpt)
 	ON_CBN_SELCHANGE(IDC_DEFCARET, OnUpdateEditCaret)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_TERMCHECK1, IDC_TERMCHECK2, OnUpdateCheck)
@@ -313,6 +313,11 @@ void CScrnPage::OnUpdateEdit()
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
+void CScrnPage::OnUpdateEditResize() 
+{
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM | UMOD_RESIZE;
+}
 void CScrnPage::OnUpdateEditOpt() 
 {
 	SetModified(TRUE);
@@ -326,7 +331,7 @@ void CScrnPage::OnUpdateCheck(UINT nID)
 	switch(nID) {
 	case IDC_SCRNSIZE1:
 	case IDC_SCRNSIZE2:
-		m_pSheet->m_ModFlag |= UMOD_ANSIOPT;
+		m_pSheet->m_ModFlag |= UMOD_ANSIOPT | UMOD_RESIZE;
 		UpdateData(TRUE);
 		InitDlgItem();
 		break;

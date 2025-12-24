@@ -5,10 +5,12 @@
 <TITLE>RLogin使い方説明</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
+TD {
+				
 		background-color : #ffffff; font-size : 90%;
 }
-.BOX{		
+.BOX{
+				
 		background-color : silver;
 }
 -->
@@ -2457,6 +2459,42 @@ let &amp;t_te .= &quot;\e[?8428r\eP5#u\e\\&quot;
             </TD>
             <TD valign="top"><IMG src="image303.jpg" width="525" height="201" border="0"><BR>
             Sixelデータに%0;40を指定して表示した場合</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="COMDELAY"></A>5.27 シリアルの送信遅延</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top" align="left"><A href="index.html#SERVEROPT">サーバーのオプション設定</A>でプロトコルcomの場合に設定する<A href="index.html#COMSET">COMの通信設定</A>の送信遅延の詳細な説明です。まず、文字の送信遅延で１ms以上の数値を指定した場合です。<BR>
+            <BR>
+            RS232Cの各種パラメータで通信速度が計算できます。１ビットあたりの時間がビット／秒で決まりビットの構成が、データ・パリティ・ストップビットで決まります。<BR>
+            スタート(1) + データ(5/6/7/8) + パリティ(0/1) + ストップ(1/1.5/2) = ビット数(7-12)<BR>
+            <BR>
+            しかしRS232Cの規格では、バイトを構成するIDLE部分の規定がありません。ハードウェアにより違う可能性があり通信障害が起こる可能性があります。そのIDLE部分を設定するのがこの文字の送信遅延です。処理速度の遅い通信相手の場合は、設定する必要があります。<BR>
+            <BR>
+            RLoginでは、上記の計算で求めた１バイトあたりの速度と「文字の送信遅延」で指定した速度をCOMドラーバーのバッファに書き込んだ時から推測した待ち時間で遅延します。これは、ビット／秒が9600bps以下の場合に有効に働きますが9600bps以上の場合に１バイトあたりの速度が1ms以下になる為、遅延が大きくなり非常に遅くなります。</TD>
+            <TD valign="top"><IMG src="RS232C_01.svg" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" align="left">文字の送信遅延が０msで改行の送信遅延を１ms以上の数値を指定した場合は、改行文字まで送信遅延しません。これは、通信相手がEnterキーを入力までバッファリングしてEnterキーでコマンドを実行するような動作の場合に有効な設定になります。モデムのATコマンドなどがこのような動作になります</TD>
+            <TD valign="top"><IMG src="RS232C_02.svg" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" align="left">文字の送信遅延と改行の送信遅延が共に0msの場合にこの「送信帯域の制限」が有効になります。これは、上記の１バイトあたりの速度から１秒あたりのバイト数を推測して1-100%の割合で制限するような動作になります。右記の推測した送信帯域です。<BR>
+            <BR>
+            実際の動作としては、約50ms単位で推測した送信帯域からバイト数を計算し追加の送信遅延を追加するような動作になります。ビット／秒が小さい場合は、上記の文字の送信遅延が有効ですが、9600bpsを超えるような場合は、こちらの送信帯域の制限の方が細かく速度を落とすことが出来ます。</TD>
+            <TD valign="top"><IMG src="RS232C_03.svg" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

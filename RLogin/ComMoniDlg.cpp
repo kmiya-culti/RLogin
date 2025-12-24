@@ -28,6 +28,7 @@ CComMoniDlg::CComMoniDlg(class CComSock *pSock, CWnd* pParent /*=NULL*/)
 	m_BaudRate = _T("9600");
 	m_SendWait[0] = 0;
 	m_SendWait[1] = 0;
+	m_SendWait[2] = 0;
 	m_ModStsLast = 0;
 	m_ModStsXor  = 0;
 	m_ModStsDisp = 0;
@@ -58,6 +59,7 @@ void CComMoniDlg::DoDataExchange(CDataExchange* pDX)
 
 	DDX_Text(pDX, IDC_SENDWAITC, m_SendWait[0]);
 	DDX_Text(pDX, IDC_SENDWAITL, m_SendWait[1]);
+	DDX_Text(pDX, IDC_SENDWAITB, m_SendWait[2]);
 
 	for ( int n = 0 ; n < 6 ; n++ )
 		DDX_Control(pDX, IDC_CHECK1 + n, m_ErrBtn[n]);
@@ -89,6 +91,7 @@ BEGIN_MESSAGE_MAP(CComMoniDlg, CDialogExt)
 	ON_CBN_SELCHANGE(IDC_FLOWCTRL, &CComMoniDlg::OnCbnSelchange)
 	ON_EN_UPDATE(IDC_SENDWAITC, &CComMoniDlg::OnCbnSelchange)
 	ON_EN_UPDATE(IDC_SENDWAITL, &CComMoniDlg::OnCbnSelchange)
+	ON_EN_UPDATE(IDC_SENDWAITB, &CComMoniDlg::OnCbnSelchange)
 	ON_BN_CLICKED(IDC_USERFLOW, &CComMoniDlg::OnBnClickedUserflow)
 END_MESSAGE_MAP()
 
@@ -220,6 +223,7 @@ BOOL CComMoniDlg::OnInitDialog()
 	m_XoffChar		= m_pSock->m_pComConf->dcb.XoffChar;
 	m_SendWait[0]	= m_pSock->m_SendWait[0];
 	m_SendWait[1]	= m_pSock->m_SendWait[1];
+	m_SendWait[2]	= m_pSock->m_SendWait[2];
 
 	m_FlowCtrl		= CComSock::GetFlowCtrlMode(&(m_pSock->m_pComConf->dcb), m_UserDef);
 
@@ -354,6 +358,7 @@ void CComMoniDlg::OnBnClickedComconfig()
 
 	m_pSock->m_SendWait[0]	= m_SendWait[0];
 	m_pSock->m_SendWait[1]	= m_SendWait[1];
+	m_pSock->m_SendWait[2]	= m_SendWait[2];
 
 	CComSock::SetFlowCtrlMode(&(m_pSock->m_pComConf->dcb), m_FlowCtrl, m_UserDef);
 
@@ -398,7 +403,7 @@ void CComMoniDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 {
 	CDC dc;
 	CRect rect;
-	static COLORREF ColTab[] = { RGB(0, 0, 0), RGB(255, 0, 0), RGB(0, 255, 0), RGB(0, 0, 255), RGB(128, 128, 128) };
+	static const COLORREF ColTab[] = { RGB(0, 0, 0), RGB(255, 0, 0), RGB(0, 255, 0), RGB(0, 0, 255), RGB(128, 128, 128) };
 
 	if ( nIDCtl >= IDC_COM_DCD && nIDCtl <= IDC_COM_RI ) {
 		dc.Attach(lpDrawItemStruct->hDC);

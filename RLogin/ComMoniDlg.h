@@ -54,7 +54,7 @@ public:
 	CString m_StopBits;
 	int m_FlowCtrl;
 	CString m_UserDef;
-	int m_SendWait[2];
+	int m_SendWait[3];
 	WORD m_XoffLim;
 	WORD m_XonLim;
 	char m_XonChar;

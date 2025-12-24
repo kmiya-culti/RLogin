@@ -23,9 +23,20 @@ BOOL IsDigits(LPCTSTR p);
 BOOL IsListEntry(LPCTSTR p);
 BOOL InStrStr(LPCTSTR str, LPCTSTR ptn);
 LPCTSTR StrToHex(LPCTSTR p, DWORD &val);
+void DupMemCpy(void *dis, void *src, size_t len);
 
 #define	GAUSS_MAX	10
 void Gauss(double a[GAUSS_MAX][GAUSS_MAX], int n, double xx[GAUSS_MAX]);
+
+void ClipTransparentBlt(CDC* pDisDC, int xDest, int yDest, int nDestWidth, int nDestHeight,
+	CDC* pSrcDC, int xSrc, int ySrc, int nSrcWidth, int nSrcHeight, UINT crTransparent,
+	int nSrcMapWidth, int nSrcMapHeight);
+void ClipStretchBlt(CDC* pDisDC, int xDest, int yDest, int nDestWidth, int nDestHeight,
+	CDC* pSrcDC, int xSrc, int ySrc, int nSrcWidth, int nSrcHeight, DWORD dwRop,
+	int nSrcMapWidth, int nSrcMapHeight);
+void ClipAlphaBlend(CDC* pDisDC, int xDest, int yDest, int nDestWidth, int nDestHeight,
+	CDC* pSrcDC, int xSrc, int ySrc, int nSrcWidth, int nSrcHeight, BLENDFUNCTION blend,
+	int nSrcMapWidth, int nSrcMapHeight);
 
 #define	CBUFINITSIZE	32
 #define	CBUFNIMALLOC	256
@@ -487,6 +498,9 @@ public:
 	CStringBinary * FindValue(int value);
 	int GetSize();
 	int GetIndexList(CPtrArray &list);
+	void SetString(CString &str, int sep = '\t');
+	void GetString(LPCTSTR str, int sep = '\t');
+	void GetArray(CStringArray &list);
 
 	// Node
 	CStringBinary(LPCTSTR str);
@@ -495,6 +509,7 @@ public:
 	CStringBinary * FindNodeValue(int value);
 	void GetSizeNode(int &count);
 	void GetIndexListNode(CPtrArray &list);
+	void SetStringNode(CString &str, int sep);
 
 #ifdef	DEBUG
 	void Tree(int nest);

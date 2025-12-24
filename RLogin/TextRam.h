@@ -107,15 +107,6 @@
 
 #define	RTF_DPI			180				// RTF Print DPI 96-300?
 
-#define CODE_MAX		0x0400
-#define CODE_MASK		0x03FF
-#define SET_MASK		0x0300
-#define SET_94			0x0000
-#define SET_96			0x0100
-#define SET_94x94		0x0200
-#define SET_96x96		0x0300
-#define	SET_UNICODE		0x03FF
-
 #define	EM_ISOPROTECT	1
 #define	EM_DECPROTECT	2
 
@@ -229,6 +220,7 @@
 #define	TO_RLBOLDHC		458			// ボールド文字で高輝度を無効にする
 #define	TO_RLYENKEY		459			// UTF-8の場合に\キーでU+00A5を送信する
 #define	TO_RLSIXELSIZE	460			// Sixelの表示サイズを固定値/現在の文字サイズで計算する
+#define	TO_DRCSMMv3		461			// 8801 h=DRCSMMv3 l=DRCSMMv2
 
 // RLogin SockOpt		1000-1511(0-511)
 #define	TO_RLTENAT		1406		// 自動ユーザー認証を行わない
@@ -718,20 +710,22 @@ public:
 	CString m_OverZero;
 	COLORREF *m_pTransColor;
 	int m_JpSet;
+	int m_CodeSet;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
 	void GetArray(CStringArrayExt &stra);
 	CFontChacheNode *GetFont(int Width, int Height, int Style, int FontNum, class CTextRam *pTextRam);
 	const CFontNode & operator = (CFontNode &data);
-	void SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy, int asx, int asy, COLORREF bc, COLORREF tc);
+	void SetUserBitmap(int code, int len, int width, int height, int ofx, int ofy, COLORREF bc, COLORREF tc, class CGrapWnd *pGrapWnd);
 	void SetUserFont(int code, int width, int height, LPBYTE map);
-	BOOL SetFontImage(int width, int height);
+	BOOL SetFontImage(int width, int height, BOOL bCreate);
 	int Compare(CFontNode &data);
 	inline LPCTSTR GetEntryName() { return (!m_EntryName.IsEmpty() ? m_EntryName : m_IndexName); }
 
 	inline BOOL IsOverChar(LPCTSTR str) { return (!m_OverZero.IsEmpty() && _tcscmp(str, _T("0")) == 0 ? TRUE : FALSE); }
 	inline LPCTSTR OverCharStr(LPCTSTR str) { return m_OverZero; }
+	inline BOOL IsUserFont(int ch) { return (m_UserFontMap.GetSafeHandle() != NULL && (m_UserFontDef[(ch - 0x20) / 8] & (1 << ((ch - 0x20) % 8))) != 0 ? TRUE : FALSE); }
 
 	CFontNode();
 	~CFontNode();
@@ -761,15 +755,27 @@ public:
 	void SetBlockCode(LPCTSTR str, int index);
 };
 
+#define SET_94			0
+#define SET_96			1
+#define SET_94x94		2
+#define SET_96x96		3
+#define	SET_UNICODE		4
+
+#define	UNICODE_INDEX	0	
+
 class CFontTab : public COptObject
 {
 public:
-	CFontNode *m_Data;
+	CPtrArray m_Data;
 	CUniBlockTab m_UniBlockTab;
 	CStringBinary m_IndexList[4];
 
 	void InitUniBlock();
+	int IsDefFontTab(CFontNode *pNode);
+	int DefFontIdx(int idx);
 
+	void RemoveAll();
+	void InitNode(CFontNode *pNode, int idx);
 	void Init();
 	void SetArray(CStringArrayExt &stra);
 	void GetArray(CStringArrayExt &stra);
@@ -778,8 +784,10 @@ public:
 
 	int Find(LPCTSTR entry);
 	int IndexFind(int code, LPCTSTR name, BOOL bNew = TRUE);
-	void IndexRemove(int idx);
-	inline CFontNode & operator[](int nIndex) { return m_Data[nIndex]; }
+	inline CFontNode & GetAt(int nIndex) { return *((CFontNode *)(m_Data[nIndex])); }
+	inline CFontNode & operator[](int nIndex) { return GetAt(nIndex); }
+	inline void IndexRemove(int nIndex) { GetAt(nIndex).m_EntryName.Empty(); }
+	inline int GetSize() { return (int)m_Data.GetSize(); }
 	const CFontTab & operator = (CFontTab &data);
 
 	CFontTab();
@@ -883,6 +891,10 @@ typedef struct _SAVEPARAM {
 	BOOL m_bRtoL;
 	BOOL m_bJoint;
 
+	BOOL m_DispCaret;
+	int m_TypeCaret;
+	COLORREF m_CaretColor;
+
 	int m_BankGL;
 	int m_BankGR;
 	int m_BankSG;
@@ -946,6 +958,7 @@ public:
 	DWORD m_XtOptFlag;
 	int m_DispCaret;
 	int m_TypeCaret;
+	COLORREF m_CaretColor;
 
 	CWordArray m_GrapIdx;
 
@@ -1034,6 +1047,10 @@ public:	// Options
 	int m_BankGL;
 	int m_BankGR;
 	WORD m_DefBankTab[5][4];
+	struct _DefBankTabScs {
+		int		cset;
+		CString	dscs;
+	} m_DefBankTabSet[5][4];
 	int m_WheelSize;
 	CString m_BitMapFile;
 	CStringArrayExt m_BitMapFileFixed;
@@ -1090,6 +1107,7 @@ public:	// Options
 	CCodeFlag m_UniCodeFlag;
 
 	void Init();
+	void InitBankTab();
 	void SetIndex(int mode, CStringIndex &index);
 	void DiffIndex(CTextRam &orig, CStringIndex &index);
 	void SetArray(CStringArrayExt &stra);
@@ -1177,6 +1195,7 @@ public:
 	CTabFlag m_TabFlag;
 	BOOL m_RetSync;
 	CString m_StrPara;
+	int m_DcsStat;
 
 	struct _MacroCtx {
 		BOOL bExec;
@@ -1397,6 +1416,8 @@ public:
 	int UnicodeCharFlag(DWORD code);
 	int UnicodeWidth(DWORD code);
 	void SetRetChar(BOOL f8);
+	void IncDscs(int &Pcss, CString &str);
+	BOOL DrcsStr(LPCTSTR str, int bank, CString &tmp);
 
 	// Static Lib
 	static int JapanCharSet(LPCTSTR name);
@@ -1415,7 +1436,6 @@ public:
 	static int OptionToIndex(int value, BOOL bAnsi = FALSE);
 	static int IndexToOption(int value);
 	static void OptionString(int value, CString &str);
-	static void IncDscs(int &Pcss, CString &str);
 	static void GetCurrentTimeFormat(LPCTSTR fmt, CString &str);
 
 	// Low Level

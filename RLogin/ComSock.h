@@ -25,7 +25,7 @@ public:
 	CEvent m_AbortEvent;
 	CEvent m_ThreadEvent;
 
-	UINT m_SendWait[3];
+	UINT m_SendWait[4];
 	int m_SendCrLf;
 
 public:
@@ -39,6 +39,7 @@ public:
 
 	BOOL FlowCtrlCheck(int nFd);
 	int CalcReadByte();
+	void CalcWriteByteMsec(int ByteSec, int &maxSize, int &maxMsec);
 	void OnReadWriteProc();
 };
 
@@ -50,7 +51,7 @@ public:
 	COMMCONFIG *m_pComConf;
 	class CComMoniDlg *m_pComMoni;
 
-	UINT m_SendWait[2];
+	UINT m_SendWait[3];
 	int m_SendCrLf;
 
 	DWORD m_ComEvent;

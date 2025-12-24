@@ -451,8 +451,8 @@ void COptDlg::OnDoInit()
 		break;
 
 	case 1:		// Init Program Default
-		m_pTextRam->Init();
 		m_pTextRam->m_FontTab.Init();
+		m_pTextRam->Init();
 		m_pKeyTab->Init();
 		m_pKeyMac->Init();
 		m_pParamTab->Init();

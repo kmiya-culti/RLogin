@@ -167,12 +167,16 @@ public:
 	BYTE *m_pAlphaMap;
 	WORD *m_pIndexMap;
 	class CGrapWnd *m_pSaveGrapWnd;
+	BOOL m_SixelColIndexMake;
+	CDwordIndex m_SixelColIndex;
 
 	void SixelMaxInit();
 	void SixelStart(int aspect, int mode, int grid, COLORREF bc = 0);
 	void SixelResize();
 	void SixelData(int ch);
 	void SixelEndof(BOOL bAlpha = FALSE, int NoiseFilter = 0);
+	COLORREF SixelBackColor();
+	void SixelAlphaToTransCol(COLORREF tc, COLORREF bc);
 	void SetSixel(int aspect, int mode, int grid, LPCSTR str, COLORREF bc = 0);
 
 	// Grap Image Load

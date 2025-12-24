@@ -335,17 +335,20 @@ void CCharCell::Fill(CCharCell *dis, EXTVRAM &vram, int size)
 	if ( size <= 0 )
 		return;
 
-	int a = 1;
-	int b = 1;
-
 	*dis = vram;
+	DupMemCpy(dis + 1, dis, sizeof(CCharCell) * (size - 1));
 
-	while ( size > a ) {
-		b *= 2;
-		// a = 1,2,4,8,16... 二倍しながらコピーしてコピー回数を減らす
-		memcpy(dis + a, dis, sizeof(CCharCell) * (size < b ? (size - a) : a));
-		a = b;
-	}
+	//int a = 1;
+	//int b = 1;
+
+	//*dis = vram;
+
+	//while ( size > a ) {
+	//	b *= 2;
+	//	// a = 1,2,4,8,16... 二倍しながらコピーしてコピー回数を減らす
+	//	memcpy(dis + a, dis, sizeof(CCharCell) * (size < b ? (size - a) : a));
+	//	a = b;
+	//}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -382,6 +385,7 @@ void CFontNode::Init()
 	m_UniBlock    = _T("");
 	m_OverZero    = _T("");
 	m_JpSet       = (-1);
+	m_CodeSet     = (-1);
 
 	m_Iso646Name[0] = _T("");
 	m_Iso646Name[1] = _T("");
@@ -430,6 +434,7 @@ void CFontNode::SetArray(CStringArrayExt &stra)
 		stra.AddVal(m_Iso646Tab[n]);
 	stra.Add(m_OverZero);
 	stra.AddVal(m_Iso646Tab[12]);
+	stra.AddVal(m_CodeSet);
 }
 void CFontNode::GetArray(CStringArrayExt &stra)
 {
@@ -487,6 +492,9 @@ void CFontNode::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > (13 + 16 + 12 + 1) )
 		m_Iso646Tab[12] = stra.GetVal(13 + 16 + 12 + 1);
 
+	if ( stra.GetSize() > (13 + 16 + 12 + 2) )
+		m_CodeSet = stra.GetVal(13 + 16 + 12 + 2);
+
 	m_Init = TRUE;
 }
 CFontChacheNode *CFontNode::GetFont(int Width, int Height, int Style, int FontNum, class CTextRam *pTextRam)
@@ -525,6 +533,7 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 	m_Init      = data.m_Init;
 	m_UniBlock  = data.m_UniBlock;
 	m_JpSet     = data.m_JpSet;
+	m_CodeSet   = data.m_CodeSet;
 
 	for ( int n = 0 ; n < 16 ; n++ )
 		m_FontName[n] = data.m_FontName[n];
@@ -536,6 +545,29 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 		m_Iso646Tab[n] = data.m_Iso646Tab[n];
 
 	m_OverZero   = data.m_OverZero;
+
+	if ( m_UserFontMap.GetSafeHandle() != NULL )
+		m_UserFontMap.DeleteObject();
+
+	if ( m_FontMap.GetSafeHandle() != NULL )
+		m_FontMap.DeleteObject();
+
+	if ( m_pTransColor != NULL ) {
+		delete [] m_pTransColor;
+		m_pTransColor = NULL;
+	}
+
+	if ( data.m_UserFontMap.GetSafeHandle() != NULL && data.SetFontImage(data.m_UserFontWidth, data.m_UserFontHeight, TRUE) ) {
+		m_MapType = data.m_MapType;
+		m_UserFontWidth = data.m_UserFontWidth;
+		m_UserFontHeight = data.m_UserFontHeight;
+		m_UserFontMap.Attach(data.m_FontMap.Detach());
+		if ( data.m_pTransColor != NULL ) {
+			m_pTransColor = new COLORREF[USFTCMAX];
+			memcpy(m_pTransColor, data.m_pTransColor, sizeof(COLORREF) * USFTCMAX);
+		}
+		memcpy(m_UserFontDef, data.m_UserFontDef, sizeof(m_UserFontDef));
+	}
 
 	return *this;
 }
@@ -552,7 +584,8 @@ int CFontNode::Compare(CFontNode &data)
 		 m_IndexName.Compare(data.m_IndexName) != 0 ||
 		 m_Quality != data.m_Quality ||
 		 m_UniBlock.Compare(data.m_UniBlock) != 0 ||
-		 m_OverZero.Compare(data.m_OverZero) != 0 )
+		 m_OverZero.Compare(data.m_OverZero) != 0 ||
+		 m_CodeSet != data.m_CodeSet )
 		return 1;
 
 	for ( int n = 0 ; n < 16 ; n++ ) {
@@ -567,16 +600,26 @@ int CFontNode::Compare(CFontNode &data)
 
 	return 0;
 }
-void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy, int asx, int asy, COLORREF bc, COLORREF tc)
+void CFontNode::SetUserBitmap(int code, int len, int width, int height, int ofx, int ofy, COLORREF bc, COLORREF tc, class CGrapWnd *pGrapWnd)
 {
+	int n;
 	CDC oDc, nDc;
 	CBitmap *pOld[2];
 	BITMAP info;
+	CBitmap *pMap = pGrapWnd->m_pActMap;
+	int asx = pGrapWnd->m_AspX;
+	int asy = pGrapWnd->m_AspY;
+	static const BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
 
 	if ( (code -= 0x20) < 0 )
 		code = 0;
 	else if ( code >= USFTCMAX )
 		code = USFTCMAX - 1;
+
+	if ( len < 1 )
+		len = 1;
+	else if ( len > (USFTCMAX - code) )
+		len = USFTCMAX - code;
 
 	if ( !pMap->GetBitmap(&info) )
 		return;
@@ -602,8 +645,11 @@ void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, in
 		nDc.FillSolidRect(0, 0, m_UserFontWidth * USFTCMAX, m_UserFontHeight, bc);
 
 		memset(m_UserFontDef, 0, USFTCMAX / 8);
-		if ( m_pTransColor != NULL )
-			memset(m_pTransColor, 0xFF, sizeof(COLORREF) * USFTCMAX);
+
+		if ( m_pTransColor != NULL ) {
+			delete [] m_pTransColor;
+			m_pTransColor = NULL;
+		}
 
 	} else {
 		pOld[1] = nDc.SelectObject(&m_UserFontMap);
@@ -653,16 +699,34 @@ void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, in
 			m_pTransColor = new COLORREF[USFTCMAX];
 			memset(m_pTransColor, 0xFF, sizeof(COLORREF) * USFTCMAX);
 		}
-		m_pTransColor[code] = tc;
 
-		nDc.FillSolidRect(m_UserFontWidth * code, 0, width, height, tc);
-		nDc.TransparentBlt(m_UserFontWidth * code, 0, width, height,
-			&oDc, ofx * asx / ASP_DIV, ofy * asy / ASP_DIV, width * asx / ASP_DIV, height * asy / ASP_DIV, tc);
+		//for ( n = 0 ; n < len ; n++ )
+		//	m_pTransColor[code + n] = tc;
+		m_pTransColor[code] = tc;
+		DupMemCpy(&(m_pTransColor[code + 1]), &(m_pTransColor[code]), sizeof(COLORREF) * (len - 1));
+
+		nDc.FillSolidRect(m_UserFontWidth * code, 0, width * len, height, tc);
+
+		ClipTransparentBlt(&nDc, m_UserFontWidth * code, 0, width * len, height,
+			&oDc, ofx * asx / ASP_DIV, ofy * asy / ASP_DIV, width * asx * len / ASP_DIV, height * asy / ASP_DIV, tc,
+			info.bmWidth, info.bmHeight);
 
 	} else {
-		nDc.FillSolidRect(m_UserFontWidth * code, 0, width, height, bc);
-		nDc.StretchBlt(m_UserFontWidth * code, 0, width, height,
-			&oDc, ofx * asx / ASP_DIV, ofy * asy / ASP_DIV, width * asx / ASP_DIV, height * asy / ASP_DIV, SRCCOPY);
+		if ( m_pTransColor != NULL ) {
+			m_pTransColor[code] = (-1);
+			DupMemCpy(&(m_pTransColor[code + 1]), &(m_pTransColor[code]), sizeof(COLORREF) * (len - 1));
+		}
+
+		nDc.FillSolidRect(m_UserFontWidth * code, 0, width * len, height, bc);
+
+		if ( pGrapWnd->m_bHaveAlpha )
+			ClipAlphaBlend(&nDc, m_UserFontWidth * code, 0, width * len, height,
+				&oDc, ofx * asx / ASP_DIV, ofy * asy / ASP_DIV, width * asx * len / ASP_DIV, height * asy / ASP_DIV, bf,
+				info.bmWidth, info.bmHeight);
+		else
+			ClipStretchBlt(&nDc, m_UserFontWidth * code, 0, width * len, height,
+				&oDc, ofx * asx / ASP_DIV, ofy * asy / ASP_DIV, width * asx * len / ASP_DIV, height * asy / ASP_DIV, SRCCOPY,
+				info.bmWidth, info.bmHeight);
 	}
 
 	oDc.SelectObject(pOld[0]);
@@ -671,7 +735,28 @@ void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, in
 	oDc.DeleteDC();
 	nDc.DeleteDC();
 
-	m_UserFontDef[code / 8] |= (1 << (code % 8));
+	//for ( n = 0 ; n < len ; n++ )
+	//	m_UserFontDef[(code + n) / 8] |= (1 << ((code + n) % 8));
+	if ( (code & 7) > 0 ) {
+		if ( (n = 8 - (code & 7)) > len )
+			n = len;
+		m_UserFontDef[code / 8] |= ((0xFF >> (8 - n)) << (code & 7));
+		code += n;
+		len -= n;
+	}
+	if ( len >= 8 ) {
+		ASSERT((code & 7) == 0);
+		memset(&(m_UserFontDef[code / 8]), 0xFF, (len / 8));
+		code += (8 * (len / 8));
+		len &= 7;
+	}
+	if ( len > 0 ) {
+		ASSERT(len < 8);
+		n = len;
+		m_UserFontDef[code / 8] |= ((0xFF >> (8 - n)) << (code & 7));
+		code += n;
+		len -= n;
+	}
 
 	if (  m_FontMap.GetSafeHandle() != NULL )
 		m_FontMap.DeleteObject();
@@ -773,7 +858,7 @@ void CFontNode::SetUserFont(int code, int width, int height, LPBYTE map)
 		m_pTransColor = NULL;
 	}
 }
-BOOL CFontNode::SetFontImage(int width, int height)
+BOOL CFontNode::SetFontImage(int width, int height, BOOL bCreate)
 {
 	CDC oDc, nDc;
 	CBitmap *pOld[2];
@@ -781,6 +866,9 @@ BOOL CFontNode::SetFontImage(int width, int height)
 
 	if ( m_UserFontMap.GetSafeHandle() == NULL )
 		return FALSE;
+
+	if ( !bCreate && m_MapType == FNT_BITMAP_COLOR )
+		return TRUE;
 
 	if ( !m_UserFontMap.GetBitmap(&info) )
 		return FALSE;
@@ -938,143 +1026,162 @@ void CUniBlockTab::SetBlockCode(LPCTSTR str, int index)
 //////////////////////////////////////////////////////////////////////
 // CFontTab
 
-static CFontTab DefFontTab;
+static const struct _FontInitTab {
+	LPCTSTR	name;
+	WORD	mode;
+	LPCTSTR	scs;
+	int		index;
+	BYTE	maps;
+	LPCTSTR	iset;
+	WORD	cset;
+	WORD	zoomw;
+	WORD	zoomh;
+	WORD	offsetw;
+	WORD	offseth;
+	LPCTSTR	font[2];
+	LPCTSTR	iso646;
+} FontInitTab[] = {
+	{ _T("VT100-GRAPHIC"),				SET_94,		_T("0"),	0x000+'0',	0x80, _T("DEC_SGCS-GR"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("IBM437"),						SET_94,		_T("1"),	0x000+'1',	0x00, _T("IBM437"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("IBM437-GR"),					SET_94,		_T("2"),	0x000+'2',	0x80, _T("IBM437"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("Dutch (NRCS)"),				SET_94,		_T("4"),	0x000+'4',	0x00, _T("CP01102"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Dutch (NRCS)") },
+	{ _T("Finnish (NRCS)"),				SET_94,		_T("5"),	0x000+'5',	0x00, _T("CP01103"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Finnish (NRCS)") },
+	{ _T("Norwegian/Danish (NRCS)"),	SET_94,		_T("6"),	0x000+'6',	0x00, _T("CP01105"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Norwegian/Danish (NRCS)") },
+	{ _T("Swedish (NRCS)"),				SET_94,		_T("7"),	0x000+'7',	0x00, _T("CP01106"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Swedish (NRCS)") },
+	{ _T("French Canadian (NRCS)"),		SET_94,		_T("9"),	0x000+'9',	0x00, _T("CP01020"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("French Canadian (NRCS)") },
+
+	{ _T("DEC_GRAPHIC_SUPP"),			SET_94,		_T("<"),	0x000+'<',	0x00, _T("DEC_GRAPHIC_SUPP"),	DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("Swiss (NRCS)"),				SET_94,		_T("="),	0x000+'=',	0x00, _T("CP01021"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Swiss (NRCS)") },
+	{ _T("DEC_TCS-GR"),					SET_94,		_T(">"),	0x000+'>',	0x80, _T("DEC_TCS-GR"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+
+	{ _T("ISO646-US"),					SET_94,		_T("@"),	0x000+'@',	0x00, _T("ISO646-US"),			ANSI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	_T("US (ANSI X3.4-1968)") },
+	{ _T("United Kingdom (NRCS)"),		SET_94,		_T("A"),	0x000+'A',	0x00, _T("CP01101"),			ANSI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	_T("United Kingdom (NRCS)") },
+	{ _T("ASCII(ANSI X3.4-1968)"),		SET_94,		_T("B"),	0x000+'B',	0x00, _T("ANSI_X3.4-1968"),		ANSI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	_T("US (ANSI X3.4-1968)") },
+	{ _T("Finnish 2 (NRCS)"),			SET_94,		_T("C"),	0x000+'C',	0x00, _T("CP01103"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Finnish (NRCS)") },
+	{ _T("Norwegian/Danish 2 (NRCS)"),	SET_94,		_T("E"),	0x000+'E',	0x00, _T("CP01105"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Norwegian/Danish (NRCS)") },
+	{ _T("Swedish 2 (NRCS)"),			SET_94,		_T("H"),	0x000+'H',	0x00, _T("CP01106"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Swedish (NRCS)") },
+	{ _T("JIS X 0201-Kana"),			SET_94,		_T("I"),	0x000+'I',	0x80, _T("JISX0201-1976"),		SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("JIS X 0201-Roman"),			SET_94,		_T("J"),	0x000+'J',	0x00, _T("JISX0201-1976"),		SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("JP (JIS X 0201)") },
+	{ _T("German (NRCS)"),				SET_94,		_T("K"),	0x000+'K',	0x00, _T("CP01011"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("German (NRCS)") },
+	{ _T("French Canadian 2 (NRCS)"),	SET_94,		_T("Q"),	0x000+'Q',	0x00, _T("CP01020"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("French Canadian (NRCS)") },
+	{ _T("French (NRCS)"),				SET_94,		_T("R"),	0x000+'R',	0x00, _T("CP01104"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("French (NRCS)") },
+	{ _T("GB 1988-80"),					SET_94,		_T("T"),	0x000+'T',	0x00, _T("GB_1988-80"),			GB2312_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	_T("GB (BS 4730)") },
+	{ _T("Italian (NRCS)"),				SET_94,		_T("Y"),	0x000+'Y',	0x00, _T("CP01012"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Italian (NRCS)") },
+	{ _T("Spanish (NRCS)"),				SET_94,		_T("Z"),	0x000+'Z',	0x00, _T("CP01023"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Spanish (NRCS)") },
+	{ _T("Norwegian/Danish 3 (NRCS)"),	SET_94,		_T("`"),	0x000+'`',	0x00, _T("CP01105"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Norwegian/Danish (NRCS)") },
+
+	{ _T("Hebrew (DECSUPP)"),			SET_94,		_T("\"4"),	0x000+0,	0x80, _T("DEC_HEBREW_SUPP"),	HEBREW_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("Greek (NRCS)"),				SET_94,		_T("\">"),	0x000+1,	0x80, _T("DEC_GREEK"),			GREEK_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("Greek (DECSUPP)"),			SET_94,		_T("\"?"),	0x000+2,	0x80, _T("DEC_GREEK_SUPP"),		GREEK_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+
+	{ _T("Turkish (DECSUPP)"),			SET_94,		_T("%0"),	0x000+3,	0x80, _T("DEC_TURKISH_SUPP"),	TURKISH_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("Turkish (CP1254)"),			SET_94,		_T("%2"),	0x000+4,	0x80, _T("CP1254"),				TURKISH_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("Serbo Croatian (NRCS)"),		SET_94,		_T("%3"),	0x000+5,	0x00, _T("CP08509"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Serbo Croatian (NRCS)") },
+	{ _T("Turkish (NRCS)"),				SET_94,		_T("%6"),	0x000+6,	0x00, _T("CP08510"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Turkish (NRCS)") },
+	{ _T("Hebrew (NRCS)"),				SET_94,		_T("%="),	0x000+7,	0x80, _T("DEC_HEBREW"),			HEBREW_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+
+	{ _T("Russian (KOI8-R)"),			SET_94,		_T("&3"),	0x000+8,	0x80, _T("KOI8-R"),				RUSSIAN_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("Russian (CP866)"),			SET_94,		_T("&4"),	0x000+9,	0x80, _T("CP866"),				RUSSIAN_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("Russian (KOI-7)"),			SET_94,		_T("&5"),	0x000+10,	0x80, _T("DEC_RUSSIAN"),		RUSSIAN_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("Russian (CP1251)"),			SET_94,		_T("&6"),	0x000+11,	0x80, _T("CP1251"),				RUSSIAN_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+
+	/*
+	{ _T("ChineseBig5"),				SET_94x94,	_T("?"),	0x200+'?',	0x00,	_T("CP950"),			CHINESEBIG5_CHARSET,100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("Johab"),						SET_94x94,	_T("?"),	0x200+'?',	0x00,	_T("CP1361"),			JOHAB_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	*/
+
+	{ _T("LATIN1 (ISO8859-1)"),			SET_96,		_T("A"),	0x100+'A',	0x80, _T("LATIN1"),				EASTEUROPE_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("LATIN2 (ISO8859-2)"),			SET_96,		_T("B"),	0x100+'B',	0x80, _T("LATIN2"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("LATIN3 (ISO8859-3)"),			SET_96,		_T("C"),	0x100+'C',	0x80, _T("LATIN3"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("LATIN4 (ISO8859-4)"),			SET_96,		_T("D"),	0x100+'D',	0x80, _T("LATIN4"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("CYRILLIC (ISO8859-5)"),		SET_96,		_T("L"),	0x100+'L',	0x80, _T("ISO8859-5"),			RUSSIAN_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("ARABIC (ISO8859-6)"),			SET_96,		_T("G"),	0x100+'G',	0x80, _T("ISO8859-6"),			ARABIC_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("GREEK (ISO8859-7)"),			SET_96,		_T("F"),	0x100+'F',	0x80, _T("ISO8859-7"),			GREEK_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("HEBREW (ISO8859-8)"),			SET_96,		_T("H"),	0x100+'H',	0x80, _T("ISO8859-8"),			HEBREW_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("LATIN5 (ISO8859-9)"),			SET_96,		_T("M"),	0x100+'M',	0x80, _T("LATIN5"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("LATIN6 (ISO8859-10)"),		SET_96,		_T("V"),	0x100+'V',	0x80, _T("LATIN6"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("THAI (ISO8859-11)"),			SET_96,		_T("T"),	0x100+'T',	0x80, _T("ISO-8859-11"),		THAI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("VIETNAMESE (ISO8859-12)"),	SET_96,		_T("Z"),	0x100+'Z',	0x80, _T("CP1258"),				VIETNAMESE_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("BALTIC (ISO8859-13)"),		SET_96,		_T("Y"),	0x100+'Y',	0x80, _T("ISO-8859-13"),		BALTIC_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("CELTIC (ISO8859-14)"),		SET_96,		_T("_"),	0x100+'_',	0x80, _T("ISO-8859-14"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("LATIN9 (ISO8859-15)"),		SET_96,		_T("b"),	0x100+'b',	0x80, _T("ISO-8859-15"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("ROMANIAN (ISO8859-16)"),		SET_96,		_T("f"),	0x100+'f',	0x80, _T("ISO-8859-16"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+
+	{ _T("JIS X 0208-1978"),			SET_94x94,	_T("@"),	0x200+'@',	0x00, _T("JIS_X0208-1983"),		SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("GB2312-1980"),				SET_94x94,	_T("A"),	0x200+'A',	0x00, _T("GB_2312-80"),			GB2312_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("JIS X 0208-1983"),			SET_94x94,	_T("B"),	0x200+'B',	0x00, _T("JIS_X0208-1983"),		SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("KSC5601-1987"),				SET_94x94,	_T("C"),	0x200+'C',	0x00, _T("KS_C_5601-1987"),		HANGEUL_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("JIS X 0212-1990"),			SET_94x94,	_T("D"),	0x200+'D',	0x00, _T("JIS_X0212-1990"),		SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("ISO-IR-165"),					SET_94x94,	_T("E"),	0x200+'E',	0x00, _T("ISO-IR-165"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("JIS X 0213-2000.1"),			SET_94x94,	_T("O"),	0x200+'O',	0x00, _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("JIS X 0213-2000.2"),			SET_94x94,	_T("P"),	0x200+'P',	0x00, _T("JIS_X0213-2000.2"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	{ _T("JIS X 0213-2004.1"),			SET_94x94,	_T("Q"),	0x200+'Q',	0x00, _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+
+	{ _T("UNICODE"),					SET_UNICODE,_T("*U"),	0x3FF,		0x00, _T("UTF-16BE"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+
+	{ NULL, 0, 0x00, NULL },
+};
 
 CFontTab::CFontTab()
 {
-	m_Data = new CFontNode[CODE_MAX];
 	m_pSection = _T("FontTab");
 	Init();
 }
 CFontTab::~CFontTab()
 {
-	delete [] m_Data;
+	for ( int n = 0 ; n < (int)m_Data.GetSize() ; n++ )
+		delete (CFontNode *)(m_Data[n]);
+	m_Data.RemoveAll();
+}
+void CFontTab::RemoveAll()
+{
+	int n;
+	CFontNode *pNode;
+
+	for ( n = 0 ; n < (int)m_Data.GetSize() ; n++ )
+		delete (CFontNode *)(m_Data[n]);
+	m_Data.RemoveAll();
+
+	// UNICODEのみindex=0で先に登録
+	pNode = new CFontNode;
+	pNode->m_EntryName = _T("UNICODE");
+	pNode->m_IndexName = _T("*U");
+	m_Data.Add(pNode);
+
+	for ( n = 0 ; n < 4 ; n++ )
+		m_IndexList[n].RemoveAll();
+}
+void CFontTab::InitNode(CFontNode *pNode, int idx)
+{
+	pNode->Init();
+	pNode->m_Maps        = FontInitTab[idx].maps;
+	pNode->m_ZoomW       = FontInitTab[idx].zoomw;
+	pNode->m_ZoomH       = FontInitTab[idx].zoomh;
+	pNode->m_OffsetW     = FontInitTab[idx].offsetw;
+	pNode->m_OffsetH     = FontInitTab[idx].offseth;
+	pNode->m_CharSet     = FontInitTab[idx].cset;
+	pNode->m_FontName[0] = FontInitTab[idx].font[0];
+	pNode->m_FontName[1] = FontInitTab[idx].font[1];
+	pNode->m_EntryName   = FontInitTab[idx].name;
+	pNode->m_IContName   = FontInitTab[idx].iset;
+	pNode->m_JpSet       = CTextRam::JapanCharSet(pNode->m_IContName);
+	pNode->m_IndexName   = FontInitTab[idx].scs;
+	pNode->m_CodeSet     = FontInitTab[idx].mode;
+	pNode->m_Init        = FALSE;
+
+	if ( FontInitTab[idx].iso646 != NULL ) {
+		pNode->m_Iso646Name[1] = FontInitTab[idx].iso646;
+		CIso646Dlg::Iso646Maping(FontInitTab[idx].iso646, pNode->m_Iso646Tab);
+	}
 }
 void CFontTab::Init()
 {
-	int n, i;
-	CIConv iconv;
-	static const CHAR Iso646Char[] = { 0x23, 0x24, 0x40, 0x5B, 0x5C, 0x5D, 0x5E, 0x60, 0x7B, 0x7C, 0x7D, 0x7E, 0x5F };
-	static const struct _FontInitTab {
-		LPCTSTR	name;
-		WORD	mode;
-		LPCTSTR	scs;
-		BYTE	maps;
-		LPCTSTR	iset;
-		WORD	cset;
-		WORD	zoomw;
-		WORD	zoomh;
-		WORD	offsetw;
-		WORD	offseth;
-		LPCTSTR	font[2];
-		LPCTSTR	iso646;
-	} FontInitTab[] = {
-		{ _T("VT100-GRAPHIC"),				SET_94,		_T("0"),	0x80, _T("DEC_SGCS-GR"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("IBM437"),						SET_94,		_T("1"),	0x00, _T("IBM437"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("IBM437-GR"),					SET_94,		_T("2"),	0x80, _T("IBM437"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("Dutch (NRCS)"),				SET_94,		_T("4"),	0x00, _T("CP01102"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Dutch (NRCS)") },
-		{ _T("Finnish (NRCS)"),				SET_94,		_T("5"),	0x00, _T("CP01103"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Finnish (NRCS)") },
-		{ _T("Norwegian/Danish (NRCS)"),	SET_94,		_T("6"),	0x00, _T("CP01105"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Norwegian/Danish (NRCS)") },
-		{ _T("Swedish (NRCS)"),				SET_94,		_T("7"),	0x00, _T("CP01106"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Swedish (NRCS)") },
-		{ _T("French Canadian (NRCS)"),		SET_94,		_T("9"),	0x00, _T("CP01020"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("French Canadian (NRCS)") },
+	int n;
 
-		{ _T("DEC_GRAPHIC_SUPP"),			SET_94,		_T("<"),	0x00, _T("DEC_GRAPHIC_SUPP"),	DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("Swiss (NRCS)"),				SET_94,		_T("="),	0x00, _T("CP01021"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Swiss (NRCS)") },
-		{ _T("DEC_TCS-GR"),					SET_94,		_T(">"),	0x80, _T("DEC_TCS-GR"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
+	RemoveAll();
 
-		{ _T("ISO646-US"),					SET_94,		_T("@"),	0x00, _T("ISO646-US"),			ANSI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	_T("US (ANSI X3.4-1968)") },
-		{ _T("United Kingdom (NRCS)"),		SET_94,		_T("A"),	0x00, _T("CP01101"),			ANSI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	_T("United Kingdom (NRCS)") },
-		{ _T("ASCII(ANSI X3.4-1968)"),		SET_94,		_T("B"),	0x00, _T("ANSI_X3.4-1968"),		ANSI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	_T("US (ANSI X3.4-1968)") },
-		{ _T("Finnish 2 (NRCS)"),			SET_94,		_T("C"),	0x00, _T("CP01103"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Finnish (NRCS)") },
-		{ _T("Norwegian/Danish 2 (NRCS)"),	SET_94,		_T("E"),	0x00, _T("CP01105"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Norwegian/Danish (NRCS)") },
-		{ _T("Swedish 2 (NRCS)"),			SET_94,		_T("H"),	0x00, _T("CP01106"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Swedish (NRCS)") },
-		{ _T("JIS X 0201-Kana"),			SET_94,		_T("I"),	0x80, _T("JISX0201-1976"),		SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("JIS X 0201-Roman"),			SET_94,		_T("J"),	0x00, _T("JISX0201-1976"),		SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("JP (JIS X 0201)") },
-		{ _T("German (NRCS)"),				SET_94,		_T("K"),	0x00, _T("CP01011"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("German (NRCS)") },
-		{ _T("French Canadian 2 (NRCS)"),	SET_94,		_T("Q"),	0x00, _T("CP01020"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("French Canadian (NRCS)") },
-		{ _T("French (NRCS)"),				SET_94,		_T("R"),	0x00, _T("CP01104"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("French (NRCS)") },
-		{ _T("GB 1988-80"),					SET_94,		_T("T"),	0x00, _T("GB_1988-80"),			GB2312_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	_T("GB (BS 4730)") },
-		{ _T("Italian (NRCS)"),				SET_94,		_T("Y"),	0x00, _T("CP01012"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Italian (NRCS)") },
-		{ _T("Spanish (NRCS)"),				SET_94,		_T("Z"),	0x00, _T("CP01023"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Spanish (NRCS)") },
-		{ _T("Norwegian/Danish 3 (NRCS)"),	SET_94,		_T("`"),	0x00, _T("CP01105"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Norwegian/Danish (NRCS)") },
-
-		{ _T("Hebrew (DECSUPP)"),			SET_94,		_T("\"4"),	0x80, _T("DEC_HEBREW_SUPP"),	HEBREW_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("Greek (NRCS)"),				SET_94,		_T("\">"),	0x80, _T("DEC_GREEK"),			GREEK_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("Greek (DECSUPP)"),			SET_94,		_T("\"?"),	0x80, _T("DEC_GREEK_SUPP"),		GREEK_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-
-		{ _T("Turkish (DECSUPP)"),			SET_94,		_T("%0"),	0x80, _T("DEC_TURKISH_SUPP"),	TURKISH_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("Turkish (CP1254)"),			SET_94,		_T("%2"),	0x80, _T("CP1254"),				TURKISH_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("Serbo Croatian (NRCS)"),		SET_94,		_T("%3"),	0x00, _T("CP08509"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Serbo Croatian (NRCS)") },
-		{ _T("Turkish (NRCS)"),				SET_94,		_T("%6"),	0x00, _T("CP08510"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	_T("Turkish (NRCS)") },
-		{ _T("Hebrew (NRCS)"),				SET_94,		_T("%="),	0x80, _T("DEC_HEBREW"),			HEBREW_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-
-		{ _T("Russian (KOI8-R)"),			SET_94,		_T("&3"),	0x80, _T("KOI8-R"),				RUSSIAN_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("Russian (CP866)"),			SET_94,		_T("&4"),	0x80, _T("CP866"),				RUSSIAN_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("Russian (KOI-7)"),			SET_94,		_T("&5"),	0x80, _T("DEC_RUSSIAN"),		RUSSIAN_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("Russian (CP1251)"),			SET_94,		_T("&6"),	0x80, _T("CP1251"),				RUSSIAN_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-
-		/*
-		{ _T("ChineseBig5"),				SET_94x94,	_T("?"),	0x00,	_T("CP950"),			CHINESEBIG5_CHARSET,100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("Johab"),						SET_94x94,	_T("?"),	0x00,	_T("CP1361"),			JOHAB_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		*/
-
-		{ _T("LATIN1 (ISO8859-1)"),			SET_96,		_T("A"),	0x80, _T("LATIN1"),				EASTEUROPE_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("LATIN2 (ISO8859-2)"),			SET_96,		_T("B"),	0x80, _T("LATIN2"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("LATIN3 (ISO8859-3)"),			SET_96,		_T("C"),	0x80, _T("LATIN3"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("LATIN4 (ISO8859-4)"),			SET_96,		_T("D"),	0x80, _T("LATIN4"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("CYRILLIC (ISO8859-5)"),		SET_96,		_T("L"),	0x80, _T("ISO8859-5"),			RUSSIAN_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("ARABIC (ISO8859-6)"),			SET_96,		_T("G"),	0x80, _T("ISO8859-6"),			ARABIC_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("GREEK (ISO8859-7)"),			SET_96,		_T("F"),	0x80, _T("ISO8859-7"),			GREEK_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("HEBREW (ISO8859-8)"),			SET_96,		_T("H"),	0x80, _T("ISO8859-8"),			HEBREW_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("LATIN5 (ISO8859-9)"),			SET_96,		_T("M"),	0x80, _T("LATIN5"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("LATIN6 (ISO8859-10)"),		SET_96,		_T("V"),	0x80, _T("LATIN6"),				DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("THAI (ISO8859-11)"),			SET_96,		_T("T"),	0x80, _T("ISO-8859-11"),		THAI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("VIETNAMESE (ISO8859-12)"),	SET_96,		_T("Z"),	0x80, _T("CP1258"),				VIETNAMESE_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("BALTIC (ISO8859-13)"),		SET_96,		_T("Y"),	0x80, _T("ISO-8859-13"),		BALTIC_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("CELTIC (ISO8859-14)"),		SET_96,		_T("_"),	0x80, _T("ISO-8859-14"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("LATIN9 (ISO8859-15)"),		SET_96,		_T("b"),	0x80, _T("ISO-8859-15"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("ROMANIAN (ISO8859-16)"),		SET_96,		_T("f"),	0x80, _T("ISO-8859-16"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-
-		{ _T("JIS X 0208-1978"),			SET_94x94,	_T("@"),	0x00, _T("JIS_X0208-1983"),		SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("GB2312-1980"),				SET_94x94,	_T("A"),	0x00, _T("GB_2312-80"),			GB2312_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("JIS X 0208-1983"),			SET_94x94,	_T("B"),	0x00, _T("JIS_X0208-1983"),		SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("KSC5601-1987"),				SET_94x94,	_T("C"),	0x00, _T("KS_C_5601-1987"),		HANGEUL_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("JIS X 0212-1990"),			SET_94x94,	_T("D"),	0x00, _T("JIS_X0212-1990"),		SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("ISO-IR-165"),					SET_94x94,	_T("E"),	0x00, _T("ISO-IR-165"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("JIS X 0213-2000.1"),			SET_94x94,	_T("O"),	0x00, _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("JIS X 0213-2000.2"),			SET_94x94,	_T("P"),	0x00, _T("JIS_X0213-2000.2"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-		{ _T("JIS X 0213-2004.1"),			SET_94x94,	_T("Q"),	0x00, _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-
-		{ _T("UNICODE"),					SET_UNICODE,_T("*U"),	0x00, _T("UTF-16BE"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") },	NULL },
-
-		{ NULL, 0, 0x00, NULL },
-	};
-
-
-	for ( n = 0 ; n < CODE_MAX ; n++ )
-		m_Data[n].Init();
-
-	for ( n = 0 ; FontInitTab[n].name != NULL ; n++ ) {
-		i = IndexFind(FontInitTab[n].mode, FontInitTab[n].scs);
-		m_Data[i].m_Maps        = FontInitTab[n].maps;
-		m_Data[i].m_ZoomW       = FontInitTab[n].zoomw;
-		m_Data[i].m_ZoomH       = FontInitTab[n].zoomh;
-		m_Data[i].m_OffsetW     = FontInitTab[n].offsetw;
-		m_Data[i].m_OffsetH     = FontInitTab[n].offseth;
-		m_Data[i].m_CharSet     = FontInitTab[n].cset;
-		m_Data[i].m_FontName[0] = FontInitTab[n].font[0];
-		m_Data[i].m_FontName[1] = FontInitTab[n].font[1];
-		m_Data[i].m_EntryName   = FontInitTab[n].name;
-		m_Data[i].m_IContName   = FontInitTab[n].iset;
-		m_Data[i].m_JpSet       = CTextRam::JapanCharSet(m_Data[i].m_IContName);
-		m_Data[i].m_IndexName   = FontInitTab[n].scs;
-		m_Data[i].m_Init        = FALSE;
-
-		if ( FontInitTab[n].iso646 != NULL ) {
-			m_Data[i].m_Iso646Name[1] = FontInitTab[n].iso646;
-			CIso646Dlg::Iso646Maping(FontInitTab[n].iso646, m_Data[i].m_Iso646Tab);
-		}
-	}
+	for ( n = 0 ; FontInitTab[n].name != NULL ; n++ )
+		InitNode((CFontNode *)(m_Data[IndexFind(FontInitTab[n].mode, FontInitTab[n].scs)]), n);
 
 	InitUniBlock();
 }
@@ -1088,8 +1195,8 @@ void CFontTab::InitUniBlock()
 	for ( n = 0 ; n < UNIBLOCKTABMAX ; n++ )
 		m_UniBlockTab.Add(UniBlockTab[n].code, (-1));
 
-	for ( n = 0 ; n < CODE_MAX ; n++ )
-		m_UniBlockTab.SetBlockCode(m_Data[n].m_UniBlock, n);
+	for ( n = 0 ; n < GetSize() ; n++ )
+		m_UniBlockTab.SetBlockCode(GetAt(n).m_UniBlock, n);
 
 	for ( n = 1 ; n < m_UniBlockTab.GetSize() ; ) {
 		if ( m_UniBlockTab[n - 1].index == m_UniBlockTab[n].index )
@@ -1101,20 +1208,77 @@ void CFontTab::InitUniBlock()
 	for ( n = 0 ; n < m_UniBlockTab.GetSize() ; n++ )
 		m_UniBlockTab[n].code = CTextRam::UCS4toUCS2(m_UniBlockTab[n].code);
 }
+int CFontTab::IsDefFontTab(CFontNode *pNode)
+{
+	int n, i;
+	static const DWORD Isi646Tab[13] = { 0x0023, 0x0024, 0x0040, 0x005B, 0x005C, 0x005D, 0x005E, 0x0060, 0x007B, 0x007C, 0x007D, 0x007E, 0x005F };
+
+	for ( n = 0 ; FontInitTab[n].name != NULL ; n++ ) {
+		if ( pNode->m_CodeSet != FontInitTab[n].mode ||
+			 pNode->m_IndexName.Compare(FontInitTab[n].scs) != 0 ||
+			 pNode->m_EntryName.Compare(FontInitTab[n].name) != 0 ||
+			 pNode->m_Maps != FontInitTab[n].maps ||
+			 pNode->m_ZoomW != FontInitTab[n].zoomw ||
+			 pNode->m_ZoomH != FontInitTab[n].zoomh ||
+			 pNode->m_OffsetW != FontInitTab[n].offsetw ||
+			 pNode->m_OffsetH != FontInitTab[n].offseth ||
+			 pNode->m_CharSet != FontInitTab[n].cset ||
+			 pNode->m_Quality != DEFAULT_QUALITY ||
+			 pNode->m_UniBlock.Compare(_T("")) != 0 ||
+			 pNode->m_OverZero.Compare(_T("")) != 0 ||
+			 pNode->m_IContName.Compare(FontInitTab[n].iset) != 0 ||
+			 pNode->m_FontName[0].Compare(FontInitTab[n].font[0]) != 0 ||
+			 pNode->m_FontName[1].Compare(FontInitTab[n].font[1]) != 0 )
+			continue;
+
+		if ( FontInitTab[n].iso646 != NULL ) {
+			if ( pNode->m_Iso646Name[1].Compare(FontInitTab[n].iso646) != 0 )
+				continue;
+			DWORD tab[13];
+			CIso646Dlg::Iso646Maping(FontInitTab[n].iso646, tab);
+			if ( memcmp(pNode->m_Iso646Tab, tab, sizeof(tab)) != 0 )
+				continue;
+		} else if ( memcmp(pNode->m_Iso646Tab, Isi646Tab, sizeof(Isi646Tab)) != 0 )
+			continue;
+
+		for ( i = 2 ; i < 16 ; i++ ) {
+			if ( !pNode->m_FontName[i].IsEmpty() || pNode->m_FontName[i].Compare(_T("")) != 0 )
+				break;
+		}
+		if ( i < 16 )
+			continue;
+
+		return FontInitTab[n].index;
+	}
+
+	return (-1);
+}
+int CFontTab::DefFontIdx(int idx)
+{
+	for ( int n = 0 ; FontInitTab[n].name != NULL ; n++ ) {
+		if ( FontInitTab[n].index == idx )
+			return n;
+
+	}
+	return (-1);
+}
 void CFontTab::SetArray(CStringArrayExt &stra)
 {
-	int n;
+	int n, i;
 	CString str;
 	CStringArrayExt tmp;
+	CFontNode *pNode;
 
 	stra.RemoveAll();
 	stra.Add(_T("-1"));
-	for ( n = 0 ; n < CODE_MAX ; n++ ) {
-		if ( m_Data[n].m_EntryName.IsEmpty() )
+	for ( n = 0 ; n < GetSize() ; n++ ) {
+		pNode = (CFontNode *)(m_Data[n]);
+		if ( pNode->m_EntryName.IsEmpty() )
 			continue;
-		str.Format(_T("%d"), n);
-		if ( !theApp.IsPrivateProfile() || m_Data[n].Compare(DefFontTab.m_Data[n]) != 0 ) {
-			m_Data[n].SetArray(tmp);
+		i = IsDefFontTab(pNode);
+		str.Format(_T("%d"), i);
+		if ( !theApp.IsPrivateProfile() || i == (-1) ) {
+			pNode->SetArray(tmp);
 			tmp.InsertAt(0, str);
 			tmp.SetString(str);
 		}
@@ -1123,37 +1287,70 @@ void CFontTab::SetArray(CStringArrayExt &stra)
 }
 void CFontTab::GetArray(CStringArrayExt &stra)
 {
-	int n, i;
+	int n, i, b;
 	CStringArrayExt tmp;
+	CFontNode *pNode;
 
-	if ( stra.GetSize() == 0 || _tstoi(stra[0]) != (-1) )
+	if ( stra.GetSize() == 0 || _tstoi(stra[0]) != -1 )
 		Init();
-	else {
-		for ( n = 0 ; n < CODE_MAX ; n++ )
-			m_Data[n].Init();
-	}
+	else
+		RemoveAll();
 
 	for ( n = 0 ; n < stra.GetSize() ; n++ ) {
 		tmp.GetString(stra[n]);
 		if ( tmp.GetSize() < 1 )
 			continue;
-		if ( (i = tmp.GetVal(0)) < 0 || i >= CODE_MAX )
-			continue;
+		i = tmp.GetVal(0);
 		tmp.RemoveAt(0);
-		if ( tmp.GetSize() < 1 )
-			DefFontTab[i].SetArray(tmp);
-		m_Data[i].GetArray(tmp);
-		if ( m_Data[i].m_IndexName.IsEmpty() ) {
-			if ( i == SET_UNICODE )
-				m_Data[i].m_IndexName = _T("*U");
-			else
-				m_Data[i].m_IndexName = (CHAR)(i & 0xFF);
-		} else if ( m_Data[i].m_IndexName.Compare(_T("Unicode")) == 0 )
-			m_Data[i].m_IndexName = _T("*U");
 
-		if ( i == SET_UNICODE ) {
-			m_Data[i].m_IContName = _T("UTF-16BE");
-			m_Data[i].m_JpSet = (-1);
+		if ( tmp.GetSize() < 1 ) {
+			if ( i == (-1) || (b = DefFontIdx(i)) == (-1) )
+				continue;
+			pNode = new CFontNode;
+			InitNode(pNode, b);
+
+		} else {
+			pNode = new CFontNode;
+			pNode->GetArray(tmp);
+
+			if ( pNode->m_CodeSet == (-1) ) {
+				if ( i == (-1) ) {
+					delete pNode;
+					continue;
+				} else
+					pNode->m_CodeSet = (i >> 8) & 3;
+			}
+
+			if ( pNode->m_IndexName.IsEmpty() ) {
+				if ( i == SET_UNICODE ) {
+					pNode->m_IndexName = _T("*U");
+					pNode->m_CodeSet = SET_UNICODE;
+				} else if ( i >= 0 ) {
+					pNode->m_IndexName = (CHAR)(i & 0xFF);
+					pNode->m_CodeSet = (i >> 8) & 3;
+				} else {
+					delete pNode;
+					continue;
+				}
+			} else if ( pNode->m_IndexName.Compare(_T("Unicode")) == 0 ) {
+				pNode->m_IndexName = _T("*U");
+				pNode->m_CodeSet = SET_UNICODE;
+			}
+
+			if ( pNode->m_IndexName.Compare(_T("*U")) == 0 ) {
+				pNode->m_IContName = _T("UTF-16BE");
+				pNode->m_JpSet = (-1);
+				pNode->m_CodeSet = SET_UNICODE;
+			}
+		}
+
+		if ( (i = IndexFind(pNode->m_CodeSet, pNode->m_IndexName, FALSE)) != (-1) ) {
+			delete (CFontNode *)(m_Data[i]);
+			m_Data[i] = pNode;
+		} else {
+			i = (int)m_Data.Add((void *)pNode);
+			if ( pNode->m_CodeSet != SET_UNICODE )
+				m_IndexList[pNode->m_CodeSet][pNode->m_IndexName] = i;
 		}
 	}
 
@@ -1164,47 +1361,63 @@ void CFontTab::DiffIndex(CFontTab &orig, CStringIndex &index)
 	int n, i, a;
 	CString str;
 	CStringIndex *ip;
+	CFontNode *pNode, *pOrigNode;
 
-	for ( n = 0 ; n < CODE_MAX ; n++ ) {
-		if ( m_Data[n].Compare(orig.m_Data[n]) == 0 )
+	for ( n = 0 ; n < orig.GetSize() ; n++ ) {
+		pOrigNode = &orig.GetAt(n);
+
+		if ( pOrigNode->m_EntryName.IsEmpty() )
 			continue;
 
-		if ( m_Data[n].m_EntryName.IsEmpty() ) {
+		if ( IndexFind(pOrigNode->m_CodeSet, pOrigNode->m_IndexName, FALSE) == (-1) )
 			index[_T("Del")].Add(n);
+	}
 
-		} else {
-			str.Format(_T("%d"), n);
-			ip = &(index[_T("Add")][str]);
+	for ( n = 0 ; n < GetSize() ; n++ ) {
+		pNode = (CFontNode *)m_Data[n];
 
-			ip->Add(m_Data[n].m_EntryName);
-			ip->Add(n >> 8);
-			ip->Add(m_Data[n].m_IndexName);
-			ip->Add(m_Data[n].m_Maps);
-			ip->Add(m_Data[n].m_ZoomW);
-			ip->Add(m_Data[n].m_ZoomH);
-			ip->Add(m_Data[n].m_OffsetH);
-			ip->Add(m_Data[n].m_Quality);
-			ip->Add(m_Data[n].m_CharSet);
-			ip->Add(m_Data[n].m_IContName);
+		if ( pNode->m_EntryName.IsEmpty() )
+			continue;
 
-			a = ip->GetSize();
-			ip->SetSize(a + 1);
-			for ( i = 0 ; i < 16 ; i++ )
-				(*ip)[a].Add(m_Data[n].m_FontName[i]);
+		if ( (i = orig.IndexFind(pNode->m_CodeSet, pNode->m_IndexName, FALSE)) >= 0 )
+			pOrigNode = &orig.GetAt(i);
+		else
+			pOrigNode = NULL;
 
-			ip->Add(m_Data[n].m_OffsetW);
-			ip->Add(m_Data[n].m_UniBlock);
+		if ( pOrigNode != NULL && pNode->Compare(*pOrigNode) == 0 )
+			continue;
 
-			ip->Add(m_Data[n].m_Iso646Name[0]);
-			ip->Add(m_Data[n].m_Iso646Name[1]);
+		str.Format(_T("%d"), n);
+		ip = &(index[_T("Add")][str]);
 
-			a = ip->GetSize();
-			ip->SetSize(a + 1);
-			for ( i = 0 ; i < 13 ; i++ )
-				(*ip)[a].Add(m_Data[n].m_Iso646Tab[i]);
+		ip->Add(pNode->m_EntryName);
+		ip->Add(pNode->m_CodeSet);
+		ip->Add(pNode->m_IndexName);
+		ip->Add(pNode->m_Maps);
+		ip->Add(pNode->m_ZoomW);
+		ip->Add(pNode->m_ZoomH);
+		ip->Add(pNode->m_OffsetH);
+		ip->Add(pNode->m_Quality);
+		ip->Add(pNode->m_CharSet);
+		ip->Add(pNode->m_IContName);
 
-			ip->Add(m_Data[n].m_OverZero);
-		}
+		a = ip->GetSize();
+		ip->SetSize(a + 1);
+		for ( i = 0 ; i < 16 ; i++ )
+			(*ip)[a].Add(pNode->m_FontName[i]);
+
+		ip->Add(pNode->m_OffsetW);
+		ip->Add(pNode->m_UniBlock);
+
+		ip->Add(pNode->m_Iso646Name[0]);
+		ip->Add(pNode->m_Iso646Name[1]);
+
+		a = ip->GetSize();
+		ip->SetSize(a + 1);
+		for ( i = 0 ; i < 13 ; i++ )
+			(*ip)[a].Add(pNode->m_Iso646Tab[i]);
+
+		ip->Add(pNode->m_OverZero);
 	}
 }
 void CFontTab::SetIndex(int mode, CStringIndex &index)
@@ -1213,44 +1426,47 @@ void CFontTab::SetIndex(int mode, CStringIndex &index)
 	int code;
 	CString str;
 	CStringIndex *ip;
+	CFontNode *pNode;
 	static const LPCTSTR menbaName[] = { _T("Table"), _T("Add"), _T("Del"), NULL };
 
 	if ( mode ) {		// Write
-		for ( n = 0 ; n < CODE_MAX ; n++ ) {
-			if ( m_Data[n].m_EntryName.IsEmpty() )
+		for ( n = 0 ; n < GetSize() ; n++ ) {
+			pNode = (CFontNode *)m_Data[n];
+
+			if ( pNode->m_EntryName.IsEmpty() )
 				continue;
 
 			str.Format(_T("%d"), n);
 			ip = &(index[menbaName[0]][str]);
 
-			ip->Add(m_Data[n].m_EntryName);
-			ip->Add(n >> 8);
-			ip->Add(m_Data[n].m_IndexName);
-			ip->Add(m_Data[n].m_Maps);
-			ip->Add(m_Data[n].m_ZoomW);
-			ip->Add(m_Data[n].m_ZoomH);
-			ip->Add(m_Data[n].m_OffsetH);
-			ip->Add(m_Data[n].m_Quality);
-			ip->Add(m_Data[n].m_CharSet);
-			ip->Add(m_Data[n].m_IContName);
+			ip->Add(pNode->m_EntryName);
+			ip->Add(pNode->m_CodeSet);
+			ip->Add(pNode->m_IndexName);
+			ip->Add(pNode->m_Maps);
+			ip->Add(pNode->m_ZoomW);
+			ip->Add(pNode->m_ZoomH);
+			ip->Add(pNode->m_OffsetH);
+			ip->Add(pNode->m_Quality);
+			ip->Add(pNode->m_CharSet);
+			ip->Add(pNode->m_IContName);
 
 			a = ip->GetSize();
 			ip->SetSize(a + 1);
 			for ( i = 0 ; i < 16 ; i++ )
-				(*ip)[a].Add(m_Data[n].m_FontName[i]);
+				(*ip)[a].Add(pNode->m_FontName[i]);
 
-			ip->Add(m_Data[n].m_OffsetW);
-			ip->Add(m_Data[n].m_UniBlock);
+			ip->Add(pNode->m_OffsetW);
+			ip->Add(pNode->m_UniBlock);
 
-			ip->Add(m_Data[n].m_Iso646Name[0]);
-			ip->Add(m_Data[n].m_Iso646Name[1]);
+			ip->Add(pNode->m_Iso646Name[0]);
+			ip->Add(pNode->m_Iso646Name[1]);
 
 			a = ip->GetSize();
 			ip->SetSize(a + 1);
 			for ( i = 0 ; i < 13 ; i++ )
-				(*ip)[a].Add(m_Data[n].m_Iso646Tab[i]);
+				(*ip)[a].Add(pNode->m_Iso646Tab[i]);
 
-			ip->Add(m_Data[n].m_OverZero);
+			ip->Add(pNode->m_OverZero);
 		}
 
 	} else {			// Read
@@ -1258,10 +1474,8 @@ void CFontTab::SetIndex(int mode, CStringIndex &index)
 			if ( (n = index.Find(menbaName[m])) < 0 )
 				continue;
 
-			if ( m == 0 ) {	// Table
-				for ( i = 0 ; i < CODE_MAX ; i++ )
-					m_Data[i].Init();
-			}
+			if ( m == 0 )	// Table
+				RemoveAll();
 
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
 				if ( m == 2 ) {	// Del
@@ -1271,40 +1485,42 @@ void CFontTab::SetIndex(int mode, CStringIndex &index)
 				} else {	// Table or Add
 					if ( index[n][i].GetSize() < 11 )
 						continue;
-					code = IndexFind(index[n][i][1] << 8, index[n][i][2]);
+					code = IndexFind(index[n][i][1], index[n][i][2]);
+					pNode = (CFontNode *)m_Data[code];
 
-					m_Data[code].m_EntryName = index[n][i][0];
-					m_Data[code].m_IndexName = index[n][i][2];
-					m_Data[code].m_Maps      = index[n][i][3];
-					m_Data[code].m_ZoomW     = index[n][i][4];
-					m_Data[code].m_ZoomH     = index[n][i][5];
-					m_Data[code].m_OffsetH   = index[n][i][6];
-					m_Data[code].m_Quality   = index[n][i][7];
-					m_Data[code].m_CharSet   = index[n][i][8];
-					m_Data[code].m_IContName = index[n][i][9];
-					m_Data[code].m_JpSet     = CTextRam::JapanCharSet(m_Data[code].m_IContName);
+					pNode->m_EntryName = index[n][i][0];
+					pNode->m_CodeSet   = index[n][i][1];
+					pNode->m_IndexName = index[n][i][2];
+					pNode->m_Maps      = index[n][i][3];
+					pNode->m_ZoomW     = index[n][i][4];
+					pNode->m_ZoomH     = index[n][i][5];
+					pNode->m_OffsetH   = index[n][i][6];
+					pNode->m_Quality   = index[n][i][7];
+					pNode->m_CharSet   = index[n][i][8];
+					pNode->m_IContName = index[n][i][9];
+					pNode->m_JpSet     = CTextRam::JapanCharSet(pNode->m_IContName);
 
 					for ( a = 0 ; a < 16 && a < index[n][i][10].GetSize() ; a++ )
-						m_Data[code].m_FontName[a] = index[n][i][10][a];
+						pNode->m_FontName[a] = index[n][i][10][a];
 
 					if ( index[n][i].GetSize() > 11 )
-						m_Data[code].m_OffsetW = index[n][i][11];
+						pNode->m_OffsetW = index[n][i][11];
 
 					if ( index[n][i].GetSize() > 12 )
-						m_Data[code].m_UniBlock = index[n][i][12];
+						pNode->m_UniBlock = index[n][i][12];
 
 					if ( index[n][i].GetSize() > 13 )
-						m_Data[code].m_Iso646Name[0] = index[n][i][13];
+						pNode->m_Iso646Name[0] = index[n][i][13];
 					if ( index[n][i].GetSize() > 14 )
-						m_Data[code].m_Iso646Name[0] = index[n][i][14];
+						pNode->m_Iso646Name[0] = index[n][i][14];
 
 					if ( index[n][i].GetSize() > 15 ) {
 						for ( a = 0 ; a < 13 && a < index[n][i][15].GetSize() ; a++ )
-							m_Data[code].m_Iso646Tab[a] = index[n][i][15][a];
+							pNode->m_Iso646Tab[a] = index[n][i][15][a];
 					}
 
 					if ( index[n][i].GetSize() > 16 )
-						m_Data[code].m_OverZero = index[n][i][16];
+						pNode->m_OverZero = index[n][i][16];
 				}
 			}
 		}
@@ -1316,8 +1532,16 @@ const CFontTab & CFontTab::operator = (CFontTab &data)
 {
 	int n;
 
-	for ( n = 0 ; n < CODE_MAX ; n++ )
-		m_Data[n] = data.m_Data[n];
+	RemoveAll();
+
+	while ( GetSize() < data.GetSize() )
+		m_Data.Add((void *)new CFontNode);
+
+	for ( n = 0 ; n < data.GetSize() ; n++ ) {
+		GetAt(n) = data.GetAt(n);
+		if ( GetAt(n).m_CodeSet < SET_UNICODE )
+			m_IndexList[GetAt(n).m_CodeSet][GetAt(n).m_IndexName] = n;
+	}
 
 	m_UniBlockTab = data.m_UniBlockTab;
 
@@ -1325,72 +1549,36 @@ const CFontTab & CFontTab::operator = (CFontTab &data)
 }
 int CFontTab::Find(LPCTSTR entry)
 {
-	for ( int n = 0 ; n < CODE_MAX ; n++ ) {
-		if ( _tcscmp(entry, m_Data[n].GetEntryName()) == 0 )
+	for ( int n = 0 ; n < GetSize() ; n++ ) {
+		if ( _tcscmp(entry, GetAt(n).GetEntryName()) == 0 )
 			return n;
 	}
 	return 0;
 }
 int CFontTab::IndexFind(int code, LPCTSTR name, BOOL bNew)
 {
-	int n, i;
-	int idx = (code >> 8) & 3;
+	int i;
 	CStringBinary *pList;
+	CFontNode *pNode;
 
-	if ( name[1] == _T('\0') && name[0] >= _T('\x30') && name[0] <= _T('\x7E') ) {
-		i = code | name[0];
-		goto FOUND;
-	} else if ( _tcscmp(name, _T("*U")) == 0 ) {
-		i = SET_UNICODE;
-		goto FOUND;
-	}
+	if ( code >= SET_UNICODE || _tcscmp(name, _T("*U")) == 0 )
+		return 0;
 
-	if ( (pList = m_IndexList[idx].Find(name)) != NULL && pList->m_Value != (-1) )
+	if ( (pList = m_IndexList[code].Find(name)) != NULL && pList->m_Value != (-1) )
 		return pList->m_Value;
-
-	for ( n = i = 0 ;  n < (255 - 0x4F) ; n++ ) {
-		i = code | (n + (n < 0x30 ? 0 : 0x4F));			// 0x00-0x2F or 0x7F-0xFF
-		if ( m_Data[i].m_IndexName.IsEmpty() )
-			break;
-	}
 
 	if ( !bNew )
 		return (-1);
 
-	if ( n >= (255 - 0x4F) && m_Data[i].m_IndexName.IsEmpty() )
-		CWinApp::ShowAppMessageBox(NULL, _T("Dscs Buffer Overflow Warning"), MB_ICONERROR, 0);
+	pNode = new CFontNode;
+	pNode->m_CodeSet = code;
+	pNode->m_IndexName = name;
 
-FOUND:
-	m_Data[i].m_IndexName = name;
-	m_IndexList[idx][name].m_Value = i;
+	i = (int)m_Data.Add((void *)pNode);
+	m_IndexList[code][name].m_Value = i;
 	return i;
 }
-void CFontTab::IndexRemove(int idx)
-{
-	int n, i;
-	int bank = idx & SET_MASK;
-	int code = idx & 0xFF;
 
-	if ( !m_Data[idx].m_IndexName.IsEmpty() )
-		m_IndexList[code >> 8][m_Data[idx].m_IndexName].m_Value = (-1);
-
-	m_Data[idx].Init();
-
-	if ( code >= 0x30 && code <= 0x7E )
-		return;
-
-	while ( code < 255 ) {
-		i = bank | code;
-		if ( ++code == 0x30 )
-			code = 0x7F;
-		n = bank | code;
-		if ( n == 255 || m_Data[n].m_IndexName.IsEmpty() ) {
-			m_Data[i].Init();
-			break;
-		}
-		m_Data[i] = m_Data[n];
-	}
-}
 //////////////////////////////////////////////////////////////////////
 // CTextBitMap
 
@@ -2775,23 +2963,26 @@ int CTextRam::HisMarkCheck(int top, int line, class CRLoginView *pView)
 	return FALSE;
 }
 
-static const WORD DefBankTab[5][4] = {
+static const struct _DefBankTab {
+	int		cset;
+	LPCTSTR	dscs;
+} DefBankTab[5][4] = {
 	/* EUC */
-	{ { SET_94    | 'J' }, 	{ SET_94x94 | 'Q' },
-	  { SET_94    | 'I' }, 	{ SET_94x94 | 'P' } },
+	{ { SET_94,		_T("J")	},	{ SET_94x94,	_T("Q") },
+	  { SET_94,		_T("I")	}, 	{ SET_94x94,	_T("P")	} },
 	/* SJIS */
-	{ { SET_94    | 'J' }, 	{ SET_94    | 'I' },
-	  { SET_94x94 | 'Q' }, 	{ SET_94x94 | 'P' } },
+	{ { SET_94,		_T("J")	}, 	{ SET_94,		_T("I")	},
+	  { SET_94x94,	_T("Q")	}, 	{ SET_94x94,	_T("P")	} },
 	/* ASCII */
-	{ { SET_94    | 'B' }, 	{ SET_94    | '1' },
-	  { SET_94    | 'J' }, 	{ SET_94    | 'I' } },
+	{ { SET_94,		_T("B")	}, 	{ SET_94,		_T("1")	},
+	  { SET_94,		_T("J")	}, 	{ SET_94,		_T("I")	} },
 	/* UTF-8 */
-	{ { SET_94    | 'B' }, 	{ SET_96    | 'A' },
-	  { SET_94    | 'J' }, 	{ SET_94    | 'I' } },
+	{ { SET_94,		_T("B")	}, 	{ SET_96,		_T("A")	},
+	  { SET_94,		_T("J")	}, 	{ SET_94,		_T("I")	} },
 	/* BIG5 */
-	{ { SET_94    | 'T' }, 	{ SET_94    | '1' },
-	  { SET_94x94 | 'A' }, 	{ SET_94x94 | 'E' } },
-	};
+	{ { SET_94,		_T("T")	}, 	{ SET_94,		_T("1")	},
+	  { SET_94x94,	_T("A")	}, 	{ SET_94x94,	_T("E")	} },
+};
 static const EXTVRAM TempAtt = {
 //  et  bc  fc   ch  at  ft  md  dm  cm  em  fc  bc
 	0,  0,  0, { 0,  0,  0,  0,  0,  0,  0,  7,  0 }
@@ -2848,7 +3039,14 @@ void CTextRam::Init()
 	EnableOption(TO_RLNODELAY);	//  1486 TCPオプションのNoDelayを有効にする
 
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
-	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
+
+	for ( int n = 0 ; n < 5 ; n++ ) {
+		for ( int i = 0 ; i < 4 ; i++ ) {
+			m_DefBankTab[n][i] = (WORD)m_FontTab.IndexFind(DefBankTab[n][i].cset, DefBankTab[n][i].dscs);
+			m_DefBankTabSet[n][i].cset = DefBankTab[n][i].cset;
+			m_DefBankTabSet[n][i].dscs = DefBankTab[n][i].dscs;
+		}
+	}
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
 
 	m_SendCharSet[0] = _T("EUCJP-MS");
@@ -2937,7 +3135,7 @@ void CTextRam::Init()
 	InitModKeyTab();
 
 	m_ProcTab.Init();
-//	m_FontTab.Init();
+	//m_FontTab.Init();
 	m_TextBitMap.Init();
 
 	m_SleepMode = SLEEPMODE_ACTIVE;
@@ -2983,7 +3181,7 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		for ( n = 0 ; n < 5 ; n++ ) {
 			index[_T("BankTable")][setname[n]].SetSize(4);
 			for ( i = 0 ; i < 4 ; i++ ) {
-				index[_T("BankTable")][setname[n]][i].Add(m_DefBankTab[n][i] >> 8);
+				index[_T("BankTable")][setname[n]][i].Add(m_FontTab[m_DefBankTab[n][i]].m_CodeSet);
 				index[_T("BankTable")][setname[n]][i].Add(m_FontTab[m_DefBankTab[n][i]].m_IndexName);
 			}
 		}
@@ -3150,7 +3348,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 					for ( b = 0 ; b < 4 && b < index[n][a].GetSize() ; b++ ) {
 						if ( index[n][a].GetSize() < 2 )
 							continue;
-						m_DefBankTab[i][b] = m_FontTab.IndexFind(index[n][a][b][0] << 8, index[n][a][b][1]);
+						m_DefBankTabSet[i][b].cset = index[n][a][b][0];
+						m_DefBankTabSet[i][b].dscs = index[n][a][b][1];
+						m_DefBankTab[i][b] = m_FontTab.IndexFind(m_DefBankTabSet[i][b].cset, m_DefBankTabSet[i][b].dscs);
 					}
 				}
 			}
@@ -3445,10 +3645,15 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 	}
 
 	for ( n = 0 ; n < 5 ; n++ ) {
-		if ( memcmp(m_DefBankTab[n], orig.m_DefBankTab[n], sizeof(m_DefBankTab[n])) != 0 ) {
+		for ( i = 0 ; i < 4 ; i++ ) {
+			if ( m_FontTab[m_DefBankTab[n][i]].m_CodeSet != orig.m_FontTab[orig.m_DefBankTab[n][i]].m_CodeSet ||
+				m_FontTab[m_DefBankTab[n][i]].m_IndexName.Compare(orig.m_FontTab[orig.m_DefBankTab[n][i]].m_IndexName) != 0 )
+				break;
+		}
+		if ( i < 4 ) {
 			index[_T("BankTable")][setname[n]].SetSize(4);
 			for ( i = 0 ; i < 4 ; i++ ) {
-				index[_T("BankTable")][setname[n]][i].Add(m_DefBankTab[n][i] >> 8);
+				index[_T("BankTable")][setname[n]][i].Add(m_FontTab[m_DefBankTab[n][i]].m_CodeSet);
 				index[_T("BankTable")][setname[n]][i].Add(m_FontTab[m_DefBankTab[n][i]].m_IndexName);
 			}
 		}
@@ -3795,6 +4000,16 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 
 	m_DefUniCodeFlag.SetString(str);
 	stra.Add(str);
+
+	tmp.RemoveAll();
+	for ( int n = 0 ; n < 5 ; n++ ) {
+		for ( int i = 0 ; i < 4 ; i++ ) {
+			tmp.AddVal(m_FontTab[m_DefBankTab[n][i]].m_CodeSet);
+			tmp.Add(m_FontTab[m_DefBankTab[n][i]].m_IndexName);
+		}
+	}
+	tmp.SetString(str, _T(';'));
+	stra.Add(str);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -3827,9 +4042,7 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	stra.GetBin(8, m_DefAnsiOpt, sizeof(m_DefAnsiOpt));
 	memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 
-	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
 	stra.GetBin(9, m_DefBankTab, sizeof(m_DefBankTab));
-	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
 
 	m_SendCharSet[0] = stra.GetAt(10);
 	m_SendCharSet[1] = stra.GetAt(11);
@@ -4050,6 +4263,43 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		m_DefUniCodeFlag.GetString(stra.GetAt(84));
 		m_UniCodeFlag = m_DefUniCodeFlag;
 	}
+
+	if ( stra.GetSize() > 85 ) {
+		ext.GetString(stra.GetAt(85), _T(';'));
+		int b = 0;
+		for ( n = 0 ; n < 5 ; n++ ) {
+			for ( int i = 0 ; i < 4 ; i++ ) {
+				if ( (b + 2) > ext.GetSize() )
+					break;
+				m_DefBankTabSet[n][i].cset = ext.GetVal(b++);
+				m_DefBankTabSet[n][i].dscs = ext.GetAt(b++);
+				m_DefBankTab[n][i] = m_FontTab.IndexFind(m_DefBankTabSet[n][i].cset, m_DefBankTabSet[n][i].dscs);
+			}
+		}
+	} else {
+		for ( n = 0 ; n < 5 ; n++ ) {
+			for ( int i = 0 ; i < 4 ; i++ ) {
+				int c = (m_DefBankTab[n][i] >> 8) & 3;
+				TCHAR scs[2] = { (TCHAR)(m_DefBankTab[n][i] & 0xFF), _T('\0') };
+				// 0x00-0x2F or 0x7F-0xFF
+				if ( scs[0] <= 0x2F || scs[0] >= 0x7F ) {
+					int b = m_FontTab.DefFontIdx(m_DefBankTab[n][i]);
+					if ( b >= 0 ) {
+						m_DefBankTabSet[n][i].cset = FontInitTab[b].mode;
+						m_DefBankTabSet[n][i].dscs = FontInitTab[b].scs;
+					} else {
+						m_DefBankTabSet[n][i].cset = SET_94;
+						m_DefBankTabSet[n][i].dscs = _T("B");
+					}
+				} else {
+					m_DefBankTabSet[n][i].cset = c;
+					m_DefBankTabSet[n][i].dscs = scs;
+				}
+				m_DefBankTab[n][i] = m_FontTab.IndexFind(m_DefBankTabSet[n][i].cset, m_DefBankTabSet[n][i].dscs);
+			}
+		}
+	}
+	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -4290,20 +4540,32 @@ void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		break;
 	}
 }
+void CTextRam::InitBankTab()
+{
+	for ( int n = 0 ; n < 5 ; n++ ) {
+		for ( int i = 0 ; i < 4 ; i++ ) {
+			m_DefBankTab[n][i] = m_FontTab.IndexFind(m_DefBankTabSet[n][i].cset, m_DefBankTabSet[n][i].dscs);
+		}
+	}
+	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
+}
 void CTextRam::Serialize(int mode)
 {
 	COptObject::Serialize(mode);
 	m_FontTab.Serialize(mode);
+	InitBankTab();
 }
 void CTextRam::Serialize(int mode, CBuffer &buf)
 {
 	COptObject::Serialize(mode, buf);
 	m_FontTab.Serialize(mode, buf);
+	InitBankTab();
 }
 void CTextRam::Serialize(CArchive& ar)
 {
 	COptObject::Serialize(ar);
 	m_FontTab.Serialize(ar);
+	InitBankTab();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -4331,8 +4593,8 @@ int CTextRam::Write(LPBYTE lpBuf, int nBufLen, BOOL *sync)
 	m_UpdateFlag = FALSE;
 	time(&m_Atime);
 
-	while ( len < nBufLen && !m_UpdateFlag ) {
-		fc_Call(lpBuf[len++]);
+	for ( ; len < nBufLen && !m_UpdateFlag ; len++ ) {
+		fc_Call(lpBuf[len]);
 		if ( m_RetSync ) {
 			m_RetSync = FALSE;
 			*sync = TRUE;
@@ -4641,7 +4903,7 @@ BOOL CTextRam::LineEdit(CBuffer &buf)
 			if ( m_LineEditPos >= n )
 				break;
 			sp = (WCHAR *)m_LineEditBuff.GetPos(m_LineEditPos * sizeof(WCHAR));
-			memcpy(sp, sp + 1, (n - m_LineEditPos) * sizeof(WCHAR));
+			memmove(sp, sp + 1, (n - m_LineEditPos) * sizeof(WCHAR));
 			m_LineEditBuff.ConsumeEnd(sizeof(WCHAR));
 			m_LineEditMapsPos = (-1);
 			ec = TRUE;
@@ -5019,6 +5281,7 @@ void CTextRam::EditCopy(CCurPos sps, CCurPos eps, BOOL rectflag, BOOL lineflag)
 	CGrapWnd *pWnd;
 	CRLoginView *pView = (CRLoginView *)GetAciveView();
 	int fsize = 12;		// RTF default font size = 24 (1/2 point) = 12 point
+	CString drcs;
 
 	SetCalcPos(sps, &x1, &y1);
 	SetCalcPos(eps, &x2, &y2);
@@ -5084,6 +5347,9 @@ void CTextRam::EditCopy(CCurPos sps, CCurPos eps, BOOL rectflag, BOOL lineflag)
 			} else {
 				s = vp[x];
 				len = 1;
+
+				if ( DrcsStr(UniToTstr(s), vp[x].m_Vram.bank, drcs) )
+					s = TstrToUni(drcs);
 			}
 
 			// TEXT Format
@@ -5105,7 +5371,7 @@ void CTextRam::EditCopy(CCurPos sps, CCurPos eps, BOOL rectflag, BOOL lineflag)
 			if ( m_RtfMode >= RTF_FONT ) {
 				LPCTSTR fontname = NULL;
 
-				if ( (i = vp[x].m_Vram.bank) >= 0 && i < CODE_MAX ) {
+				if ( (i = vp[x].m_Vram.bank) >= 0 && i < m_FontTab.GetSize() ) {
 					if ( !m_FontTab[i].m_FontName[vp[x].m_Vram.font].IsEmpty() )
 						fontname = m_FontTab[i].m_FontName[vp[x].m_Vram.font];
 					else if ( !m_FontTab[i].m_FontName[0].IsEmpty() )
@@ -5997,7 +6263,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, BOOL bRevs, DrawWork &prop)
 {
 	int n, i, a, c;
-	int x, y, nw, ow;
+	int x, y, nw, ow, len;
 	int width, height, style = FONTSTYLE_NONE;
 	int type = 0;
 	UINT mode;
@@ -6008,6 +6274,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	CFontNode *pFontNode = &(m_FontTab[prop.bank]);
 	CDC workDC, mirDC, *pSaveDC = NULL;
 	CBitmap *pOldMap, *pOldMirMap = NULL, MirMap;
+	int OldBitMode;
  	static const BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
 
 	mode = ETO_CLIPPED;
@@ -6056,13 +6323,28 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	else if ( IsOptEnable(TO_RLWORDPP) )
 		type = 2;
 
-	if ( pFontNode->SetFontImage(width, height) ) {
+	if ( pFontNode->SetFontImage(width, height, FALSE) ) {
 		// Gaiji Mode
 		// 文字単位で縮小、固定幅、センターリング
-		workDC.CreateCompatibleDC(pDC);
-		pOldMap = workDC.SelectObject(&(pFontNode->m_FontMap));
+		CDC tmpDC;
+		CBitmap *pOld, tmpMap;
 
-		for ( n = i = a = 0 ; n < prop.size ; n++ ) {
+		workDC.CreateCompatibleDC(pDC);
+
+		if ( pFontNode->m_MapType == FNT_BITMAP_COLOR ) {
+			pOldMap = workDC.SelectObject(&(pFontNode->m_UserFontMap));
+			OldBitMode = pDC->SetStretchBltMode(HALFTONE);
+			if ( bEraBack && pFontNode->m_pTransColor != NULL ) {
+				tmpDC.CreateCompatibleDC(pDC);
+				tmpMap.CreateCompatibleBitmap(pDC, pFontNode->m_UserFontWidth * USFTCMAX, pFontNode->m_UserFontHeight);
+				pOld = tmpDC.SelectObject(&tmpMap);
+				tmpDC.SetBkMode(TRANSPARENT);
+			}
+		} else
+			pOldMap = workDC.SelectObject(&(pFontNode->m_FontMap));
+
+		for ( n = i = 0 ; n < prop.size ; n += len ) {
+			a = i;
 			while ( prop.pSpace[i] == 0 )
 				i++;
 			box.right = box.left + prop.pSpace[i];
@@ -6070,33 +6352,49 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 			str.Empty();
 			while ( a <= i )
 				str += prop.pText[a++];
+			len = 1;
 
-			if ( (c = str[0] - 0x20) >= 0 && c < USFTCMAX && (pFontNode->m_UserFontDef[c / 8] & (1 << (c % 8))) != 0 ) {
+			if ( a == (i + 1) && (c = str[0] - 0x20) >= 0 && c < USFTCMAX && (pFontNode->m_UserFontDef[c / 8] & (1 << (c % 8))) != 0 ) {
 				if ( pFontNode->m_MapType == FNT_BITMAP_COLOR ) {
+					for ( ; (n + len) < prop.size && (c + len) < USFTCMAX ; len++ ) {
+						if ( prop.pSpace[i + len] == 0 || prop.pText[i + len] != (c + len + 0x20) )
+							break;
+						if ( (pFontNode->m_UserFontDef[(c + len) / 8] & (1 << ((c + len) % 8))) == 0 )
+							break;
+						if ( pFontNode->m_pTransColor != NULL && pFontNode->m_pTransColor[c] != pFontNode->m_pTransColor[c + len] )
+							break;
+						box.right += prop.pSpace[i + len];
+					}
+
 					if ( pFontNode->m_pTransColor != NULL && pFontNode->m_pTransColor[c] != (-1) ) {
-						if ( bEraBack )
-							pDC->FillSolidRect(box, bc);
-						pDC->TransparentBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), pFontNode->m_FontWidth, pFontNode->m_FontHeight / (prop.zoom == 3 ? 2 : 1), pFontNode->m_pTransColor[c]);
+						if ( bEraBack ) {
+							if ( pFontNode->m_pTransColor[c] == bc )
+								pDC->StretchBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_UserFontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), pFontNode->m_UserFontWidth * len, pFontNode->m_UserFontHeight / (prop.zoom == 3 ? 2 : 1), SRCCOPY);
+							else {
+								tmpDC.FillSolidRect(0, 0, pFontNode->m_UserFontWidth * len, pFontNode->m_UserFontHeight, bc);
+								tmpDC.TransparentBlt(0, 0, pFontNode->m_UserFontWidth * len, pFontNode->m_UserFontHeight, &workDC, pFontNode->m_UserFontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), pFontNode->m_UserFontWidth * len, pFontNode->m_UserFontHeight / (prop.zoom == 3 ? 2 : 1), pFontNode->m_pTransColor[c]);
+								pDC->StretchBlt(box.left, box.top, box.Width(), box.Height(), &tmpDC, 0, 0, pFontNode->m_UserFontWidth * len, pFontNode->m_UserFontHeight, SRCCOPY);
+							}
+						} else
+							pDC->TransparentBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_UserFontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), pFontNode->m_UserFontWidth * len, pFontNode->m_UserFontHeight / (prop.zoom == 3 ? 2 : 1), pFontNode->m_pTransColor[c]);
 					} else {
-						if ( width != box.Width() || height != box.Height() )
-							pDC->StretchBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), pFontNode->m_FontWidth, pFontNode->m_FontHeight / (prop.zoom == 3 ? 2 : 1), SRCCOPY);
-						else
-							pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), SRCCOPY);
+						pDC->StretchBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_UserFontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), pFontNode->m_UserFontWidth * len, pFontNode->m_UserFontHeight / (prop.zoom == 3 ? 2 : 1), SRCCOPY);
 					}
 					if ( bRevs )
 						pDC->InvertRect(box);
+
 				} else if ( bEraBack ) {
 					if ( width != box.Width() || height != box.Height() )
-						pDC->StretchBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), pFontNode->m_FontWidth, pFontNode->m_FontHeight / (prop.zoom == 3 ? 2 : 1), SRCCOPY);
-					else
-						pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), SRCCOPY);
+						pDC->FillSolidRect(box, bc);
+					pDC->BitBlt(box.left, box.top, width, height, &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), SRCCOPY);
+
 				} else {
 					pDC->SetTextColor(RGB(0, 0, 0));
 					pDC->SetBkColor(RGB(255, 255, 255));
-					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), SRCAND);
+					pDC->BitBlt(box.left, box.top, width, height, &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), SRCAND);
 					pDC->SetTextColor(fc);
 					pDC->SetBkColor(RGB(0, 0, 0));
-					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), SRCPAINT);
+					pDC->BitBlt(box.left, box.top, width, height, &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? prop.pView->m_CharHeight : 0), SRCPAINT);
 					pDC->SetBkColor(bc);
 				}
 
@@ -6122,11 +6420,21 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 				}
 			}
 
-			box.left += prop.pSpace[i++];
+			box.left = box.right;
+			i += len;
 		}
+
+		if ( pFontNode->m_MapType == FNT_BITMAP_COLOR )
+			pDC->SetStretchBltMode(OldBitMode);
 
 		workDC.SelectObject(pOldMap);
 		workDC.DeleteDC();
+
+		if ( tmpDC.GetSafeHdc() != NULL ) {
+			tmpDC.SelectObject(pOld);
+			tmpMap.DeleteObject();
+			tmpDC.DeleteDC();
+		}
 
 	} else if ( (prop.attr & ATT_RTOL) != 0 ) {
 		// Right to Left, Mc属性（Spacing Mark)を持つブロック
@@ -6621,7 +6929,7 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 		if ( bRevs )
 			pDC->InvertRect(rect);
 
-	} else if ( prop.bank < 0 || prop.bank >= CODE_MAX ) {
+	} else if ( prop.bank < 0 || prop.bank >= m_FontTab.GetSize() ) {
 		// Blank Draw
 		if ( bEraBack )
 			pDC->FillSolidRect(rect, bcol);
@@ -6820,7 +7128,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					work.csz = 2;
 					str = (LPCWSTR)*vp;
 					if ( !str.IsEmpty() )
-						work.bank = vp->m_Vram.bank & CODE_MASK;
+						work.bank = vp->m_Vram.bank;
 					pView->SetCellSize(x, y, 0);
 					pView->SetCellSize(x + 1, y, 0);
 
@@ -6829,20 +7137,20 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					if ( IsOptEnable(TO_RLBRKMBCS) ) {
 						str = BRKMBCS;
 						work.attr |= ATT_REVS;
-						work.bank = SET_UNICODE;
+						work.bank = UNICODE_INDEX;
 					} else {
 						str = (LPCWSTR)*vp;
 						if ( !str.IsEmpty() )
-							work.bank = vp->m_Vram.bank & CODE_MASK;
+							work.bank = vp->m_Vram.bank;
 					}
 					pView->SetCellSize(x, y, 0);
 
 				} else if ( IS_ASCII(vp->m_Vram.mode) ) {
 					str = (LPCWSTR)*vp;
-					work.bank = vp->m_Vram.bank & CODE_MASK;
+					work.bank = vp->m_Vram.bank;
 					spc = _T(' ') + (m_FontTab[work.bank].m_UserFontMap.GetSafeHandle() != NULL ? 0 : 1);
-					if ( !str.IsEmpty() && str[0] > _T(' ') && str[1] == _T('\0') ) {
-						if ( (work.bank & SET_MASK) <= SET_96 && m_FontTab[work.bank].m_Maps == FONTMAPS_GL ) {
+					if ( !str.IsEmpty() && str[0] > _T(' ') && str[0] <= _T('\x7F') && str[1] == _T('\0') ) {
+						if ( m_FontTab[work.bank].m_CodeSet <= SET_96 && m_FontTab[work.bank].m_Maps == FONTMAPS_GL && !m_FontTab[work.bank].IsUserFont(str[0]) ) {
 							switch(str[0]) {
 							case 0x0023: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[0], str); break;
 							case 0x0024: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[1], str); break;
@@ -6871,29 +7179,6 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 
 				if ( work.bank != (-1) && m_FontTab[work.bank].IsOverChar(str) )
 					work.attr |= ATT_OVERCHAR;
-
-				// U+100000-10FFFD 16面外字
-				// U+10ddcc
-				//     dd		dscs x256		(U+1030cc-U+107Ecc)=" 0"-" ~"
-				//       cc		code x256		SET_94=(U+10dd20-U+10dd7F), SET96=(U+10ddA0-U+10ddFF)
-				// U+100000 = U+DBC0 U+DC00
-				// U+10FFFF = U+DBFF U+DFFF
-				if ( !str.IsEmpty() && str[0] >= 0xDBC0 && str[0] <= 0xDBFF && str[1] >= 0xDC00 && str[1] <= 0xDFFF && IsOptEnable(TO_DRCSMMv1) ) {
-					DWORD uc = UCS2toUCS4(((DWORD)str[0] << 16) | (DWORD)str[1]);
-					if ( uc >= 0x103000 && uc <= 0x107EFF ) {
-						int bank;
-						TCHAR tmp[3] = { _T(' '), (TCHAR)((uc >> 8) & 0xFF), _T('\0') };
-						if ( (bank = m_FontTab.IndexFind(((uc & 0x80) == 0 ? SET_94 : SET_96), tmp, FALSE)) != (-1) ) {
-							bank &= CODE_MASK;
-							CFontNode *pFontNode = &(m_FontTab[bank]);
-							if ( pFontNode->m_UserFontMap.GetSafeHandle() != NULL ) {
-								work.bank = bank;
-								work.attr |= ATT_GAIJI;
-								str = (WCHAR)(uc & 0x7F);
-							}
-						}
-					}
-				}
 			}
 
 			// Matrox View
@@ -7106,6 +7391,8 @@ int CTextRam::OptionToIndex(int value, BOOL bAnsi)
 		value = TO_TTCTH;			// 8200 - 画面クリア(ED 2)時にカーソルを左上に移動する。		移動しない
 	else if ( value == 8800 )
 		value = TO_DRCSMMv1;		// 8800 - Unicodeマッピング有効									Unicodeマッピング無効 
+	else if ( value == 8801 )
+		value = TO_DRCSMMv3;		// 8801 - DRCSMMv3												DRCSMMv2
 	else if ( value == 8840 )
 		value = TO_RLUNIAWH;		// 8840 - TNAMB Aタイプをダブル幅の文字にする					シングル幅にする
 	else
@@ -7147,22 +7434,15 @@ void CTextRam::IncDscs(int &Pcss, CString &str)
 	// Intermediates are in the range 2/0 to 2/15.
 	// Finals are in the range 3/0 to 7/14. 
 
+	int mode = 0;
 	LPCTSTR p = str;
-	TCHAR scs[3];
-
-	scs[0] = scs[1] = scs[2] = 0;
+	TCHAR scs[3] = { _T('\0'), _T('\0'), _T('\0') };
 
 	while ( *p != _T('\0') ) {
 		if ( *p >= _T('\x20') && *p <= _T('\x2F') ) {
-			if ( scs[0] == 0 )
-				scs[0] = *(p++);
-			else if ( scs[1] == 0 )
-				scs[1] = *(p++);
-			else {
-				// shift
-				scs[0] = scs[1];
-				scs[1] = *(p++);
-			}
+			// shift
+			scs[0] = scs[1];
+			scs[1] = *(p++);
 		} else if ( *p >= _T('\x30') && *p <= _T('\x7E') ) {
 			scs[2] = *(p++);
 			break;
@@ -7170,41 +7450,97 @@ void CTextRam::IncDscs(int &Pcss, CString &str)
 			p++;
 	}
 
-	scs[2] += 1;
-	if ( scs[2] < _T('\x30') )
-		scs[2] = _T('\x30');
-	else if ( scs[2] > _T('\x7E') ) {
-		scs[2] = _T('\x30');
+	if ( IsOptEnable(TO_DRCSMMv1) ) {
+		if ( IsOptEnable(TO_DRCSMMv3) ) {
+			if ( scs[0] == _T(' ') && scs[1] >= _T(' ') && scs[2] >= _T('@') )
+				mode = 2;
+		} else {
+			if ( scs[0] == _T('\0') && scs[1] == _T(' ') && scs[2] != _T('\0') )
+				mode = 1;
+		}
+	}
 
-#if 1
-		// IIF のFのみインクリメント
-		// オーバー時は、文字セットを変更
-		Pcss = (Pcss == 0 ? 1 : 0);
-#else
-		scs[1] += 1;
-		if ( scs[1] < _T('\x20') )
-			scs[1] = _T('\x20');
-		else if ( scs[1] > _T('\x2F') ) {
-			scs[1] = _T('\x20');
+	switch(mode) {
+	case 0:		// RLogin
+		scs[2] += 1;
+		if ( scs[2] < _T('\x30') )
+			scs[2] = _T('\x30');
+		else if ( scs[2] > _T('\x7E') ) {
+			scs[2] = _T('\x30');
 
-			scs[0] += 1;
-			if ( scs[0] < _T('\x20') )
-				scs[0] = _T('\x20');
-			else if ( scs[0] > _T('\x2F') ) {
-				scs[0] = _T('\x20');
-				// Over Flow !!!
+			scs[1] += 1;
+			if ( scs[1] < _T('\x20') )
+				scs[1] = _T('\x20');
+			else if ( scs[1] > _T('\x2F') ) {
+				scs[1] = _T('\x20');
+
+				scs[0] += 1;
+				if ( scs[0] < _T('\x20') )
+					scs[0] = _T('\x20');
+				else if ( scs[0] > _T('\x2F') )
+					scs[0] = _T('\x20');
 			}
 		}
-#endif
+		break;
+
+	case 1:		// DRCSMMv2
+		scs[2] += 1;
+		if ( scs[2] < _T('\x30') )
+			scs[2] = _T('\x30');
+		else if ( scs[2] > _T('\x7E') ) {
+			scs[2] = _T('\x30');
+			// IIF のFのみインクリメント
+			// オーバー時は、文字セットを変更
+			Pcss = (Pcss == 0 ? 1 : 0);
+		}
+		break;
+
+	case 2:		// DRCSMMv3
+		scs[2] += 1;
+		if ( scs[2] < _T('\x40') )
+			scs[2] = _T('\x40');
+		else if ( scs[2] > _T('\x7E') ) {
+			scs[2] = _T('\x40');
+
+			scs[1] += 1;
+			if ( scs[1] < _T('\x20') )
+				scs[1] = _T('\x20');
+			else if ( scs[1] > _T('\x2F') )
+				scs[1] = _T('\x20');
+		}
+		break;
 	}
 
 	str.Empty();
-	if ( scs[0] != 0 )
+	if ( scs[0] != _T('\0') )
 		str += scs[0];
-	if ( scs[1] != 0 )
+	if ( scs[1] != _T('\0') )
 		str += scs[1];
-	if ( scs[2] != 0 )
+	if ( scs[2] != _T('\0') )
 		str += scs[2];
+}
+BOOL CTextRam::DrcsStr(LPCTSTR str, int bank, CString &tmp)
+{
+	if ( IsOptEnable(TO_DRCSMMv1) ) {
+		CFontNode *pFontNode = &(m_FontTab[bank]);
+		LPCTSTR dscs = pFontNode->m_IndexName;
+		if ( IsOptEnable(TO_DRCSMMv3) ) {
+			if ( pFontNode->m_CodeSet == SET_94 && str[0] >= 0x21 && str[0] <= 0x7E && str[1] == 0 && dscs[0] == _T(' ') && dscs[1] >= _T(' ') && dscs[1] <= _T('\x7E') && dscs[2] >= _T('@') && dscs[3] == _T('\0') ) {
+				DWORD U = 0x100000 + ((dscs[1] - 0x20) * 63 + (dscs[2] - 0x40)) * 94 + (str[0] - 0x21);
+				if ( U <= 0x10FFFF ) {
+					UCS4ToWStr(U, tmp);
+					return TRUE;
+				}
+			}
+		} else {
+			if ( pFontNode->m_CodeSet <= SET_96 && str[0] >= 0x20 && str[0] <= 0x7F && str[1] == 0 && dscs[0] == _T(' ') && dscs[1] >= _T('0') && dscs[1] <= _T('\x7E') && dscs[2] == _T('\0') ) {
+				DWORD U = 0x100000 + (dscs[1] << 8) | (pFontNode->m_CodeSet == SET_94 ? 0x00 : 0x80) | str[0];
+				UCS4ToWStr(U, tmp);
+				return TRUE;
+			}
+		}
+	}
+	return FALSE;
 }
 
 #define	CMDMAPBITSIZE	(8 * sizeof(DWORD))
@@ -7433,8 +7769,15 @@ int CTextRam::InitDefParam(BOOL bCheck, int modFlag)
 	if ( (modFlag & UMOD_COLTAB) != 0 )
 		memcpy(m_DefColTab, m_ColTab, sizeof(m_DefColTab));
 
-	if ( (modFlag & UMOD_BANKTAB) != 0 )
+	if ( (modFlag & UMOD_BANKTAB) != 0 ) {
 		memcpy(m_DefBankTab, m_BankTab, sizeof(m_DefBankTab));
+		for ( int n = 0 ; n < 5 ; n++ ) {
+			for ( int i = 0 ; i < 4 ; i++ ) {
+				m_DefBankTabSet[n][i].cset = m_FontTab[m_DefBankTab[n][i]].m_CodeSet;
+				m_DefBankTabSet[n][i].dscs = m_FontTab[m_DefBankTab[n][i]].m_IndexName;
+			}
+		}
+	}
 
 	if ( (modFlag & UMOD_DEFATT) != 0 )
 		m_DefAtt = m_AttNow;
@@ -8104,7 +8447,12 @@ void CTextRam::SizeGrapWnd(class CGrapWnd *pWnd, int cx, int cy, BOOL bAspect, B
 		int wax, way;
 		int hax, hay;
 
-		GetCellSize(&fw, &fh);
+		if ( IsOptEnable(TO_RLSIXELSIZE) ) {
+			GetCellSize(&fw, &fh);
+		} else {
+			fw = 10;
+			fh = 10 * m_DefFontHw / 10;
+		}
 
 		// width zoom calc
 		if ( cx <= 0 ) {	// auto width
@@ -8208,7 +8556,7 @@ void CTextRam::DispGrapWnd(class CGrapWnd *pGrapWnd, BOOL bNextCols)
 			vp->m_Vram.pack.image.id = pGrapWnd->m_ImageIndex;
 			vp->m_Vram.pack.image.ix = x;
 			vp->m_Vram.pack.image.iy = y;
-			vp->m_Vram.bank = SET_96 | 'A';
+			vp->m_Vram.bank = m_FontTab.IndexFind(SET_96, _T("A"));
 			vp->m_Vram.eram = m_AttNow.std.eram;
 			vp->m_Vram.mode = CM_IMAGE;
 			vp->m_Vram.attr = m_AttNow.std.attr;
@@ -8300,6 +8648,7 @@ void CTextRam::RESET(int mode)
 	}
 	
 	if ( mode & RESET_CARET ) {
+		m_DispCaret = TRUE;
 		m_TypeCaret = m_DefTypeCaret;
 		m_CaretColor = m_DefCaretColor;
 	}
@@ -8343,7 +8692,7 @@ void CTextRam::RESET(int mode)
 
 	if ( mode & RESET_ATTR ) {
 		m_DefAtt.std.pack.dchar = 0;
-		m_DefAtt.std.bank = m_BankTab[m_KanjiMode][m_BankGL];
+		m_DefAtt.std.bank = UNICODE_INDEX;	// m_BankTab[m_KanjiMode][m_BankGL];
 		m_DefAtt.std.eram = 0;
 		m_DefAtt.std.zoom = 0;
 		m_DefAtt.std.mode = 0;
@@ -9217,6 +9566,10 @@ void CTextRam::SaveParam(SAVEPARAM *pSave)
 	pSave->m_bRtoL    = m_bRtoL;
 	pSave->m_bJoint   = m_bJoint;
 
+	pSave->m_DispCaret  = m_DispCaret;
+	pSave->m_TypeCaret  = m_TypeCaret;
+	pSave->m_CaretColor = m_CaretColor;
+
 	pSave->m_Decom    = (IsOptEnable(TO_DECOM)  ? TRUE : FALSE);
 	pSave->m_Decawm   = (IsOptEnable(TO_DECAWM) ? TRUE : FALSE);
 	memcpy(pSave->m_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
@@ -9264,6 +9617,10 @@ void CTextRam::LoadParam(SAVEPARAM *pSave, BOOL bAll)
 
 		memcpy(m_AnsiOpt, pSave->m_AnsiOpt, sizeof(m_AnsiOpt));
 		m_TabFlag.LoadFlag(pSave->m_TabMap);
+
+		m_DispCaret  = pSave->m_DispCaret;
+		m_TypeCaret  = pSave->m_TypeCaret;
+		m_CaretColor = pSave->m_CaretColor;
 	}
 
 	SetOption(TO_DECOM,  pSave->m_Decom);
@@ -9637,26 +9994,16 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 	int block, ofx= 0, csz = 1;
 	CCharCell *vp;
 	int dm = GetDm(m_CurY);
-	WORD bank = (WORD)md;
 
 	DOWARP();
 
-	md &= CODE_MASK;
+	// ISO946 0x23, 0x24, 0x40, 0x5B, 0x5C, 0x5D, 0x5E, 0x60, 0x7B, 0x7C, 0x7D, 0x7E, 0x5F
+	static const DWORD iso646map[4] = { 0x00000000, 0x00000018, 0xF8000001, 0x78000001 };
 
-	// ISO946 0x23, 0x24, 0x40, 0x5B, 0x5C, 0x5D, 0x5E, 0x60, 0x7B, 0x7C, 0x7D, 0x7E,
-	static const DWORD iso646map[4] = { 0x00000000, 0x00000018, 0x78000001, 0x78000001 };
-
-	if ( str == NULL && !(ch >= 32 && ch < 128 && (md & SET_MASK) <= SET_96 && m_FontTab[md].m_Maps != FONTMAPS_GR && (iso646map[ch / 32] & (1 << (ch % 32))) != 0) ) {
+	if ( str == NULL && !(ch >= 32 && ch < 128 && m_FontTab[md].m_CodeSet <= SET_96 && m_FontTab[md].m_Maps != FONTMAPS_GR && (iso646map[ch / 32] & (1 << (ch % 32))) != 0) && !m_FontTab[md].IsUserFont(ch) ) {
 		// GR bank IConv
 		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch | (m_FontTab[md].m_Maps == FONTMAPS_GR ? 0x80 : 0x00));			// Char変換ではUTF-16BEを使用！
 		ch = IconvToMsUnicode(m_FontTab[md].m_JpSet, ch);
-	}
-
-	if ( str == NULL && ch >= 32 && ch < 128 && (md & SET_MASK) <= SET_96 && IsOptEnable(TO_DRCSMMv1) ) {
-		// Gaiji Bank to U+100000-10FFFD 16面外字
-		CFontNode *pFontNode = &(m_FontTab[md & CODE_MASK]);
-		if ( !pFontNode->m_IndexName.IsEmpty() && pFontNode->m_IndexName[0] == _T(' ') && pFontNode->m_IndexName[1] >= _T('0') && pFontNode->m_IndexName[1] <= _T('\x7e') )
-			ch = UCS4toUCS2(0x100000 | ((pFontNode->m_IndexName[1] & 0xFF) << 8) | ch | ((md & SET_MASK) == SET_96 ? 0x80 : 0x00));
 	}
 
 	m_LastChar = ch;
@@ -9684,7 +10031,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 
 	vp = GETVRAM(m_CurX, m_CurY);
 
-	vp->m_Vram.bank = bank;
+	vp->m_Vram.bank = (WORD)md;
 	vp->m_Vram.eram = m_AttNow.std.eram;
 //	vp->m_Vram.zoom = m_AttNow.dm;	no Init
 	vp->m_Vram.mode = CM_ASCII;
@@ -9695,12 +10042,12 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 	vp->m_Atime     = m_Atime;
 	vp->GetEXTVRAM(m_AttNow);
 
-	if ( m_bRtoL && md != SET_UNICODE ) {
+	if ( m_bRtoL && md != UNICODE_INDEX ) {
 		if ( (block = m_FontTab.m_UniBlockTab.Find(0x0600)) != (-1) )
 			vp->m_Vram.bank = (WORD)block;
 		else
-			vp->m_Vram.bank = (WORD)SET_UNICODE;
-	} else if ( md == SET_UNICODE && (block = m_FontTab.m_UniBlockTab.Find(ch)) != (-1) )
+			vp->m_Vram.bank = (WORD)UNICODE_INDEX;
+	} else if ( md == UNICODE_INDEX && (block = m_FontTab.m_UniBlockTab.Find(ch)) != (-1) )
 		vp->m_Vram.bank = (WORD)block;
 
 #ifdef	USE_PARENTHESIS
@@ -9747,11 +10094,8 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 	int block, ofx = 0, csz = 2;
 	CCharCell *vp;
 	int dm = GetDm(m_CurY);
-	WORD bank = (WORD)md;
 
 	DOWARP();
-
-	md &= CODE_MASK;
 
 	if ( str == NULL ) {
 		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
@@ -9799,7 +10143,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 
 	vp = GETVRAM(m_CurX, m_CurY);
 
-	vp[0].m_Vram.bank = vp[1].m_Vram.bank = bank;
+	vp[0].m_Vram.bank = vp[1].m_Vram.bank = (WORD)md;
 	vp[0].m_Vram.eram = vp[1].m_Vram.eram = m_AttNow.std.eram;
 //	vp[0].dm = vp[1].dm = m_AttNow.dm;	no Init
 	vp[0].m_Vram.mode = CM_1BYTE;
@@ -9811,7 +10155,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 	vp[0].m_Atime     = vp[1].m_Atime     = m_Atime;
 	vp[0].GetEXTVRAM(m_AttNow); vp[1].GetEXTVRAM(m_AttNow);
 
-	if ( md == SET_UNICODE && (block = m_FontTab.m_UniBlockTab.Find(ch)) != (-1) )
+	if ( md == UNICODE_INDEX && (block = m_FontTab.m_UniBlockTab.Find(ch)) != (-1) )
 		vp[0].m_Vram.bank = vp[1].m_Vram.bank = (WORD)block;
 
 	if ( ch >= 0x2500 && ch <= 0x259F && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
@@ -10013,8 +10357,9 @@ CTextSave *CTextRam::GETSAVERAM(int fMode)
 		pSave->m_XtMosPointMode = m_XtMosPointMode;
 		pSave->m_XtOptFlag = m_XtOptFlag;
 
-		pSave->m_DispCaret = m_DispCaret;
-		pSave->m_TypeCaret = m_TypeCaret;
+		pSave->m_DispCaret  = m_DispCaret;
+		pSave->m_TypeCaret  = m_TypeCaret;
+		pSave->m_CaretColor = m_CaretColor;
 
 		memcpy(pSave->m_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 
@@ -10077,8 +10422,9 @@ void CTextRam::SETSAVERAM(CTextSave *pSave)
 		m_XtMosPointMode = pSave->m_XtMosPointMode;
 		m_XtOptFlag = pSave->m_XtOptFlag;
 
-		m_DispCaret = pSave->m_DispCaret;
-		m_TypeCaret = pSave->m_TypeCaret;
+		m_DispCaret  = pSave->m_DispCaret;
+		m_TypeCaret  = pSave->m_TypeCaret;
+		m_CaretColor = pSave->m_CaretColor;
 
 		// bAllに移動 2024/10/31
 		memcpy(m_AnsiOpt, pSave->m_AnsiOpt, sizeof(DWORD) * 12);	// 0 - 384

@@ -146,6 +146,26 @@ LPCTSTR StrToHex(LPCTSTR p, DWORD &val)
 
 	return p;
 }
+void DupMemCpy(void *dis, void *src, size_t len)
+{
+	BYTE *db = (BYTE *)dis;
+	BYTE *sb = (BYTE *)src;
+	INT_PTR n = (INT_PTR)dis - (INT_PTR)src;
+
+	if ( n <= 0 || (size_t)n >= len ) {
+		memmove(dis, src, len);
+		return;
+	}
+
+	while ( len > 0 ) {
+		memcpy(db, sb, (size_t)n);
+		db += n;
+		if ( (len -= (size_t)n) <= 0 )
+			break;
+		if ( (n *= 2) > (INT_PTR)len )
+			n = (INT_PTR)len;
+	}
+}
 /***********************
 	5x - y - z = 0
 	2x + y - 3z = -5
@@ -208,6 +228,57 @@ void Gauss(double a[GAUSS_MAX][GAUSS_MAX], int n, double xx[GAUSS_MAX])
 		for ( j = n - 1 ; j > i ; j-- )
 			xx[i] = xx[i] - a[i][j] * xx[j];
     }
+}
+void ClipTransparentBlt(CDC* pDisDC, int xDest, int yDest, int nDestWidth, int nDestHeight,
+	CDC* pSrcDC, int xSrc, int ySrc, int nSrcWidth, int nSrcHeight, UINT crTransparent,
+	int nSrcMapWidth, int nSrcMapHeight)
+{
+	if ( (xSrc + nSrcWidth) > nSrcMapWidth ) {
+		nDestWidth = nDestWidth * (nSrcMapWidth - xSrc) / nSrcWidth;
+		nSrcWidth = nSrcMapWidth - xSrc;
+	}
+
+	if ( (ySrc + nSrcHeight) > nSrcMapHeight ) {
+		nDestHeight = nDestHeight * (nSrcMapHeight - ySrc) / nSrcHeight;
+		nSrcHeight = nSrcMapHeight - ySrc;
+	}
+
+	pDisDC->TransparentBlt(xDest, yDest, nDestWidth, nDestHeight,
+			pSrcDC, xSrc, ySrc, nSrcWidth, nSrcHeight, crTransparent);
+}
+void ClipStretchBlt(CDC* pDisDC, int xDest, int yDest, int nDestWidth, int nDestHeight,
+	CDC* pSrcDC, int xSrc, int ySrc, int nSrcWidth, int nSrcHeight, DWORD dwRop,
+	int nSrcMapWidth, int nSrcMapHeight)
+{
+	if ( (xSrc + nSrcWidth) > nSrcMapWidth ) {
+		nDestWidth = nDestWidth * (nSrcMapWidth - xSrc) / nSrcWidth;
+		nSrcWidth = nSrcMapWidth - xSrc;
+	}
+
+	if ( (ySrc + nSrcHeight) > nSrcMapHeight ) {
+		nDestHeight = nDestHeight * (nSrcMapHeight - ySrc) / nSrcHeight;
+		nSrcHeight = nSrcMapHeight - ySrc;
+	}
+
+	pDisDC->StretchBlt(xDest, yDest, nDestWidth, nDestHeight,
+			pSrcDC, xSrc, ySrc, nSrcWidth, nSrcHeight, dwRop);
+}
+void ClipAlphaBlend(CDC* pDisDC, int xDest, int yDest, int nDestWidth, int nDestHeight,
+	CDC* pSrcDC, int xSrc, int ySrc, int nSrcWidth, int nSrcHeight, BLENDFUNCTION blend,
+	int nSrcMapWidth, int nSrcMapHeight)
+{
+	if ( (xSrc + nSrcWidth) > nSrcMapWidth ) {
+		nDestWidth = nDestWidth * (nSrcMapWidth - xSrc) / nSrcWidth;
+		nSrcWidth = nSrcMapWidth - xSrc;
+	}
+
+	if ( (ySrc + nSrcHeight) > nSrcMapHeight ) {
+		nDestHeight = nDestHeight * (nSrcMapHeight - ySrc) / nSrcHeight;
+		nSrcHeight = nSrcMapHeight - ySrc;
+	}
+
+	pDisDC->AlphaBlend(xDest, yDest, nDestWidth, nDestHeight,
+			pSrcDC, xSrc, ySrc, nSrcWidth, nSrcHeight, blend);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -420,7 +491,7 @@ void CBuffer::ReAlloc(int len)
 	
 	if ( (len -= m_Ofs) <= m_Max ) {
 		if ( (m_Len -= m_Ofs) > 0 )
-			memcpy(m_Data, m_Data + m_Ofs, m_Len);
+			memmove(m_Data, m_Data + m_Ofs, m_Len);
 		m_Ofs = 0;
 		return;
 	}
@@ -11623,6 +11694,30 @@ int CStringBinary::GetIndexList(CPtrArray &list)
 
 	return (int)list.GetSize();
 }
+void CStringBinary::SetString(CString &str, int sep)
+{
+	if ( m_pRoot != NULL )
+		m_pRoot->SetStringNode(str, sep);
+}
+void CStringBinary::GetString(LPCTSTR str, int sep)
+{
+	int i, a;
+	CString work = str;
+
+	RemoveAll();
+	for ( i = 0 ; i < work.GetLength() ; i = a + 1 ) {
+		if ( (a = work.Find(sep, i)) < 0 )
+			a = work.GetLength();
+		if ( (a - i) >= 0 )
+			(*this)[work.Mid(i, a - i)];
+	}
+}
+void CStringBinary::GetArray(CStringArray &list)
+{
+	RemoveAll();
+	for ( int n = 0 ; n < (int)list.GetSize() ; n++ )
+		(*this)[list[n]];
+}
 
 //////////////////////////////////////////////////////////////////////
 // CStringBinary Node
@@ -11772,6 +11867,17 @@ void CStringBinary::GetIndexListNode(CPtrArray &list)
 
 	if ( m_pRight != NULL )
 		m_pRight->GetIndexListNode(list);
+}
+void CStringBinary::SetStringNode(CString &str, int sep)
+{
+	if ( m_pLeft != NULL )
+		m_pLeft->SetStringNode(str, sep);
+
+	str += m_Index;
+	str += (TCHAR)sep;
+
+	if ( m_pRight != NULL )
+		m_pRight->SetStringNode(str, sep);
 }
 
 #ifdef	DEBUG

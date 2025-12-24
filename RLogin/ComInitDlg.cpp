@@ -37,6 +37,7 @@ CComInitDlg::CComInitDlg(CWnd* pParent /*=NULL*/)
 
 	m_SendWait[0] = 0;
 	m_SendWait[1] = 0;
+	m_SendWait[2] = 0;
 }
 CComInitDlg::~CComInitDlg()
 {
@@ -56,6 +57,7 @@ void CComInitDlg::DoDataExchange(CDataExchange* pDX)
 
 	DDX_Text(pDX, IDC_SENDWAITC, m_SendWait[0]);
 	DDX_Text(pDX, IDC_SENDWAITL, m_SendWait[1]);
+	DDX_Text(pDX, IDC_SENDWAITB, m_SendWait[2]);
 }
 BOOL CComInitDlg::GetComDeviceList(LPCTSTR name)
 {
@@ -119,14 +121,15 @@ void CComInitDlg::CommPropCombo(int Type, CComboBox *pCombo, COMMPROP *pCommProp
 		DWORD bits;
 		LPCTSTR name;
 	} MaxBaudTab[] = {
-		{ BAUD_075,			_T("75") },			{ BAUD_110,			_T("110") },		{ BAUD_150,			_T("150") },
-		{ BAUD_300,			_T("300") },		{ BAUD_600,			_T("600") },		{ BAUD_1200,		_T("1200") },
-		{ BAUD_1800,		_T("1800") },		{ BAUD_2400,		_T("2400") },		{ BAUD_4800,		_T("4800") },
-		{ BAUD_7200,		_T("7200") },		{ BAUD_9600,		_T("9600") },		{ BAUD_14400,		_T("14400") },
-		{ BAUD_19200,		_T("19200") },		{ BAUD_USER,		_T("28800") },		{ BAUD_38400,		_T("38400") },
-		{ BAUD_56K,			_T("56000") },		{ BAUD_57600,		_T("57600") },		{ BAUD_115200,		_T("115200") },
-		{ BAUD_128K,		_T("128000") },		{ BAUD_USER,		_T("230400") },		{ BAUD_USER,		_T("256000") },
-		{ BAUD_USER,		_T("460800") },		{ BAUD_USER,		_T("512000") },		{ BAUD_USER,		_T("921600") },
+		{ BAUD_075,			_T("75") },			{ BAUD_110,			_T("110") },		{ BAUD_134_5,		_T("134") },
+		{ BAUD_150,			_T("150") },		{ BAUD_300,			_T("300") },		{ BAUD_600,			_T("600") },
+		{ BAUD_1200,		_T("1200") },		{ BAUD_1800,		_T("1800") },		{ BAUD_2400,		_T("2400") },
+		{ BAUD_4800,		_T("4800") },		{ BAUD_7200,		_T("7200") },		{ BAUD_9600,		_T("9600") },
+		{ BAUD_14400,		_T("14400") },		{ BAUD_19200,		_T("19200") },		{ BAUD_USER,		_T("28800") },
+		{ BAUD_38400,		_T("38400") },		{ BAUD_56K,			_T("56000") },		{ BAUD_57600,		_T("57600") },
+		{ BAUD_115200,		_T("115200") },		{ BAUD_128K,		_T("128000") },		{ BAUD_USER,		_T("230400") },
+		{ BAUD_USER,		_T("256000") },		{ BAUD_USER,		_T("460800") },		{ BAUD_USER,		_T("512000") },
+		{ BAUD_USER,		_T("819200") },		{ BAUD_USER,		_T("921600") },
 		{ 0,			NULL },
 	};
 	static const struct _SettableData {
@@ -163,7 +166,7 @@ void CComInitDlg::CommPropCombo(int Type, CComboBox *pCombo, COMMPROP *pCommProp
 		if ( pCommProp->wPacketLength == 0 || (pCommProp->dwSettableParams & SP_BAUD) != 0 ) {
 			pCombo->EnableWindow(TRUE);
 			for ( n = 0 ; MaxBaudTab[n].name != NULL ; n++ ) {
-				if ( pCommProp->wPacketLength == 0 || (pCommProp->dwMaxBaud & (BAUD_USER | MaxBaudTab[n].bits)) != 0 )
+				if ( pCommProp->wPacketLength == 0 || (pCommProp->dwSettableBaud & MaxBaudTab[n].bits) != 0 )
 					pCombo->AddString(MaxBaudTab[n].name);
 			}
 		} else
@@ -280,6 +283,7 @@ BOOL CComInitDlg::OnInitDialog()
 	m_XoffChar		= m_pSock->m_pComConf->dcb.XoffChar;
 	m_SendWait[0]	= m_pSock->m_SendWait[0];
 	m_SendWait[1]	= m_pSock->m_SendWait[1];
+	m_SendWait[2]	= m_pSock->m_SendWait[2];
 
 	m_FlowCtrl		= CComSock::GetFlowCtrlMode(&(m_pSock->m_pComConf->dcb), m_UserDef);
 
@@ -323,6 +327,7 @@ void CComInitDlg::OnOK()
 
 	m_pSock->m_SendWait[0]	= m_SendWait[0];
 	m_pSock->m_SendWait[1]	= m_SendWait[1];
+	m_pSock->m_SendWait[2]	= m_SendWait[2];
 
 	CComSock::SetFlowCtrlMode(&(m_pSock->m_pComConf->dcb), m_FlowCtrl, m_UserDef);
 
@@ -373,6 +378,7 @@ void CComInitDlg::OnBnClickedDefconf()
 	m_XoffChar		= m_pSock->m_pComConf->dcb.XoffChar;
 	m_SendWait[0]	= m_pSock->m_SendWait[0];
 	m_SendWait[1]	= m_pSock->m_SendWait[1];
+	m_SendWait[2]	= m_pSock->m_SendWait[2];
 
 	m_FlowCtrl		= CComSock::GetFlowCtrlMode(&(m_pSock->m_pComConf->dcb), m_UserDef);
 

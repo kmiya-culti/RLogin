@@ -421,8 +421,8 @@ void CRLoginDoc::DiffIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNod
 }
 void CRLoginDoc::LoadInitOption(CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab)
 {
-	TextRam.Init();
 	TextRam.m_FontTab.Init();
+	TextRam.Init();
 	KeyTab.Init();
 	KeyMac.Init();
 	ParamTab.Init();
@@ -2087,7 +2087,7 @@ BOOL CRLoginDoc::SocketSyncMode()
 		if ( m_pKermit == NULL )
 			m_pKermit = new CKermit(this, AfxGetMainWnd());
 		m_pKermit->DoProc(0);	// Kermit DownLoad
-	} else {
+	} else if ( m_SockSyncChar == 0x05 || m_SockSyncChar == 0x10 ) {	// ENQ or DLE
 		if ( m_pBPlus == NULL )
 			m_pBPlus = new CBPlus(this, AfxGetMainWnd());
 		m_pBPlus->DoProc(m_SockSyncChar);

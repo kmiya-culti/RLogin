@@ -402,6 +402,7 @@ void CGrapWnd::DrawBlock(CDC *pDC, LPCRECT pRect, COLORREF bc, BOOL bEraBack, in
 	CBitmap *pOldMap;
 	CRect box, rect(*pRect);
 	BLENDFUNCTION bf;
+	BOOL bClip = FALSE;
 
 	ASSERT(sx < ex && sy < ey);
 
@@ -412,54 +413,28 @@ void CGrapWnd::DrawBlock(CDC *pDC, LPCRECT pRect, COLORREF bc, BOOL bEraBack, in
 
 	if ( m_pActMap == NULL ) {
 		if ( m_SixelTempDC.GetSafeHdc() != NULL && box.left < m_SixelWidth || box.top < m_SixelPointY ) {
-			if ( box.right > m_SixelWidth ) {
-				int n = (box.right - m_SixelWidth) * (scW * m_BlockX / cols) / m_FullX;
-				rect.right -= n;
-				box.right = m_SixelWidth;
-			}
-
-			if ( box.bottom > m_SixelPointY ) {
-				int n = (box.bottom - m_SixelPointY) * (scH * m_BlockY / lines) / m_FullY;
-				rect.bottom -= n;
-				box.bottom = m_SixelPointY;
-			}
-
 			smd = pDC->SetStretchBltMode(HALFTONE);
 
 			if ( bEraBack ) {
-				if ( rect.right < pRect->right )
-					pDC->FillSolidRect(pRect->right, rect.top, pRect->right - rect.right, rect.Height(), bc);
-				if ( rect.bottom < pRect->bottom )
-					pDC->FillSolidRect(rect.left, rect.bottom, rect.Width(), pRect->bottom - rect.bottom, bc);
-
-				pDC->StretchBlt(rect.left, rect.top, rect.Width(), rect.Height(),
-					&m_SixelTempDC, box.left, box.top, box.Width(), box.Height(), SRCCOPY);
+				pDC->FillSolidRect(rect, bc);
+				ClipStretchBlt(pDC, rect.left, rect.top, rect.Width(), rect.Height(),
+					&m_SixelTempDC, box.left, box.top, box.Width(), box.Height(), SRCCOPY, m_SixelWidth, m_SixelPointY);
 			} else
-				pDC->TransparentBlt(rect.left, rect.top, rect.Width(), rect.Height(),
-					&m_SixelTempDC, box.left, box.top, box.Width(), box.Height(), bc);
+				ClipTransparentBlt(pDC, rect.left, rect.top, rect.Width(), rect.Height(),
+					&m_SixelTempDC, box.left, box.top, box.Width(), box.Height(), bc, m_SixelWidth, m_SixelPointY);
 
 			pDC->SetStretchBltMode(smd);
 
 		} else if ( bEraBack )
-			pDC->FillSolidRect(pRect, bc);
+			pDC->FillSolidRect(rect, bc);
 
 		return;
 	}
 
 	if ( box.left >= m_MaxX || box.top >= m_MaxY ) {
 		if ( bEraBack )
-			pDC->FillSolidRect(pRect, bc);
+			pDC->FillSolidRect(rect, bc);
 		return;
-	}
-
-	if ( box.right > m_MaxX ) {
-		rect.right -= (box.right - m_MaxX) * (scW * m_BlockX / cols) / m_FullX;
-		box.right = m_MaxX;
-	}
-
-	if ( box.bottom > m_MaxY ) {
-		rect.bottom -= (box.bottom - m_MaxY) * (scH * m_BlockY / lines) / m_FullY;
-		box.bottom = m_MaxY;
 	}
 
 	TempDC.CreateCompatibleDC(pDC);
@@ -496,52 +471,26 @@ void CGrapWnd::DrawBlock(CDC *pDC, LPCRECT pRect, COLORREF bc, BOOL bEraBack, in
 		coltab[0].rgbReserved = 0;
 		SetDIBColorTable(TempDC.GetSafeHdc(), m_TransIndex, 1, coltab);
 	}
-
+	
 	if ( bEraBack ) {
-		if ( rect.right < pRect->right )
-			pDC->FillSolidRect(rect.right, pRect->top, pRect->right - rect.right, pRect->bottom - pRect->top, bc);
-		if ( rect.bottom < pRect->bottom )
-			pDC->FillSolidRect(pRect->left, rect.bottom, pRect->right - pRect->left, pRect->bottom - rect.bottom, bc);
-
-		if ( m_bHaveAlpha ) {
+		if ( m_bHaveAlpha || m_SixelTransColor != (-1) )
 			pDC->FillSolidRect(rect, bc);
-			pDC->AlphaBlend(rect.left, rect.top, rect.Width(), rect.Height(), &TempDC, box.left, box.top, box.Width(), box.Height(), bf);
-
-		} else {
-			if ( m_SixelTransColor != (-1) ) {
-				int n = m_Maps ^ 1;
-
-				if ( bc != m_SixelBackColor || m_Bitmap[n].GetSafeHandle() == NULL ) {
-					CDC SecDC;
-					CBitmap *pOldSecMap;
-
-					if ( m_Bitmap[n].GetSafeHandle() == NULL )
-						m_Bitmap[n].CreateCompatibleBitmap(pDC, m_MaxX, m_MaxY);
-
-					SecDC.CreateCompatibleDC(pDC);
-					pOldSecMap = (CBitmap *)SecDC.SelectObject(&(m_Bitmap[n]));
-					SecDC.FillSolidRect(0, 0, m_MaxX, m_MaxX, bc);
-					SecDC.TransparentBlt(0, 0, m_MaxX, m_MaxY, &TempDC, 0, 0, m_MaxX, m_MaxY, m_SixelTransColor);
-					SecDC.SelectObject(pOldSecMap);
-					SecDC.DeleteDC();
-
-					m_SixelBackColor = bc;
-				}
-
-				TempDC.SelectObject(&(m_Bitmap[n]));
-			}
-
-			pDC->StretchBlt(rect.left, rect.top, rect.Width(), rect.Height(), &TempDC, box.left, box.top, box.Width(), box.Height(), SRCCOPY);
+		else if ( box.right > m_MaxX || box.bottom > m_MaxY ) {
+			int dw = rect.Width() * (m_MaxX - box.left) / box.Width();
+			int dh = rect.Height() * (m_MaxY - box.top) / box.Height();
+			if ( box.right > m_MaxX )
+				pDC->FillSolidRect(rect.left + dw, rect.top, rect.Width() - dw, rect.Height(), bc);
+			if ( box.bottom > m_MaxY )
+				pDC->FillSolidRect(rect.left, rect.top + dh, rect.Width(), rect.Height() - dh, bc);
 		}
-
-	} else if ( m_bHaveAlpha ) {
-		pDC->AlphaBlend(rect.left, rect.top, rect.Width(), rect.Height(), &TempDC, box.left, box.top, box.Width(), box.Height(), bf);
-
-	} else {
-		if ( m_SixelTransColor != (-1) )
-			bc = m_SixelTransColor;
-		pDC->TransparentBlt(rect.left, rect.top, rect.Width(), rect.Height(), &TempDC, box.left, box.top, box.Width(), box.Height(), bc);
 	}
+
+	if ( m_bHaveAlpha )
+		ClipAlphaBlend(pDC, rect.left, rect.top, rect.Width(), rect.Height(), &TempDC, box.left, box.top, box.Width(), box.Height(), bf, m_MaxX, m_MaxY);
+	else if ( m_SixelTransColor != (-1) )
+		ClipTransparentBlt(pDC, rect.left, rect.top, rect.Width(), rect.Height(), &TempDC, box.left, box.top, box.Width(), box.Height(), m_SixelTransColor, m_MaxX, m_MaxY);
+	else
+		ClipStretchBlt(pDC, rect.left, rect.top, rect.Width(), rect.Height(), &TempDC, box.left, box.top, box.Width(), box.Height(), SRCCOPY, m_MaxX, m_MaxY);
 
 	TempDC.SelectObject(pOldMap);
 	pDC->SetStretchBltMode(smd);
@@ -2930,6 +2879,9 @@ void CGrapWnd::SixelStart(int aspect, int mode, int grid, COLORREF bc)
 	m_bHaveAlpha = FALSE;
 	m_pIndexMap = NULL;
 
+	m_SixelColIndexMake = FALSE;
+	m_SixelColIndex.RemoveAll();
+
 	m_BlockX = m_BlockY = m_BlockTop = 0;
 
 	if ( m_pTextRam->IsOptEnable(TO_RLSIXELSIZE) ) {
@@ -3149,7 +3101,7 @@ void CGrapWnd::SixelData(int ch)
 							vp->m_Vram.pack.image.id = m_ImageIndex;
 							vp->m_Vram.pack.image.ix = x;
 							vp->m_Vram.pack.image.iy = m_BlockTop;
-							vp->m_Vram.bank = SET_96 | 'A';
+							vp->m_Vram.bank = m_pTextRam->m_FontTab.IndexFind(SET_96, _T("A"));
 							vp->m_Vram.eram = m_pTextRam->m_AttNow.std.eram;
 							vp->m_Vram.mode = CM_IMAGE;
 							vp->m_Vram.attr = m_pTextRam->m_AttNow.std.attr;
@@ -3340,6 +3292,9 @@ void CGrapWnd::SixelData(int ch)
 					}
 
 					m_ColAlpha[m_SixelColorIndex] = (BYTE)((Pa * RGBMAX + Ma / 2) / Ma);
+
+					if ( m_SixelColIndexMake )
+						m_SixelColIndex[m_ColMap[m_SixelColorIndex]].m_Value++;
 					break;
 
 				case 4:		// RLGCIMAX
@@ -3421,6 +3376,7 @@ void CGrapWnd::SixelEndof(BOOL bAlpha, int NoiseFilter)
 
 	if ( *m_pAlphaMap == 0xFF && memcmp(m_pAlphaMap, m_pAlphaMap + 1, (size_t)(m_MaxX * m_MaxY - 1)) == 0 ) {
 		// すべてのビットマップを描画
+		m_SixelBackColor = m_SixelTransColor;
 		m_SixelTransColor = (-1);
 		m_bHaveAlpha = FALSE;
 
@@ -3448,19 +3404,15 @@ void CGrapWnd::SixelEndof(BOOL bAlpha, int NoiseFilter)
 		m_Bitmap[m_Maps].Attach(tmp);
 		tmp.Detach();
 
+		m_SixelBackColor = m_SixelTransColor;
 		m_SixelTransColor = (-1);
 		m_bHaveAlpha = TRUE;
 
 	} else if ( m_SixelTransColor == (-1) ) {
 		// m_SixelTransColorを使用して単色透明
-		m_SixelTransColor = (m_SixelBackColor + 1) & 0x00FFFFFF;
-		for ( int n = 0 ; n < SIXEL_PALET ; n++ ) {
-			if ( m_ColMap[n] == m_SixelTransColor ) {
-				// 使用していない色を探す（随時パレット変更されていると不十分の可能性あり）
-				m_SixelTransColor = (m_SixelTransColor + 1) & 0x00FFFFFF;
-				n = (-1);
-			}
-		}
+		m_SixelBackColor = (-1);
+		m_SixelTransColor = SixelBackColor();
+
 		for ( int y = 0 ; y < m_MaxY ; y++ ) {
 			for ( int x = 0 ; x < m_MaxX ; x++ ) {
 				if ( m_pAlphaMap[x + y * m_MaxX] == 0x00 )
@@ -3489,6 +3441,9 @@ void CGrapWnd::SixelEndof(BOOL bAlpha, int NoiseFilter)
 			for ( int x = 0 ; x < m_MaxX ; x++ ) {
 				BYTE *rgb = (BYTE *)tmp.GetPixelAddress(x, y);
 
+				if ( m_SixelTransColor != (-1) && m_SixelTransColor == RGB(rgb[0], rgb[1], rgb[2]) )
+					continue;
+
 				int tr = rgb[0] * 100;
 				int tg = rgb[1] * 100;
 				int tb = rgb[2] * 100;
@@ -3503,8 +3458,11 @@ void CGrapWnd::SixelEndof(BOOL bAlpha, int NoiseFilter)
 						continue;
 
 					BYTE *drgb = (BYTE *)tmp.GetPixelAddress(dx, dy);
-					int dl = drgb[0] * 2 + drgb[1] * 6 + drgb[2];
 
+					if ( m_SixelTransColor != (-1) && m_SixelTransColor == RGB(drgb[0], drgb[1], drgb[2]) )
+						continue;
+
+					int dl = drgb[0] * 2 + drgb[1] * 6 + drgb[2];
 					int dv = abs(dl - tl);
 					double d = (max - (double)dv) / max;
 					dd = (int)((double)dd * pow(d, e));
@@ -3539,14 +3497,60 @@ void CGrapWnd::SixelEndof(BOOL bAlpha, int NoiseFilter)
 	delete [] m_pAlphaMap;
 
 	m_pActMap = &(m_Bitmap[m_Maps]);
-	m_SixelBackColor = (-1);
 
 	if ( m_hWnd != NULL )
 		Invalidate(FALSE);
 }
+COLORREF CGrapWnd::SixelBackColor()
+{
+	if ( m_SixelBackColor == (-1) ) {
+		m_SixelBackColor = 0;
+		if ( m_SixelColIndexMake ) {
+			while ( m_SixelColIndex.FindNode((DWORD)m_SixelBackColor) != NULL )
+				m_SixelBackColor = (m_SixelBackColor + 1) & 0x00FFFFFF;
+		} else {
+			// 使用していない色を探す（随時パレット変更されていると不十分の可能性あり）
+			for ( int n = 0 ; n < SIXEL_PALET ; n++ ) {
+				if ( m_ColMap[n] == m_SixelBackColor ) {
+					m_SixelBackColor = (m_SixelBackColor + 1) & 0x00FFFFFF;
+					n = (-1);
+				}
+			}
+		}
+	}
+	return m_SixelBackColor;
+}
+void CGrapWnd::SixelAlphaToTransCol(COLORREF tc, COLORREF bc)
+{
+	if ( !m_bHaveAlpha )
+		return;
+
+	CImage tmp;
+	tmp.Attach((HBITMAP)m_pActMap->GetSafeHandle());
+
+	for ( int y = 0 ; y < m_MaxY ; y++ ) {
+		for ( int x = 0 ; x < m_MaxX ; x++ ) {
+			BYTE *p = (BYTE *)tmp.GetPixelAddress(x, y);
+			if ( p[3] == 0 ) {
+				p[0] = GetBValue(tc);
+				p[1] = GetGValue(tc);
+				p[2] = GetRValue(tc);
+				p[3] = 255;
+			} else if ( p[3] < 255 ) {
+				p[0] = p[0] + (GetBValue(bc) * (255 - p[3])) / 255;
+				p[1] = p[1] + (GetGValue(bc) * (255 - p[3])) / 255;
+				p[2] = p[2] + (GetRValue(bc) * (255 - p[3])) / 255;
+				p[3] = 255;
+			}
+		}
+	}
+	tmp.Detach();
+	m_bHaveAlpha = FALSE;
+}
 void CGrapWnd::SetSixel(int aspect, int mode, int grid, LPCSTR str, COLORREF bc)
 {
 	SixelStart(aspect, mode, grid, bc);
+	m_DspFlag = TRUE;
 
 	while ( *str != '\0' )
 		SixelData(*(str++));
@@ -4424,7 +4428,7 @@ void CFifoMoniter::OnTimer(UINT_PTR nIDEvent)
 	m_pDocument->m_pSock->FifoMoniter(nData);
 
 	for ( int n = 0 ; n < 10 ; n++ ) {
-		memcpy(m_Data + 1, m_Data, sizeof(m_Data) - sizeof(m_Data[0]));
+		memmove(m_Data + 1, m_Data, sizeof(m_Data) - sizeof(m_Data[0]));
 		m_Data[0][n] = nData[n];
 		if ( m_Scale < nData[n] )
 			m_Scale = nData[n] * 12 / 10;

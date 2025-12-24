@@ -143,36 +143,30 @@ int CFontParaDlg::CodeSetNo(LPCTSTR bank, LPCTSTR code)
 {
 	int num = 0;
 
-	if      ( _tcscmp(bank, _T("94")) == 0 )	num |= SET_94;
-	else if ( _tcscmp(bank, _T("96")) == 0 )	num |= SET_96;
-	else if ( _tcscmp(bank, _T("94x94")) == 0 )	num |= SET_94x94;
-	else if ( _tcscmp(bank, _T("96x96")) == 0 )	num |= SET_96x96;
+	if      ( _tcscmp(bank, _T("94")) == 0 )	num = SET_94;
+	else if ( _tcscmp(bank, _T("96")) == 0 )	num = SET_96;
+	else if ( _tcscmp(bank, _T("94x94")) == 0 )	num = SET_94x94;
+	else if ( _tcscmp(bank, _T("96x96")) == 0 )	num = SET_96x96;
 
 	if ( _tcscmp(code, _T("Unicode")) == 0 )
 		num = SET_UNICODE;
-	else if ( code[1] == _T('\0') && code[0] >= _T('\x30') && code[0] <= _T('\x7E') )
-		num |= (code[0] & 0xFF);
-	else
-		num = m_pFontTab->IndexFind(num, code);
 
-	return num;
+	return m_pFontTab->IndexFind(num, code);
 }
 void CFontParaDlg::CodeSetName(int num, CString &bank, CString &code)
 {
-	if ( num == SET_UNICODE ) {
-		bank = _T("");
-		code = _T("Unicode");
+	if ( num < 0 || num >= m_pFontTab->GetSize() ) {
+		bank = _T("94");
+		code = _T("");
 	} else {
-		switch(num & SET_MASK) {
-		case SET_94:	bank = _T("94"); break;
-		case SET_96:	bank = _T("96"); break;
-		case SET_94x94:	bank = _T("94x94"); break;
-		case SET_96x96:	bank = _T("96x96"); break;
+		switch(m_pFontTab->GetAt(num).m_CodeSet) {
+		case SET_94:		bank = _T("94"); break;
+		case SET_96:		bank = _T("96"); break;
+		case SET_94x94:		bank = _T("94x94"); break;
+		case SET_96x96:		bank = _T("96x96"); break;
+		case SET_UNICODE:	bank = _T(""); break;
 		}
-		if ( (num & 0xFF) >= _T('\x30') && (num & 0xFF) <= _T('\x7E') )
-			code.Format(_T("%c"), num & 0xFF);
-		else
-			code = m_pFontTab->m_Data[num].m_IndexName;
+		code = m_pFontTab->GetAt(num).m_IndexName;
 	}
 }
 
@@ -286,7 +280,8 @@ void CFontParaDlg::OnOK()
 
 	UpdateData(TRUE);
 
-	m_CodeSet            = CodeSetNo(m_BankTemp, m_CodeTemp);
+	m_CodeSet = CodeSetNo(m_BankTemp, m_CodeTemp);
+	m_pData->m_CodeSet   = m_pFontTab->GetAt(m_CodeSet).m_CodeSet;
 	m_pData->m_CharSet   = CharSetNo(m_CharSetTemp);
 	m_pData->m_ZoomH     = _tstoi(m_ZoomTemp[0]);
 	m_pData->m_ZoomW     = _tstoi(m_ZoomTemp[1]);

@@ -3724,7 +3724,10 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) ) {
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
 		tmp.Put32Bit(pChan->m_RemoteID);
-		tmp.PutStr("auth-agent-req@openssh.com");
+		if ( m_ExtInfo.Find(_T("agent-forward")) >= 0 )		// draft-ietf-sshm-ssh-agent-12
+			tmp.PutStr("agent-req");
+		else
+			tmp.PutStr("auth-agent-req@openssh.com");
 		tmp.Put8Bit(0);
 		SendPacket2(&tmp);
 		m_bAuthAgentReqEnable = TRUE;
@@ -4797,6 +4800,10 @@ int Cssh::SSH2MsgExtInfo(CBuffer *bp)
 	//	string      "elevation"
 	//	string      choice of: "y" | "n" | "d"
 
+	//	draft-ietf-sshm-ssh-agent-12
+	//	string		"agent-forward"
+	//	string		"0" (version)
+
 	int n, count;
 	CStringA name, value;
 	CString nameT;
@@ -5166,7 +5173,7 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 	pChan->m_RemotePacks = bp->Get32Bit();
 	pChan->m_LocalComs   = 0;
 
-	if ( type.CompareNoCase("auth-agent@openssh.com") == 0 ) {
+	if ( type.CompareNoCase("auth-agent@openssh.com") == 0 || type.CompareNoCase("agent-connect") == 0 ) {
 		pChan->m_Type = SSHFT_AGENT;
 		pChan->m_Status |= (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE);
 		pChan->m_pFifoBase = new CFifoAgent(m_pDocument, this, pChan);

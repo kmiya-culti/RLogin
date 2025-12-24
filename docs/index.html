@@ -9,17 +9,12 @@
 TD {
 				
 				
-				
-				
-				
-background-color : #ffffff; font-size : 90%; 
+		background-color : #ffffff; font-size : 90%; 
 }
 .BOX{
 				
 				
-				
-				
-				
+					
 background-color : silver; 
 }
 -->
@@ -35,8 +30,8 @@ background-color : silver;
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.31.1)</TD>
-            <TD width="20%" align="right">2025/11/25</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.31.2)</TD>
+            <TD width="20%" align="right">2025/12/25</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -148,6 +143,7 @@ background-color : silver;
                     <LI><A href="faq.html#FONTVIEW">フォントの表示品質</A>
                     <LI><A href="faq.html#UCSIZE">UTF-8の文字サイズ変更</A>
                     <LI><A href="faq.html#SIXELOPT">Sixelの表示オプション</A>
+                    <LI><A href="faq.html#COMDELAY">シリアルの送信遅延</A>
                   </OL>
                   </TD>
                 </TR>
@@ -359,7 +355,7 @@ background-color : silver;
         <TBODY>
           <TR>
             <TD width="600">動作環境としてWindows XP x32/Windows 7 x64/Windows 10 x64/Windows 11 x64にて確認しています<BR>
-            サーバーは、FreeBSD 14.2のrlogind, telnetd, sshd(openssh-10.0p2)を使用しています<BR>
+            サーバーは、FreeBSD 14.2のrlogind, telnetd, sshd(openssh-10.2p1)を使用しています<BR>
             <BR>
             「rlogin.zip」を解凍してRLogin.exeを適当な場所に置いて実行してください<BR>
             <BR>
@@ -450,6 +446,16 @@ background-color : silver;
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2025/12/25</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.31.2/">2.31.2</A></TD>
+            <TD>2.31.1で「BPlus…ファイル転送を有効にする」が機能しない不都合を修正<BR>
+            ISO-2022の文字セットの数制限を大幅に緩和するように変更<BR>
+            DECDLDにDRCSMMv3関連の機能を追加<BR>
+            RIS(ESC c)で文字カーソルの初期化をするようにを修正<BR>
+            comの通信設定に送信帯域の制限を追加<BR>
+            libiconv-1.18に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2025/11/25</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.31.1/">2.31.1</A></TD>
             <TD><FONT color="#ff0000">プライベートプロファイルの仕様変更により下位バージョンとの互換が無くなります</FONT><BR>
@@ -488,16 +494,6 @@ background-color : silver;
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.8/">2.30.8</A></TD>
             <TD>Server Selectのリストにアイコンを追加<BR>
             openssl-3.5.2に更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2025/07/25</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.7/">2.30.7</A></TD>
-            <TD>タブバーに閉じるボタンを追加<BR>
-            送信遅延で予測時間が３秒以上の場合にプログレスを表示<BR>
-            2.30.6でSSH2のReKey時に正しく処理されないバグを修正<BR>
-            mldsa44/65/87-es/edの複合型認証鍵に暫定的に対応<BR>
-            ポートフォワードにタイムアウトの設定を追加<BR>
-            openssl-3.5.1に更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -568,21 +564,21 @@ background-color : silver;
                   mv *.obj *.lib x64</TD>
                 </TR>
                 <TR>
-                  <TD rowspan="2" valign="top"><A href="http://www.gnu.org/software/libiconv/">libiconv-1.17.tar.gz</A><BR>
+                  <TD rowspan="2" valign="top"><A href="http://www.gnu.org/software/libiconv/">libiconv-1.18.tar.gz</A><BR>
                   <BR>
-                  <A href="http://apolloron.org/software/libiconv-1.14-ja/">日本語パッチ</A>の一部を1.17に当て直した物です<BR>
-                  <A href="libiconv-1.17.patch">libiconv-1.17.patch</A></TD>
+                  <A href="http://apolloron.org/software/libiconv-1.14-ja/">日本語パッチ</A>の一部を1.18に当て直した物です<BR>
+                  <A href="libiconv-1.17.patch">libiconv-1.18.patch</A></TD>
                   <TD valign="top">x86用 lib\x32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD valign="top">cd libiconv-1.17/lib<BR>
+                  <TD valign="top">cd libiconv-1.18/lib<BR>
                   nmake -f Makefile.ms x32</TD>
                 </TR>
                 <TR>
                   <TD valign="top">x64用 lib\x64<BR>
                   Visual Studio x64 Win64 <BR>
                   コマンド プロンプト (2010)</TD>
-                  <TD valign="top">cd libiconv-1.17/lib<BR>
+                  <TD valign="top">cd libiconv-1.18/lib<BR>
                   nmake -f Makefile.ms x64</TD>
                 </TR>
                 <TR>
@@ -630,8 +626,8 @@ background-color : silver;
             zlib 1.3.1 (22 Jan 2024)<BR>
             Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler<BR>
             <BR>
-            libiconv-1.17<BR>
-            Copyright (C) 2000-2017 Free Software Foundation, Inc.<BR>
+            libiconv-1.18<BR>
+            Copyright (C) 2000-2024 Free Software Foundation, Inc.<BR>
             <BR>
             Nettle library (version 2.0)<BR>
             Originally written 2001 by Niels Moller, updated 2009.<BR>
@@ -2345,7 +2341,8 @@ background-color : silver;
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD colspan="3">ポートの設定</TD>
+                  <TD colspan="3">ポートの設定<BR>
+                  参照：<A href="faq.html#COMDELAY">シリアルの送信遅延</A></TD>
                 </TR>
                 <TR>
                   <TD align="center">COM…</TD>
@@ -2355,7 +2352,8 @@ background-color : silver;
                   <TD align="center" width="30%">ビット/秒</TD>
                   <TD>110-921600</TD>
                   <TD>通信速度、bpsで表現されます<BR>
-                  1変調=1bitで考えればbaud rateと同じ値です</TD>
+                  1変調=1bitで考えればbaud rateと同じ値です<BR>
+                  ※230400bps以上は、デバイスにより利用できません。デバイスマネージャーのポートの設定で確認することが出来ます。ご注意ください</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">データ ビット</TD>
@@ -2407,13 +2405,19 @@ background-color : silver;
                 <TR>
                   <TD align="center" width="30%">文字の送信遅延</TD>
                   <TD>WC=n</TD>
-                  <TD>１文字単位で指定ミリ秒遅延してから次を送信します。実際の動作としては、送信が完了するタイミングをプログラム上で特定することは、出来ません。送信バッファに入れた時間から<B>推定した時間の遅延</B>になります。これは、9600bps以下の通信速度で影響されることになります<BR>
+                  <TD>１文字単位で指定ミリ秒遅延してから次を送信します。実際の動作としては、送信が完了するタイミングをプログラム上で特定することは、出来ません。送信バッファに入れた時間から上記パラメータで推測した1文字分の送信時間に指定ミリ秒を加算して遅延します<BR>
                   例：1000msec*(1+8+1)/300bps=33ms</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">改行の送信遅延</TD>
                   <TD>WL=n</TD>
-                  <TD>改行文字(<A href="#SCREENOPT">スクリーンのオプション設定</A>の送信する改行コードの設定)の場合は、このミリ秒を使用します</TD>
+                  <TD>改行文字(<A href="#TERMOPT">制御コードのオプション設定</A>の送信する改行コードの設定)の場合は、このミリ秒を使用します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">送信帯域の制限</TD>
+                  <TD>WB=n</TD>
+                  <TD>上記送信遅延が0の場合に上記パラメータで推測した送信帯域を0-100%の割合で制限します。これは、文字単位の送信遅延では、対応が難しい9600bps以上の場合に送信帯域を下げる事ができます。詳しくは、<A href="faq.html#COMDELAY">シリアルの送信遅延</A>を参照してください<BR>
+                  例：9600bps/(1+8+1)*80%=768byte/sec</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">既定値</TD>
@@ -2422,7 +2426,7 @@ background-color : silver;
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image055.jpg" width="350" height="350" border="0"></TD>
+            <TD valign="top"><IMG src="image055.jpg" width="350" height="368" border="0"></TD>
           </TR>
           <TR>
             <TD valign="top">
@@ -3100,8 +3104,7 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center">送信・受信の…</TD>
-                  <TD>送信・受信共に帯域制限を掛けます<BR>
-                  数値はKByte/Secで指定します</TD>
+                  <TD>送信・受信共に帯域制限を掛けます。数値はKByte/Secで指定します</TD>
                 </TR>
                 <TR>
                   <TD align="center">TCPのKeepAlive…</TD>
@@ -6331,14 +6334,27 @@ function TekClock2() {
             ※ppmtosixelは、C1制御文字のDCS($90)を使用しています。<SPAN style="color: rgb(36, 41, 46); font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;; font-size: 14px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">制御コードのオプション設定?8454のチェックを外して</SPAN><SPAN style="color: rgb(36, 41, 46); font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;; font-size: 14px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">「?8454 C1制御文字を処理する」にしないと正しく動作しません。</SPAN><BR>
             <BR>
             <A href="http://www.libgd.org/">libgd</A>を使ったsixelコンバータのソースファイルです。<A href="sixel.tar.gz">sixel.tar.gz</A><BR>
-            <TABLE cellpadding="3">
+            <TABLE cellpadding="3" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD colspan="2">sixel [-p MaxPalet] [-tf] [-w width] [-h height] &lt;file name...&gt;</TD>
+                  <TD colspan="2">
+                  <PRE>sixel [-p MaxPalet] [-b ColorBits] [-m MaxValue...] [-s ColorHex] [-tf]
+        [-d DRCS (0/1/2)|(10/11/12)|(20/21/23)] [-u 100000-10FFFF] [-x FontWidth]
+        [-i number] [-n noise (0-100)] [-w width] [-h height] &lt;file name...&gt;</PRE>
+                  </TD>
                 </TR>
                 <TR>
                   <TD valign="top">-p MaxPalet</TD>
                   <TD>使用するパレット数</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">-b ColorBits<BR>
+                  -m MaxValue</TD>
+                  <TD valign="top">色を表現する最大値をBit単位もしくは、10進数で指定します。デフォルトは、100（10進数）でそれ以外は、RLoginオリジナルの機能で指定します</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">-s ColorHex</TD>
+                  <TD valign="top">透明色を16進数のRGBで指定します</TD>
                 </TR>
                 <TR>
                   <TD valign="top">-t</TD>
@@ -6348,6 +6364,47 @@ function TekClock2() {
                 <TR>
                   <TD valign="top">-f</TD>
                   <TD>１色だけ塗り潰しでサイズを小さくします</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">-d DRCS</TD>
+                  <TD>Sixel画像をDECDLDで外字登録します<BR>
+                  0-2の場合は、DECDLDで外字登録と外字文字の出力します<BR>
+                  10-12の場合は、DECDLDで外字登録のみ行います<BR>
+                  20-22の場合は、外字文字の出力のみ行います<BR>
+                  <TABLE cellpadding="1">
+                    <TBODY>
+                      <TR>
+                        <TD>0/10/20</TD>
+                        <TD>ISO-2022で外字を表示します</TD>
+                      </TR>
+                      <TR>
+                        <TD>1/11/21</TD>
+                        <TD>DRCSMMv2に従ってUTF-8で出力します</TD>
+                      </TR>
+                      <TR>
+                        <TD>2/12/22</TD>
+                        <TD>DRCSMMv3に従ってUTF-8で出力します</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD valign="top">-u 100000-10FFFF</TD>
+                  <TD>DRCSMMv2/3処理する最初の文字コードを指定します</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">-x FontWidth</TD>
+                  <TD>DRCSで外字登録するフォントの横サイズを指定します<BR>
+                  デフォルトは、10ドットです</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">-i Number</TD>
+                  <TD>RLoginオリジナルのイメージ番号を指定します(0-1023)</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">-n Noise</TD>
+                  <TD>RLoginオリジナルのノイズフィルター処理(0-100)</TD>
                 </TR>
                 <TR>
                   <TD valign="top">-w width</TD>

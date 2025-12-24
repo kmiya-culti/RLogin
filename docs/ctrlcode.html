@@ -5,11 +5,13 @@
 <TITLE>エスケープシーケンス一覧</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
-background-color : #ffffff; font-size : 90%;
+TD {		
+				
+		background-color : #ffffff; font-size : 90%;
 }
-.BOX{
-background-color : silver;
+.BOX{		
+				
+		background-color : silver;
 }
 -->
 </STYLE>
@@ -3727,8 +3729,7 @@ background-color : silver;
                           </TBODY>
                         </TABLE>
                         </TD>
-                        <TD><FONT size="-1">左上から下にBit0～Bit5、右にバイトで<BR>
-                        列挙し3F(?)を足して文字とする</FONT><BR>
+                        <TD><FONT size="-1">左上から下にBit0～Bit5、右にバイトで列挙し3F(?)を足して文字とする</FONT><BR>
                         <TABLE cellspacing="0" cellpadding="3">
                           <TBODY>
                             <TR>
@@ -3970,35 +3971,58 @@ background-color : silver;
                 </TR>
                 <TR>
                   <TD valign="top"></TD>
-                  <TD>Pt = 3 の場合、&lt;font-pattern&gt;をSixelグラフィックと<BR>
-                  解釈してビットマップをPcmw/Pcmhのマトリクスに<BR>
-                  分割し、カラーフォントパターンとして文字コードに<BR>
-                  割り当てます。<BR>
-                  ※2.23.1より分割を切り上げに変更し余白を背景色で<BR>
-                  塗りつぶすように変更しました。また文字コード範囲<BR>
-                  （20-7F)を超えた場合は、次のDscs(30-7E)に加算し<BR>
-                  さらに桁上がりでDcss(0-1)を変更します。これらの<BR>
-                  変更は、<A href="http://mlterm.sourceforge.net/DRCS-SIXEL-v2">DRCSMMv2</A>の画像分割表示に合わせる為<BR>
-                  のものです。<BR>
-                  <TABLE cellpadding="2" cellspacing="1" bgcolor="#999999">
+                  <TD>Pt = 3 の場合、&lt;font-pattern&gt;をSixelグラフィックと解釈してビットマップをPcmw/Pcmhのマトリクスに分割し、カラーフォントパターンとして文字コードに割り当てます。また文字コードが範囲を超えた場合は、下記の条件によりDscsを桁上がりして割り当てます<BR>
+                  ※2.23.1より分割を切り上げに変更し余白を背景色で塗りつぶすように変更しました<BR>
+                  ※2.31.2より<A href="http://mlterm.sourceforge.net/DRCS-SIXEL-v2">DRCSMMv2</A>に加えて<A href="https://github.com/kmiya-culti/RLogin/issues/152">DRCSMMv3</A>に対応しました<BR>
+                  <TABLE bgcolor="#999999" cellpadding="3" cellspacing="1">
                     <TBODY>
                       <TR>
-                        <TD>Dcss</TD>
-                        <TD>Dscs</TD>
-                        <TD>Char</TD>
-                        <TD>DRCSMMv2</TD>
+                        <TD align="center"><FONT size="-1">DRCS</FONT></TD>
+                        <TD align="center"><FONT size="-1">8800</FONT></TD>
+                        <TD align="center"><FONT size="-1">8801</FONT></TD>
+                        <TD align="center"><FONT size="-1">Dcss</FONT></TD>
+                        <TD align="center"><FONT size="-1">Dscs</FONT></TD>
+                        <TD align="center"><FONT size="-1">Char</FONT></TD>
+                        <TD align="center"><FONT size="-1">Unicode16面</FONT></TD>
                       </TR>
                       <TR>
+                        <TD rowspan="2" align="center">-</TD>
+                        <TD rowspan="2" align="center"><FONT size="-1">RST</FONT></TD>
+                        <TD rowspan="2" align="center">-</TD>
                         <TD>0(94)</TD>
-                        <TD>2/0 3/0-7/14</TD>
-                        <TD>2/0-7/15</TD>
-                        <TD>U+103020-U+107E7F</TD>
+                        <TD><FONT size="-1">[2/0-15][2/0-15]3/0-7/14</FONT></TD>
+                        <TD><FONT size="-1">2/1-7/14</FONT></TD>
+                        <TD><FONT size="-1">マップしない</FONT></TD>
                       </TR>
                       <TR>
                         <TD>1(96)</TD>
-                        <TD>2/0 3/0-7/14</TD>
-                        <TD>2/0-7/15</TD>
-                        <TD>U+1030A0-U+107EFF</TD>
+                        <TD><FONT size="-1">[2/0-15][2/0-15]3/0-7/14</FONT></TD>
+                        <TD><FONT size="-1">2/0-7/15</FONT></TD>
+                        <TD><FONT size="-1">マップしない</FONT></TD>
+                      </TR>
+                      <TR>
+                        <TD rowspan="2" align="center"><FONT size="-1">DRCSMMv2</FONT></TD>
+                        <TD rowspan="2" align="center"><FONT size="-1">SET</FONT></TD>
+                        <TD rowspan="2" align="center"><FONT size="-1">RST</FONT></TD>
+                        <TD>0(94)</TD>
+                        <TD><FONT size="-1">2/0 3/0-7/14</FONT></TD>
+                        <TD><FONT size="-1">2/0-7/15</FONT></TD>
+                        <TD><FONT size="-1">U+103020-U+107E7F</FONT></TD>
+                      </TR>
+                      <TR>
+                        <TD>1(96)</TD>
+                        <TD><FONT size="-1">2/0 3/0-7/14</FONT></TD>
+                        <TD><FONT size="-1">2/0-7/15</FONT></TD>
+                        <TD><FONT size="-1">U+1030A0-U+107EFF</FONT></TD>
+                      </TR>
+                      <TR>
+                        <TD align="center"><FONT size="-1">DRCSMMv3</FONT></TD>
+                        <TD align="center"><FONT size="-1">SET</FONT></TD>
+                        <TD align="center"><FONT size="-1">SET</FONT></TD>
+                        <TD>0(94)</TD>
+                        <TD><FONT size="-1">2/0 2/0-15 4/0-7/14</FONT></TD>
+                        <TD><FONT size="-1">2/1-7/14</FONT></TD>
+                        <TD><FONT size="-1">U+100000-U+10FFFF</FONT></TD>
                       </TR>
                     </TBODY>
                   </TABLE>
@@ -4109,7 +4133,7 @@ background-color : silver;
                 <TR>
                   <TD align="center" valign="top"><FONT size="-1"><I>Pen = </I></FONT>3</TD>
                   <TD>base64でエンコードされた文字列（gzipは、オプション）<BR>
-                  例　<FONT size="-1">echo -en '\033P0;0;2!z' ; (cat img.six | gzip | base64) ; echo -en '\033\\</FONT>'</TD>
+                  例　<FONT size="-1">echo -en '\033P0;0;3!z' ; (cat img.six | gzip | base64) ; echo -en '\033\\</FONT>'</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -5007,6 +5031,12 @@ background-color : silver;
             <TD align="center">*3</TD>
             <TD>Sixelをフォントから計算</TD>
             <TD>Sixelを固定値で計算</TD>
+          </TR>
+          <TR>
+            <TD align="center">8461</TD>
+            <TD align="center">8801 DRCSMMv3</TD>
+            <TD>DRCS Unicodeマッピング方法をv3で行う</TD>
+            <TD>DRCS Unicodeマッピング方法をv2で行う</TD>
           </TR>
         </TBODY>
       </TABLE>

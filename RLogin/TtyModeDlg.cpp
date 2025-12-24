@@ -1260,7 +1260,7 @@ void CCodeFlagDlg::OnEditNew()
 	dlg.m_bSelCodeMode = TRUE;
 	dlg.m_CodeSet   = SET_UNICODE;
 	dlg.m_FontNum   = 0;
-	dlg.m_pFontNode = &m_pSheet->m_pTextRam->m_FontTab[SET_UNICODE];
+	dlg.m_pFontNode = &m_pSheet->m_pTextRam->m_FontTab[UNICODE_INDEX];
 	dlg.m_pFontTab  = &m_pSheet->m_pTextRam->m_FontTab;
 	dlg.m_pTextRam  = m_pSheet->m_pTextRam;
 	dlg.m_LastSelBlock = m_LastSelBlock;
@@ -1301,7 +1301,7 @@ void CCodeFlagDlg::OnEditUpdate()
 	dlg.m_SelCodeEnd = high;
 	dlg.m_CodeSet   = SET_UNICODE;
 	dlg.m_FontNum   = 0;
-	dlg.m_pFontNode = &m_pSheet->m_pTextRam->m_FontTab[SET_UNICODE];
+	dlg.m_pFontNode = &m_pSheet->m_pTextRam->m_FontTab[UNICODE_INDEX];
 	dlg.m_pFontTab  = &m_pSheet->m_pTextRam->m_FontTab;
 	dlg.m_pTextRam  = m_pSheet->m_pTextRam;
 	dlg.m_DefFontName = m_DefFontName;
@@ -1350,7 +1350,7 @@ void CCodeFlagDlg::OnEditDups()
 	dlg.m_SelCodeEnd = high;
 	dlg.m_CodeSet   = SET_UNICODE;
 	dlg.m_FontNum   = 0;
-	dlg.m_pFontNode = &m_pSheet->m_pTextRam->m_FontTab[SET_UNICODE];
+	dlg.m_pFontNode = &m_pSheet->m_pTextRam->m_FontTab[UNICODE_INDEX];
 	dlg.m_pFontTab  = &m_pSheet->m_pTextRam->m_FontTab;
 	dlg.m_pTextRam  = m_pSheet->m_pTextRam;
 	dlg.m_DefFontName = m_DefFontName;

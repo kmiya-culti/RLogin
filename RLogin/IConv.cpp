@@ -329,6 +329,7 @@ class CIConv *CIConv::GetIConv(LPCTSTR from, LPCTSTR to)
 	int sc = 0x20, ec = 0x80;
 	const WORD *tab;
 	static const DECCHARTAB DecCharTab[] = {
+		{	_T("DEC_GRAPHIC_SUPP"),		0x20,	DecGraphicSupp	},
 		{	_T("DEC_GREEK"),			0x60,	DecGreek		},
 		{	_T("DEC_GREEK_SUPP"),		0x20,	DecGreekSupp	},
 		{	_T("DEC_HEBREW"),			0x60,	DecHebrew		},

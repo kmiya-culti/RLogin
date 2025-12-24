@@ -2042,8 +2042,8 @@ void CTextRam::fc_POP(DWORD ch)
 void CTextRam::fc_SESC(DWORD ch)
 {
 	if ( IsOptEnable(TO_RLC1DIS) ) {
-		int bank = m_BankTab[m_KanjiMode][m_BankSG >= 0 ? m_BankSG : m_BankGR] & SET_MASK;
-		if ( bank <= SET_96 )
+		int bank = m_BankTab[m_KanjiMode][m_BankSG >= 0 ? m_BankSG : m_BankGR];
+		if ( m_FontTab[bank].m_CodeSet <= SET_96 )
 			fc_TEXT(ch);
 		else {
 			fc_KANJI(ch);
@@ -2322,7 +2322,7 @@ void CTextRam::fc_KANJI(DWORD ch)
 }
 void CTextRam::fc_KANBRK()
 {
-	PUT1BYTE(BRKMBCS, SET_UNICODE, ATT_REVS);
+	PUT1BYTE(BRKMBCS, UNICODE_INDEX, ATT_REVS);
 }
 void CTextRam::fc_KANCHK()
 {
@@ -2371,7 +2371,7 @@ void CTextRam::fc_TEXT(DWORD ch)
 
 	m_BackChar = ch;
 
-	switch(m_BankNow & SET_MASK) {
+	switch(m_FontTab[m_BankNow].m_CodeSet) {
 	case SET_94:
 		//if ( (ch &= 0x7F) == 0x7F )
 		//	break;
@@ -2434,7 +2434,7 @@ void CTextRam::fc_SJIS2(DWORD ch)
 	if ( (n = m_IConv.IConvChar(m_SendCharSet[SJIS_SET], m_FontTab[m_BankNow].m_IContName, m_BackChar)) == 0 ) {
 		m_BankNow = m_BankTab[m_KanjiMode][3];
 		if ( (n = m_IConv.IConvChar(m_SendCharSet[SJIS_SET], m_FontTab[m_BankNow].m_IContName, m_BackChar)) == 0 ) {
-			m_BankNow  = SET_UNICODE;
+			m_BankNow  = UNICODE_INDEX;
 			if ( (n = m_IConv.IConvChar(m_SendCharSet[SJIS_SET], _T("UTF-16BE"), m_BackChar)) == 0 ) {
 				m_BankNow = m_BankTab[m_KanjiMode][2];
 				n = 0x2222;
@@ -2463,7 +2463,7 @@ void CTextRam::fc_SJIS3(DWORD ch)
 void CTextRam::fc_BIG51(DWORD ch)
 {
 	m_BackChar = ch;
-	m_BankNow  = SET_UNICODE;
+	m_BankNow  = UNICODE_INDEX;
 	fc_Push(STAGE_BIG52);
 }
 void CTextRam::fc_BIG52(DWORD ch)
@@ -2666,23 +2666,43 @@ void CTextRam::fc_UTF85(DWORD ch)
 		}
 
 		// U+100000-10FFFD 16–ÊŠOŽš
-		// U+10ddcc
-		//     dd		dscs x256
-		//       cc		code x256
 		// U+100000 = U+DBC0 U+DC00
 		// U+10FFFF = U+DBFF U+DFFF
 		//
 		// DRCSMMv2
+		// U+10ddcc
+		//     dd		dscs x256
+		//       cc		code x256
 		//       cc		0x20-0x7F = SET_94, 0xA0-0xFF = SET_96
-		//if ( (cf & UNI_GAIJI) != 0 && IsOptEnable(TO_DRCSMMv1) ) {
-		//	n = UCS2toUCS4(m_BackChar);
-		//	CString tmp;
-		//	tmp.Format(_T(" %c"), (n >> 8) & 0xFF);
-		//	INSMDCK(1);
-		//	PUT1BYTE(n & 0x7F, m_FontTab.IndexFind(((n & 0x80) == 0 ? SET_94 : SET_96), tmp));
-		//	m_LastFlag = cf;
-		//	goto BREAK;
-		//}
+		//
+		// DRCSMMv3
+		// U = 0x100000 + ((X - 0x20) * 63 + (F - 0x40)) * 94 + (C - 0x21)
+		// X = ((U - 0x100000) / 94) / 63 + 0x20
+		// F = ((U - 0x100000) / 94) % 63 + 0x40
+		// C = (U - 0x100000) % 94 + 0x21
+
+		if ( (cf & UNI_GAIJI) != 0 && IsOptEnable(TO_DRCSMMv1) ) {
+			int bank = (-1);
+			DWORD U = UCS2toUCS4(m_BackChar);
+			if ( IsOptEnable(TO_DRCSMMv3) ) {
+				TCHAR X = (WCHAR)(((U - 0x100000) / 94) / 63 + 0x20);
+				TCHAR F = (WCHAR)(((U - 0x100000) / 94) % 63 + 0x40);
+				TCHAR Dscs[4] = { _T(' '), X, F, _T('\0') };
+				bank = m_FontTab.IndexFind(SET_94, Dscs, FALSE);
+				U = (U - 0x100000) % 94 + 0x21;
+			} else {
+				TCHAR Dscs[3] = { _T(' '), (TCHAR)((U >> 8) & 0xFF), _T('\0') };
+				if ( Dscs[1] >= 0x30 && Dscs[1] <= 0x7E && (U & 0x7F) >= 0x20 )
+					bank = m_FontTab.IndexFind(((U & 0x80) == 0 ? SET_94 : SET_96), Dscs, FALSE);
+				U &= 0x7F;
+			}
+			if ( bank != (-1) && m_FontTab[bank].m_UserFontMap.GetSafeHandle() != NULL ) {
+				INSMDCK(1);
+				PUT1BYTE(U, bank);
+				m_LastFlag = cf;
+				goto BREAK;
+			}
+		}
 
 		if ( (cf & UNI_WID) != 0 )
 			n = 2;
@@ -2764,19 +2784,19 @@ void CTextRam::fc_UTF85(DWORD ch)
 			//else if ( m_BackChar < 0x0100 )
 			//	PUT1BYTE(m_BackChar & 0x7F, m_BankTab[m_KanjiMode][1]);
 			//else
-				PUT1BYTE(m_BackChar, SET_UNICODE, ea);
+				PUT1BYTE(m_BackChar, UNICODE_INDEX, ea);
 			m_LastFlag = cf;
 
 		} else {
 			// 2 Cell type Unicode
 			INSMDCK(2);
-			PUT2BYTE(m_BackChar, SET_UNICODE, ea);
+			PUT2BYTE(m_BackChar, UNICODE_INDEX, ea);
 			m_LastFlag = cf;
 		}
 
 	BREAK:
 		m_bJoint = bJoint;
-		m_BankNow  = SET_UNICODE;
+		m_BankNow  = UNICODE_INDEX;
 	case 0:
 		fc_POP(ch);
 		break;
@@ -3079,8 +3099,8 @@ void CTextRam::fc_SSA(DWORD ch)
 {
 	// ESC F	VT52 Enter graphics mode.						ANSI SSA Start selected area
 	if ( !IsOptEnable(TO_DECANM) ) {
-		m_BankTab[m_KanjiMode][0] = SET_94 | '0';
-		m_BankTab[m_KanjiMode][1] = SET_94 | '0';
+		m_BankTab[m_KanjiMode][0] = m_FontTab.IndexFind(SET_94, _T("0"));
+		m_BankTab[m_KanjiMode][1] = m_FontTab.IndexFind(SET_94, _T("0"));
 	}
 	// else
 	//	m_AttNow.eram |= EM_SELECTED;
@@ -3091,8 +3111,8 @@ void CTextRam::fc_ESA(DWORD ch)
 {
 	// ESC F	VT52 Exit graphics mode.						ANSI ESA End selected area
 	if ( !IsOptEnable(TO_DECANM) ) {
-		m_BankTab[m_KanjiMode][0] = SET_94 | 'B';
-		m_BankTab[m_KanjiMode][1] = SET_94 | 'B';
+		m_BankTab[m_KanjiMode][0] = m_FontTab.IndexFind(SET_94, _T("B"));
+		m_BankTab[m_KanjiMode][1] = m_FontTab.IndexFind(SET_94, _T("B"));
 	}
 	// else
 	//	m_AttNow.eram &= ~EM_SELECTED;
@@ -3214,7 +3234,7 @@ void CTextRam::fc_RIS(DWORD ch)
 
 	RESET(RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_RLMARGIN | RESET_TABS | RESET_BANK | 
 		  RESET_ATTR | RESET_COLOR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY |
-		  RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_CLS);
+		  RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_CLS | RESET_CARET);
 
 	fc_POP(ch);
 }
@@ -3447,13 +3467,13 @@ void CTextRam::fc_STAT(DWORD ch)
 
 		case 'L':				// Level 1		G0=ASCII G1=Latan GL=G0 GR=G1
 		case 'M':				// Level 2		G0=ASCII G1=Latan GL=G0 GR=G1
-			m_BankTab[m_KanjiMode][0] = SET_94 | 'B';
-			m_BankTab[m_KanjiMode][1] = SET_96 | 'A';
+			m_BankTab[m_KanjiMode][0] = m_FontTab.IndexFind(SET_94, _T("B"));
+			m_BankTab[m_KanjiMode][1] = m_FontTab.IndexFind(SET_96, _T("A"));
 			m_BankGL = 0;
 			m_BankGR = 1;
 			break;
 		case 'N':				// Level 3		G0=ASCII GL=G0
-			m_BankTab[m_KanjiMode][0] = SET_94 | 'B';
+			m_BankTab[m_KanjiMode][0] = m_FontTab.IndexFind(SET_94, _T("B"));
 			m_BankGL = 0;
 			break;
 		}
@@ -3572,8 +3592,9 @@ void CTextRam::fc_STAT(DWORD ch)
 		// Intermediates are in the range 2/0 to 2/15.
 		// Finals are in the range 3/0 to 7/14. 
 		if ( ch >= '\x20' && ch <= '\x2F' ) {
-			if ( m_StrPara.GetLength() < 2 )
-				m_StrPara += (CHAR)ch;
+			m_StrPara += (CHAR)ch;
+			if ( m_StrPara.GetLength() > 2 )
+				m_StrPara.Delete(0);
 		} else if ( ch >= '\x30' && ch <= '\x7E' ) {
 			m_StrPara += (CHAR)ch;
 			m_BankTab[m_KanjiMode][m_BackChar] = m_FontTab.IndexFind(m_BackMode, m_StrPara);
@@ -3641,6 +3662,7 @@ void CTextRam::fc_DCS(DWORD ch)
 	m_CodeLen = 0;
 	m_OscLast = 0;
 	m_OscPara.Clear();
+	m_DcsStat = 0;
 	m_AnsiPara.RemoveAll();
 	m_AnsiPara.Add(PARA_NOT);
 	fc_Case(STAGE_OSC1);
@@ -3653,6 +3675,7 @@ void CTextRam::fc_SOS(DWORD ch)
 		m_BackChar = 0;
 		m_CodeLen = 0;
 		m_OscLast = 0;
+		m_DcsStat = 0;
 		m_OscPara.Clear();
 		fc_Case(STAGE_OSC2);
 		fc_TimerSet(_T("SOS"));
@@ -3666,6 +3689,7 @@ void CTextRam::fc_APC(DWORD ch)
 		m_BackChar = 0;
 		m_CodeLen = 0;
 		m_OscLast = 0;
+		m_DcsStat = 0;
 		m_OscPara.Clear();
 		fc_Case(STAGE_OSC2);
 		fc_TimerSet(_T("APC"));
@@ -3679,6 +3703,7 @@ void CTextRam::fc_PM(DWORD ch)
 		m_BackChar = 0;
 		m_CodeLen = 0;
 		m_OscLast = 0;
+		m_DcsStat = 0;
 		m_OscPara.Clear();
 		fc_Case(STAGE_OSC2);
 		fc_TimerSet(_T("PM"));
@@ -3691,6 +3716,7 @@ void CTextRam::fc_OSC(DWORD ch)
 	m_BackChar = 0;
 	m_CodeLen = 0;
 	m_OscLast = 0;
+	m_DcsStat = 0;
 	m_OscPara.Clear();
 	fc_Case(STAGE_OSC2);
 	fc_TimerSet(_T("OSC"));
@@ -3723,24 +3749,30 @@ void CTextRam::fc_OSC_CMD(DWORD ch)
 			int n;
 			CString tmp;
 
-			if ( m_OscMode == 'P' && BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), (int)m_DcsExt.GetSize(), ProcCodeCmp, &n) && m_DcsExt[n].proc == &CTextRam::fc_DECSIXEL ) {
-				tmp.Format(_T("Sixel - %s"), (LPCTSTR)m_pDocument->m_ServerEntry.m_EntryName);
-				if ( m_pWorkGrapWnd != NULL )
-					m_pWorkGrapWnd->DestroyWindow();
-				m_pWorkGrapWnd = new CGrapWnd(this);
-				m_pWorkGrapWnd->Create(NULL, tmp);
+			if ( m_OscMode == 'P' && BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), (int)m_DcsExt.GetSize(), ProcCodeCmp, &n) ) {
+				if ( m_DcsExt[n].proc == &CTextRam::fc_DECSIXEL ) {
+					tmp.Format(_T("Sixel - %s"), (LPCTSTR)m_pDocument->m_ServerEntry.m_EntryName);
+					if ( m_pWorkGrapWnd != NULL )
+						m_pWorkGrapWnd->DestroyWindow();
+					m_pWorkGrapWnd = new CGrapWnd(this);
+					m_pWorkGrapWnd->Create(NULL, tmp);
 
-				if ( (m_pWorkGrapWnd->m_ImageIndex = GetAnsiPara(3, -1, 0, (m_bTraceActive ? 4095 : 1023))) == (-1) ) {
-					m_pWorkGrapWnd->m_ImageIndex = m_ImageIndex++;
-					if ( m_ImageIndex >= 4096 )		// index max 12 bit
-						m_ImageIndex = 1024;		// 1024 - 4095
+					if ( (m_pWorkGrapWnd->m_ImageIndex = GetAnsiPara(3, -1, 0, (m_bTraceActive ? 4095 : 1023))) == (-1) ) {
+						m_pWorkGrapWnd->m_ImageIndex = m_ImageIndex++;
+						if ( m_ImageIndex >= 4096 )		// index max 12 bit
+							m_ImageIndex = 1024;		// 1024 - 4095
+					}
+					if ( (m_pWorkGrapWnd->m_pSaveGrapWnd = GetGrapWnd(m_pWorkGrapWnd->m_ImageIndex)) != NULL )
+						RemoveGrapWnd(m_pWorkGrapWnd->m_pSaveGrapWnd);
+					AddGrapWnd(m_pWorkGrapWnd);
+					m_pWorkGrapWnd->m_Use++;
+
+					m_pWorkGrapWnd->SixelStart(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), GetBackColor(m_AttNow));
+					m_DcsStat = 1;
+
+				} else if ( m_DcsExt[n].proc == &CTextRam::fc_DECDLD && GetAnsiPara(5, 0, 0) == 3 ) {
+					m_DcsStat = 2;
 				}
-				if ( (m_pWorkGrapWnd->m_pSaveGrapWnd = GetGrapWnd(m_pWorkGrapWnd->m_ImageIndex)) != NULL )
-					RemoveGrapWnd(m_pWorkGrapWnd->m_pSaveGrapWnd);
-				AddGrapWnd(m_pWorkGrapWnd);
-				m_pWorkGrapWnd->m_Use++;
-
-				m_pWorkGrapWnd->SixelStart(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), GetBackColor(m_AttNow));
 			}
 		}
 	}
@@ -3748,49 +3780,128 @@ void CTextRam::fc_OSC_CMD(DWORD ch)
 void CTextRam::fc_OSC_PAM(DWORD ch)
 {
 	if ( m_OscLast == '\033' && ch == '\\' ) {
-		if ( m_OscPara.GetSize() > 0 )
+		if ( m_DcsStat == 0 && m_OscPara.GetSize() > 0 )
 			m_OscPara.ConsumeEnd(1);
 		fc_OSC_ST(ch);
 
 	} else if ( m_OscMode == ']' && ch == 0x07 ) {
 		fc_OSC_ST(ch);
 
-	} else if ( (m_KanjiMode == EUC_SET || m_KanjiMode == ASCII_SET) && ch == 0x9C ) {
+	} else if ( ch == 0x9C && (m_KanjiMode == EUC_SET || m_KanjiMode == ASCII_SET) && !IsOptEnable(TO_RLC1DIS) ) {
 		fc_OSC_ST(ch);
 
-	} else if ( m_KanjiMode == UTF8_SET ) {
-		if ( m_pWorkGrapWnd != NULL )
-			m_pWorkGrapWnd->SixelData(ch);
-		else
-			m_OscPara.Put8Bit(ch);
-		m_OscLast = ch;
-
-		if ( m_CodeLen > 0 && ch >= 0x80 && ch <= 0xBF )
-			m_CodeLen--;
-		else {
-			if ( ch == 0x9C ) {
-				if ( m_pWorkGrapWnd == NULL )
-					m_OscPara.ConsumeEnd(1);
-				fc_OSC_ST(ch);
-			} else if ( ch >= 0xC0 && ch <= 0xDF )
-				m_CodeLen = 1;
-			else if ( ch >= 0xE0 && ch <= 0xEF )
-				m_CodeLen = 2;
-			else if ( ch >= 0xF0 && ch <= 0xF7 )
-				m_CodeLen = 3;
-			else if ( ch >= 0xF8 && ch <= 0xFB )
-				m_CodeLen = 4;
-			else if ( ch >= 0xFC && ch <= 0xFD )
-				m_CodeLen = 5;
-			else
-				m_CodeLen = 0;
+	} else {
+		if ( m_KanjiMode == UTF8_SET ) {
+			if ( m_CodeLen > 0 && ch >= 0x80 && ch <= 0xBF )
+				m_CodeLen--;
+			else {
+				if ( ch == 0x9C && !IsOptEnable(TO_RLC1DIS) ) {
+					fc_OSC_ST(ch);
+					return;
+				} else if ( ch >= 0xC0 && ch <= 0xDF )
+					m_CodeLen = 1;
+				else if ( ch >= 0xE0 && ch <= 0xEF )
+					m_CodeLen = 2;
+				else if ( ch >= 0xF0 && ch <= 0xF7 )
+					m_CodeLen = 3;
+				else if ( ch >= 0xF8 && ch <= 0xFB )
+					m_CodeLen = 4;
+				else if ( ch >= 0xFC && ch <= 0xFD )
+					m_CodeLen = 5;
+				else
+					m_CodeLen = 0;
+			}
 		}
 
-	} else {
-		if ( m_pWorkGrapWnd != NULL )
-			m_pWorkGrapWnd->SixelData(ch);
-		else
+		switch(m_DcsStat) {
+		case 0:
 			m_OscPara.Put8Bit(ch);
+			break;
+		case 1:
+			if ( m_pWorkGrapWnd != NULL )
+				m_pWorkGrapWnd->SixelData(ch);
+			break;
+		case 2:
+			// <Dscs>
+			m_OscPara.Put8Bit(ch);
+			if ( ch >= '0' )
+				m_DcsStat = 3;
+			break;
+		case 3:
+			// [<sixel param>]	DCS Pn1 ; Pn2 ; Pn3 ; Pn4 ; Pn5 q
+			if ( ch == '\033' ) {
+				m_OscPara.Put8Bit(ch);
+				break;
+			} else if ( m_OscLast == '\033' && ch == 'P' ) {	// DCS
+				m_OscPara.Put8Bit(ch);
+				break;
+			} else if ( (ch >= '0' && ch <= '9') || ch == ';' ) {
+				m_OscPara.Put8Bit(ch);
+				break;
+			} else if ( ch == 'q' ) {
+				m_OscPara.Put8Bit(ch);
+				m_DcsStat = 4;
+				break;
+			}
+			m_DcsStat = 4;
+			// no break;
+		case 4:
+			if ( m_pWorkGrapWnd != NULL )
+				m_pWorkGrapWnd->DestroyWindow();
+			m_pWorkGrapWnd = new CGrapWnd(this);
+			m_pWorkGrapWnd->Create(NULL, _T("DECDLD"));
+
+			{
+				LPCSTR s = (LPCSTR)m_OscPara;
+				int ps = 0;
+				int pam[5] = { 0, 0, 0, 0, 0 };
+
+				// <Dscs>
+				while ( *s != '\0' ) {
+					if ( *s >= '0' ) {
+						s++;
+						break;
+					}
+					s++;
+				}
+
+				// [<sixel param>]
+				if ( s[0] == '\033' && s[1] == 'P' )
+					s += 2;
+				else if ( s[0] == '\x90' )
+					s++;
+
+				while ( *s != '\0' ) {
+					if ( *s >= '0' && *s <= '9' ) {
+						if ( ps < 5 )
+							pam[ps] = pam[ps] * 10 + *s - '0';
+						s++;
+					} else if ( *s == ';' ) {
+						s++;
+						ps++;
+					} else if ( *s == 'q' ) {
+						s++;
+						break;
+					} else
+						break;
+				}
+
+				if ( ps == 0 )
+					pam[0] = 9;
+
+				m_pWorkGrapWnd->SixelStart(pam[0], pam[1], pam[2], GetBackColor(m_AttNow));
+				m_pWorkGrapWnd->m_DspFlag = TRUE;
+				m_pWorkGrapWnd->m_SixelColIndexMake = TRUE;
+			}
+			m_DcsStat = 5;
+			// no break;
+		case 5:
+			// <sixel-font-pattern>
+			if ( m_pWorkGrapWnd != NULL )
+				m_pWorkGrapWnd->SixelData(ch);
+			break;
+		}
+
 		m_OscLast = ch;
 	}
 }
@@ -4043,9 +4154,10 @@ void CTextRam::fc_DECDLD(DWORD ch)
 	LPCSTR p;
 	int Pfn, Pcn, Pe, Pcss, Pt;
 	int Pcmw = 10, Pcmh = 0;
+	int PcnSta = 0x20;
+	int PcnMax = 0x80;
 	CString Pscs;
 	CStringArrayExt node, data;
-	CGrapWnd *pGrapWnd;
 
 	fc_POP(ch);
 
@@ -4081,7 +4193,7 @@ void CTextRam::fc_DECDLD(DWORD ch)
 		Pcmh = 12;
 
 	if ( Pe == 2 ) {
-		for ( n = 0 ; n < CODE_MAX ; n++ ) {
+		for ( n = 0 ; n < m_FontTab.GetSize() ; n++ ) {
 			if ( m_FontTab[n].m_UserFontMap.GetSafeHandle() != NULL )
 				m_FontTab[n].m_UserFontMap.DeleteObject();
 		}
@@ -4095,9 +4207,11 @@ void CTextRam::fc_DECDLD(DWORD ch)
 		if ( *p >= 0x30 && *p <= 0x7E ) {
 			Pscs += *(p++);
 			break;
-		} else if ( *p >= 0x20 && *p <= 0x2F )
+		} else if ( *p >= 0x20 && *p <= 0x2F ) {
 			Pscs += *(p++);
-		else
+			if ( Pscs.GetLength() > 2 )
+				Pscs.Delete(0);
+		} else
 			p++;
 	}
 
@@ -4111,53 +4225,90 @@ void CTextRam::fc_DECDLD(DWORD ch)
 			m_FontTab[idx].m_UserFontMap.DeleteObject();
 	}
 
+	if ( Pcss == 0 ) {
+		PcnSta = 0x21;
+		PcnMax = 0x7F;
+	}
+
 	if ( Pt == 3 ) {				// Sixel
-		pGrapWnd = new CGrapWnd(this);
-		pGrapWnd->Create(NULL, _T("DCS"));
-
-		// SIXEL DCS Parameter
-		int max = 0;
-		int pam[3];
-		LPCSTR s = p;
-		pam[0] = pam[1] = pam[2] = 0;
-
-		while ( *s != '\0' ) {
-			if ( *s >= '0' && *s <= '9' ) {
-				if ( max < 3 )
-					pam[max] = pam[max] * 10 + *s - '0';
-				s++;
-			} else if ( *s == ';' ) {
-				s++;
-				max++;
-			} else if ( *s == 'q' ) {
-				s++;
-				p = s;
-				break;
-			} else {
-				s++;
-				break;
-			}
-		}
-
-		if ( p != s ) {
-			pam[0] = 9;
-			pam[1] = 0;
-			pam[2] = 0;
-		}
-
-		pGrapWnd->SetSixel(pam[0], pam[1], pam[2], p, GetBackColor(m_AttNow));
-
-		for ( i = 0 ; (i * Pcmh) < pGrapWnd->m_MaxY ; i++ ) {
-			for ( x = 0 ; (x * Pcmw) < pGrapWnd->m_MaxX ; x++ ) {
-				if ( Pcn > 0x7F ) {
-					Pcn = 0x20;
-					IncDscs(Pcss, Pscs);
-					idx = m_FontTab.IndexFind((Pcss == 0 ? SET_94 : SET_96), Pscs);
+		if ( IsOptEnable(TO_DRCSMMv1) ) {
+			if ( IsOptEnable(TO_DRCSMMv3) ) {
+				if ( Pscs[0] == _T(' ') && Pscs[1] >= _T(' ') && Pscs[1] <= _T('\x2e') && Pscs[2] >= _T('0') && Pscs[2] <= _T('\x7e') && Pscs[3] == _T('\0') ) {
+					// DRCSMMv3
+					if ( Pcn < PcnSta )
+						Pcn = PcnSta;
 				}
-				m_FontTab[idx].SetUserBitmap(Pcn++, Pcmw, Pcmh, pGrapWnd->m_pActMap, x * Pcmw, i * Pcmh, pGrapWnd->m_AspX, pGrapWnd->m_AspY, GetBackColor(m_AttNow), pGrapWnd->m_SixelTransColor);
+			} else {
+				if ( Pscs[0] == _T(' ') && Pscs[1] >= _T('0') && Pscs[1] <= _T('\x7e') && Pscs[2] == _T('\0') ) {
+					// DRCSMMv2
+					PcnSta = 0x20;
+					PcnMax = 0x80;
+				}
 			}
 		}
-		pGrapWnd->DestroyWindow();
+
+		// DCS Pn1 ; Pn2 ; Pn3 ; Pn4 ; Pn5 q P... ST	DECSIXEL
+		int ps = 0;
+		int pam[5] = { 0, 0, 0, 0, 0 };
+
+		if ( p[0] == '\033' && p[1] == 'P' )
+			p += 2;
+		else if ( p[0] == '\x90' )
+			p++;
+
+		while ( *p != '\0' ) {
+			if ( *p >= '0' && *p <= '9' ) {
+				if ( ps < 5 )
+					pam[ps] = pam[ps] * 10 + (*p - '0');
+				p++;
+			} else if ( *p == ';' ) {
+				p++;
+				ps++;
+			} else if ( *p == 'q' ) {
+				p++;
+				break;
+			} else
+				break;
+		}
+
+		if ( m_DcsStat == 5 && m_pWorkGrapWnd != NULL ) {
+			m_pWorkGrapWnd->SixelEndof(FALSE, pam[4]);
+
+			int mx = m_pWorkGrapWnd->m_MaxX * m_pWorkGrapWnd->m_AspX / ASP_DIV;
+			int my = m_pWorkGrapWnd->m_MaxY * m_pWorkGrapWnd->m_AspY / ASP_DIV;
+			COLORREF tc = m_pWorkGrapWnd->m_SixelTransColor;
+			COLORREF bc = GetBackColor(m_AttNow);
+
+			if ( tc == (-1) && ((mx % Pcmw) > 0 || (my % Pcmh) > 0) ) {
+				tc = m_pWorkGrapWnd->SixelBackColor();
+				m_pWorkGrapWnd->SixelAlphaToTransCol(tc, bc);
+			}
+
+			for ( i = 0 ; (i * Pcmh) < my ; i++ ) {
+				for ( x = 0 ; (x * Pcmw) < mx ; ) {
+					if ( Pcn >= PcnMax ) {
+						Pcn = PcnSta;
+						IncDscs(Pcss, Pscs);
+						idx = m_FontTab.IndexFind((Pcss == 0 ? SET_94 : SET_96), Pscs);
+						if ( Pe == 0 ) {
+							if ( m_FontTab[idx].m_UserFontMap.GetSafeHandle() != NULL )
+								m_FontTab[idx].m_UserFontMap.DeleteObject();
+						}
+					}
+
+					n = PcnMax - Pcn;
+					if ( ((x + n) * Pcmw) >= mx )
+						n = (mx + Pcmw - 1) / Pcmw - x;
+					m_FontTab[idx].SetUserBitmap(Pcn, n, Pcmw, Pcmh, x * Pcmw, i * Pcmh, bc, tc, m_pWorkGrapWnd);
+
+					x += n;
+					Pcn += n;
+				}
+			}
+
+			m_pWorkGrapWnd->DestroyWindow();
+			m_pWorkGrapWnd = NULL;
+		}
 
 	} else {
 		int lnsz = (Pcmh + 5) / 6;
@@ -4170,15 +4321,16 @@ void CTextRam::fc_DECDLD(DWORD ch)
 
 		for ( ; *p != '\0' ; p++ ) {
 			if ( *p >=  0x3F && *p <= (0x3F + 0x3F) ) {
-				if ( (Pcn + n) < 0x80 && i < lnsz && x < Pcmw )
+				if ( i < lnsz && x < Pcmw )
 					map[x + i * Pcmw] = *p - 0x3F;
 				x++;
 			} else if ( *p == '/' ) {
 				i++;
 				x = 0;
 			} else if ( *p == ';' ) {
-				if ( (Pcn + n) < 0x80 )
-					m_FontTab[idx].SetUserFont(Pcn + n, Pcmw, Pcmh, map);
+				if ( (Pcn + n) >= PcnMax )
+					break;
+				m_FontTab[idx].SetUserFont(Pcn + n, Pcmw, Pcmh, map);
 				n++;
 				i = 0;
 				x = 0;
@@ -4498,6 +4650,7 @@ void CTextRam::fc_DECRSPS(DWORD ch)
 
 	int n, x;
 	CStringArrayExt node;
+	int cset[4];
 
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 1:		// DECCIR
@@ -4546,42 +4699,48 @@ void CTextRam::fc_DECRSPS(DWORD ch)
 		if ( node.GetSize() > 7 ) {					// Pgr
 			m_BankGR = node[7][0];
 		}
+
+		cset[0] = m_FontTab[m_BankTab[m_KanjiMode][0]].m_CodeSet;
+		cset[1] = m_FontTab[m_BankTab[m_KanjiMode][1]].m_CodeSet;
+		cset[2] = m_FontTab[m_BankTab[m_KanjiMode][2]].m_CodeSet;
+		cset[3] = m_FontTab[m_BankTab[m_KanjiMode][3]].m_CodeSet;
+
 		if ( node.GetSize() > 8 ) {					// Scss
 			n = node[8][0];
 			if ( (n & 8) != 0 )
-				m_BankTab[m_KanjiMode][3] |= SET_96;
+				cset[3] |= SET_96;
 			else
-				m_BankTab[m_KanjiMode][3] &= ~SET_96;
+				cset[3] &= ~SET_96;
 			if ( (n & 4) != 0 )
-				m_BankTab[m_KanjiMode][2] |= SET_96;
+				cset[2] |= SET_96;
 			else
-				m_BankTab[m_KanjiMode][2] &= ~SET_96;
+				cset[2] &= ~SET_96;
 			if ( (n & 2) != 0 )
-				m_BankTab[m_KanjiMode][1] |= SET_96;
+				cset[1] |= SET_96;
 			else
-				m_BankTab[m_KanjiMode][1] &= ~SET_96;
+				cset[1] &= ~SET_96;
 			if ( (n & 1) != 0 )
-				m_BankTab[m_KanjiMode][0] |= SET_96;
+				cset[0] |= SET_96;
 			else
-				m_BankTab[m_KanjiMode][0] &= ~SET_96;
+				cset[0] &= ~SET_96;
 		}
 		if ( node.GetSize() > 9 ) {					// Scss
 			LPCTSTR p = node[9];
 			CString tmp;
 			for ( n = 0 ; n < 4 ; n++ ) {
 				tmp.Empty();
-				m_BankTab[m_KanjiMode][n] &= ~SET_94x94;
+				cset[n] &= ~SET_94x94;
 				while ( *p != _T('\0') ) {
 					if ( *p >= 0x30 && *p <= 0x7E ) {
 						tmp += *(p++);
 						break;
 					} else if ( *p == _T('/') ) {
 						p++;
-						m_BankTab[m_KanjiMode][n] |= SET_94x94;
+						cset[n] |= SET_94x94;
 					} else
 						tmp += *(p++);
 				}
-				m_BankTab[m_KanjiMode][n] = m_FontTab.IndexFind(m_BankTab[m_KanjiMode][n] & SET_MASK, tmp);
+				m_BankTab[m_KanjiMode][n] = m_FontTab.IndexFind(cset[n], tmp);
 			}
 		}
 		break;
@@ -7561,11 +7720,11 @@ void CTextRam::fc_DECRQPSR(DWORD ch)
 			0x40 + (IsOptEnable(TO_ANSIERM) ? 1 : 0),
 			0x40 + (IsOptEnable(TO_DECAWM) ? 8 : 0) + (m_BankSG == 3 ? 4 : 0) + (m_BankSG == 2 ? 2 : 0) + (IsOptEnable(TO_DECOM) ? 1 : 0),
 			m_BankGL, m_BankGR,
-			0x40 + ((m_BankTab[m_KanjiMode][3] & SET_96) != 0 ? 8 : 0) + ((m_BankTab[m_KanjiMode][2] & SET_96) != 0 ? 4 : 0) + ((m_BankTab[m_KanjiMode][1] & SET_96) != 0 ? 2 : 0) + ((m_BankTab[m_KanjiMode][0] & SET_96) != 0 ? 1 : 0),
-			((m_BankTab[m_KanjiMode][0] & SET_94x94) != 0 ? _T("/") : _T("")), m_FontTab[m_BankTab[m_KanjiMode][0]].m_IndexName,
-			((m_BankTab[m_KanjiMode][1] & SET_94x94) != 0 ? _T("/") : _T("")), m_FontTab[m_BankTab[m_KanjiMode][1]].m_IndexName,
-			((m_BankTab[m_KanjiMode][2] & SET_94x94) != 0 ? _T("/") : _T("")), m_FontTab[m_BankTab[m_KanjiMode][2]].m_IndexName,
-			((m_BankTab[m_KanjiMode][3] & SET_94x94) != 0 ? _T("/") : _T("")), m_FontTab[m_BankTab[m_KanjiMode][3]].m_IndexName,
+			0x40 + ((m_FontTab[m_BankTab[m_KanjiMode][3]].m_CodeSet & SET_96) != 0 ? 8 : 0) + ((m_FontTab[m_BankTab[m_KanjiMode][2]].m_CodeSet & SET_96) != 0 ? 4 : 0) + ((m_FontTab[m_BankTab[m_KanjiMode][1]].m_CodeSet & SET_96) != 0 ? 2 : 0) + ((m_FontTab[m_BankTab[m_KanjiMode][0]].m_CodeSet & SET_96) != 0 ? 1 : 0),
+			((m_FontTab[m_BankTab[m_KanjiMode][0]].m_CodeSet & SET_94x94) != 0 ? _T("/") : _T("")), m_FontTab[m_BankTab[m_KanjiMode][0]].m_IndexName,
+			((m_FontTab[m_BankTab[m_KanjiMode][1]].m_CodeSet & SET_94x94) != 0 ? _T("/") : _T("")), m_FontTab[m_BankTab[m_KanjiMode][1]].m_IndexName,
+			((m_FontTab[m_BankTab[m_KanjiMode][2]].m_CodeSet & SET_94x94) != 0 ? _T("/") : _T("")), m_FontTab[m_BankTab[m_KanjiMode][2]].m_IndexName,
+			((m_FontTab[m_BankTab[m_KanjiMode][3]].m_CodeSet & SET_94x94) != 0 ? _T("/") : _T("")), m_FontTab[m_BankTab[m_KanjiMode][3]].m_IndexName,
 			m_RetChar[RC_ST]);
 		break;
 
@@ -8898,7 +9057,12 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 			pGrapWnd->Create(NULL, _T("iTerm2Ext"));
 
 			if ( pGrapWnd->LoadPicture(tmp.GetPtr(), tmp.GetSize()) ) {
-				GetCellSize(&CharWidth, &CharHeight);
+				if ( IsOptEnable(TO_RLSIXELSIZE) ) {
+					GetCellSize(&CharWidth, &CharHeight);
+				} else {
+					CharWidth = 10;
+					CharHeight = 10 * m_DefFontHw / 10;
+				}
 
 				// default auto
 				cx = 0;

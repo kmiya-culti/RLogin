@@ -33,8 +33,8 @@ winget install nasm
 # ライブラリなどをダウンロード
 Invoke-WebRequest -Uri http://www.openssl.org/source/openssl-3.5.4.tar.gz -OutFile openssl-3.5.4.tar.gz
 Invoke-WebRequest -Uri https://zlib.net/zlib-1.3.1.tar.xz -OutFile zlib-1.3.1.tar.xz
-Invoke-WebRequest -Uri https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz -OutFile libiconv-1.17.tar.gz
-Invoke-WebRequest -Uri http://nanno.bf1.jp/softlib/man/rlogin/libiconv-1.17.patch -OutFile libiconv-1.17.patch
+Invoke-WebRequest -Uri https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz -OutFile libiconv-1.18.tar.gz
+Invoke-WebRequest -Uri http://nanno.bf1.jp/softlib/man/rlogin/libiconv-1.18.patch -OutFile libiconv-1.18.patch
 Invoke-WebRequest -Uri http://nanno.bf1.jp/softlib/man/rlogin/nettle-2.0.zip -OutFile nettle-2.0.zip
 
 # 各種プログラムのインストール直後ならターミナルを再起動しないと
@@ -50,7 +50,7 @@ git clone https://github.com/kmiya-culti/RLogin.git -b master
 cd RLogin\RLogin
 tar xzvf ..\..\openssl-3.5.4.tar.gz
 tar xzvf ..\..\zlib-1.3.1.tar.xz
-tar xzvf ..\..\libiconv-1.17.tar.gz
+tar xzvf ..\..\libiconv-1.18.tar.gz
 Expand-Archive -Path ..\..\nettle-2.0.zip -DestinationPath .
 
 # Visual Studio 2022のx64 Native Tools Command Prompt for VS 2022環境を起動する
@@ -64,9 +64,9 @@ nmake
 cd ..
 
 # libiconvをコンパイルする
-cd libiconv-1.17
+cd libiconv-1.18
 # Git Bashでpatchを実行
-"C:\Program Files\Git\git-bash.exe" -c "patch -p1 -i ../../../libiconv-1.17.patch"
+"C:\Program Files\Git\git-bash.exe" -c "patch -p1 -i ../../../libiconv-1.18.patch"
 cd lib
 nmake -f Makefile.ms x64
 cd ..\..

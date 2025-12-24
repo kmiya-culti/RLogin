@@ -236,7 +236,7 @@ BOOL CBlockDlg::OnInitDialog()
 
 	int n;
 
-	ASSERT(m_CodeSet >= 0 && m_CodeSet < CODE_MAX);
+	ASSERT(m_CodeSet >= 0);
 	ASSERT(m_pFontTab != NULL);
 	ASSERT(m_pFontNode != NULL);
 
@@ -245,7 +245,7 @@ BOOL CBlockDlg::OnInitDialog()
 	for ( n = 0 ; n < UNIBLOCKTABMAX ; n++ )
 		m_UniBlockTab.Add(UniBlockTab[n].code, (-1), UniBlockTab[n].name);
 
-	for ( n = 0 ; n < CODE_MAX ; n++ )
+	for ( n = 0 ; n < m_pFontTab->GetSize() ; n++ )
 		m_UniBlockTab.SetBlockCode((*m_pFontTab)[n].m_UniBlock, n);
 
 	m_UniBlockNow = m_UniBlockTab;
@@ -374,7 +374,7 @@ void CBlockDlg::OnEditCopyAll()
 
 	for ( n = 0 ; n < m_UniBlockTab.GetSize() ; n++ ) {
 		str.Format(_T("U+%06X\t"), m_UniBlockTab[n].code);
-		if ( m_UniBlockTab[n].index >= 0 && m_UniBlockTab[n].index < CODE_MAX && !(*m_pFontTab)[m_UniBlockTab[n].index].m_EntryName.IsEmpty() )
+		if ( m_UniBlockTab[n].index >= 0 && m_UniBlockTab[n].index < m_pFontTab->GetSize() && !(*m_pFontTab)[m_UniBlockTab[n].index].m_EntryName.IsEmpty() )
 			str += (*m_pFontTab)[m_UniBlockTab[n].index].m_EntryName;
 		if ( m_UniBlockTab[n].name != NULL ) {
 			str += _T("\t");
@@ -411,7 +411,7 @@ void CBlockDlg::OnEditPasteAll()
 	if ( !tmp.IsEmpty() )
 		line.Add(tmp);
 
-	for ( n = 0 ; n < CODE_MAX ; n++ ) {
+	for ( n = 0 ; n < m_pFontTab->GetSize() ; n++ ) {
 		if ( !(*m_pFontTab)[n].m_EntryName.IsEmpty() )
 			index[(*m_pFontTab)[n].m_EntryName] = n;
 		(*m_pFontTab)[n].m_UniBlock.Empty();
@@ -431,7 +431,7 @@ void CBlockDlg::OnEditPasteAll()
 	m_UniBlockNow = m_UniBlockTab;
 
 	for ( n = 0 ; n < m_UniBlockTab.GetSize() ; n++ ) {
-		if ( m_UniBlockTab[n].index > 0 && m_UniBlockTab[n].index < CODE_MAX ) {
+		if ( m_UniBlockTab[n].index > 0 && m_UniBlockTab[n].index < m_pFontTab->GetSize() ) {
 			str.Format(_T("U+%06X"), m_UniBlockTab[n].code);
 			if ( !(*m_pFontTab)[m_UniBlockTab[n].index].m_UniBlock.IsEmpty() )
 				(*m_pFontTab)[m_UniBlockTab[n].index].m_UniBlock += _T(",");
