@@ -415,7 +415,7 @@ public:
 	int ChkOldCertHosts(LPCTSTR host);
 
 	int XmssSign(CBuffer *bp, LPBYTE buf, int len);
-	BOOL CompositeHash(CBuffer *bp, LPBYTE buf, int len, LPBYTE rad);
+	BOOL CompositeHash(CBuffer *bp, LPBYTE buf, int len);
 	int CompositeSign(CBuffer *bp, LPBYTE buf, int len);
 	BOOL SignAlgCheck(LPCTSTR alg);
 	int Sign(CBuffer *bp, LPBYTE buf, int len);

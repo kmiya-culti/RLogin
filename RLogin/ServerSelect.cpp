@@ -1609,7 +1609,7 @@ void CServerSelect::OnUpdateListIcon()
 	} else
 		m_ImageSemaphore.Unlock();
 
-	InitEntry(INIT_CALL_UPDATE);
+	InitEntry(INIT_CALL_NONE);
 }
 #endif
 

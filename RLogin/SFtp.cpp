@@ -3435,6 +3435,10 @@ BOOL CSFtp::OnInitDialog()
 	CString tmp, work;
 	m_LocalCwdHis.RemoveAll();
 	m_RemoteCwdHis.RemoveAll();
+
+	m_LocalCwd.m_pSFtp = this;
+	m_RemoteCwd.m_pSFtp = this;
+
 	for ( n = 1 ; n < 10 ; n++ ) {
 		tmp.Format(_T("LoCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, n);
 		tmp = AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T(""));

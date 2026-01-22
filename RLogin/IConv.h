@@ -24,12 +24,13 @@ public:
 	class CIConv *m_Right;
 	DWORD m_Table[256];
 	int m_ErrCount;
-	int m_CodePage;
+	int m_FromCodePage;
+	int m_ToCodePage;
 	CDwordIndex m_CodeIndex;
 	const WORD *m_DecTab;
 
-	DWORD JisToSJis(DWORD cd);
-	DWORD SJisToJis(DWORD cd);
+	CBuffer *ExtFromConv(CBuffer *in);
+	void ExtToConv(CBuffer *out);
 
 	void IConvClose();
 	class CIConv *GetIConv(LPCTSTR from, LPCTSTR to);
@@ -41,9 +42,9 @@ public:
 	void RemoteToStr(LPCTSTR from, LPCSTR in, CString &out);
 	DWORD IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch);
 
+	static BOOL IHaveCodePage(int cp);
 	static void SetListArray(CStringArray &stra);
 	static BOOL IsIconvList(LPCSTR name);
-	static LPCTSTR GetCodePageName(int codepage);
 
 	CIConv();
 	virtual ~CIConv();

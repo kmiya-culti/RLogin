@@ -3915,7 +3915,7 @@ ENDOF:
 int	MD_digest(const EVP_MD *md, BYTE *in, int inlen, BYTE *out, int outlen)
 {
 	EVP_MD_CTX *ctx = NULL;
-	unsigned dlen = 0;
+	int dlen = 0;
 
 	if ( md == NULL )
 		goto ENDOF;
@@ -3929,10 +3929,10 @@ int	MD_digest(const EVP_MD *md, BYTE *in, int inlen, BYTE *out, int outlen)
 	if ( EVP_DigestUpdate(ctx, in, inlen) <= 0 )
 		goto ENDOF;
 
-	if ( outlen < EVP_MD_size(md) )
+	if ( outlen < (dlen = EVP_MD_size(md)) )
 		goto ENDOF;
 
-	if ( EVP_DigestFinal(ctx, out, &dlen) <= 0 )
+	if ( EVP_DigestFinal(ctx, out, NULL) <= 0 )
 		goto ENDOF;
 
 ENDOF:

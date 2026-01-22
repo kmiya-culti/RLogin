@@ -9,13 +9,20 @@
 TD {
 				
 				
+				
+				
+				
+				
 		background-color : #ffffff; font-size : 90%; 
 }
 .BOX{
 				
 				
-					
-background-color : silver; 
+				
+				
+				
+				
+		background-color : silver; 
 }
 -->
 </STYLE>
@@ -30,8 +37,8 @@ background-color : silver;
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.31.2)</TD>
-            <TD width="20%" align="right">2025/12/25</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.31.3)</TD>
+            <TD width="20%" align="right">2026/01/23</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -446,6 +453,17 @@ background-color : silver;
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2026/01/23</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.31.3/">2.31.3</A></TD>
+            <TD>2.31.1で/inuseコマンドラインオプションが動作しない不都合を修正<BR>
+            2.31.1でプライベートプロファイル使用時にポートフォワード設定が壊れるのを修正<BR>
+            実行ファイルのアーカイブに各種ライブラリのライセンスを付属するように変更<BR>
+            おさかなを飼うの画像を新たに作成し解像度を上げライセンスを変更<BR>
+            各ビューが再アクティブ時に画面を更新するように変更<BR>
+            mldsa44/65/87-es/edの仕様変更に追従して暫定的に対応<BR>
+            iconvリストにWindowsのコードページとDEC文字セットなどを追加</TD>
+          </TR>
+          <TR>
             <TD align="center">2025/12/25</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.31.2/">2.31.2</A></TD>
             <TD>2.31.1で「BPlus…ファイル転送を有効にする」が機能しない不都合を修正<BR>
@@ -488,12 +506,6 @@ background-color : silver;
             バイトオーダーの定義を行って処理関数を使用するように変更<BR>
             2.30.8のServer Selectリストのアイコン表示がエラーの処理を修正<BR>
             openssl-3.5.3に更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2025/08/26</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.8/">2.30.8</A></TD>
-            <TD>Server Selectのリストにアイコンを追加<BR>
-            openssl-3.5.2に更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -633,7 +645,7 @@ background-color : silver;
             Originally written 2001 by Niels Moller, updated 2009.<BR>
             (twofish/serpentのみ使用)<BR>
             <BR>
-            kumaGIF<BR>
+            kumaGIF (Original Idea)<BR>
             Copyright (c) 1.023world All Rights Reserved.<BR>
             <A title="http://www.1023world.net/material/gif/" style="href: " href="https://1023world.net/" http: www.1023world.net material gif ??>http://1023world.net/</A><BR>
             <BR>
@@ -672,7 +684,15 @@ background-color : silver;
             <BR>
             追記（2017/10/20）<BR>
             <BR>
-            <A href="LICENSE.txt">This software is released under the MIT License.</A></TD>
+            <A href="LICENSE.txt">This software is released under the MIT License.</A><BR>
+            <BR>
+            追記（2055/12/26）<BR>
+            <BR>
+            再配布する場合には、使用している各種ライブラリのライセンスをご確認してください<BR>
+            <BR>
+            ライセンスがGPLの場合には、基本的に全ソースコードの公開が必要になります<BR>
+            <BR>
+            <A href="https://www.gnu.org/licenses/gpl-3.0.txt">GNU GENERAL PUBLIC LICENSE</A></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5312,7 +5332,8 @@ function TekClock2() {
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD colspan="2">Iconv Set　各種漢字コード変換に使用するiconvキャラクターセットを設定します</TD>
+                  <TD colspan="2">Iconv Set　各種漢字コード変換に使用するiconvキャラクターセットを設定します<BR>
+                  参照：<A href="codepage.html">CodePageとiconvリスト</A></TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">EUC</TD>

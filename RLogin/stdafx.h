@@ -4,7 +4,7 @@
 
 #pragma once
 
-#define	USE_GOZI			3	// GOZI Version
+#define	USE_GOZI			5	// GOZI Version
 #define	USE_DWMAPI				// ガラス効果を有効にする
 #define	USE_JUMPLIST			// Windows7のジャンプリストを有効
 #define	USE_TEXTFRAME			// 囲み文字を有効にする

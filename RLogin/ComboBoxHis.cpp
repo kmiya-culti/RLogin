@@ -4,6 +4,8 @@
 #include "stdafx.h"
 #include "RLogin.h"
 #include "ComboBoxHis.h"
+#include "IConv.h"
+#include "SFtp.h"
 
 // CComboBoxExt
 
@@ -15,6 +17,7 @@ IMPLEMENT_DYNAMIC(CComboBoxExt, CComboBox)
 
 CComboBoxExt::CComboBoxExt()
 {
+	m_pSFtp = NULL;
 }
 
 CComboBoxExt::~CComboBoxExt()
@@ -26,6 +29,29 @@ BEGIN_MESSAGE_MAP(CComboBoxExt, CComboBox)
 	ON_MESSAGE(WM_SETFONT, OnSetFont)
 END_MESSAGE_MAP()
 
+BOOL CComboBoxExt::PreTranslateMessage(MSG* pMsg)
+{
+	int idx;
+	CString tmp[2];
+
+	if ( m_pSFtp != NULL && pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_DELETE && GetDroppedState() && (idx = GetCurSel()) >= 0 ) {
+		GetWindowText(tmp[0]);
+		GetLBText(idx, tmp[1]);
+		ShowDropDown(FALSE);
+		DeleteString(idx);
+		ShowDropDown(TRUE);
+		SetCurSel(idx);
+		if ( tmp[0].Compare(tmp[1]) != 0 )
+			SetWindowText(tmp[0]);
+		if ( m_pSFtp->m_LocalCwd.GetSafeHwnd() == GetSafeHwnd() )
+			m_pSFtp->DelLocalCwdHis(tmp[1]);
+		else if ( m_pSFtp->m_RemoteCwd.GetSafeHwnd() == GetSafeHwnd() )
+			m_pSFtp->DelRemoteCwdHis(tmp[1]);
+		return TRUE;
+	}
+
+	return CComboBox::PreTranslateMessage(pMsg);
+}
 void CComboBoxExt::OnWindowPosChanged(WINDOWPOS* lpwndpos)
 {
 	DWORD pos = GetEditSel();

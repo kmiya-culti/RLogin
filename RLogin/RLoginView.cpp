@@ -303,7 +303,7 @@ CRLoginView::CRLoginView()
 	m_GoziStyle = (8 << 4) | 9;
 	m_GoziCount = 4 + rand() % 28;
 	m_GoziPos.SetPoint(0, 0);
-#elif USE_GOZI == 3 || USE_GOZI == 4
+#elif USE_GOZI == 3 || USE_GOZI == 4 || USE_GOZI == 5
 	m_GoziMax = 3;
 	for ( int n = 0 ; n < 8 ; n++ ) {
 		m_GoziData[n].m_GoziStyle = 5;
@@ -510,7 +510,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 		if ( pMain != NULL && pMain->m_ImageGozi.m_hImageList != NULL )
 			pMain->m_ImageGozi.Draw(pDC, m_GoziStyle >> 4, m_GoziPos, ILD_NORMAL);
 	}
-#elif	USE_GOZI == 3 || USE_GOZI == 4
+#elif	USE_GOZI == 3 || USE_GOZI == 4 || USE_GOZI == 5
 	if ( m_GoziView ) {
 		CMainFrame *pMain = GetMainWnd();
 		for ( int n = 0 ; n < m_GoziMax ; n++ ) {
@@ -2056,12 +2056,14 @@ void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pD
 	if ( bActivate ) {
 		ASSERT(pActivateView == this);
 
+		CRLoginDoc *pDoc = GetDocument();
+
 		if ( !m_ActiveFlag ) {
-			CRLoginDoc *pDoc = GetDocument();
 			m_ActiveFlag = TRUE;
 			SetFrameRect(-1, -1);
 			pDoc->UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
-		}
+		} else
+			pDoc->UpdateAllViews(NULL, UPDATE_INVALIDATE, NULL);
 
 	} else {
 		ASSERT(pDeactiveView == this);
@@ -2492,7 +2494,7 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		rect.SetRect(m_GoziPos.x, m_GoziPos.y, m_GoziPos.x + 32, m_GoziPos.y + 32);
 		InvalidateRect(rect, FALSE);
 
-#elif USE_GOZI == 3 || USE_GOZI == 4
+#elif USE_GOZI == 3 || USE_GOZI == 4 || USE_GOZI == 5
 		sz = ((CMainFrame *)::AfxGetMainWnd())->m_ImageSize;
 
 		for ( n = 0 ; n < m_GoziMax ; n++ ) {
@@ -4070,6 +4072,14 @@ void CRLoginView::OnGoziview()
 		m_GoziMax = 3 + (rand() % 6);
 		for ( int n = 0 ; n < m_GoziMax ; n++ ) {
 			m_GoziData[n].m_GoziStyle = (((rand() % 13) * 12) << 4) | 5;
+			m_GoziData[n].m_GoziPos.SetPoint(0, 0);
+		}
+		SetTimer(VTMID_GOZIUPDATE, 200, NULL);
+#elif USE_GOZI == 5
+		m_GoziMax = 3 + (rand() % 6);
+		int style = (((rand() % 3) * 12) << 4) | 5;
+		for ( int n = 0 ; n < m_GoziMax ; n++ ) {
+			m_GoziData[n].m_GoziStyle = style;
 			m_GoziData[n].m_GoziPos.SetPoint(0, 0);
 		}
 		SetTimer(VTMID_GOZIUPDATE, 200, NULL);

@@ -118,6 +118,8 @@
 #define IDB_BITMAP10                    430
 #define IDB_BITMAP11                    431
 #define IDB_BITMAP12                    432
+#define IDB_BITMAP13                    433
+#define IDB_BITMAP14                    434
 #define IDI_ACTIVE                      450
 #define IDS_AGENT_DELKEY                500
 #define IDS_ALLINITREQ                  501
@@ -918,10 +920,15 @@
 #define IDC_TERMCAP                     2350
 #define IDC_SYSLINK3                    2350
 #define IDC_TERMCHECK1                  2351
+#define IDC_SYSLINK4                    2351
 #define IDC_TERMCHECK2                  2352
+#define IDC_SYSLINK5                    2352
 #define IDC_TERMCHECK3                  2353
+#define IDC_SYSLINK6                    2353
 #define IDC_TERMCHECK4                  2354
+#define IDC_SYSLINK7                    2354
 #define IDC_TERMCHECK5                  2355
+#define IDC_SYSLINK8                    2355
 #define IDC_TERMCHECK6                  2356
 #define IDC_TERMCHECK7                  2357
 #define IDC_TERMCHECK8                  2358

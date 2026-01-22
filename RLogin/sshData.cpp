@@ -2572,7 +2572,7 @@ LPCTSTR CIdKey::GetName(int nFlag)
 		m_Work += GetDsaName(m_Nid);
 		break;
 	case IDKEY_ML_DSA_ES:
-		m_Work += _T("ssh-mldsa");			// draft-sun-ssh-composite-sigs-01
+		m_Work += _T("ssh-mldsa");			// draft-sun-ssh-composite-sigs-02
 		switch(m_Nid) {
 		case NID_ML_DSA_44:
 			m_Work += _T("44-es256");
@@ -2586,7 +2586,7 @@ LPCTSTR CIdKey::GetName(int nFlag)
 		}
 		break;
 	case IDKEY_ML_DSA_ED:
-		m_Work += _T("ssh-mldsa");			// draft-sun-ssh-composite-sigs-01
+		m_Work += _T("ssh-mldsa");			// draft-sun-ssh-composite-sigs-02
 		switch(m_Nid) {
 		case NID_ML_DSA_44:
 			m_Work += _T("44-ed25519");
@@ -2671,12 +2671,12 @@ BOOL CIdKey::GetTypeFromName(LPCTSTR name, int &type, int &nid)
 		{ _T("ssh-mldsa-44"),				IDKEY_ML_DSA,		NID_ML_DSA_44			},	// draft-sfluhrer-ssh-mldsa-04
 		{ _T("ssh-mldsa-65"),				IDKEY_ML_DSA,		NID_ML_DSA_65			},	// draft-sfluhrer-ssh-mldsa-04
 		{ _T("ssh-mldsa-87"),				IDKEY_ML_DSA,		NID_ML_DSA_87			},	// draft-sfluhrer-ssh-mldsa-04
-		{ _T("ssh-mldsa44-ed25519"),		IDKEY_ML_DSA_ED,	NID_ML_DSA_44			},	// draft-sun-ssh-composite-sigs-01	NID_ED25519
-		{ _T("ssh-mldsa44-es256"),			IDKEY_ML_DSA_ES,	NID_ML_DSA_44			},	// draft-sun-ssh-composite-sigs-01	NID_X9_62_prime256v1
-		{ _T("ssh-mldsa65-ed25519"),		IDKEY_ML_DSA_ED,	NID_ML_DSA_65			},	// draft-sun-ssh-composite-sigs-01	NID_ED25519
-		{ _T("ssh-mldsa65-es256"),			IDKEY_ML_DSA_ES,	NID_ML_DSA_65			},	// draft-sun-ssh-composite-sigs-01	NID_X9_62_prime256v1
-		{ _T("ssh-mldsa87-ed448"),			IDKEY_ML_DSA_ED,	NID_ML_DSA_87			},	// draft-sun-ssh-composite-sigs-01	NID_ED448
-		{ _T("ssh-mldsa87-es384"),			IDKEY_ML_DSA_ES,	NID_ML_DSA_87			},	// draft-sun-ssh-composite-sigs-01	NID_secp384r1
+		{ _T("ssh-mldsa44-ed25519"),		IDKEY_ML_DSA_ED,	NID_ML_DSA_44			},	// draft-sun-ssh-composite-sigs-02	NID_ED25519
+		{ _T("ssh-mldsa44-es256"),			IDKEY_ML_DSA_ES,	NID_ML_DSA_44			},	// draft-sun-ssh-composite-sigs-02	NID_X9_62_prime256v1
+		{ _T("ssh-mldsa65-ed25519"),		IDKEY_ML_DSA_ED,	NID_ML_DSA_65			},	// draft-sun-ssh-composite-sigs-02	NID_ED25519
+		{ _T("ssh-mldsa65-es256"),			IDKEY_ML_DSA_ES,	NID_ML_DSA_65			},	// draft-sun-ssh-composite-sigs-02	NID_X9_62_prime256v1
+		{ _T("ssh-mldsa87-ed448"),			IDKEY_ML_DSA_ED,	NID_ML_DSA_87			},	// draft-sun-ssh-composite-sigs-02	NID_ED448
+		{ _T("ssh-mldsa87-es384"),			IDKEY_ML_DSA_ES,	NID_ML_DSA_87			},	// draft-sun-ssh-composite-sigs-02	NID_secp384r1
 		{ _T("ssh-rsa"),					IDKEY_RSA2,			NID_sha1				},
 		{ _T("ssh-slh-dsa-sha2-128f"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_128f	},
 		{ _T("ssh-slh-dsa-sha2-128s"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_128s	},
@@ -3016,14 +3016,14 @@ int CIdKey::XmssSign(CBuffer *bp, LPBYTE buf, int len)
 
 	return TRUE;
 }
-int CIdKey::CompositeHash(CBuffer *bp, LPBYTE buf, int len, LPBYTE rad)
+int CIdKey::CompositeHash(CBuffer *bp, LPBYTE buf, int len)
 {
-	// draft-sun-ssh-composite-sigs-01
+	// draft-sun-ssh-composite-sigs-02
 	// 3.2.  Composite Sign
-	//	M' <- Prefix || Domain || 0x00 || r || PH(M)
+	//	M' <- Prefix || Label || 0x00 || PH(M)
 
 	BYTE *prefix = (BYTE *)"CompositeAlgorithmSignatures2025";	// 32 byte
-	BYTE *domain;
+	BYTE *label;
 	const EVP_MD *md = EVP_sha512();
 	int dlen = EVP_MAX_MD_SIZE;
 	u_char digest[EVP_MAX_MD_SIZE];
@@ -3033,13 +3033,13 @@ int CIdKey::CompositeHash(CBuffer *bp, LPBYTE buf, int len, LPBYTE rad)
 		switch(m_Nid) {
 		case NID_ML_DSA_44:
 			md = EVP_sha256();
-			domain = (BYTE *)"\x06\x0B\x60\x86\x48\x01\x86\xFA\x6B\x50\x09\x01\x03";
+			label = (BYTE *)"COMPSIG-MLDSA44-ECDSA-P256-SHA256";
 			break;
 		case NID_ML_DSA_65:
-			domain = (BYTE *)"\x06\x0B\x60\x86\x48\x01\x86\xFA\x6B\x50\x09\x01\x08";
+			label = (BYTE *)"COMPSIG-MLDSA65-ECDSA-P256-SHA512";
 			break;
 		case NID_ML_DSA_87:
-			domain = (BYTE *)"\x06\x0B\x60\x86\x48\x01\x86\xFA\x6B\x50\x09\x01\x0C";
+			label = (BYTE *)"COMPSIG-MLDSA87-ECDSA-P384-SHA512";
 			break;
 		default:
 			return FALSE;
@@ -3048,13 +3048,14 @@ int CIdKey::CompositeHash(CBuffer *bp, LPBYTE buf, int len, LPBYTE rad)
 	case IDKEY_ML_DSA_ED:
 		switch(m_Nid) {
 		case NID_ML_DSA_44:
-			domain = (BYTE *)"\x06\x0B\x60\x86\x48\x01\x86\xFA\x6B\x50\x09\x01\x02";
+			label = (BYTE *)"COMPSIG-MLDSA44-Ed25519-SHA512";
 			break;
 		case NID_ML_DSA_65:
-			domain = (BYTE *)"\x06\x0B\x60\x86\x48\x01\x86\xFA\x6B\x50\x09\x01\x0B";
+			label = (BYTE *)"COMPSIG-MLDSA65-Ed25519-SHA512";
 			break;
 		case NID_ML_DSA_87:
-			domain = (BYTE *)"\x06\x0B\x60\x86\x48\x01\x86\xFA\x6B\x50\x09\x01\x0E";
+			md = EVP_shake256();
+			label = (BYTE *)"COMPSIG-MLDSA87-Ed448-SHAKE256";
 			break;
 		default:
 			return FALSE;
@@ -3068,9 +3069,8 @@ int CIdKey::CompositeHash(CBuffer *bp, LPBYTE buf, int len, LPBYTE rad)
 		return FALSE;
 
 	bp->Apend(prefix, 32);
-	bp->Apend(domain, 13);
+	bp->Apend(label, (int)strlen((LPCSTR)label));
 	bp->Apend((BYTE *)"\x00", 1);
-	bp->Apend(rad, 32);
 	bp->Apend(digest, dlen);
 
 	return TRUE;
@@ -3095,7 +3095,6 @@ int CIdKey::CompositeSign(CBuffer *bp, LPBYTE buf, int len)
 {
 	int n;
 	CIdKey firKey, secKey;
-	BYTE ra[32];
 	CBuffer hash, sig, tmp;
 	int pubLen = 0;
 	int priLen = 0;
@@ -3180,12 +3179,8 @@ int CIdKey::CompositeSign(CBuffer *bp, LPBYTE buf, int len)
 		secKey.m_bSecInit = TRUE;
 	}
 
-	rand_buf(ra, 32);
-
-	if ( !CompositeHash(&hash, buf, len, ra) )
+	if ( !CompositeHash(&hash, buf, len) )
 		return FALSE;
-
-	tmp.Apend(ra, 32);
 
 	if ( !firKey.Sign(&sig, hash.GetPtr(), hash.GetSize()) )
 		return FALSE;
@@ -3405,7 +3400,6 @@ int CIdKey::XmssVerify(CBuffer *sig, LPBYTE data, int datalen)
 int CIdKey::CompositeVerify(CBuffer *sig, LPBYTE data, int datalen)
 {
 	CIdKey firKey, secKey;
-	BYTE ra[32];
 	CBuffer hash, tmp;
 	int pubLen = 0;
 	int sigLen = 0;
@@ -3463,10 +3457,7 @@ int CIdKey::CompositeVerify(CBuffer *sig, LPBYTE data, int datalen)
 		secKey.m_PublicKey.Apend(pub.GetPtr(), pub.GetSize());
 	}
 
-	memcpy(ra, sig->GetPtr(), 32);
-	sig->Consume(32);
-
-	if ( !CompositeHash(&hash, data, datalen, ra) )
+	if ( !CompositeHash(&hash, data, datalen) )
 		return FALSE;
 
 	tmp.Clear();

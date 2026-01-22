@@ -483,7 +483,7 @@ void CCommandLineInfoEx::GetString(CString &str)
 		str += tmp;
 	}
 
-	if ( m_DarkOff == FALSE )
+	if ( m_DarkOff )
 		str += _T(" /darkoff");
 
 	if ( !m_Opt.IsEmpty() ) {
@@ -600,6 +600,11 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogExt)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK1, &CAboutDlg::OnNMClickSyslink)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK2, &CAboutDlg::OnNMClickSyslink)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK3, &CAboutDlg::OnNMClickSyslink)
+	ON_NOTIFY(NM_CLICK, IDC_SYSLINK4, &CAboutDlg::OnNMClickSyslink)
+	ON_NOTIFY(NM_CLICK, IDC_SYSLINK5, &CAboutDlg::OnNMClickSyslink)
+	ON_NOTIFY(NM_CLICK, IDC_SYSLINK6, &CAboutDlg::OnNMClickSyslink)
+	ON_NOTIFY(NM_CLICK, IDC_SYSLINK7, &CAboutDlg::OnNMClickSyslink)
+	ON_NOTIFY(NM_CLICK, IDC_SYSLINK8, &CAboutDlg::OnNMClickSyslink)
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
@@ -1612,8 +1617,7 @@ BOOL CRLoginApp::InitInstance()
 	setlocale(LC_ALL, "");
 
 	// OS設定のSystem CodePageをiconvでの名前で保存
-	LPCTSTR p = CIConv::GetCodePageName(_getmbcp());
-	SystemIconv = (p != NULL ? p : _T("UTF-8"));
+	SystemIconv.Format(_T("CP%d"), _getmbcp());
 
 	//TODO: call AfxInitRichEdit2() to initialize richedit2 library.
 	// アプリケーション マニフェストが visual スタイルを有効にするために、

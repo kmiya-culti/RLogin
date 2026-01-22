@@ -8878,7 +8878,6 @@ void CParamTab::SetArray(CStringArrayExt &stra)
 				stra.AddArray(m_AlgoTab[n]);
 			else
 				stra.Add(_T(""));
-			stra.AddArray(m_AlgoTab[n]);
 		}
 	} else {
 		for ( n = 0 ; n < 9 ; n++ )
@@ -9002,7 +9001,8 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 				list.AddVal(a);
 				list.SetString(stra[i]);
 			}
-			m_PortFwd.Add(stra[i]);
+			if ( list[4].Compare(_T("0")) == 0 || list[4].Compare(_T("1")) == 0 || list[4].Compare(_T("2")) == 0 || list[4].Compare(_T("3")) == 0 )
+				m_PortFwd.Add(stra[i]);
 		}
 		i++;
 	}

@@ -107,6 +107,8 @@ IDR_TOOLBAR2            BITMAP                  "res\\toolbar2.bmp"
 IDB_BITMAP10            BITMAP                  "res\\bitmap10.bmp"
 IDB_BITMAP11            BITMAP                  "res\\bitmap11.bmp"
 IDB_BITMAP12            BITMAP                  "res\\bitmap12.bmp"
+IDB_BITMAP13            BITMAP                  "res\\bitmap13.bmp"
+IDB_BITMAP14            BITMAP                  "res\\bitmap14.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -738,35 +740,45 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 243, 247
+IDD_ABOUTBOX DIALOGEX 0, 0, 243, 298
 STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "About RLogin"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,91,226,60,14,WS_GROUP
+    DEFPUSHBUTTON   "OK",IDOK,91,277,60,14,WS_GROUP
     CONTROL         "<a href=""https://kmiya-culti.github.io/RLogin/"">https://kmiya-culti.github.io/RLogin/</a>",IDC_SYSLINK3,
                     "SysLink",WS_TABSTOP,44,27,189,8
     CONTROL         "<a href=""http://nanno.bf1.jp/softlib/man/rlogin/"">http://nanno.bf1.jp/softlib/man/rlogin/</a>",IDC_SYSLINK2,
                     "SysLink",WS_TABSTOP,44,37,189,8
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
-                    "SysLink",WS_TABSTOP,44,210,189,8
+                    "SysLink",WS_TABSTOP,44,261,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.31.2 (2025/12/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 1998-2025 Culti",IDC_STATIC,44,17,189,8
-    LTEXT           "OpenSSL 3.5.4 30 Sep 2025",IDC_STATIC,44,50,189,8
-    LTEXT           "Copyright (c) 1998-2025 The OpenSSL Project",IDC_STATIC,44,60,189,8
-    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
-    LTEXT           "All rights reserved.",IDC_STATIC,44,80,189,8
-    LTEXT           "zlib 1.3.1 (22 Jan 2024)",IDC_STATIC,44,94,189,8
-    LTEXT           "Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,104,189,8
-    LTEXT           "iconv (GNU libiconv 1.18)",IDC_STATIC,44,118,189,8
-    LTEXT           "Copyright (C) 2000-2024 Free Software Foundation, Inc.",IDC_STATIC,44,128,189,8
-    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,142,189,8
-    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,152,189,8
-    LTEXT           "kumaGIF",IDC_STATIC,44,190,189,8
-    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,200,189,8
-    LTEXT           "putty-0.75-pre (blake2/argon2 source code)",IDC_STATIC,44,176,189,8
-    LTEXT           "PuTTY is copyright 1997-2021 Simon Tatham.",IDC_STATIC,44,166,189,8
+    LTEXT           "RLogin (%s) Version 2.31.3 (2026/01/23)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1998-2026 Culti",IDC_STATIC,44,17,189,8
+    LTEXT           "OpenSSL 3.5.4 30 Sep 2025",IDC_STATIC,44,51,189,8
+    LTEXT           "Copyright (c) 1998-2025 The OpenSSL Project",IDC_STATIC,44,61,189,8
+    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,71,189,8
+    LTEXT           "All rights reserved.",IDC_STATIC,44,81,189,8
+    LTEXT           "zlib 1.3.1 (22 Jan 2024)",IDC_STATIC,44,105,189,8
+    LTEXT           "Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,115,189,8
+    LTEXT           "iconv (GNU libiconv 1.18)",IDC_STATIC,44,139,189,8
+    LTEXT           "Copyright (C) 2000-2024 Free Software Foundation, Inc.",IDC_STATIC,44,149,189,8
+    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,173,189,8
+    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,183,189,8
+    LTEXT           "kumaGIF (Original Idea)",IDC_STATIC,44,241,189,8
+    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,251,189,8
+    LTEXT           "putty-0.75-pre (blake2/argon2 source code)",IDC_STATIC,44,217,189,8
+    LTEXT           "PuTTY is copyright 1997-2021 Simon Tatham.",IDC_STATIC,44,207,189,8
+    CONTROL         "<a href=""https://openssl-library.org/source/license/apache-license-2.0.txt"">Apache License</a>",IDC_SYSLINK4,
+                    "SysLink",WS_TABSTOP,44,91,189,8
+    CONTROL         "<a href=""https://zlib.net/zlib_license.html"">zlib License</a>",IDC_SYSLINK5,
+                    "SysLink",WS_TABSTOP,44,125,189,8
+    CONTROL         "<a href=""https://www.gnu.org/licenses/gpl-3.0.txt"">GNU GENERAL PUBLIC LICENSE</a>",IDC_SYSLINK6,
+                    "SysLink",WS_TABSTOP,44,159,189,8
+    CONTROL         "<a href=""https://www.gnu.org/licenses/gpl-3.0.txt"">GNU GENERAL PUBLIC LICENSE</a>",IDC_SYSLINK7,
+                    "SysLink",WS_TABSTOP,44,193,189,8
+    CONTROL         "<a href=""https://www.chiark.greenend.org.uk/~sgtatham/putty/licence.html"">PuTTY Licence</a>",IDC_SYSLINK8,
+                    "SysLink",WS_TABSTOP,44,227,189,8
 END
 
 IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
@@ -928,7 +940,7 @@ FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     EDITTEXT        IDC_ENTRYNAME,15,31,169,14,ES_AUTOHSCROLL
     COMBOBOX        IDC_FONTCODE,190,31,43,140,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_ICONVSET,15,62,169,106,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_ICONVSET,15,62,169,106,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_CHARBANK,190,62,43,50,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_CHARSET,15,111,169,70,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Font",IDC_FONTSEL,190,110,43,14
@@ -1201,10 +1213,10 @@ STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "IConv Character Set"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    COMBOBOX        IDC_CHARSET1,53,15,136,106,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_CHARSET2,53,39,136,106,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_CHARSET3,53,63,136,106,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_CHARSET4,53,87,136,106,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARSET1,53,15,136,106,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARSET2,53,39,136,106,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARSET3,53,63,136,106,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARSET4,53,87,136,106,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     DEFPUSHBUTTON   "OK",IDOK,36,114,60,14
     PUSHBUTTON      "キャンセル",IDCANCEL,113,114,60,14
     CTEXT           "EUC",IDC_STATIC,13,17,30,8,SS_CENTERIMAGE
@@ -2226,13 +2238,13 @@ CAPTION "変換処理"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "文字コードの変換やエンコードを行わない",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,7,7,208,10
-    CONTROL         "文字コードの変換を行う",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,7,23,208,10
-    COMBOBOX        IDC_COMBO1,222,21,60,100,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_COMBO2,288,21,60,100,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "文字コードの変換を行う",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,7,23,170,10
+    COMBOBOX        IDC_COMBO1,183,21,80,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO2,268,21,80,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     CONTROL         "エンコード処理を行う",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,7,39,208,10
-    COMBOBOX        IDC_COMBO3,288,37,60,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO3,268,37,80,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "改行コードを変換する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,55,208,10
-    COMBOBOX        IDC_COMBO4,288,53,60,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO4,268,53,80,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
 IDD_EXTFILEDLG DIALOGEX 0, 0, 370, 147
@@ -2269,17 +2281,17 @@ CAPTION "受信処理"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "文字コードの変換やデコードを行わない",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,7,7,208,10
-    CONTROL         "文字コードの変換を行う",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,7,23,208,10
-    COMBOBOX        IDC_COMBO1,222,21,60,100,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_COMBO2,288,21,60,100,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "文字コードの変換を行う",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,7,23,170,10
+    COMBOBOX        IDC_COMBO1,183,21,80,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO2,268,21,80,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     CONTROL         "ファイルがすでに存在する場合に追加で書き込みを行う",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,39,202,10
     CONTROL         "デコード処理を行う",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,7,55,208,10
-    COMBOBOX        IDC_COMBO3,288,53,60,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO3,268,53,80,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "改行コードを変換する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,71,208,10
-    COMBOBOX        IDC_COMBO4,288,69,60,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO4,268,69,80,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "指定時間(sec)受信が無ければ終了する",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,87,208,10
     CONTROL         "受信した文字を表示する",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,103,208,10
-    EDITTEXT        IDC_EDIT1,288,85,60,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT1,268,85,80,14,ES_AUTOHSCROLL
 END
 
 IDD_SECPOLICYDLG DIALOGEX 0, 0, 270, 161
@@ -2378,8 +2390,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,31,2,0
- PRODUCTVERSION 2,31,2,0
+ FILEVERSION 2,31,3,0
+ PRODUCTVERSION 2,31,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2396,12 +2408,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.31.2.0"
+            VALUE "FileVersion", "2.31.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.31.2.0"
+            VALUE "ProductVersion", "2.31.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2424,7 +2436,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 236
         TOPMARGIN, 7
-        BOTTOMMARGIN, 240
+        BOTTOMMARGIN, 291
     END
 
     IDD_ALGOPARADLG, DIALOG

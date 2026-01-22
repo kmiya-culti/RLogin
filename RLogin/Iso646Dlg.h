@@ -31,6 +31,7 @@ public:
 
 	static BOOL Iso646Maping(LPCTSTR name, DWORD code[13]);
 	static int CodePage(LPCTSTR name);
+	static void CodePageList(CStringArray &stra);
 	static DWORD TableMaping(int idx, DWORD ch);
 	static void CodeIndex(int idx, CDwordIndex &code);
 

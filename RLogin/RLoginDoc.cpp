@@ -641,7 +641,7 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 		m_CmdsPath = pCmdInfo->m_Path;
 
 	if ( pCmdInfo->m_DarkOff  )
-		m_CmdsPath += _T(" /darkoff");
+		m_CmdLine += _T(" /darkoff");
 
 	if ( !pCmdInfo->m_Opt.IsEmpty() ) {
 		tmp.Format(_T(" /opt %s"), CCommandLineInfoEx::ShellEscape(pCmdInfo->m_Opt));

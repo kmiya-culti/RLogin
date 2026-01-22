@@ -134,7 +134,7 @@ public:
 	int m_GoziStyle;
 	int m_GoziCount;
 	CPoint m_GoziPos;
-#elif USE_GOZI == 3 || USE_GOZI == 4
+#elif USE_GOZI == 3 || USE_GOZI == 4 || USE_GOZI == 5
 	struct _GoziData {
 		int m_GoziStyle;
 		int m_GoziCount;

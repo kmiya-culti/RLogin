@@ -1107,12 +1107,12 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_ImageGozi.Add(&BitMap, RGB(192, 192, 192));
 	BitMap.DeleteObject();
 #elif	USE_GOZI == 3
-	BitMap.LoadResBitmap(IDB_BITMAP8, SYSTEM_DPI_X, SYSTEM_DPI_Y, RGB(255, 255, 255));
+	BitMap.LoadResBitmap(IDB_BITMAP8, SYSTEM_DPI_X * 24 / 48, SYSTEM_DPI_Y * 24 / 48, RGB(255, 0, 0));
 	BitMap.GetBitmap(&mapinfo);
 	m_ImageSize.cx = mapinfo.bmHeight;
 	m_ImageSize.cy = mapinfo.bmHeight;
 	m_ImageGozi.Create(m_ImageSize.cx, m_ImageSize.cy, ILC_COLOR24 | ILC_MASK, mapinfo.bmWidth / m_ImageSize.cx, 1);
-	m_ImageGozi.Add(&BitMap, RGB(255, 255, 255));
+	m_ImageGozi.Add(&BitMap, RGB(255, 0, 0));
 	BitMap.DeleteObject();
 #elif	USE_GOZI == 4
 	m_ImageGozi.Create(16, 16, ILC_COLOR24 | ILC_MASK, 12 * 13, 12);
@@ -1121,6 +1121,22 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		m_ImageGozi.Add(&BitMap, RGB(255, 255, 255));
 		BitMap.DeleteObject();
 	}
+#elif	USE_GOZI == 5
+	BitMap.LoadResBitmap(IDB_BITMAP8, SYSTEM_DPI_X * 24 / 48, SYSTEM_DPI_Y * 24 / 48, RGB(255, 0, 0));
+	BitMap.GetBitmap(&mapinfo);
+	m_ImageSize.cx = mapinfo.bmHeight;
+	m_ImageSize.cy = mapinfo.bmHeight;
+	m_ImageGozi.Create(m_ImageSize.cx, m_ImageSize.cy, ILC_COLOR24 | ILC_MASK, mapinfo.bmWidth / m_ImageSize.cx * 3, 1);
+	m_ImageGozi.Add(&BitMap, RGB(255, 0, 0));
+	BitMap.DeleteObject();
+
+	BitMap.LoadResBitmap(IDB_BITMAP13, SYSTEM_DPI_X * 24 / 48, SYSTEM_DPI_Y * 24 / 48, RGB(255, 0, 0));
+	m_ImageGozi.Add(&BitMap, RGB(255, 0, 0));
+	BitMap.DeleteObject();
+
+	BitMap.LoadResBitmap(IDB_BITMAP14, SYSTEM_DPI_X * 24 / 48, SYSTEM_DPI_Y * 24 / 48, RGB(255, 0, 0));
+	m_ImageGozi.Add(&BitMap, RGB(0, 255, 0));
+	BitMap.DeleteObject();
 #endif	// USE_GOZI
 
 	// ÉÅÉjÉÖÅ[âÊëúÇçÏê¨

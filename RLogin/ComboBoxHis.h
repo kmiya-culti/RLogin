@@ -7,8 +7,13 @@ class CComboBoxExt : public CComboBox
 	DECLARE_DYNAMIC(CComboBoxExt)
 
 public:
+	class CSFtp *m_pSFtp;
+
 	CComboBoxExt();
 	virtual ~CComboBoxExt();
+
+public:
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 protected:
 	DECLARE_MESSAGE_MAP()
