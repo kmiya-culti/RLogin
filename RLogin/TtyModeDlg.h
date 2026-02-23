@@ -173,4 +173,5 @@ protected:
 	afx_msg void OnUpdateEditDisable(CCmdUI *pCmdUI);
 	afx_msg void OnUpdateEditSelect(CCmdUI *pCmdUI);
 	afx_msg void OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult);
 };

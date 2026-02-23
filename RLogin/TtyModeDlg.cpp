@@ -1095,6 +1095,7 @@ BEGIN_MESSAGE_MAP(CCodeFlagDlg, CTtyModeDlg)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_PASTE, &CCodeFlagDlg::OnUpdateEditPaste)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELALL, &CCodeFlagDlg::OnUpdateEditEnable)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_MODE_LIST, &CCodeFlagDlg::OnLvnItemchangedList)
+	ON_NOTIFY(NM_DBLCLK, IDC_MODE_LIST, &CCodeFlagDlg::OnNMDblclk)
 END_MESSAGE_MAP()
 
 static const LV_COLUMN InitUniListTab[4] = {
@@ -1467,4 +1468,17 @@ void CCodeFlagDlg::OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult)
 	}
 
 	*pResult = 0;
+}
+void CCodeFlagDlg::OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	NMLISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
+	int nItem = pNMListView->iItem;
+
+	if ( nItem >= 0 && pNMListView->iSubItem >= 3 ) {
+		OnEditUpdate();
+		*pResult = 0;
+	} else if ( nItem < 0 ) {
+		OnEditNew();
+		*pResult = 0;
+	}
 }

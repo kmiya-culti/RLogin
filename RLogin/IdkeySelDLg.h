@@ -50,6 +50,7 @@ public:
 	BOOL m_bInitPageant;
 	CString m_CreateStr;
 	CString m_CancelStr;
+	int m_AgeantIsOpen;
 
 	void StartKeyGenThead();
 	void ProcKeyGenThead();
@@ -58,7 +59,7 @@ public:
 
 	void InitList();
 	void SetBitsList();
-
+	void ResetDataUid();
 
 // オーバーライド
 protected:
@@ -83,7 +84,9 @@ protected:
 	afx_msg void OnEditCheck();
 	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
 	afx_msg void OnLvnItemchangedIdkeyList(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnCbnSelchangeIdkeyType();
 	afx_msg void OnIdkeyCakey();
 	afx_msg void OnSavePublicKey();
-	afx_msg void OnCbnSelchangeIdkeyType();
+	afx_msg void OnAgentAddKey();
+	afx_msg void OnUpdateAgent(CCmdUI* pCmdUI);
 };

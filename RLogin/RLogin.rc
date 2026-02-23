@@ -543,6 +543,7 @@ BEGIN
         MENUITEM "ファイルからインポート(&I)",             IDC_IDKEY_INPORT
         MENUITEM "ファイルにエクスポート(&X)",             IDC_IDKEY_EXPORT
         MENUITEM SEPARATOR
+        MENUITEM "SSHエージェントに追加(&E)",            IDM_AGENTADDKEY
         MENUITEM "最新の情報に更新(&A)",                ID_EDIT_CHECK
     END
     POPUP "CAPLIST"
@@ -746,39 +747,39 @@ CAPTION "About RLogin"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,91,277,60,14,WS_GROUP
+    LTEXT           "RLogin (%s) Version 2.31.4 (2026/02/24)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1998-2026 Culti",IDC_STATIC,44,17,189,8
     CONTROL         "<a href=""https://kmiya-culti.github.io/RLogin/"">https://kmiya-culti.github.io/RLogin/</a>",IDC_SYSLINK3,
                     "SysLink",WS_TABSTOP,44,27,189,8
     CONTROL         "<a href=""http://nanno.bf1.jp/softlib/man/rlogin/"">http://nanno.bf1.jp/softlib/man/rlogin/</a>",IDC_SYSLINK2,
                     "SysLink",WS_TABSTOP,44,37,189,8
+    LTEXT           "OpenSSL 3.5.5 27 Jan 2026",IDC_STATIC,44,51,189,8
+    LTEXT           "Copyright (c) 1998-2026 The OpenSSL Project",IDC_STATIC,44,61,189,8
+    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,71,189,8
+    LTEXT           "All rights reserved.",IDC_STATIC,44,81,189,8
+    CONTROL         "<a href=""https://openssl-library.org/source/license/apache-license-2.0.txt"">Apache License</a>",IDC_SYSLINK4,
+                    "SysLink",WS_TABSTOP,44,91,189,8
+    LTEXT           "zlib 1.3.1 (22 Jan 2024)",IDC_STATIC,44,105,189,8
+    LTEXT           "Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,115,189,8
+    CONTROL         "<a href=""https://zlib.net/zlib_license.html"">zlib License</a>",IDC_SYSLINK5,
+                    "SysLink",WS_TABSTOP,44,125,189,8
+    LTEXT           "iconv (GNU libiconv 1.18)",IDC_STATIC,44,139,189,8
+    LTEXT           "Copyright (C) 2000-2024 Free Software Foundation, Inc.",IDC_STATIC,44,149,189,8
+    CONTROL         "<a href=""https://www.gnu.org/licenses/gpl-3.0.txt"">GNU GENERAL PUBLIC LICENSE</a>",IDC_SYSLINK6,
+                    "SysLink",WS_TABSTOP,44,159,189,8
+    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,173,189,8
+    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,183,189,8
+    CONTROL         "<a href=""https://www.gnu.org/licenses/gpl-3.0.txt"">GNU GENERAL PUBLIC LICENSE</a>",IDC_SYSLINK7,
+                    "SysLink",WS_TABSTOP,44,193,189,8
+    LTEXT           "PuTTY is copyright 1997-2021 Simon Tatham.",IDC_STATIC,44,207,189,8
+    LTEXT           "putty-0.75-pre (blake2/argon2 source code)",IDC_STATIC,44,217,189,8
+    CONTROL         "<a href=""https://www.chiark.greenend.org.uk/~sgtatham/putty/licence.html"">PuTTY Licence</a>",IDC_SYSLINK8,
+                    "SysLink",WS_TABSTOP,44,227,189,8
+    LTEXT           "kumaGIF (Original Idea)",IDC_STATIC,44,241,189,8
+    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,251,189,8
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,261,189,8
     ICON            IDR_MAINFRAME,IDC_STATIC,13,15,20,20
-    LTEXT           "RLogin (%s) Version 2.31.3 (2026/01/23)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 1998-2026 Culti",IDC_STATIC,44,17,189,8
-    LTEXT           "OpenSSL 3.5.4 30 Sep 2025",IDC_STATIC,44,51,189,8
-    LTEXT           "Copyright (c) 1998-2025 The OpenSSL Project",IDC_STATIC,44,61,189,8
-    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,71,189,8
-    LTEXT           "All rights reserved.",IDC_STATIC,44,81,189,8
-    LTEXT           "zlib 1.3.1 (22 Jan 2024)",IDC_STATIC,44,105,189,8
-    LTEXT           "Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,115,189,8
-    LTEXT           "iconv (GNU libiconv 1.18)",IDC_STATIC,44,139,189,8
-    LTEXT           "Copyright (C) 2000-2024 Free Software Foundation, Inc.",IDC_STATIC,44,149,189,8
-    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,173,189,8
-    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,183,189,8
-    LTEXT           "kumaGIF (Original Idea)",IDC_STATIC,44,241,189,8
-    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,251,189,8
-    LTEXT           "putty-0.75-pre (blake2/argon2 source code)",IDC_STATIC,44,217,189,8
-    LTEXT           "PuTTY is copyright 1997-2021 Simon Tatham.",IDC_STATIC,44,207,189,8
-    CONTROL         "<a href=""https://openssl-library.org/source/license/apache-license-2.0.txt"">Apache License</a>",IDC_SYSLINK4,
-                    "SysLink",WS_TABSTOP,44,91,189,8
-    CONTROL         "<a href=""https://zlib.net/zlib_license.html"">zlib License</a>",IDC_SYSLINK5,
-                    "SysLink",WS_TABSTOP,44,125,189,8
-    CONTROL         "<a href=""https://www.gnu.org/licenses/gpl-3.0.txt"">GNU GENERAL PUBLIC LICENSE</a>",IDC_SYSLINK6,
-                    "SysLink",WS_TABSTOP,44,159,189,8
-    CONTROL         "<a href=""https://www.gnu.org/licenses/gpl-3.0.txt"">GNU GENERAL PUBLIC LICENSE</a>",IDC_SYSLINK7,
-                    "SysLink",WS_TABSTOP,44,193,189,8
-    CONTROL         "<a href=""https://www.chiark.greenend.org.uk/~sgtatham/putty/licence.html"">PuTTY Licence</a>",IDC_SYSLINK8,
-                    "SysLink",WS_TABSTOP,44,227,189,8
 END
 
 IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
@@ -2390,8 +2391,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,31,3,0
- PRODUCTVERSION 2,31,3,0
+ FILEVERSION 2,31,4,0
+ PRODUCTVERSION 2,31,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2408,12 +2409,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.31.3.0"
+            VALUE "FileVersion", "2.31.4.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.31.3.0"
+            VALUE "ProductVersion", "2.31.4.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4759,7 +4760,7 @@ BEGIN
     IDS_VERSIONCHECKURL2    "https://kmiya-culti.github.io/RLogin/version.txt"
     IDS_SCRIPTDLGSTEP       "ステップ"
     IDS_KNOWNHOSTDELMSG     "登録されているホスト鍵%d個を削除しますか？"
-    IDS_XMSSSAVEFORMAT      "。この鍵は、指定されたファイル形式と違う形式で保存します"
+    IDS_IDKEYSSAVEFORMAT    "。この鍵は、指定されたファイル形式と違う形式で保存します"
     IDS_VERCHKDISABLE       "RLoginの自動バージョンチェックを行わないようにしました"
     IDS_VERCHKENABLE        "RLoginの自動バージョンチェックを定期的に行うようにしました\n今すぐバージョンチェックを行いますか？"
     IDS_VERCHKLATEST        "RLoginが最新バージョンであることを確認しました"
@@ -4824,14 +4825,13 @@ END
 STRINGTABLE
 BEGIN
     IDE_SFTPTHREADCMDEXEC   "現在、ローカルファイルのコピー操作中です。終了を待つか中断してから閉じてください"
-    IDE_XMSSBITSIZEERR      "XMSSは、ビットサイズを10/16/20から選択してください"
-    IDE_XMSSBITSIZECHECK    "XMSSで20以上の作成は非常に長い時間が必要です。\nまた途中で中断出来ません。\n本当に作成しますか？"
     IDE_REGISTRYDELETEERROR "管理者として実行しないと消せないレジストリが残っている可能性があります"
     IDE_ENTRYUPDATEEERROR   "別のRLoginでサーバーエントリー情報が更新されました。\n整合性を失う可能性がある為すべての編集を中止します。"
     IDE_OPTFIXDEEPENTRY     "再帰的なエントリーオプションの継承をしようとしています。\n標準の設定を使用して接続します"
     IDE_OPTFIXNOTFOUND      "継承先のエントリーが見当たりませんませんでした。\n標準の設定を使用して接続します"
     IDE_VERCHKERROR         "バージョンチェックに失敗しました"
     IDE_FILEOPENERROR       "ファイルのオープンに失敗しました"
+	IDE_HOSTKEYPROVEERR     "新しく追加されたホスト鍵を検証できませんでした\n検証できないホスト鍵を削除しますか？"
 END
 
 STRINGTABLE

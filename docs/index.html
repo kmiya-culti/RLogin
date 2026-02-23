@@ -8,19 +8,9 @@
 <!--
 TD {
 				
-				
-				
-				
-				
-				
 		background-color : #ffffff; font-size : 90%; 
 }
 .BOX{
-				
-				
-				
-				
-				
 				
 		background-color : silver; 
 }
@@ -37,8 +27,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.31.3)</TD>
-            <TD width="20%" align="right">2026/01/23</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.31.4)</TD>
+            <TD width="20%" align="right">2026/02/24</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -151,6 +141,7 @@ TD {
                     <LI><A href="faq.html#UCSIZE">UTF-8の文字サイズ変更</A>
                     <LI><A href="faq.html#SIXELOPT">Sixelの表示オプション</A>
                     <LI><A href="faq.html#COMDELAY">シリアルの送信遅延</A>
+                    <LI><A href="faq.html#ZLIB">SSH2のパケット圧縮</A>
                   </OL>
                   </TD>
                 </TR>
@@ -453,6 +444,18 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2026/02/24</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.31.4/">2.31.4</A></TD>
+            <TD>2.31.2で「サーバー情報を開く」が文字バンクを正常に読めないバグを修正<BR>
+            RLogin内のSSHエージェントで鍵の追加・削除を正しく動作するように修正<BR>
+            OpenSSHの署名された公開鍵でログインする場合の処理を修正<BR>
+            認証キーのXMSSのサポートを完全に削除<BR>
+            オプション・プロトコル・SSH・暗号方式・圧縮・noneの優先順位を変更<BR>
+            SFTPのファイルアップロードのフロー制御をより細かく行うように変更<BR>
+            OpenSSHのホスト鍵の追加を検証するように変更<BR>
+            openssl-3.5.5に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2026/01/23</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.31.3/">2.31.3</A></TD>
             <TD>2.31.1で/inuseコマンドラインオプションが動作しない不都合を修正<BR>
@@ -498,16 +501,6 @@ TD {
             openssl-3.5.4に更新</TD>
           </TR>
           <TR>
-            <TD align="center">2025/09/25</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.30.9/">2.30.9</A></TD>
-            <TD>SFtpのフォルダヒストリー選択でエラー時の処理を修正<BR>
-            認証キーの設定の新規鍵選択でXMSSとSLHSHA2Fを削除<BR>
-            UTF-8の文字幅などをUnicode-17.0.0のデータに更新<BR>
-            バイトオーダーの定義を行って処理関数を使用するように変更<BR>
-            2.30.8のServer Selectリストのアイコン表示がエラーの処理を修正<BR>
-            openssl-3.5.3に更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -531,13 +524,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="3" valign="top"><A href="http://www.openssl.org/source/">openssl-3.5.4.tar.gz</A><BR>
+                  <TD width="200" rowspan="3" valign="top"><A href="http://www.openssl.org/source/">openssl-3.5.5.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.5.4 openssl-3.5.4-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.5.5 openssl-3.5.5-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -630,8 +623,8 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.5.4 30 Sep 2025<BR>
-            Copyright (c) 1998-2025 The OpenSSL Project<BR>
+            <P>OpenSSL 3.5.5 27 Jan 2026<BR>
+            Copyright (c) 1998-2026 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
             <BR>
@@ -3335,7 +3328,7 @@ fi</PRE>
           <TR>
             <TD valign="top" width="600">暗号・検証・圧縮方法の優先順位を任意に並べます<BR>
             変更したい項目を選択してSHIFT+↑、SHIFT+↓で順位が変わります<BR>
-            参照：<A href="faq.html#LOGINPROT">SSH2でのユーザー認証</A> <A href="faq.html#SSHALGO">SSH2での各種選択</A><BR>
+            参照：<A href="faq.html#LOGINPROT">SSH2でのユーザー認証</A> <A href="faq.html#SSHALGO">SSH2での各種選択</A> <A href="faq.html#ZLIB">SSH2のパケット圧縮</A><BR>
             <BR>
             ※2.28.6からダイアログのサイズを変更出来るようにしました<BR>
             <BR>
@@ -3919,6 +3912,10 @@ fi</PRE>
                   <TD>認証キーの名前を編集します</TD>
                 </TR>
                 <TR>
+                  <TD align="center">認証キーを削除</TD>
+                  <TD>選択されたリストの認証キーを削除します</TD>
+                </TR>
+                <TR>
                   <TD align="center" width="30%">公開鍵をクリップ…</TD>
                   <TD>上記ボタンの公開鍵と同じです</TD>
                 </TR>
@@ -3933,6 +3930,10 @@ fi</PRE>
                 <TR>
                   <TD align="center" width="30%">ファイルから…</TD>
                   <TD>上記ボタンのインポート・エクスポートと同じです</TD>
+                </TR>
+                <TR>
+                  <TD align="center">SSHエージェントに…</TD>
+                  <TD>OpenSSH for Windowsのssh-agentサービスやPuTTYのPAGEANTに選択されたリストの認証キーを追加します</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">最新の情報…</TD>

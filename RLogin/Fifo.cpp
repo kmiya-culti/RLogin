@@ -743,6 +743,18 @@ int CFifoBase::DocMsgSetTimer(int msec, int mode, void *pParam)
 	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_SETTIMER, (LPARAM)&docMsg);
 	return docMsg.type;
 }
+int CFifoBase::DocMsgIdKey(int cmd, class CIdKey *pKay, class CExtSocket *pSock)
+{
+	DocMsg docMsg = { cmd, NULL, (void *)pKay, (void *)pSock };
+
+	//docMsg.doc  = NULL;
+	//docMsg.type = cmd;
+	//docMsg.pIn  = (void *)pKey;
+	//docMsg.pOut = NULL;
+
+	AfxGetMainWnd()->SendMessage(WM_DOCUMENTMSG, DOCMSG_IDKEYTAB, (LPARAM)&docMsg);
+	return docMsg.type;
+}
 
 ///////////////////////////////////////////////////////
 
@@ -1444,7 +1456,7 @@ void CFifoSync::FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pPa
 		break;
 
 	case FD_WRITE:	// Fifo.GetBuffer
-		if ( pFifo != NULL && (pFifo->GetSize() <= 0 || pFifo->m_bEndOf) )
+		if ( pFifo != NULL && (pFifo->GetSize() <= 0|| pFifo->m_bEndOf) )
 			GetEvent(nFd)->SetEvent();		// Wait From Send
 		break;
 
@@ -1559,9 +1571,9 @@ int CFifoSync::Send(int nFd, LPBYTE pBuffer, int nBufLen, DWORD mSec)
 		if ( !pFifo->m_bEndOf ) {
 			GetEvent(nFd)->ResetEvent();
 			len = pFifo->PutBuffer(pBuffer, nBufLen);
-			if ( mSec != 0 && len > 0 ) {
-				RelFifo(pFifo);
+			RelFifo(pFifo);
 
+			if ( mSec != 0 && len > 0 ) {
 				if ( !WaitEvents(GetEvent(nFd)->m_hObject, mSec) )
 					len = (-1);
 			}
@@ -2159,8 +2171,12 @@ BOOL CFifoSocket::SocketLoop()
 	FifoMsg *pFifoMsg;
 	BOOL bLastClock = FALSE;
 
-	if ( m_nLimitSize > 0 && (m_nBufSize = m_nLimitSize * 50 / 1000) < 32 )		// Byte per 50ms
-		m_nBufSize = 32;
+	if ( m_nLimitSize > 0 ) {
+		if ( (m_nBufSize = (int)((LONGLONG)m_nLimitSize * 50 / 1000)) < 32 )		// Byte per 50ms
+			m_nBufSize = 32;
+		else if ( m_nBufSize > (256 * 1024) )
+			m_nBufSize = (256 * 1024);
+	}
 
 	buffer = TempBuffer(m_nBufSize);
 

@@ -2219,6 +2219,7 @@ CTextRam::CTextRam()
 	m_TabBackColor = AppColorTable[0][APPCOL_BARHIGH];
 	m_UpdateCurX = m_UpdateCurY = (-1);
 	m_ImeStatus = (-1);
+	m_SaveKanjiMode = (-1);
 
 	m_ColStackUsed = 0;
 	m_ColStackLast = 0;
@@ -5908,11 +5909,21 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	CPoint point[16];
 	CRect box(rect), tmp;
 	int bd_size = prop.pView->m_CharHeight / 16;
-	static const DWORD PenExtTab[3][4]  = {	{ 3, 1, 3, 1 }, { 2, 1, 2, 1 },	{ 1, 1, 1, 1 } };
+	static int  PenExtInit = (-1);
+	static DWORD PenExtTab[3][4];
+	static const DWORD DefPenExtTab[3][4]  = {	{ 3, 1, 3, 1 }, { 2, 1, 2, 1 },	{ 1, 1, 1, 1 } };
 	static const int SinTab[] = { 0, 87, 174, 259, 342, 423, 500, 574, 643, 707, 766, 819, 866, 906, 940, 966, 985, 996, 1000 };
 
 	if ( bd_size <= 0 )
 		bd_size = 1;
+
+	if ( PenExtInit != SCREEN_DPI_X ) {
+		for ( n = 0 ; n < 3 ; n++ ) {
+			for ( i = 0 ; i < 4 ; i++ )
+				PenExtTab[n][i] = MulDiv(DefPenExtTab[n][i], SCREEN_DPI_X, DEFAULT_DPI_X);
+		}
+		PenExtInit = SCREEN_DPI_X;
+	}
 
 #undef	BD_SIZE
 #define	BD_SIZE	bd_size
@@ -7725,6 +7736,17 @@ void CTextRam::ReversOption(int opt)
 		m_OptTab[opt / 32]  ^= (1 << (opt % 32));
 	} else if ( opt >= 0 && opt <= 511 )
 		m_AnsiOpt[opt / 32] ^= (1 << (opt % 32));
+}
+void CTextRam::ResetOption(int opt)
+{
+	switch(opt) {
+	case TO_XTUTF8:
+		SetOption(opt, m_KanjiMode == UTF8_SET ? TRUE : FALSE);
+		break;
+	case TO_XTWEASIAN:
+		SetOption(opt, IsOptEnable(TO_RLUNIAWH) ? FALSE : TRUE);
+		break;
+	}
 }
 int CTextRam::IsOptValue(int opt, int len)
 {
@@ -10195,22 +10217,22 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 
 	m_LastCur.SetPoint(m_CurX, m_CurY);
 }
-void CTextRam::PUTADD(int x, int y, DWORD ch)
+BOOL CTextRam::PUTADD(int x, int y, DWORD ch)
 {
 	CCharCell *vp;
 
 	if ( ch != 0 && CallReceiveChar(ch) )
-		return;
+		return FALSE;
 
 	if ( x < 0 || x >= m_Cols )
-		return;
+		return FALSE;
 
 	if ( y >= m_Lines )		// y < 0 OK ?
-		return;
+		return FALSE;
 
 	vp = GETVRAM(x, y);
 
-	if ( ch == 0x20E3 ) {	// 20E3;COMBINING ENCLOSING KEYCAP;Me;0;NSM;;;;;N;;;;;
+	if ( ch == 0x20E3 ) {			// 20E3;COMBINING ENCLOSING KEYCAP;Me;0;NSM;;;;;N;;;;;
 		LPCWSTR sp = (LPCWSTR)(*vp);
 		if ( *sp == 0x0023 || *sp == 0x002A || (*sp >= 0x0030 && *sp <= 0x0039) )
 			vp->m_Vram.attr |= ATT_EMOJI;
@@ -10228,6 +10250,8 @@ void CTextRam::PUTADD(int x, int y, DWORD ch)
 	} else {
 		DISPVRAM(x, y, 1, 1);
 	}
+
+	return TRUE;
 }
 void CTextRam::ANSIOPT(int opt, int bit)
 {

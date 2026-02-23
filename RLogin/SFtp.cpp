@@ -752,11 +752,12 @@ static UINT ReadOverLapThread(LPVOID pParam)
 void CFileOverLap::ReadOverLapWork()
 {
 	int HandleCount;
-	HANDLE HandleTab[2];
+	HANDLE HandleTab[4];
 	BOOL bRes = FALSE;
 	DWORD dw;
 	LONGLONG offset;
 	CCmdQue *pCmdQue = NULL;
+	HANDLE hFlowEvent = NULL;
 
 	for ( ; ; ) {
 		HandleCount = 0;
@@ -810,6 +811,8 @@ void CFileOverLap::ReadOverLapWork()
 		else {
 			if ( m_Stat == FOL_OVERWAIT )
 				HandleTab[HandleCount++] = m_OverLap.hEvent;
+			else if ( m_Stat == FOL_OVERFLOW )
+				HandleTab[HandleCount++] = hFlowEvent;
 			else if ( m_Stat == FOL_INIT )
 				break;
 
@@ -825,14 +828,22 @@ void CFileOverLap::ReadOverLapWork()
 
 			} else if ( HandleTab[dw] == m_OverLap.hEvent )
 				m_Stat = FOL_OVERLAP;
+			else if ( HandleTab[dw] == hFlowEvent ) {
+				DoneNextQue(pCmdQue, TRUE);
+				pCmdQue = NULL;
+			}
 
 			continue;
 		}
 
 		if ( bRes ) {
 			if ( (m_Pos += dw) >= m_Len ) {
-				DoneNextQue(pCmdQue, TRUE);
-				pCmdQue = NULL;
+				if ( (hFlowEvent = pCmdQue->m_pSFtp->SendFlowCheck()) != NULL )
+					m_Stat = FOL_OVERFLOW;
+				else {
+					DoneNextQue(pCmdQue, TRUE);
+					pCmdQue = NULL;
+				}
 			} else {
 				m_Stat = FOL_HAVEDATA;
 				m_Seek.QuadPart += dw;
@@ -975,6 +986,12 @@ void CSFtp::Send(LPBYTE buf, int len)
 {
 	if ( m_pFifoSftp != NULL )
 		m_pFifoSftp->Write(FIFO_STDOUT, buf, len);
+}
+HANDLE CSFtp::SendFlowCheck()
+{
+	if ( m_pFifoSftp != NULL )
+		return ((CFifoSftp *)m_pFifoSftp)->FifoFlowCheck(FIFO_STDOUT);
+	return NULL;
 }
 void CSFtp::OnConnect()
 {
@@ -4096,6 +4113,8 @@ void CSFtp::OnSftpDelete()
 					tmp.Format(CStringLoad(IDS_FILECOUNTMSG), len);
 			}
 		}
+		if ( len <= 0 )
+			return;
 		tmp += CStringLoad(IDS_FILEDELETEREQ);
 		if ( ::DoitMessageBox(tmp, MB_YESNO | MB_ICONQUESTION, this) != IDYES )
 			return;
@@ -4123,6 +4142,8 @@ void CSFtp::OnSftpDelete()
 					tmp.Format(CStringLoad(IDS_FILECOUNTMSG), len);
 			}
 		}
+		if ( len <= 0 )
+			return;
 		tmp += CStringLoad(IDS_FILEDELETEREQ);
 		if ( ::DoitMessageBox(tmp, MB_YESNO | MB_ICONQUESTION, this) != IDYES )
 			return;

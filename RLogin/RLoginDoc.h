@@ -107,8 +107,6 @@ public:
 	CStrScript *m_pStrScript;
 	CString m_ErrorPrompt;
 	CString m_SearchStr;
-	CStringA m_WorkMbs;
-	CString m_WorkStr;
 	class CScript *m_pScript;
 	BOOL m_InPane;
 	int m_AfterId;
@@ -168,9 +166,9 @@ public:
 	int SocketOpen();
 	void SocketClose();
 	void SocketSend(void *lpBuf, int nBufLen, BOOL delaySend = FALSE);
-	LPCSTR Utf8Str(LPCTSTR str);
-	LPCSTR RemoteStr(LPCTSTR str);
-	LPCTSTR LocalStr(LPCSTR str);
+	CStringA Utf8Str(LPCTSTR str);
+	CStringA RemoteStr(LPCTSTR str);
+	CString LocalStr(LPCSTR str);
 
 	void OnSocketConnect();
 	void OnSocketError(int err);

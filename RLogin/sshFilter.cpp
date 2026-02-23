@@ -65,6 +65,7 @@ void CFifoStdio::OnCommand(int cmd, int param, int msg, int len, void *buf, CEve
 CFifoSftp::CFifoSftp(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CSFtp *pSFtp) : CFifoBase(pDoc, pSock)
 {
 	m_pSFtp = pSFtp;
+	m_nBufSize = CHAN_SES_PACKET_DEFAULT;
 }
 CFifoSftp::~CFifoSftp()
 {
@@ -85,6 +86,10 @@ void CFifoSftp::FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pPa
 		break;
 
 	case FD_WRITE:	// Fifo.GetBuffer
+		if ( pFifo != NULL && (pFifo->GetSize() <= FIFO_BUFLOWER || pFifo->m_bEndOf) )
+			GetEvent(nFd)->SetEvent();
+		break;
+
 	case FD_OOB:
 	case FD_ACCEPT:
 		break;
@@ -96,6 +101,21 @@ void CFifoSftp::FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pPa
 	case FD_CLOSE:
 		break;
 	}
+}
+HANDLE CFifoSftp::FifoFlowCheck(int nFd)
+{
+	HANDLE hEvent = NULL;
+	CFifoBuffer *pFifo;
+
+	if ( (pFifo = GetFifo(nFd)) != NULL ) {
+		if ( !pFifo->m_bEndOf && pFifo->GetSize() >= FIFO_BUFUPPER ) {
+			CEvent *pEvent = GetEvent(nFd);
+			pEvent->ResetEvent();
+			hEvent = *pEvent;
+		}
+		RelFifo(pFifo);
+	}
+	return hEvent;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -452,6 +472,8 @@ CFifoAgent::CFifoAgent(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CF
 
 	for ( int n = 0 ; n < ((Cssh *)m_pSock)->m_IdKeyTab.GetSize() ; n++ )
 		m_IdKeyTab.Add(((Cssh *)m_pSock)->m_IdKeyTab[n]);
+
+	m_PassName = m_pDocument->m_ServerEntry.m_PassName;
 }
 void CFifoAgent::OnRead(int nFd)
 {
@@ -506,18 +528,6 @@ void CFifoAgent::OnClose(int nFd, int nLastError)
 
 //////////////////////////////////////////////////////////////////////
 
-BOOL CFifoAgent::IsLocked()
-{
-	if ( ((Cssh *)m_pSock)->m_pAgentMutex != NULL )
-		return FALSE;	// Locked this
-
-	CMutex Mutex(FALSE, _T("RLogin_SSH2_AGENT"), NULL);
-
-	if ( GetLastError() == ERROR_ALREADY_EXISTS )
-		return TRUE;
-
-	return FALSE;
-}
 CIdKey *CFifoAgent::GetIdKey(CIdKey *key, LPCTSTR pass)
 {
 	int n;
@@ -536,6 +546,7 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 	int rc = SSH_AGENT_FAILURE;
 	CBuffer tmp;
 	int type = bp->Get8Bit();
+	CStringA mbs;
 
 	try {
 		switch(type) {
@@ -547,6 +558,7 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 
 				for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
 					pKey = &(m_IdKeyTab[n]);
+					DocMsgRemoteStr(pKey->m_Name, mbs);
 					if ( pKey->m_Type == IDKEY_RSA1 ) {
 						BIGNUM const *e = NULL, *n = NULL;
 
@@ -555,13 +567,13 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 						data.Put32Bit(RSA_bits(pKey->m_Rsa));
 						data.PutBIGNUM(e);
 						data.PutBIGNUM(n);
-						data.PutStr(TstrToMbs(pKey->m_Name));
+						data.PutStr(mbs);
 						i++;
 					} else if ( pKey->m_Type != IDKEY_NONE ) {
 						work.Clear();
 						pKey->SetBlob(&work);
 						data.PutBuf(work.GetPtr(), work.GetSize());
-						data.PutStr(TstrToMbs(pKey->m_Name));
+						data.PutStr(mbs);
 						i++;
 					}
 				}
@@ -589,7 +601,7 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 
 				key.GetBlob(&blob);
 
-				if ( (pkey = GetIdKey(&key, m_pDocument->m_ServerEntry.m_PassName)) != NULL ) {
+				if ( (pkey = GetIdKey(&key, m_PassName)) != NULL ) {
 					int saveNid = pkey->m_Nid;
 					if ( (pkey->m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA1 || (pkey->m_Type & IDKEY_TYPE_MASK) == IDKEY_RSA2 ) {
 						switch(flag & (SSH_AGENT_RSA_SHA2_256 | SSH_AGENT_RSA_SHA2_512)) {
@@ -639,76 +651,32 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 			//	string                  comment
 			//	constraint[]            constraints
 			{
-				int n;
-				CIdKey key, *pkey;
-				CStringA work;
-				CIdKeyFileDlg dlg;
-
-				if ( !IsLocked() && key.GetPrivateBlob(bp) ) {
-					bp->GetStr(work);
-					key.m_Name = work;
-					tmp.Put32Bit(1);
-					tmp.Put8Bit(SSH_AGENT_SUCCESS);
-					Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
-
-					if ( key.m_Cert != 0 ) {
-						for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
-							pkey = &(m_IdKeyTab[n]);
-							if ( pkey->m_Cert == 0 && pkey->ComperePublic(&key) == 0 ) {
-								pkey->m_Cert = key.m_Cert;
-								pkey->m_CertBlob = key.m_CertBlob;
-								//((CMainFrame *)AfxGetMainWnd())->m_IdKeyTab.UpdateUid(pkey->m_Uid);
-							}
-						}
-					} else {
-						dlg.m_OpenMode = IDKFDMODE_CREATE;
-						dlg.m_Title.LoadString(IDS_IDKEYFILELOAD);;
-						dlg.m_Message.LoadString(IDS_IDKEYCREATECOM);
-
-						if ( dlg.DoModal() == IDOK ) {
-							key.WritePrivateKey(key.m_SecBlob, dlg.m_PassName);
-							if ( ((CMainFrame *)AfxGetMainWnd())->m_IdKeyTab.AddEntry(key) )
-								m_pDocument->m_ParamTab.m_IdKeyList.AddVal(key.m_Uid);
-						}
-					}
-				} else {
-					tmp.Put32Bit(1);
-					tmp.Put8Bit(SSH_AGENT_FAILURE);
-					Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
+				CIdKey key;
+				// certの追加を行う場合は・・・
+				// DocMsgIdKey(key.m_Cert != 0 ? SSHAGENT_CMD_ADDCERT : SSHAGENT_CMD_ADDKEY, &key, m_pSock) )
+				// 条件がややこしいので別に管理する
+				if ( !((Cssh *)m_pSock)->IsAgentLock() && key.GetPrivateBlob(bp) && GetIdKey(&key, NULL) == NULL ) {
+					bp->GetStr(mbs);
+					DocMsgLocalStr(mbs, key.m_Name);
+					if ( DocMsgIdKey(SSHAGENT_CMD_ADDKEY, &key, m_pSock) )
+						rc = SSH_AGENT_SUCCESS;
 				}
+				tmp.Put32Bit(1);
+				tmp.Put8Bit(rc);
+				Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
 			}
 			break;
 
 		case SSH_AGENTC_REMOVE_IDENTITY:
 			{
-				int n;
 				CBuffer blob;
-				CIdKey key, *pKey;
-
+				CIdKey key;
 				bp->GetBuf(&blob);
-				key.GetBlob(&blob);
-
-				if ( !IsLocked() && (pKey = GetIdKey(&key, NULL)) != NULL ) {
-					for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
-						if ( pKey->m_Uid == m_IdKeyTab[n].m_Uid ) {
-							m_IdKeyTab.RemoveAt(n);
-							break;
-						}
-					}
-					for ( n = 0 ; n < m_pDocument->m_ParamTab.m_IdKeyList.GetSize() ; n++ ) {
-						if ( pKey->m_Uid == m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n) ) {
-							m_pDocument->m_ParamTab.m_IdKeyList.RemoveAt(n);
-							break;
-						}
-					}
-					tmp.Put32Bit(1);
-					tmp.Put8Bit(SSH_AGENT_SUCCESS);
-					Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
-				} else {
-					tmp.Put32Bit(1);
-					tmp.Put8Bit(SSH_AGENT_FAILURE);
-					Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
-				}
+				if ( !((Cssh *)m_pSock)->IsAgentLock() && key.GetBlob(&blob) && GetIdKey(&key, NULL) != NULL && DocMsgIdKey(SSHAGENT_CMD_DELKEY, &key, m_pSock) )
+					rc = SSH_AGENT_SUCCESS;
+				tmp.Put32Bit(1);
+				tmp.Put8Bit(rc);
+				Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
 			}
 			break;
 
@@ -716,24 +684,10 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 			{
 				CStringA mbs;
 				bp->GetStr(mbs);
-
+				if ( ((Cssh *)m_pSock)->AgentLock(mbs) )
+					rc = SSH_AGENT_SUCCESS;
 				tmp.Put32Bit(1);
-
-				if ( ((Cssh *)m_pSock)->m_pAgentMutex != NULL ) {
-					tmp.Put8Bit(((Cssh *)m_pSock)->m_AgentPass.Compare(mbs) == 0 ? SSH_AGENT_SUCCESS : SSH_AGENT_FAILURE);
-				} else {
-					((Cssh *)m_pSock)->m_pAgentMutex = new CMutex(TRUE, _T("RLogin_SSH2_AGENT"), NULL);
-					if ( ((Cssh *)m_pSock)->m_pAgentMutex == NULL || GetLastError() == ERROR_ALREADY_EXISTS ) {
-						if ( ((Cssh *)m_pSock)->m_pAgentMutex != NULL )
-							delete ((Cssh *)m_pSock)->m_pAgentMutex;
-						((Cssh *)m_pSock)->m_pAgentMutex = NULL;
-						tmp.Put8Bit(SSH_AGENT_FAILURE);
-					 } else {
-						tmp.Put8Bit(SSH_AGENT_SUCCESS);
-						((Cssh *)m_pSock)->m_AgentPass = mbs;
-					 }
-				}
-
+				tmp.Put8Bit(rc);
 				Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
 			}
 			break;
@@ -741,17 +695,10 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 			{
 				CStringA mbs;
 				bp->GetStr(mbs);
-
+				if ( ((Cssh *)m_pSock)->AgentUnlock(mbs) )
+					rc = SSH_AGENT_SUCCESS;
 				tmp.Put32Bit(1);
-
-				if ( ((Cssh *)m_pSock)->m_pAgentMutex == NULL || ((Cssh *)m_pSock)->m_AgentPass.Compare(mbs) != 0 ) {
-					tmp.Put8Bit(SSH_AGENT_FAILURE);
-				} else {
-					delete ((Cssh *)m_pSock)->m_pAgentMutex;
-					((Cssh *)m_pSock)->m_pAgentMutex = NULL;
-					tmp.Put8Bit(SSH_AGENT_SUCCESS);
-				}
-
+				tmp.Put8Bit(rc);
 				Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
 			}
 			break;
@@ -760,7 +707,17 @@ void CFifoAgent::ReceiveBuffer(CBuffer *bp)
 			{
 				CStringA mbs;
 				bp->GetStr(mbs);
-				if ( mbs.Compare("session-bind@openssh.com") == 0 ) {
+
+				if ( mbs.Compare("query") == 0 ) {
+					CBuffer msg;
+					msg.Put8Bit(SSH_AGENT_EXTENSION_RESPONSE);
+					msg.PutStr("query");
+					msg.PutStr("session-bind@openssh.com");
+					tmp.PutBuf(msg.GetPtr(), msg.GetSize());
+					Write(FIFO_STDOUT, tmp.GetPtr(), tmp.GetSize());
+					break;
+
+				} else if ( mbs.Compare("session-bind@openssh.com") == 0 ) {
 					CIdKey key;
 					CBuffer blob, sid, sig;
 					int fwd;
@@ -1034,7 +991,7 @@ CFifoRcp::CFifoRcp(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CFifoC
 	m_pChan = pChan;
 	m_Mode = Mode;
 	m_pProgDlg = NULL;
-	m_nBufSize = (8 * 1024);
+	m_nBufSize = CHAN_SES_PACKET_DEFAULT;	// (8 * 1024);
 	m_bAbortFlag = FALSE;
 }
 void CFifoRcp::OnLinked(int nFd, BOOL bMid)
@@ -1174,8 +1131,13 @@ void CFifoRcp::RcpUpLoad()
 			goto ERRRET;
 		}
 
-		if ( Send(FIFO_STDOUT, pTemp, len, FIFORCP_TIMEOUT) < 0 ) {
+		if ( size < stat.st_size && !WaitEvents(GetEvent(FIFO_STDOUT)->m_hObject, FIFORCP_TIMEOUT) ) {
 			line.Format("send time over %dmsec", FIFORCP_TIMEOUT);
+			goto ERRRET;
+		}
+
+		if ( Send(FIFO_STDOUT, pTemp, len, 0) < 0 ) {
+			line.Format("file upload send error");
 			goto ERRRET;
 		}
 

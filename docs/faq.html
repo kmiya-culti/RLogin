@@ -7,9 +7,11 @@
 <!--
 TD {		
 				
+				
 		background-color : #ffffff; font-size : 90%;
 }
 .BOX{		
+				
 				
 		background-color : silver;
 }
@@ -2495,6 +2497,31 @@ let &amp;t_te .= &quot;\e[?8428r\eP5#u\e\\&quot;
             <BR>
             実際の動作としては、約50ms単位で推測した送信帯域からバイト数を計算し追加の送信遅延を追加するような動作になります。ビット／秒が小さい場合は、上記の文字の送信遅延が有効ですが、9600bpsを超えるような場合は、こちらの送信帯域の制限の方が細かく速度を落とすことが出来ます。</TD>
             <TD valign="top"><IMG src="RS232C_03.svg" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="ZLIB"></A>5.28 SSH2のパケット圧縮</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top" align="left">オプション・プロトコル・SSH・<A href="index.html#SSHPROTOCOL">暗号方式</A>のSSH2・圧縮のデフォルトを2.31.4からnoneに変更しました。最近の高速なインターネットでは、圧縮・伸張の処理が重く圧縮による効果が発揮されないように思います<BR>
+            <BR>
+            実際には、環境(CPUの性能やLANの速度)により大きく条件が異なりますがLANの転送速度よりファイルの転送速度が下回る場合には、SSH2・圧縮のzlib@openssh.comとnoneの優先順位を入れ替えて試してみる方が良いかもしれません<BR>
+            <BR>
+            インターネット経由の場合や無線LANなどの場合、500Mbpsを超える場合は、noneの方が速いかもしれません。逆に100Mbpsを下回る場合は、zlib@openssh.comを優先にした方が、圧縮効果で速度が上がる可能性があります<BR>
+            <BR>
+            単純にRLoginの処理を軽くしたいなら圧縮・伸張を行わないnoneが有効です。SSHの処理で圧縮・伸張は、比較的重い処理になります</TD>
+            <TD valign="top"><IMG src="image015.jpg" width="616" height="547" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

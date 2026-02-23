@@ -58,6 +58,7 @@ enum FifoMsgQueInCmd {
 	FIFO_QCMD_CANCELPFD,		// CFifoSsh
 	FIFO_QCMD_PLUGIN,			// CFifoSsh
 	FIFO_QCMD_KEXINIT,			// CFifoSsh
+	FIFO_QCMD_IDKEYTAB,			// CFifoSsh
 };
 
 class CFifoBuffer : public CObject
@@ -150,6 +151,8 @@ enum DocMsgCmd {
 	DOCMSG_SETTIMER,		// CFifoSsh
 
 	DOCMSG_MESSAGE,			// AfxMessageBox->CRLoginApp::DoMessageBox
+
+	DOCMSG_IDKEYTAB,		// CFifoAgent
 };
 
 class CFifoBase : public CObject
@@ -248,6 +251,7 @@ public:
 	void DodMsgStrPtr(int msg, LPCTSTR str);
 	void DocMsgCommand(int cmdId);
 	int DocMsgSetTimer(int msec, int mode, void *pParam);
+	int DocMsgIdKey(int cmd, class CIdKey *pKay, class CExtSocket *pSock);
 
 #ifdef	USE_FIFOMONITER
 	int GetFifoMoniter(int nFd);
@@ -445,8 +449,6 @@ public:
 
 	BOOL AddInfoOpen();
 	BOOL SocketLoop();
-
-	BIO_ADDR *GetBioAddr();
 };
 
 class CFifoListen : public CFifoASync

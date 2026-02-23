@@ -208,6 +208,8 @@ public:
 	int m_Mode;
 	z_stream m_InCompStr;
 	z_stream m_OutCompStr;
+	int m_BufSize;
+	BYTE *m_pBuffer;
 
 	int Init(LPCTSTR name, int mode, int level = 6);
 	void Compress(LPBYTE inbuf, int len, CBuffer *out);
@@ -224,7 +226,7 @@ public:
 #define	IDKEY_DSA2					00004
 #define	IDKEY_ED25519				00010
 #define	IDKEY_ED448					00011
-#define	IDKEY_XMSS					00020
+//#define	IDKEY_XMSS				00020		delete 2026/01/23
 #define	IDKEY_UNKNOWN				00030
 #define	IDKEY_ECDSA					00040
 #define	IDKEY_ML_DSA				00050		// 44/65/87
@@ -236,9 +238,10 @@ public:
 #define	IDKEY_CERTV00				00200
 #define	IDKEY_CERTV01				00400
 #define	IDKEY_CERTX509				01000
+#define	IDKEY_CERTRFC				02000		// draft-miller-ssh-cert-06
 
 #define	IDKEY_TYPE_MASK				00077
-#define	IDKEY_CERT_MASK				01600
+#define	IDKEY_CERT_MASK				03600
 
 #define	IDKEY_REQ(s,d)				(((s) & IDKEY_TYPE_MASK) == ((d) & IDKEY_TYPE_MASK))
 
@@ -257,7 +260,7 @@ public:
 #define	SSHFP_KEY_DSA				2
 #define	SSHFP_KEY_ECDSA				3
 #define	SSHFP_KEY_ED25519			4 
-#define	SSHFP_KEY_XMSS				5
+//#define	SSHFP_KEY_XMSS			5			delete 2026/01/23
 #define	SSHFP_KEY_ED448				6
 
 #define	SSHFP_HASH_RESERVED			0
@@ -305,44 +308,6 @@ typedef	struct _GenStatus {
 	int		count;
 } GENSTATUS;
 
-class CXmssKey : public CObject
-{
-public:
-	uint32_t m_oId;
-	int m_PubLen;
-	BYTE *m_pPubBuf;
-	int m_SecLen;
-	BYTE *m_pSecBuf;
-	int m_PassLen;
-	TCHAR *m_pPassBuf;
-	CStringA m_EncName;
-	CBuffer m_EncIvBuf;
-
-	void RemoveAll();
-	const CXmssKey & operator = (CXmssKey &data);
-	BOOL SetBufSize(uint32_t oId = 0);
-	BOOL SetBufSize(LPCSTR name);
-	void SetPassBuf(LPCTSTR pass);
-	BOOL MakeEncIvBuf();
-
-	BOOL LoadOpenSshSec(CBuffer *bp);
-	BOOL SaveOpenSshSec(CBuffer *bp);
-
-	BOOL LoadStateFile(LPCTSTR fileName);
-	BOOL SaveStateFile(LPCTSTR fileName);
-
-	const char *GetName();
-	int GetBits();
-	int GetHeight();
-	int KeyPair(GENSTATUS *gs);
-	int GetSignByte();
-	int Sign(unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen);
-	int Verify(unsigned char *m, unsigned long long *mlen, const unsigned char *sm, unsigned long long smlen);
-
-	CXmssKey();
-	~CXmssKey();
-};
-
 class CIdKey : public CObject
 {
 public:
@@ -358,9 +323,8 @@ public:
 	EC_KEY *m_EcDsa;
 	CBuffer m_PublicKey;
 	CBuffer m_PrivateKey;
-	CXmssKey m_XmssKey;
-	CString m_Work;
 	CBuffer m_CertBlob;
+	CString m_CertInfo;
 	BOOL m_bSecInit;
 	CString m_SecBlob;
 	BOOL m_bHostPass;
@@ -408,19 +372,17 @@ public:
 	int CompPass(LPCTSTR pass);
 	int InitPass(LPCTSTR pass);
 
-	LPCTSTR GetName(int nFlag = IDKEY_NAME_SIMPLE);
+	CString GetName(int nFlag = IDKEY_NAME_SIMPLE);
 	BOOL GetTypeFromName(LPCTSTR name, int &type, int &nid);
 	BOOL KnownHostsCheck(LPCTSTR dig);
 	int HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh = NULL);
 	int ChkOldCertHosts(LPCTSTR host);
 
-	int XmssSign(CBuffer *bp, LPBYTE buf, int len);
 	BOOL CompositeHash(CBuffer *bp, LPBYTE buf, int len);
 	int CompositeSign(CBuffer *bp, LPBYTE buf, int len);
 	BOOL SignAlgCheck(LPCTSTR alg);
 	int Sign(CBuffer *bp, LPBYTE buf, int len);
 
-	int XmssVerify(CBuffer *sig, LPBYTE data, int datalen);
 	int CompositeVerify(CBuffer *sig, LPBYTE data, int datalen);
 	int Verify(CBuffer *bp, LPBYTE data, int datalen);
 
@@ -489,7 +451,10 @@ public:
 	inline INT_PTR GetSize() { return m_Data.GetSize(); }
 	inline CIdKey & GetAt(int nIndex) { return m_Data[nIndex]; }
 	inline CIdKey & operator [](int nIndex) { return m_Data[nIndex]; }
-	int AddEntry(CIdKey &key, BOOL bDups = TRUE);
+	int HaveKey(CIdKey &key);
+	int AddKey(CIdKey &key, BOOL bDups = TRUE);
+	int DelKey(CIdKey &key);
+	int AddCert(CIdKey &key);
 	int Add(CIdKey &key);
 	CIdKey *GetUid(int uid);
 	void UpdateUid(int uid);
@@ -598,6 +563,8 @@ public:
 	~CFifoSftp();
 
 	virtual void FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam);
+
+	HANDLE FifoFlowCheck(int nFd);
 };
 
 class CFifoSocks : public CFifoSync
@@ -622,12 +589,17 @@ public:
 	void DecodeSocks();
 };
 
+#define	SSHAGENT_CMD_ADDKEY		0
+#define	SSHAGENT_CMD_ADDCERT	1
+#define	SSHAGENT_CMD_DELKEY		2
+
 class CFifoAgent : public CFifoThread
 {
 public:
 	class CFifoChannel *m_pChan;
 	CBuffer m_RecvBuffer;
 	CArray<CIdKey, CIdKey &> m_IdKeyTab;
+	CString m_PassName;
 
 public:
 	CFifoAgent(class CRLoginDoc *pDoc, class CExtSocket *pSock, class CFifoChannel *pChan);
@@ -637,7 +609,6 @@ public:
 	virtual void OnConnect(int nFd);
 	virtual void OnClose(int nFd, int nLastError);
 
-	BOOL IsLocked();
 	CIdKey *GetIdKey(CIdKey *key, LPCTSTR pass);
 	void ReceiveBuffer(CBuffer *bp);
 };
@@ -888,9 +859,6 @@ public:
 	CBuffer m_x11AuthData, m_x11LocalData;
 	BOOL m_bx11pfdEnable;
 
-	CMutex *m_pAgentMutex;
-	CStringA m_AgentPass;
-
 	int m_InPackStat;
 	int m_InPackLen;
 	int m_InPackPad;
@@ -936,6 +904,7 @@ public:
 	CBuffer m_SessHash;
 	int m_NeedKeyLen;
 	int m_KexStrictStat;
+	CArray<CIdKey, CIdKey &> m_NewHostKey;
 
 	int m_DhMode;
 	DH *m_SaveDh;
@@ -1036,6 +1005,16 @@ public:
 	BOOL IsStriStr(LPCSTR str, LPCSTR ptn);
 	void CreateMyPeer();
 
+	CSemaphore m_AgentSemaphore;
+	CMutex *m_pAgentMutex;
+	CStringA m_AgentPass;
+
+	BOOL IsAgentLock();
+	BOOL AgentLock(LPCSTR pass);
+	BOOL AgentUnlock(LPCSTR pass);
+	BOOL AgentIdkey(int cmd, CIdKey *pKey);
+	void OnAgentIdkey(int cmd, CIdKey *pKey);
+
 	inline BOOL IsLogin() { return (m_SSH2Status & (SSH2_STAT_HAVELOGIN | SSH2_STAT_HAVESESS | SSH2_STAT_SENTKEXINIT)) == (SSH2_STAT_HAVELOGIN | SSH2_STAT_HAVESESS); }
 
 // Channel func
@@ -1096,7 +1075,7 @@ public:
 	void SendMsgChannelRequesstSubSystem(int id, LPCSTR cmds);
 	void SendMsgChannelRequesstExec(int id, LPCSTR cmds);
 
-	void SendMsgGlobalRequest(int num, LPCSTR str, LPCTSTR rhost = NULL, int rport = 0);
+	void SendMsgGlobalRequest(int num, LPCSTR str, BYTE *pBuf = NULL, int nLen = 0);
 	void SendMsgKeepAlive();
 	void SendMsgUnimplemented();
 	void SendDisconnect2(int st, LPCSTR str);
@@ -1133,7 +1112,8 @@ public:
 	int SSH2MsgChannelRequesst(CBuffer *bp);
 	int SSH2MsgChannelRequestReply(CBuffer *bp, int type);
 
-	int SSH2MsgGlobalHostKeys(CBuffer *bp);
+	BOOL HostkeysProveReply(int num, CBuffer *bp, int type);
+	int SSH2MsgGlobalHostKeys(CBuffer *bp, int type);
 	int SSH2MsgGlobalRequest(CBuffer *bp);
 	int SSH2MsgGlobalRequestReply(CBuffer *bp, int type);
 
@@ -1199,35 +1179,6 @@ extern int bcrypt_pbkdf(const char *pass, size_t passlen, const unsigned char *s
 
 // argon2
 void argon2(uint32_t flavour, uint32_t mem, uint32_t passes, uint32_t parallel, CBuffer *P, CBuffer *S, CBuffer *K, CBuffer *X, u_char *out, uint32_t taglen);
-
-// xmss.cpp
-#define XMSS_OID_LEN 4
-
-int xmss_str_to_oid(uint32_t *oid, const char *s);
-int xmssmt_str_to_oid(uint32_t *oid, const char *s);
-
-const char *xmss_oid_to_str(uint32_t oid);
-const char *xmssmt_oid_to_str(uint32_t oid);
-
-int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid, GENSTATUS *gs);
-int xmss_sign(unsigned char *sk, unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen);
-int xmss_sign_open(unsigned char *m, unsigned long long *mlen, const unsigned char *sm, unsigned long long smlen, const unsigned char *pk);
-int xmss_sign_bytes(uint32_t oid);
-int xmss_bits(uint32_t oid);
-int xmss_height(uint32_t oid);
-int xmss_key_bytes(uint32_t oid, int *plen, int *slen);
-int xmss_sk_bytes(uint32_t oid, int *ilen, int *slen);
-
-int xmss_load_openssh_sk(uint32_t oid, unsigned char *sk, CBuffer *bp, CStringA *encname, CBuffer *ivbuf);
-int xmss_save_openssh_sk(uint32_t oid, unsigned char *sk, CBuffer *bp, const char *encname, unsigned char *ivbuf, int ivlen);
-
-int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid);
-int xmssmt_sign(unsigned char *sk, unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen);
-int xmssmt_sign_open(unsigned char *m, unsigned long long *mlen, const unsigned char *sm, unsigned long long smlen, const unsigned char *pk);
-int xmssmt_sign_bytes(uint32_t oid);
-int xmssmt_bits(uint32_t oid);
-int xmssmt_height(uint32_t oid);
-int xmssmt_key_bytes(uint32_t oid, int *plen, int *slen);
 
 // sntrup761.cpp
 int	sntrup761_keypair(unsigned char *pk, unsigned char *sk);

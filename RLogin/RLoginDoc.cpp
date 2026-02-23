@@ -375,6 +375,7 @@ void CRLoginDoc::LoadIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNod
 	ParamTab.SetIndex(FALSE, index[_T("Protocol")]);
 	TextRam.SetIndex(FALSE, index[_T("Screen")]);
 	TextRam.m_FontTab.SetIndex(FALSE, index[_T("Fontset")]);
+	TextRam.InitBankTab();
 	TextRam.m_TextBitMap.SetIndex(FALSE, index[_T("TextBitMap")]);
 	KeyTab.SetIndex(FALSE, index[_T("Keycode")]);
 #ifndef	USE_KEYMACGLOBAL
@@ -411,6 +412,7 @@ void CRLoginDoc::DiffIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNod
 	ParamTab.DiffIndex(*pOrigParamTab, index[_T("Protocol")]);
 	TextRam.DiffIndex(*pOrigTextRam, index[_T("Screen")]);
 	TextRam.m_FontTab.DiffIndex(pOrigTextRam->m_FontTab, index[_T("Fontset")]);
+	TextRam.InitBankTab();
 	TextRam.m_TextBitMap.DiffIndex(pOrigTextRam->m_TextBitMap, index[_T("TextBitMap")]);
 	KeyTab.DiffIndex(*pOrigKeyTab, index[_T("Keycode")]);
 
@@ -481,14 +483,79 @@ void CRLoginDoc::Serialize(CArchive& ar)
 			if ( tmp[n] == '\n' )
 				break;
 		}
-		if ( strncmp(tmp, "RLG3", 4) == 0 ) {
-			CStringIndex index;
+
+		if ( strncmp((LPSTR)tmp, "\"RLG5", 5) == 0 ) {
+			CBuffer buf;
+			CStringIndex index, *pIndex;
+			CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+			int count = 0;
+
+			buf.Apend((LPBYTE)tmp, n);
+
+			while ( (n = ar.Read(tmp, 4096)) > 0 )
+				buf.Apend((LPBYTE)tmp, n);
+
+			buf.KanjiConvert(buf.KanjiCheck(KANJI_UNKNOWN));
+
 			index.SetNoCase(TRUE);
 			index.SetNoSort(TRUE);
-			index.Serialize(ar, NULL);
-			SetIndex(FALSE, index);
-			m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
-			m_ServerEntry.m_DocType = DOCTYPE_ENTRYFILE;
+
+			if ( !index.GetJsonFormat(buf) || _tcsncmp(index.m_nIndex, _T("RLG5"), 4) != 0 )
+				AfxThrowArchiveException(CArchiveException::badIndex, ar.GetFile()->GetFileTitle());
+
+			for ( n = 0 ; n < index.GetSize() ; n++ ) {
+				if ( index[n].Find(_T("Entry")) < 0 )
+					continue;
+
+				if ( count == 0 ) {
+					m_ServerEntry.Init();
+					LoadDefOption(m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
+					SetIndex(FALSE, index[n]);
+
+					m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
+					m_ServerEntry.m_DocType = DOCTYPE_ENTRYFILE;
+					count++;
+				} else {
+					pIndex = new CStringIndex(index[n]);
+					pMain->m_IndexOpenList.AddTail(pIndex);
+					if ( count++ <= 1 )
+						pMain->PostMessage(WM_COMMAND, ID_FILE_NEW, 0);
+				}
+			}
+
+		} else if ( strncmp(tmp, "RLG3", 4) == 0 || strncmp(tmp, "RLG4", 4) == 0 ) {
+			int ver = (tmp[3] == '3' ? 3 : 4);
+			CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+
+			for ( int count = 0 ; ; count++ ) {
+				CStringIndex index, *pIndex;
+				index.SetNoCase(TRUE);
+				index.SetNoSort(TRUE);
+				index.Serialize(ar, NULL, ver);
+
+				if ( count == 0 ) {
+					m_ServerEntry.Init();
+					LoadDefOption(m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
+					SetIndex(FALSE, index);
+
+					m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
+					m_ServerEntry.m_DocType = DOCTYPE_ENTRYFILE;
+				} else {
+					pIndex = new CStringIndex(index);
+					pMain->m_IndexOpenList.AddTail(pIndex);
+					if ( count++ <= 1 )
+						pMain->PostMessage(WM_COMMAND, ID_FILE_NEW, 0);
+				}
+
+				memset(tmp, 0, 16);
+				for ( n = 0 ; n < 16 && ar.Read(&(tmp[n]), 1) == 1 ; n++ ) {
+					if ( tmp[n] == '\n' )
+						break;
+				}
+				if ( (ver == 3 && strncmp((LPSTR)tmp, "RLG31", 5) != 0) ||
+					 (ver == 4 && strncmp((LPSTR)tmp, "RLG41", 5) != 0) )
+					break;
+			}
 
 		} else if ( strncmp(tmp, "RLG2", 4) == 0 ) {
 			m_ServerEntry.Serialize(ar);
@@ -2419,20 +2486,23 @@ void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen, BOOL delaySend)
 	if ( m_pLogFile != NULL && m_TextRam.m_LogMode == LOGMOD_DEBUG )
 		LogWrite((LPBYTE)lpBuf, nBufLen, LOGDEBUG_SEND);
 }
-LPCSTR CRLoginDoc::Utf8Str(LPCTSTR str)
+CStringA CRLoginDoc::Utf8Str(LPCTSTR str)
 {
-	m_TextRam.m_IConv.StrToRemote(m_TextRam.m_SendCharSet[UTF8_SET], str, m_WorkMbs);
-	return m_WorkMbs;
+	CStringA mbs;
+	m_TextRam.m_IConv.StrToRemote(m_TextRam.m_SendCharSet[UTF8_SET], str, mbs);
+	return mbs;
 }
-LPCSTR CRLoginDoc::RemoteStr(LPCTSTR str)
+CStringA CRLoginDoc::RemoteStr(LPCTSTR str)
 {
-	m_TextRam.m_IConv.StrToRemote(m_TextRam.m_SendCharSet[m_TextRam.m_KanjiMode], str, m_WorkMbs);
-	return m_WorkMbs;
+	CStringA mbs;
+	m_TextRam.m_IConv.StrToRemote(m_TextRam.m_SendCharSet[m_TextRam.m_KanjiMode], str, mbs);
+	return mbs;
 }
-LPCTSTR CRLoginDoc::LocalStr(LPCSTR str)
+CString CRLoginDoc::LocalStr(LPCSTR str)
 {
-	m_TextRam.m_IConv.RemoteToStr(m_TextRam.m_SendCharSet[m_TextRam.m_KanjiMode], str, m_WorkStr);
-	return m_WorkStr;
+	CString tmp;
+	m_TextRam.m_IConv.RemoteToStr(m_TextRam.m_SendCharSet[m_TextRam.m_KanjiMode], str, tmp);
+	return tmp;
 }
 
 /////////////////////////////////////////////////////////////////////////////

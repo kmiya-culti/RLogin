@@ -92,7 +92,7 @@ void CBlockDlg::InitList()
 }
 void CBlockDlg::DrawPreView(HDC hDC)
 {
-	int x, y;
+	int x, y, w;
 	int cols, line;
 	int width, height;
 	int block, cflag, cwid, bmd;
@@ -100,7 +100,7 @@ void CBlockDlg::DrawPreView(HDC hDC)
 	CRect frame;
 	CDC *pDC = CDC::FromHandle(hDC);
 	COLORREF bc = RGB(0, 0, 0);
-	COLORREF fc = RGB(128,128, 128);
+	COLORREF fc = RGB(128, 128, 128);
 	COLORREF hc = RGB(64, 64, 64);
 	CString str;
 	CSize sz;
@@ -185,10 +185,11 @@ void CBlockDlg::DrawPreView(HDC hDC)
 			if ( (cflag & UNI_AMB) != 0 ) {
 				x = frame.Width()  * cols / 16 + (cwid == 2 ? (width / 4) : 0);
 				y = frame.Height() * line / m_ScrollPage;
+				w = (cwid == 1 ? 2 : 1);
 				pDC->MoveTo(x, y);
 				pDC->LineTo(x, y + height - 1);
-				pDC->LineTo(x + width - 1, y + height - 1);
-				pDC->LineTo(x + width - 1, y);
+				pDC->LineTo(x + width * w / 2 - 1, y + height - 1);
+				pDC->LineTo(x + width * w / 2 - 1, y);
 				pDC->LineTo(x, y);
 			}
 

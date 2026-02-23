@@ -179,6 +179,10 @@
 #define	TO_XTSGRMOS		(1006-700)	// SGR Extended Mouse Mode
 #define	TO_XTURXMOS		(1015-700)	// URXVT Extended Mouse Mode
 #define	TO_XTSGRPIX		(1016-700)	// SGR-Pixels Extended Mouse Mode
+#define	TO_XTUTF8		(1020-700)	// utf8 resource setting, xterm.
+#define	TO_XTWEASIAN	(1021-700)	// cjkWidth resource setting, xterm.
+#define	TO_XTWEMOJI		(1022-700)	// emojiWidth resource setting, xterm.
+#define	TO_XTWPRIVATE	(1023-700)	// privateWidth resource setting, xterm.
 #define	TO_XTALTSCR		(1047-700)	// Alternate/Normal screen buffer
 #define	TO_XTSRCUR		(1048-700)	// Save/Restore cursor as in DECSC/DECRC
 #define	TO_XTALTCLR		(1049-700)	// Alternate screen with clearing
@@ -1224,6 +1228,7 @@ public:
 	int m_IntCounter;
 	int m_MediaCopyMode;
 	int m_ImeStatus;
+	int m_SaveKanjiMode;
 
 	WORD m_BankTab[5][4];
 	int m_BankNow;
@@ -1384,6 +1389,7 @@ public:
 	void EnableOption(int opt);
 	void DisableOption(int opt);
 	void ReversOption(int opt);
+	void ResetOption(int opt);
 	int IsOptValue(int opt, int len);
 	void SetOptValue(int opt, int len, int value);
 	inline void SetOption(int opt, BOOL sw) { if ( sw ) EnableOption(opt); else DisableOption(opt); }
@@ -1472,7 +1478,7 @@ public:
 	void REVINDEX();
 	void PUT1BYTE(DWORD ch, int md, int at = 0, LPCWSTR str = NULL);
 	void PUT2BYTE(DWORD ch, int md, int at = 0, LPCWSTR str = NULL);
-	void PUTADD(int x, int y, DWORD ch);
+	BOOL PUTADD(int x, int y, DWORD ch);
 	void INSMDCK(int len);
 
 	typedef struct _OPTSTACK {

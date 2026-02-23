@@ -173,7 +173,7 @@ void CTabCtrlExt::InvalidateCloseBtn(int idx, int btn)
 		else if ( idx == GetCurSel() || btn >= 0 )
 			id = 4;
 
-		TRACE("InvalidateCloseBtn %d %d %d %d\n", idx, btn, id, m_CloseBtn[idx]);
+		//TRACE("InvalidateCloseBtn %d %d %d %d\n", idx, btn, id, m_CloseBtn[idx]);
 
 		if ( m_CloseBtn[idx] == (BYTE)id )
 			return;

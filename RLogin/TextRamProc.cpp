@@ -7119,6 +7119,10 @@ void CTextRam::fc_DECSRET(DWORD ch)
 		if ( (i = OptionToIndex(GetAnsiPara(n, 0, 0))) < 0 || i > 511 )
 			continue;
 
+		// ‘¼Ý’è‚ÉˆË‘¶‚·‚éê‡‚ÍAæ‚ÉÄÝ’è‚·‚é
+		if ( ch == 's' )
+			ResetOption(i);
+
 		ANSIOPT(ch, i);
 
 		switch(i) {
@@ -7270,6 +7274,24 @@ void CTextRam::fc_DECSRET(DWORD ch)
 				DisableOption(TO_XTURXMOS);
 				DisableOption(TO_XTSGRPIX);
 			}
+			break;
+
+		case TO_XTUTF8:		// 1020 utf8 resource setting, xterm.
+			if ( IsOptEnable(TO_XTUTF8) ) {
+				if ( m_KanjiMode != UTF8_SET ) {
+					m_SaveKanjiMode = m_KanjiMode;
+					SetKanjiMode(UTF8_SET);
+				}
+			} else if ( m_SaveKanjiMode != (-1) ) {
+				SetKanjiMode(m_SaveKanjiMode);
+				m_SaveKanjiMode = (-1);
+			}
+			break;
+		case TO_XTWEASIAN:	// 1021	cjkWidth resource setting, xterm.
+			if ( IsOptEnable(TO_XTWEASIAN) )
+				DisableOption(TO_RLUNIAWH);
+			else
+				EnableOption(TO_RLUNIAWH);
 			break;
 
 		case TO_IMECTRL:	// IME Open/Close
@@ -7982,8 +8004,11 @@ void CTextRam::fc_DECRQMH(DWORD ch)
 
 	n = GetAnsiPara(0, 0, 0);
 
-	if ( (i = OptionToIndex(n)) >= 0 && (f = CTermPage::IsSupport(i)) > 0 && !IsOptEnable(i) )
-		f++;	// Reset 1->2, 3->4
+	if ( (i = OptionToIndex(n)) >= 0 ) {
+		ResetOption(i);
+		if ( (f = CTermPage::IsSupport(i)) > 0 && !IsOptEnable(i) )
+			f++;	// Reset 1->2, 3->4
+	}
 
 	UNGETSTR(_T("%s?%d;%d$y"), m_RetChar[RC_CSI], n, f);
 	fc_POP(ch);

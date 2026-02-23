@@ -172,6 +172,7 @@ public:
 	CWnd *m_pLastPaneFoucs;
 	CBuffer m_AllFileBuf;
 	CString m_AllFilePath;
+	CPtrList m_IndexOpenList;
 	int m_TimerSeqId;
 	CTimerObject *m_pTimerUsedId;
 	CTimerObject *m_pTimerFreeId;
@@ -229,8 +230,11 @@ public:
 
 	LPCTSTR PagentPipeName();
 
+	int AgeantIsOpen();
 	BOOL AgeantInit();
 	BOOL AgeantSign(int type, CBuffer *blob, CBuffer *sign, LPBYTE buf, int len, int flag);
+	BOOL AgeantKeyAdd(int type, CIdKey *pKey);
+	BOOL AgeantKeyRequest(int cmd, CIdKey *pKey, Cssh *pSock);
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();

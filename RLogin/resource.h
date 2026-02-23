@@ -270,7 +270,7 @@
 #define IDS_VERSIONCHECKURL2            646
 #define IDS_SCRIPTDLGSTEP               647
 #define IDS_KNOWNHOSTDELMSG             648
-#define IDS_XMSSSAVEFORMAT              649
+#define IDS_IDKEYSSAVEFORMAT            649
 #define IDS_VERCHKDISABLE               650
 #define IDS_VERCHKENABLE                651
 #define IDS_VERCHKLATEST                652
@@ -339,14 +339,15 @@
 #define IDE_KEYMACTOOLONG               734
 #define IDE_PAGEANTKEYEDIT              735
 #define IDE_SFTPTHREADCMDEXEC           736
-#define IDE_XMSSBITSIZEERR              737
-#define IDE_XMSSBITSIZECHECK            738
+//#define IDE_XMSSBITSIZEERR              737
+//#define IDE_XMSSBITSIZECHECK            738
 #define IDE_REGISTRYDELETEERROR         739
 #define IDE_ENTRYUPDATEEERROR           740
 #define IDE_OPTFIXDEEPENTRY             741
 #define IDE_OPTFIXNOTFOUND              742
 #define IDE_VERCHKERROR                 743
 #define IDE_FILEOPENERROR               744
+#define IDE_HOSTKEYPROVEERR             745
 #define IDT_EXTOPT_LIST01               800
 #define IDT_EXTOPT_LIST02               801
 #define IDT_EXTOPT_LIST03               802
@@ -1303,6 +1304,7 @@
 #define IDM_FONT_SIZE_UP                5161
 #define IDM_FONT_SIZE_DOWN              5162
 #define IDM_FONT_SIZE_DEF               5163
+#define IDM_AGENTADDKEY                 5164
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
@@ -1310,7 +1312,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        174
-#define _APS_NEXT_COMMAND_VALUE         5164
+#define _APS_NEXT_COMMAND_VALUE         5165
 #define _APS_NEXT_CONTROL_VALUE         2556
 #define _APS_NEXT_SYMED_VALUE           681
 #endif

@@ -8737,7 +8737,7 @@ static const LPCTSTR InitAlgo[12]= {
 	_T("umac-64@openssh.com,umac-128@openssh.com,") \
 	_T("umac-128,umac-96,umac-64,umac-32"),
 
-	_T("zlib@openssh.com,zlib,none"),
+	_T("none,zlib@openssh.com,zlib"),
 
 	_T("aes256-ctr,aes192-ctr,aes128-ctr,") \
 	_T("chacha20-poly1305,chacha20-poly1305@openssh.com,") \
@@ -8764,7 +8764,7 @@ static const LPCTSTR InitAlgo[12]= {
 	_T("umac-64@openssh.com,umac-128@openssh.com,") \
 	_T("umac-128,umac-96,umac-64,umac-32"),
 
-	_T("zlib@openssh.com,zlib,none"),
+	_T("none,zlib@openssh.com,zlib"),
 
 	_T("mlkem768x25519-sha256,mlkem768nistp256-sha256,mlkem1024nistp384-sha384,") \
 	_T("sntrup761x25519-sha512,sntrup761x25519-sha512@openssh.com,") \
@@ -9110,7 +9110,7 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 			}
 			key.m_Name.Empty();
 			key.SetPass(m_IdKeyStr[n + 2]);
-			pMain->m_IdKeyTab.AddEntry(key);
+			pMain->m_IdKeyTab.AddKey(key);
 			m_IdKeyList.AddVal(key.m_Uid);
 		}
 	}

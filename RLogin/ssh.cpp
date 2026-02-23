@@ -148,6 +148,9 @@ void CFifoSsh::OnCommand(int cmd, int param, int msg, int len, void *buf, CEvent
 	case FIFO_QCMD_KEXINIT:
 		((Cssh *)m_pSock)->SendMsgKexInit();
 		break;
+	case FIFO_QCMD_IDKEYTAB:
+		((Cssh *)m_pSock)->OnAgentIdkey(msg, (CIdKey *)buf);
+		break;
 	}
 }
 
@@ -311,9 +314,6 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_FifoCannel.RemoveAll();
 	m_FileList.RemoveAll();
 	m_DelayedCheck.RemoveAll();
-
-	m_WorkStr.Empty();
-	m_WorkMbs.Empty();
 
 	m_PluginStat = STATE_NONE;
 	m_pFifoPipe = NULL;
@@ -1736,6 +1736,127 @@ void Cssh::CreateMyPeer()
 	m_MyPeer.Put8Bit(0);
 	m_MyPeer.Put32Bit(0);
 }
+	
+BOOL Cssh::IsAgentLock()
+{
+	BOOL rc = FALSE;
+	m_AgentSemaphore.Lock();
+
+	if ( m_pAgentMutex == NULL ) {
+		CMutex Mutex(FALSE, _T("RLogin_SSH2_AGENT"), NULL);
+		if ( GetLastError() == ERROR_ALREADY_EXISTS )
+			rc = TRUE;
+	}
+
+	m_AgentSemaphore.Unlock();
+	return rc;
+}
+BOOL Cssh::AgentLock(LPCSTR pass)
+{
+	BOOL rc = FALSE;
+	m_AgentSemaphore.Lock();
+
+	if ( m_pAgentMutex != NULL ) {
+		rc = (m_AgentPass.Compare(pass) == 0 ? TRUE : FALSE);
+	} else {
+		m_pAgentMutex = new CMutex(TRUE, _T("RLogin_SSH2_AGENT"), NULL);
+		if ( m_pAgentMutex == NULL || GetLastError() == ERROR_ALREADY_EXISTS ) {
+			if ( m_pAgentMutex != NULL )
+				delete m_pAgentMutex;
+			m_pAgentMutex = NULL;
+		} else {
+			m_AgentPass = pass;
+			rc = TRUE;
+		}
+	}
+
+	m_AgentSemaphore.Unlock();
+	return rc;
+}
+BOOL Cssh::AgentUnlock(LPCSTR pass)
+{
+	BOOL rc = FALSE;
+	m_AgentSemaphore.Lock();
+
+	if ( m_pAgentMutex != NULL && m_AgentPass.Compare(pass) == 0 ) {
+		delete m_pAgentMutex;
+		m_pAgentMutex = NULL;
+		m_AgentPass.Empty();
+		rc = TRUE;
+	}
+
+	m_AgentSemaphore.Unlock();
+	return rc;
+}
+BOOL Cssh::AgentIdkey(int cmd, CIdKey *pKey)
+{
+	// メインスレッドから呼び出し
+	int idx, uid, pos;
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+
+	if ( (idx = pMain->m_IdKeyTab.HaveKey(*pKey)) < 0 || (uid = pMain->m_IdKeyTab[idx].m_Uid) < 0 )
+		return FALSE;
+
+	pos = m_pDocument->m_ParamTab.m_IdKeyList.FindVal(uid);
+
+	// sshエントリのm_ParamTab.m_IdKeyListを更新
+	switch(cmd) {
+	case SSHAGENT_CMD_ADDKEY:
+		if ( pos >= 0 )
+			return FALSE;
+		m_pDocument->m_ParamTab.m_IdKeyList.AddVal(uid);
+		break;
+	case SSHAGENT_CMD_ADDCERT:
+		if ( pos < 0 ) {
+			cmd = SSHAGENT_CMD_ADDKEY;
+			m_pDocument->m_ParamTab.m_IdKeyList.AddVal(uid);
+		}
+		break;
+	case SSHAGENT_CMD_DELKEY:
+		if ( pos < 0 )
+			return FALSE;
+		m_pDocument->m_ParamTab.m_IdKeyList.RemoveAt(pos);
+		break;
+	}
+
+	// ここで new CIdKey
+	pKey = new CIdKey; *pKey = pMain->m_IdKeyTab[idx];
+	m_pFifoMid->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_IDKEYTAB, cmd, 0, (void *)pKey);
+	m_pDocument->SetModifiedFlag(TRUE);
+
+	return TRUE;
+}
+void Cssh::OnAgentIdkey(int cmd, CIdKey *pKey)
+{
+	// sshスレッドから呼び出し
+
+	// sshスレッドのm_IdKeyTabを更新
+	switch(cmd) {
+	case SSHAGENT_CMD_ADDKEY:
+		m_IdKeyTab.Add(*pKey);
+		break;
+	case SSHAGENT_CMD_ADDCERT:
+		for ( int n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
+			if ( m_IdKeyTab[n].m_Uid == pKey->m_Uid ) {
+				m_IdKeyTab[n].m_Cert = pKey->m_Cert;
+				m_IdKeyTab[n].m_CertBlob = pKey->m_CertBlob;
+				break;
+			}
+		}
+		break;
+	case SSHAGENT_CMD_DELKEY:
+		for ( int n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
+			if ( m_IdKeyTab[n].m_Uid == pKey->m_Uid ) {
+				m_IdKeyTab.RemoveAt(n);
+				break;
+			}
+		}
+		break;
+	}
+
+	// ここで delete CIdKey
+	delete pKey;
+}
 
 //////////////////////////////////////////////////////////////////////
 // Channel funcsion
@@ -1749,11 +1870,12 @@ class CFifoChannel *Cssh::GetFifoChannel(int id)
 		nFd = FIFO_EXTIN;
 		id = FdToId(nFd);
 
+		m_pFifoMid->Lock();
 		while ( id >= m_FifoCannel.GetSize() )
 			m_FifoCannel.Add(NULL);
 
 		m_FifoCannel[id] = pChan = new CFifoChannel;
-		m_OpenChanCount++;
+		m_pFifoMid->Unlock();
 
 		pChan->m_Type = SSHFT_STDIO;
 		pChan->m_Status = 0;
@@ -1766,6 +1888,8 @@ class CFifoChannel *Cssh::GetFifoChannel(int id)
 		pChan->m_LocalPacks = pChan->m_LocalWind / 4;
 		pChan->m_pFifoBase = NULL;
 		pChan->m_bClosed = FALSE;
+
+		m_OpenChanCount++;
 
 	} else if ( id < 0 ) {
 		m_pFifoMid->Lock();
@@ -1830,7 +1954,12 @@ class CFifoChannel *Cssh::GetFifoChannel(int id)
 		m_OpenChanCount++;
 
 	} else if ( id < m_FifoCannel.GetSize() ) {
-		pChan = (CFifoChannel *)m_FifoCannel[id];
+		if ( m_pFifoMid != NULL ) {		// オープン中ならロック
+			m_pFifoMid->Lock();
+			pChan = (CFifoChannel *)m_FifoCannel[id];
+			m_pFifoMid->Unlock();
+		} else
+			pChan = (CFifoChannel *)m_FifoCannel[id];
 	}
 
 	return pChan;
@@ -2325,6 +2454,7 @@ void Cssh::ChannelCheck(int nFd, int fdEvent, void *pParam)
 		case FD_WRITE:			// SSH2MsgChannelAdjust
 			ASSERT(m_pFifoMid != NULL);
 			m_pFifoMid->SetFdEvents(IdToFdIn(id), FD_READ);
+			SendMsgChannelData(id);
 			break;
 
 		case FD_ACCEPT:			// CFifoSocks -> CFifoSsh::OnCommand(FIFO_QCMD_SYNCRET)
@@ -2490,6 +2620,7 @@ void Cssh::PortForward(BOOL bReset)
 	CString str;
 	CStringArrayExt tmp;
 	CFifoChannel *pChan;
+	CBuffer buf;
 
 	m_PfdConnect = 0;
 	m_PortFwdTable = m_pDocument->m_ParamTab.m_PortFwd;
@@ -2548,7 +2679,9 @@ void Cssh::PortForward(BOOL bReset)
 			m_Permit[n].m_rPort = GetPortNum(tmp[1]);
 			m_Permit[n].m_Type  = tmp.GetVal(4);
 			m_Permit[n].m_TimeOut = (tmp.GetSize() > 6 ? tmp.GetVal(6) : 0);
-			SendMsgGlobalRequest(n, "tcpip-forward", tmp[0], GetPortNum(tmp[1]));
+			buf.PutStr(RemoteStr(tmp[0]));
+			buf.Put32Bit(GetPortNum(tmp[1]));
+			SendMsgGlobalRequest(n, "tcpip-forward", buf.GetPtr(), buf.GetSize());
 			LogIt(_T("Remote %s %s:%s"), (m_Permit[n].m_Type == PFD_REMOTE ? _T("Listen") : _T("Proxy")), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
 			m_PfdConnect++;
 			a++;
@@ -3857,16 +3990,14 @@ void Cssh::SendMsgChannelRequesstExec(int id, LPCSTR cmds)
 
 //////////////////////////////////////////////////////////////////////
 
-void Cssh::SendMsgGlobalRequest(int num, LPCSTR str, LPCTSTR rhost, int rport)
+void Cssh::SendMsgGlobalRequest(int num, LPCSTR str, BYTE *pBuf, int nLen)
 {
 	CBuffer tmp;
 	tmp.Put8Bit(SSH2_MSG_GLOBAL_REQUEST);
 	tmp.PutStr(str);
 	tmp.Put8Bit(1);
-	if ( rhost != NULL ) {
-		tmp.PutStr(RemoteStr(rhost));
-		tmp.Put32Bit(rport);
-	}
+	if ( pBuf != NULL && nLen > 0 )
+		tmp.Apend(pBuf, nLen);
 	PostSendPacket(2, &tmp);
 	m_GlbReqMap.Add((WORD)num);
 }
@@ -3973,6 +4104,11 @@ void Cssh::SendPacket2(CBuffer *bp)
 
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 && CExtSocket::GetRecvSize() == 0 && (m_SendPackLen >= MAX_PACKETLEN || m_RecvPackLen >= MAX_PACKETLEN) )
 		SendMsgKexInit();
+
+#ifdef	DEBUG
+	if ( GetSendSocketSize() >= (CHAN_SES_WINDOW_DEFAULT * 3 / 4) )
+		TRACE("SendPacket2 over flow\n");
+#endif
 }
 
 /*******************************************************************************************************
@@ -5515,7 +5651,65 @@ int Cssh::SSH2MsgChannelRequestReply(CBuffer *bp, int type)
 
 //////////////////////////////////////////////////////////////////////
 
-int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
+BOOL Cssh::HostkeysProveReply(int num, CBuffer *bp, int type)
+{
+	CString msg, str, fin;
+
+	for ( int n = 0 ; n < (int)m_NewHostKey.GetSize() ; n++ ) {
+		BOOL sc = FALSE;
+		CBuffer hash, blob, sign;
+
+		m_NewHostKey[n].SetBlob(&blob);
+		m_NewHostKey[n].m_Uid = FALSE;
+
+		hash.PutStr(num == 0xFFFE ? "hostkeys-prove-00@openssh.com" : "hostkeys-prove-0");
+		hash.PutBuf(m_SessHash.GetPtr(), m_SessHash.GetSize());
+		hash.PutBuf(blob.GetPtr(), blob.GetSize());
+
+		if ( type == SSH2_MSG_REQUEST_SUCCESS && bp->GetSize() >= 4 ) {
+			bp->GetBuf(&sign);
+			if ( m_NewHostKey[n].Verify(&sign, hash.GetPtr(), hash.GetSize()) ) {
+				m_NewHostKey[n].m_Uid = TRUE;
+				sc = TRUE;
+			}
+		}
+
+		if ( !sc ) {
+			m_NewHostKey[n].FingerPrint(fin, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
+			str.Format(_T("%s(%d) %s\r\n"), m_NewHostKey[n].GetName(), m_NewHostKey[n].GetSize(), (LPCTSTR)fin);
+			msg += str;
+		}
+	}
+
+	if ( !msg.IsEmpty() ) {
+		str.Format(_T("%s\r\n\r\n%s"), (LPCTSTR)CStringLoad(IDE_HOSTKEYPROVEERR), msg);
+		if ( ::AfxMessageBox(str, MB_ICONERROR | MB_YESNO) == IDYES ) {
+			CIdKey key;
+			CString kname;
+			CStringArrayExt entry;
+
+			kname.Format(_T("%s:%d"), (LPCTSTR)m_HostName, m_HostPort);
+			((CRLoginApp *)AfxGetApp())->GetProfileStringArray(_T("KnownHosts"), kname, entry);
+
+			for ( int n = 0 ; n < (int)entry.GetSize() ; n++ ) {
+				if ( key.ReadPublicKey(entry[n]) ) {
+					for ( int i = 0 ; i < (int)m_NewHostKey.GetSize() ; i++ ) {
+						if ( key.ComperePublic(&(m_NewHostKey[i])) == 0 && m_NewHostKey[i].m_Uid == FALSE ) {
+							entry.RemoveAt(n);
+							n--;
+							break;
+						}
+					}
+				}
+			}
+
+			((CRLoginApp *)AfxGetApp())->WriteProfileStringArray(_T("KnownHosts"), kname, entry);
+		}
+	}
+
+	return TRUE;
+}
+int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp, int type)
 {
 	int n, i;
 	int useEntry = 0;
@@ -5529,7 +5723,7 @@ int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
 	CArray<CIdKey, CIdKey &> keyTab;
 	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
 
-	if ( !m_bKnownHostUpdate )
+	if ( !m_bKnownHostUpdate || (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
 		return FALSE;
 
 	kname.Format(_T("%s:%d"), (LPCTSTR)m_HostName, m_HostPort);
@@ -5560,6 +5754,8 @@ int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
 		}
 	}
 
+	m_NewHostKey.RemoveAll();
+
 	while ( bp->GetSize() > 4 ) {
 		bp->GetBuf(&tmp);
 	
@@ -5579,6 +5775,8 @@ int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
 			keyTab.Add(key);
 			wrtFlag |= (key.ChkOldCertHosts(m_HostName) ? 1 : 3);
 			newEntry++;
+
+			m_NewHostKey.Add(key);
 		}
 	}
 
@@ -5607,6 +5805,20 @@ int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
 		pApp->WriteProfileStringArray(_T("KnownHosts"), kname, entry);
 	}
 
+	if ( m_NewHostKey.GetSize() > 0 ) {
+		tmp.Clear();
+		for ( n = 0 ; n < (int)m_NewHostKey.GetSize() ; n++ ) {
+			CBuffer blob;
+			m_NewHostKey[n].SetBlob(&blob);
+			tmp.PutBuf(blob.GetPtr(), blob.GetSize());
+		}
+
+		if ( type == 0 )
+			SendMsgGlobalRequest(0xFFFE, "hostkeys-prove-00@openssh.com", tmp.GetPtr(), tmp.GetSize());
+		else
+			SendMsgGlobalRequest(0xFFFD, "hostkeys-prove", tmp.GetPtr(), tmp.GetSize());	// draft-miller-sshm-hostkey-update-02
+	}
+
 	return TRUE;
 }
 int Cssh::SSH2MsgGlobalRequest(CBuffer *bp)
@@ -5624,8 +5836,11 @@ int Cssh::SSH2MsgGlobalRequest(CBuffer *bp)
 		m_KeepAliveRecvGlobalCount++;
 		success = TRUE;
 
-	} else if ( str.Compare("hostkeys-00@openssh.com") == 0 || str.Compare("hostkeys") == 0 ) {		// draft-miller-sshm-hostkey-update-00
-		success = SSH2MsgGlobalHostKeys(bp);
+	} else if ( str.Compare("hostkeys-00@openssh.com") == 0 ) {
+		success = SSH2MsgGlobalHostKeys(bp, 0);
+
+	} else if ( str.Compare("hostkeys") == 0 ) {		// draft-miller-sshm-hostkey-update-02
+		success = SSH2MsgGlobalHostKeys(bp, 1);
 
 	} else if ( str.Compare("elevation") == 0 ) {	// RFC 8308
 		success = TRUE;
@@ -5660,6 +5875,9 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 		if ( ++m_KeepAliveReplyCount < 0 )
 			m_KeepAliveReplyCount = 0;
 		return 0;
+
+	} else if ( (WORD)num == 0xFFFE || (WORD)num == 0xFFFD ) {	// hostkeys-prove
+		return (HostkeysProveReply(num, bp, type) ? 0 : (-1));
 
 	} else if ( num < m_Permit.GetSize() && m_Permit[num].m_bClose ) {	// remote listen close
 		LogIt(_T("Remote %s %s %s:%d"), 
@@ -6009,10 +6227,14 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		break;
 
 	case SSH2_MSG_IGNORE:
+		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
+			GOTODISCONNECT(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, "MsgIgnore Not processing session");
+		TRACE("Recive SSH2_MSG_IGNORE\n");
+		break;
 	case SSH2_MSG_UNIMPLEMENTED:
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
-			GOTODISCONNECT(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, "MsgIgnore/Uninplimented Not processing session");
-		TRACE("Recive SSH2_MSG_IGNORE/UNIMPLEMENTED '%d'\n", type);
+			GOTODISCONNECT(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, "Uninplimented Not processing session");
+		TRACE("Recive SSH2_MSG_UNIMPLEMENTED '%d'\n", bp->Get32Bit());
 		break;
 
 	case SSH2_MSG_PING:

@@ -43,6 +43,8 @@ CIdkeySelDLg::CIdkeySelDLg(CWnd* pParent /*=NULL*/)
 
 	m_ListInit = FALSE;
 	m_bInitPageant = FALSE;
+
+	m_AgeantIsOpen = 0;
 }
 CIdkeySelDLg::~CIdkeySelDLg()
 {
@@ -77,6 +79,7 @@ BEGIN_MESSAGE_MAP(CIdkeySelDLg, CDialogExt)
 	ON_BN_CLICKED(IDC_IDKEY_EXPORT, OnIdkeyExport)
 	ON_UPDATE_COMMAND_UI(IDC_IDKEY_EXPORT, OnUpdateEditEntry)
 	ON_BN_CLICKED(IDC_IDKEY_CREATE, OnIdkeyCreate)
+	ON_CBN_SELCHANGE(IDC_IDKEY_TYPE, &CIdkeySelDLg::OnCbnSelchangeIdkeyType)
 
 	ON_COMMAND(ID_EDIT_UPDATE, OnEditUpdate)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, OnUpdateEditEntry)
@@ -88,9 +91,17 @@ BEGIN_MESSAGE_MAP(CIdkeySelDLg, CDialogExt)
 	ON_COMMAND(ID_IDKEY_CAKEY, &CIdkeySelDLg::OnIdkeyCakey)
 	ON_COMMAND(IDM_SAVEPUBLICKEY, &CIdkeySelDLg::OnSavePublicKey)
 	ON_UPDATE_COMMAND_UI(IDM_SAVEPUBLICKEY, OnUpdateEditEntry)
-	ON_CBN_SELCHANGE(IDC_IDKEY_TYPE, &CIdkeySelDLg::OnCbnSelchangeIdkeyType)
+	ON_COMMAND(IDM_AGENTADDKEY, &CIdkeySelDLg::OnAgentAddKey)
+	ON_UPDATE_COMMAND_UI(IDM_AGENTADDKEY, OnUpdateAgent)
 END_MESSAGE_MAP()
 
+void CIdkeySelDLg::ResetDataUid()
+{
+	m_Data.RemoveAll();
+
+	for ( int n = 0 ; n < m_List.GetItemCount() ; n++ )
+		m_Data.Add((DWORD)m_List.GetItemData(n));
+}
 void CIdkeySelDLg::InitList()
 {
 	int n, bits;
@@ -116,10 +127,9 @@ void CIdkeySelDLg::InitList()
 		case IDKEY_ML_DSA_ES	:str = _T("MLDSA-ES"); break;
 		case IDKEY_ML_DSA_ED	:str = _T("MLDSA-ED"); break;
 		case IDKEY_SLH_DSA:	str = pKey->IsSlhDsaShake() ? (pKey->IsSlhDsaStype() ? _T("SLHSHAKES") : _T("SLHSHAKEF")) : (pKey->IsSlhDsaStype() ? _T("SLHSHA2S") : _T("SLHSHA2F")); break;
-		case IDKEY_XMSS:    str = _T("XMSS"); break;
 		case IDKEY_UNKNOWN: str = pKey->m_TypeName; break;
 		}
-		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
+		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, 0);
 
 		if ( (bits = pKey->GetHeight()) > 0 )
 			str.Format(_T("%d"), pKey->GetHeight());
@@ -129,31 +139,38 @@ void CIdkeySelDLg::InitList()
 
 		m_List.SetItemText(n, 2, pKey->m_Name);
 
-		if ( pKey->m_AgeantType == IDKEY_AGEANT_PUTTY ) {
+		if ( pKey->m_AgeantType == IDKEY_AGEANT_PUTTY )
 			str = pKey->m_bSecInit ? _T("Pageant") : _T("None");
-		} else if ( pKey->m_AgeantType == IDKEY_AGEANT_WINSSH ) {
+		else if ( pKey->m_AgeantType == IDKEY_AGEANT_WINSSH )
 			str = pKey->m_bSecInit ? _T("Wageant") : _T("None");
-		} else if ( pKey->m_AgeantType == IDKEY_AGEANT_PUTTYPIPE ) {
+		else if ( pKey->m_AgeantType == IDKEY_AGEANT_PUTTYPIPE )
 			str = pKey->m_bSecInit ? _T("Pageant") : _T("None");
-		} else if ( pKey->m_Type == IDKEY_UNKNOWN ) {
+		else if ( pKey->m_Type == IDKEY_UNKNOWN )
 			str = _T("Unknown");
-		} else {
+		else
+			str.Empty();
+
+		if ( pKey->m_Cert != 0 ) {
+			if ( !str.IsEmpty() )
+				str += _T(" ");
 			switch(pKey->m_Cert) {
-			case IDKEY_CERTV00:  str = _T("V00"); break;
-			case IDKEY_CERTV01:  str = _T("V01"); break;
-			case IDKEY_CERTX509: str = _T("x509"); break;
-			default:             str = _T(""); break;
+			case IDKEY_CERTV00:  str += _T("V00"); break;
+			case IDKEY_CERTV01:  str += _T("V01"); break;
+			case IDKEY_CERTX509: str += _T("x509"); break;
+			case IDKEY_CERTRFC:  str += _T("CERT"); break;
 			}
 		}
+
 		m_List.SetItemText(n, 3, str);
 
-		m_List.SetItemData(n, n);
+		m_List.SetItemData(n, pKey->m_Uid);
 		m_List.SetLVCheck(n, pKey->m_Flag);
 	}
 
 	if ( m_EntryNum >= 0 ) {
 		m_List.SetItemState(m_EntryNum, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 		m_List.EnsureVisible(m_EntryNum, FALSE);
+		m_List.SetSelectionMark(m_EntryNum);
 	}
 
 	m_ListInit = FALSE;
@@ -192,12 +209,6 @@ void CIdkeySelDLg::SetBitsList()
 		pCombo->AddString(_T("521"));
 		pCombo->EnableWindow(TRUE);
 		if ( bits < 256 || bits > 521 ) bits = 256;
-	} else if ( m_Type.Compare(_T("XMSS")) == 0 ) {
-		pCombo->AddString(_T("10"));
-		pCombo->AddString(_T("16"));
-		pCombo->AddString(_T("20"));
-		pCombo->EnableWindow(TRUE);
-		if ( bits < 10 || bits > 20 ) bits = 10;
 	} else if ( m_Type.Compare(_T("MLDSA")) == 0 || m_Type.Compare(_T("MLDSA-ES")) == 0 || m_Type.Compare(_T("MLDSA-ED")) == 0 ) {
 		pCombo->AddString(_T("44"));
 		pCombo->AddString(_T("65"));
@@ -364,7 +375,6 @@ BOOL CIdkeySelDLg::OnInitDialog()
 	}
 
 	if ( (pWnd = GetDlgItem(IDC_IDKEY_TYPE)) != NULL ) {
-		//((CComboBox *)pWnd)->AddString(_T("XMSS"));			// openssh 10.1 remove experimental support for XMSS keys
 		((CComboBox *)pWnd)->AddString(_T("MLDSA"));		// draft-sfluhrer-ssh-mldsa-04
 		((CComboBox *)pWnd)->AddString(_T("MLDSA-ES"));		// draft-sun-ssh-composite-sigs-01
 		((CComboBox *)pWnd)->AddString(_T("MLDSA-ED"));		// draft-sun-ssh-composite-sigs-01
@@ -383,6 +393,8 @@ BOOL CIdkeySelDLg::OnInitDialog()
 	SetSaveProfile(_T("IdkeySelDLg"));
 	AddHelpButton(_T("#SSHKEYSET"));
 
+	m_AgeantIsOpen = ((CMainFrame *)::AfxGetMainWnd())->AgeantIsOpen();
+
 	return TRUE;
 }
 void CIdkeySelDLg::OnOK() 
@@ -396,11 +408,9 @@ void CIdkeySelDLg::OnOK()
 	}
 
 	m_IdKeyList.RemoveAll();
-	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
-		if ( m_List.GetLVCheck(n) ) {
-			int i = (int)m_List.GetItemData(n);
-			m_IdKeyList.AddVal(m_Data[i]);
-		}
+	for ( int n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetLVCheck(n) )
+			m_IdKeyList.AddVal((int)m_List.GetItemData(n));
 	}
 
 	if ( m_pParamTab != NULL && m_bInitPageant && !m_pParamTab->m_bInitPageant )
@@ -453,37 +463,25 @@ void CIdkeySelDLg::OnTimer(UINT_PTR nIDEvent)
 
 void CIdkeySelDLg::OnIdkeyUp() 
 {
-	int n1, n2, d;
+	int n = m_List.GetSelectionMark();
 
-	if ( (m_EntryNum = m_List.GetSelectionMark()) <= 0 )
+	if ( n <= 0 )
 		return;
 
-	n1 = (int)m_List.GetItemData(m_EntryNum - 1);
-	n2 = (int)m_List.GetItemData(m_EntryNum);
-	d = m_Data[n1];
-	m_Data[n1] = m_Data[n2];
-	m_Data[n2] = d;
-	m_EntryNum -= 1;
-
-	InitList();
+	m_List.SwapItemText(n, n - 1);
+	m_List.SetSelectionMark(n - 1);
+	m_List.EnsureVisible(n - 1, FALSE);
 }
 void CIdkeySelDLg::OnIdkeyDown() 
 {
-	int n1, n2, d;
+	int n = m_List.GetSelectionMark();
 
-	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
-		return;
-	else if ( m_EntryNum >= (m_List.GetItemCount() - 1) )
+	if ( n < 0 || n >= (m_List.GetItemCount() - 1) )
 		return;
 
-	n1 = (int)m_List.GetItemData(m_EntryNum + 1);
-	n2 = (int)m_List.GetItemData(m_EntryNum);
-	d = m_Data[n1];
-	m_Data[n1] = m_Data[n2];
-	m_Data[n2] = d;
-	m_EntryNum += 1;
-
-	InitList();
+	m_List.SwapItemText(n, n + 1);
+	m_List.SetSelectionMark(n + 1);
+	m_List.EnsureVisible(n + 1, FALSE);
 }
 void CIdkeySelDLg::OnIdkeyDel() 
 {
@@ -491,11 +489,13 @@ void CIdkeySelDLg::OnIdkeyDel()
 
 	for ( int n = 0 ; n < m_List.GetItemCount() ; n++ ) {
 		if ( m_List.GetItemState(n, LVIS_SELECTED) != 0 )
-			UidTab.Add(m_Data[(int)m_List.GetItemData(n)]);
+			UidTab.Add((DWORD)m_List.GetItemData(n));
 	}
 
 	if ( UidTab.GetSize() == 0 || MessageBox(CStringLoad(IDE_DELETEKEYQES), NULL, MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 		return;
+
+	ResetDataUid();
 
 	for ( int n = 0 ; n < (int)UidTab.GetSize() ; n++ ) {
 		for ( int i = 0 ; n < (int)m_Data.GetSize() ; i++ ) {
@@ -518,7 +518,7 @@ void CIdkeySelDLg::OnIdkeyCopy()
 		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
 			continue;
 
-		CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[(int)m_List.GetItemData(n)]);
+		CIdKey *pKey = m_pIdKeyTab->GetUid((int)m_List.GetItemData(n));
 
 		if ( pKey == NULL )
 			continue;
@@ -565,13 +565,15 @@ void CIdkeySelDLg::OnIdkeyInport()
 	key.m_Flag = TRUE;
 	key.m_FilePath.Empty();
 
-	if ( !m_pIdKeyTab->AddEntry(key) ) {
+	if ( !m_pIdKeyTab->AddKey(key) ) {
 		CString msg, finger;
 		key.FingerPrint(finger, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
 		msg.Format(_T("%s\n\n%s(%d) %s\n%32.32s..."), CStringLoad(IDE_DUPIDKEYENTRY), key.GetName(), key.GetSize(), (LPCTSTR)key.m_Name, (LPCTSTR)finger);
 		MessageBox(msg, NULL, MB_ICONINFORMATION);
 		return;
 	}
+
+	ResetDataUid();
 	m_Data.InsertAt(0, key.m_Uid);
 
 	m_EntryNum = 0;
@@ -588,7 +590,7 @@ void CIdkeySelDLg::OnIdkeyExport()
 		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
 			continue;
 
-		CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[(int)m_List.GetItemData(n)]);
+		CIdKey *pKey = m_pIdKeyTab->GetUid((int)m_List.GetItemData(n));
 
 		if ( pKey == NULL )
 			continue;
@@ -604,7 +606,7 @@ void CIdkeySelDLg::OnIdkeyExport()
 		dlg.m_Title.LoadString(IDS_IDKEYFILESAVE);
 		dlg.m_Message.Format(_T("%s%s\n\n%s(%d) %s\n%32.32s..."), 
 			(LPCTSTR)CStringLoad(IDS_IDKEYFILESAVECOM), 
-			(pKey->SaveFileFormat(m_ExportStyle) != m_ExportStyle ? (LPCTSTR)CStringLoad(IDS_XMSSSAVEFORMAT) : _T("")),
+			(pKey->SaveFileFormat(m_ExportStyle) != m_ExportStyle ? (LPCTSTR)CStringLoad(IDS_IDKEYSSAVEFORMAT) : _T("")),
 			pKey->GetName(), pKey->GetSize(), (LPCTSTR)pKey->m_Name, (LPCTSTR)finger);
 
 		for ( ; ; ) {
@@ -663,8 +665,6 @@ void CIdkeySelDLg::OnIdkeyCreate()
 		m_GenIdKeyType = IDKEY_ED25519;
 	else if ( m_Type.Compare(_T("ED448")) == 0 )
 		m_GenIdKeyType = IDKEY_ED448;
-	else if ( m_Type.Compare(_T("XMSS")) == 0 )
-		m_GenIdKeyType = IDKEY_XMSS;
 	else if ( m_Type.Compare(_T("MLDSA")) == 0 )
 		m_GenIdKeyType = IDKEY_ML_DSA;
 	else if ( m_Type.Compare(_T("MLDSA-ES")) == 0 )
@@ -685,9 +685,6 @@ void CIdkeySelDLg::OnIdkeyCreate()
 	} else if ( m_GenIdKeyType == IDKEY_DSA2 && (m_GenIdKeyBits < 768 || m_GenIdKeyBits > 1024) ) {
 		if ( MessageBox(CStringLoad(IDE_DSABITSIZEERR), NULL, MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 			return;
-	} else if ( m_GenIdKeyType == IDKEY_XMSS && (m_GenIdKeyBits < 10 || m_GenIdKeyBits > 20) ) {
-		MessageBox(CStringLoad(IDE_XMSSBITSIZEERR), NULL, MB_ICONWARNING);
-		return;
 	} else if ( (m_GenIdKeyType == IDKEY_ML_DSA || m_GenIdKeyType == IDKEY_ML_DSA_ES || m_GenIdKeyType == IDKEY_ML_DSA_ED) && (m_GenIdKeyBits < 44 || m_GenIdKeyBits > 87) ) {
 		MessageBox(_T("ml-dsa size error use 44/65/87"), NULL, MB_ICONERROR);
 		return;
@@ -754,10 +751,12 @@ void CIdkeySelDLg::OnKeyGenEndof()
 	m_KeyGenProg.SetPos(0);
 	m_KeyGenProg.EnableWindow(FALSE);
 
-	if ( !m_GenIdKeyStat || !m_pIdKeyTab->AddEntry(m_GenIdKey) ) {
+	if ( !m_GenIdKeyStat || !m_pIdKeyTab->AddKey(m_GenIdKey) ) {
 		MessageBox(CStringLoad(IDE_IDKEYCREATEERROR), NULL, MB_ICONINFORMATION);
 		return;
 	}
+
+	ResetDataUid();
 	m_Data.InsertAt(0, m_GenIdKey.m_Uid);
 
 	m_EntryNum = 0;
@@ -768,8 +767,7 @@ void CIdkeySelDLg::OnEditUpdate()
 	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
 		return;
 
-	int n = (int)m_List.GetItemData(m_EntryNum);
-	CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
+	CIdKey *pKey = m_pIdKeyTab->GetUid((int)m_List.GetItemData(m_EntryNum));
 	CEditDlg dlg(this);
 
 	if ( pKey == NULL )
@@ -789,6 +787,7 @@ void CIdkeySelDLg::OnEditUpdate()
 	pKey->m_Name = dlg.m_Edit;
 	m_pIdKeyTab->UpdateUid(pKey->m_Uid);
 
+	ResetDataUid();
 	InitList();
 }
 void CIdkeySelDLg::OnEditCheck()
@@ -797,6 +796,8 @@ void CIdkeySelDLg::OnEditCheck()
 	CIdKeyTab tab;
 	CString nstr, ostr;
 	CWordArray apend, remove, update;
+
+	ResetDataUid();
 
 	for ( n = 0 ; n < tab.GetSize() ; n++ ) {
 		for ( i = 0 ; i < m_pIdKeyTab->GetSize() ; i++ ) {
@@ -821,6 +822,13 @@ void CIdkeySelDLg::OnEditCheck()
 		}
 		if ( n >= tab.GetSize() )
 			remove.Add(i);
+
+		for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
+			if ( m_Data[n] == m_pIdKeyTab->GetAt(i).m_Uid )
+				break;
+		}
+		if ( n >= m_Data.GetSize() )
+			m_Data.Add(m_pIdKeyTab->GetAt(i).m_Uid);
 	}
 
 	for ( n = 0 ; n < update.GetSize() ; n += 2 )
@@ -857,12 +865,17 @@ void CIdkeySelDLg::OnLvnItemchangedIdkeyList(NMHDR *pNMHDR, LRESULT *pResult)
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 
 	if ( m_ListInit == FALSE && (pNMLV->uNewState & LVIS_STATEIMAGEMASK) != (pNMLV->uOldState & LVIS_STATEIMAGEMASK) ) {
-		int n = (int)m_List.GetItemData(pNMLV->iItem);
-		CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
+		CIdKey *pKey = m_pIdKeyTab->GetUid((int)m_List.GetItemData(pNMLV->iItem));
 		if ( pKey != NULL )
 			pKey->m_Flag = (m_List.GetLVCheck(pNMLV->iItem) ? TRUE : FALSE);
 	}
 	*pResult = 0;
+}
+void CIdkeySelDLg::OnCbnSelchangeIdkeyType()
+{
+	UpdateData(TRUE);
+	SetBitsList();
+	UpdateData(FALSE);
 }
 
 void CIdkeySelDLg::OnIdkeyCakey()
@@ -870,8 +883,7 @@ void CIdkeySelDLg::OnIdkeyCakey()
 	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
 		return;
 
-	int n = (int)m_List.GetItemData(m_EntryNum);
-	CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
+	CIdKey *pKey = m_pIdKeyTab->GetUid((int)m_List.GetItemData(m_EntryNum));
 
 	if ( pKey == NULL )
 		return;
@@ -890,6 +902,8 @@ void CIdkeySelDLg::OnIdkeyCakey()
 		MessageBox(CStringLoad(IDE_IDKEYLOADERROR), NULL, MB_ICONERROR);
 
 	m_pIdKeyTab->UpdateUid(pKey->m_Uid);
+
+	ResetDataUid();
 	InitList();
 }
 void CIdkeySelDLg::OnSavePublicKey()
@@ -898,7 +912,7 @@ void CIdkeySelDLg::OnSavePublicKey()
 		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
 			continue;
 
-		CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[(int)m_List.GetItemData(n)]);
+		CIdKey *pKey = m_pIdKeyTab->GetUid((int)m_List.GetItemData(n));
 
 		if ( pKey == NULL )
 			continue;
@@ -912,12 +926,60 @@ void CIdkeySelDLg::OnSavePublicKey()
 			MessageBox(CStringLoad(IDE_IDKEYSAVEERROR), NULL, MB_ICONERROR);
 	}
 }
-
-void CIdkeySelDLg::OnCbnSelchangeIdkeyType()
+void CIdkeySelDLg::OnAgentAddKey()
 {
-	UpdateData(TRUE);
+	CString ageant;
+	int good = 0, bad = 0, keys = 0;
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+	static const int AgentType[] = { IDKEY_AGEANT_PUTTY, IDKEY_AGEANT_WINSSH, IDKEY_AGEANT_PUTTYPIPE };
 
-	SetBitsList();
+	if ( m_AgeantIsOpen == 0 )
+		return;
 
-	UpdateData(FALSE);
+	if ( (m_AgeantIsOpen & 002) != 0 )
+		ageant = _T("Wageant");
+		
+	if ( (m_AgeantIsOpen & 005) != 0 ) {
+		if ( !ageant.IsEmpty() )
+			ageant += _T("/");
+		ageant += _T("Pageant");
+	}
+
+	for ( int n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
+			continue;
+
+		CIdKey *pKey = m_pIdKeyTab->GetUid((int)m_List.GetItemData(n));
+
+		if ( pKey == NULL || pKey->m_AgeantType != IDKEY_AGEANT_NONE )
+			continue;
+
+		int bit = 001;
+		CIdKey tmpKey;
+
+		tmpKey = *pKey;
+		for ( int i = 0 ; i < 3 ; i++, bit <<= 1 ) {
+			if ( (m_AgeantIsOpen & bit) != 0 ) {
+				if ( pMain->AgeantKeyAdd(AgentType[i], &tmpKey) )
+					good++;
+				else
+					bad++;
+			}
+		}
+
+		keys++;
+	}
+
+	if ( good != 0 || bad != 0 ) {
+		CString msg;
+		msg.Format(_T("SSH %s key %d add %d not %d"), (LPCTSTR)ageant, keys, good, bad);
+		MessageBox(msg, NULL, MB_ICONINFORMATION);
+	}
+
+	pMain->AgeantInit();
+	OnEditCheck();
+}
+void CIdkeySelDLg::OnUpdateAgent(CCmdUI* pCmdUI) 
+{
+	pCmdUI->Enable(m_List.GetSelectMarkData() >= 0 && m_AgeantIsOpen != 0);
 }

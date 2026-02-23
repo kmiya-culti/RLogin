@@ -1562,6 +1562,24 @@ LPCTSTR CMainFrame::PagentPipeName()
 	return pipename;
 }
 
+int CMainFrame::AgeantIsOpen()
+{
+	HANDLE hPipe;
+	int haveAgeant = 0;
+
+	if ( (hPipe = CreateFile(AGENT_WSSH_PIPE_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE ) {
+	    CloseHandle(hPipe);
+		haveAgeant |= 002;
+	}
+	
+	if ( (hPipe = CreateFile(AGENT_PUTTY_PIPE_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) != INVALID_HANDLE_VALUE ) {
+	    CloseHandle(hPipe);
+		haveAgeant |= 004;
+	} else if ( FindWindow(_T("Pageant"), _T("Pageant")) != NULL )
+		haveAgeant |= 001;
+
+	return haveAgeant;
+}
 BOOL CMainFrame::AgeantInit()
 {
 	int n, i, mx;
@@ -1618,13 +1636,13 @@ BOOL CMainFrame::AgeantInit()
 				}
 
 				if ( i >= m_IdKeyTab.GetSize() ) {
-					m_IdKeyTab.AddEntry(key, FALSE);
+					m_IdKeyTab.AddKey(key, FALSE);
 					count++;
 				}
 			}
 #ifdef	DEBUG
 		} catch(LPCTSTR msg) {
-			TRACE(_T("AgeantInit Error %s '%s'\n"), MbsToTstr(name), msg);
+			TRACE(_T("AgeantInit Error %s '%s'\n"), Utf8ToTstr(name), msg);
 #endif
 		} catch(...) {
 		}
@@ -1662,6 +1680,99 @@ BOOL CMainFrame::AgeantSign(int type, CBuffer *blob, CBuffer *sign, LPBYTE buf, 
 	out.GetBuf(sign);
 
 	return TRUE;
+}
+BOOL CMainFrame::AgeantKeyAdd(int type, CIdKey *pKey)
+{
+	CBuffer in(-1), out(-1), blob(-1), work(-1);
+
+	if ( !pKey->InitPass(NULL) || !pKey->SetPrivateBlob(&blob) )
+		return FALSE;
+
+	work.Put8Bit(SSH_AGENTC_ADD_IDENTITY);
+	work.Apend(blob.GetPtr(), blob.GetSize());
+	work.PutStr(TstrToMbs(pKey->m_Name));
+	
+	in.PutBuf(work.GetPtr(), work.GetSize());
+
+	if ( type == IDKEY_AGEANT_PUTTY ) {
+		if ( !PageantQuery(&in, &out) )
+			return FALSE;
+	} else if ( type == IDKEY_AGEANT_WINSSH ) {
+		if ( !WageantQuery(&in, &out, AGENT_WSSH_PIPE_NAME) )
+			return FALSE;
+	} else if ( type == IDKEY_AGEANT_PUTTYPIPE ) {
+		if ( !WageantQuery(&in, &out, AGENT_PUTTY_PIPE_NAME) )
+			return FALSE;
+	} else
+		return FALSE;
+
+	if ( out.GetSize() < 1 || out.Get8Bit() != SSH_AGENT_SUCCESS )
+		return FALSE;
+
+	return TRUE;
+}
+BOOL CMainFrame::AgeantKeyRequest(int cmd, CIdKey *pKey, Cssh *pSock)
+{
+	int rc = FALSE;
+	BOOL bCallKeyTab = TRUE;
+	BOOL bCallSock = TRUE;
+	CString str, hash;
+
+	static const LPCTSTR msg[] = {
+		_T("SSH-Agent has requested add key"),
+		_T("SSH-Agent has requested add key-cert"),
+		_T("SSH-Agent has requested delete key"),
+	};
+
+	switch(cmd) {
+	case SSHAGENT_CMD_ADDKEY:
+	case SSHAGENT_CMD_ADDCERT:
+		if ( m_IdKeyTab.HaveKey(*pKey) >= 0 )
+			bCallKeyTab = FALSE;	// Sockのみ更新
+		break;
+	case SSHAGENT_CMD_DELKEY:
+		if ( m_IdKeyTab.HaveKey(*pKey) < 0 )
+			bCallKeyTab = bCallSock = FALSE;
+		break;
+	}
+
+	if ( bCallKeyTab ) {
+		str = msg[cmd];
+		str += _T("\n\n");
+		str += pKey->GetName(IDKEY_NAME_CERT);
+		hash.Format(_T(" %dbits"), pKey->GetSize());
+		str += hash;
+		str += _T("\n");
+		pKey->FingerPrint(hash, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
+		str += hash;
+
+		if ( ::DoitMessageBox(str, MB_ICONQUESTION | MB_YESNO, this) != IDYES )
+			bCallKeyTab = bCallSock = FALSE;
+	}
+
+	if ( bCallKeyTab ) {
+		switch(cmd) {
+		case SSHAGENT_CMD_ADDKEY:
+			bCallSock = m_IdKeyTab.AddKey(*pKey);
+			break;
+		case SSHAGENT_CMD_ADDCERT:
+			bCallSock = m_IdKeyTab.AddCert(*pKey);
+			break;
+		case SSHAGENT_CMD_DELKEY:
+			// 管理している鍵自体は、削除せずに各エントリーの使用を解除
+			// bCallSock = m_IdKeyTab.DelKey(*pKey);
+			break;
+		default:
+			bCallSock = FALSE;
+			break;
+		}
+	}
+
+	// 実行中のsshエントリーを更新
+	if ( bCallSock )
+		rc = pSock->AgentIdkey(cmd, pKey);
+
+	return rc;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1858,6 +1969,26 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 		return TRUE;
 	}
 	m_LastPaneFlag = FALSE;
+
+	if ( !m_IndexOpenList.IsEmpty() ) {
+		CTextRam TextRam;
+		CKeyNodeTab KeyTab;
+		CKeyMacTab KeyMac;
+		CParamTab ParamTab;
+		CStringIndex *pIndex = (CStringIndex *)m_IndexOpenList.RemoveHead();
+
+		Entry.Init();
+		CRLoginDoc::LoadDefOption(TextRam, KeyTab, KeyMac, ParamTab);
+		CRLoginDoc::LoadIndex(Entry, TextRam, KeyTab, KeyMac, ParamTab, *pIndex);
+		CRLoginDoc::SaveOption(Entry, TextRam, KeyTab, KeyMac, ParamTab);
+		delete pIndex;
+
+		if ( !m_IndexOpenList.IsEmpty() )
+			PostMessage(WM_COMMAND, ID_FILE_NEW, 0);
+
+		Entry.m_DocType = DOCTYPE_ENTRYFILE;
+		return TRUE;
+	}
 
 	if ( !pApp->m_bUseCmdInfo ) {
 		for ( n = 0 ; n < m_ServerEntryTab.m_Data.GetSize() ; n++ ) {
@@ -4852,6 +4983,10 @@ LRESULT CMainFrame::OnDocumentMsg(WPARAM wParam, LPARAM lParam)
 
 	case DOCMSG_MESSAGE:
 		pDocMsg->type = ::DoitMessageBox((LPCTSTR)(pDocMsg->pIn), (UINT)(pDocMsg->type), this);
+		break;
+
+	case DOCMSG_IDKEYTAB:
+		pDocMsg->type = AgeantKeyRequest(pDocMsg->type, (CIdKey *)pDocMsg->pIn, (Cssh *)pDocMsg->pOut);
 		break;
 	}
 

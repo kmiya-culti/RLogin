@@ -162,7 +162,6 @@ void CSshSigDlg::KeyListInit(int uid)
 		case IDKEY_RSA1:
 		case IDKEY_RSA2:
 		case IDKEY_DSA2:
-		case IDKEY_XMSS:
 			str.Format(_T("%s %d"), m_IdKeyTab[n].GetName(), m_IdKeyTab[n].GetSize());
 			break;
 		default:
@@ -177,10 +176,6 @@ void CSshSigDlg::KeyListInit(int uid)
 		}
 
 		switch(m_IdKeyTab[n].m_AgeantType) {
-		case IDKEY_AGEANT_NONE:
-			if ( m_IdKeyTab[n].m_Type == IDKEY_UNKNOWN )
-				str += _T(" Unkown");
-			break;
 		case IDKEY_AGEANT_PUTTY:
 		case IDKEY_AGEANT_PUTTYPIPE:
 			str += (m_IdKeyTab[n].m_bSecInit ? _T(" Pageant") : _T(" None"));
@@ -188,6 +183,13 @@ void CSshSigDlg::KeyListInit(int uid)
 		case IDKEY_AGEANT_WINSSH:
 			str += (m_IdKeyTab[n].m_bSecInit ? _T(" Wageant") : _T(" None"));
 			break;
+		}
+
+		switch(m_IdKeyTab[n].m_Cert) {
+		case IDKEY_CERTV00:  str += _T(" V00"); break;
+		case IDKEY_CERTV01:  str += _T(" V01"); break;
+		case IDKEY_CERTX509: str += _T(" x509"); break;
+		case IDKEY_CERTRFC:  str += _T(" CERT"); break;
 		}
 
 		int i = m_KeyListCombo.AddString(str);

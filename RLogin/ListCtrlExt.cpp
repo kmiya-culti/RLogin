@@ -659,10 +659,12 @@ void CListCtrlExt::SwapItemText(int src, int dis)
 	}
 
 	item[0].mask = LVIF_IMAGE | LVIF_PARAM | LVIF_STATE;
+	item[0].stateMask = LVIS_SELECTED | LVIS_FOCUSED;
 	item[0].iItem = src;
 	GetItem(&(item[0]));
 
 	item[1].mask = LVIF_IMAGE | LVIF_PARAM | LVIF_STATE;
+	item[1].stateMask = LVIS_SELECTED | LVIS_FOCUSED;
 	item[1].iItem = dis;
 	GetItem(&(item[1]));
 
@@ -694,6 +696,7 @@ void CListCtrlExt::MoveItemText(int src, int dis)
 		text.Add(GetItemText(src, n));
 
 	item.mask = LVIF_IMAGE | LVIF_PARAM | LVIF_STATE;
+	item.stateMask = LVIS_SELECTED | LVIS_FOCUSED;
 	item.iItem = src;
 	GetItem(&item);
 
@@ -705,7 +708,6 @@ void CListCtrlExt::MoveItemText(int src, int dis)
 	for ( n = 1 ; GetColumn(n, &lvc) ; n++ )
 		SetItemText(dis, n, text[n]);
 
-	item.mask = LVIF_IMAGE | LVIF_PARAM | LVIF_STATE;
 	item.iItem = dis;
 	SetItem(&item);
 
@@ -761,21 +763,19 @@ void CListCtrlExt::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 			break;
 	case VK_ADD:
 		if ( (n = GetSelectionMark()) <= 0 )
-			break;
+			return;
 		SwapItemText(n - 1, n);
 		SetSelectionMark(n - 1);
-		SetItemState(n - 1, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
 		EnsureVisible(n - 1, 0);
 		return;
 	case VK_DOWN:
 		if ( (GetKeyState(VK_SHIFT) & 0x80) == 0 )
 			break;
 	case VK_SUBTRACT:
-		if ( (n = GetSelectionMark()) < 0 || (n + 1) >=  GetItemCount() )
-			break;
+		if ( (n = GetSelectionMark()) < 0 || n >= (GetItemCount() - 1) )
+			return;
 		SwapItemText(n + 1, n);
 		SetSelectionMark(n + 1);
-		SetItemState(n + 1, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
 		EnsureVisible(n + 1, 0);
 		return;
 
@@ -783,22 +783,18 @@ void CListCtrlExt::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		if ( (GetKeyState(VK_SHIFT) & 0x80) == 0 )
 			break;
 		if ( (n = GetSelectionMark()) <= 0 )
-			break;
+			return;
 		MoveItemText(n, 0);
 		SetSelectionMark(0);
-		SetItemState(0, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
 		EnsureVisible(0, 0);
 		return;
 	case VK_END:
 		if ( (GetKeyState(VK_SHIFT) & 0x80) == 0 )
 			break;
-		if ( (m = GetItemCount() - 1) < 0 )
-			break;
-		if ( (n = GetSelectionMark()) < 0 || n >= m )
-			break;
+		if ( (m = GetItemCount() - 1) < 0 || (n = GetSelectionMark()) < 0 || n >= m )
+			return;
 		MoveItemText(n, m);
 		SetSelectionMark(m);
-		SetItemState(m, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
 		EnsureVisible(m, 0);
 		return;
 	}

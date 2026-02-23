@@ -220,7 +220,7 @@ public:
 	CWinThread *m_pThread;
 	CEvent m_ThreadEvent;
 	DWORD m_LastError;
-	enum _FolStat { FOL_INIT, FOL_DONE, FOL_HAVEDATA, FOL_OVERLAP, FOL_OVERWAIT } m_Stat;
+	enum _FolStat { FOL_INIT, FOL_DONE, FOL_HAVEDATA, FOL_OVERLAP, FOL_OVERWAIT, FOL_OVERFLOW } m_Stat;
 	CList<class CCmdQue *, class CCmdQue *> m_ReadQue;
 
 	BOOL IsBuzy(class CSFtp *pWnd = NULL);
@@ -311,6 +311,7 @@ public:
 
 	void Close();
 	void Send(LPBYTE buf, int len);
+	HANDLE SendFlowCheck();
 
 	CList<class CCmdQue *, class CCmdQue *> m_CmdQue;
 	CList<class CCmdQue *, class CCmdQue *> m_WaitQue;
