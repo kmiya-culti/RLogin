@@ -734,7 +734,7 @@ void CGrapWnd::OnFilePrint()
 	dc.EndPage();
 	dc.EndDoc();
 
-	dc.Detach();
+	dc.DeleteDC();
 }
 
 //////////////////////////////////////////////////////////////////////

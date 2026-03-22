@@ -1725,13 +1725,13 @@ void CFifoASync::FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pP
 		break;
 	}
 }
-int CFifoASync::ReadWriteEvent()
+int CFifoASync::ReadWriteEvent(int bBlock)
 {
 	int HandleCount = 0;
 	CFifoBuffer *pFifo;
 
 	for ( int n = 0 ; n < GetFifoSize() ; n++ ) {
-		if ( (pFifo = GetFifo(n)) == NULL )
+		if ( (bBlock & (1 << n)) != 0 || (pFifo = GetFifo(n)) == NULL )
 			continue;
 
 		if ( pFifo->m_pReadBase == this ) {					// FIFO_STDIN / FIFO_EXTIN
@@ -2171,11 +2171,13 @@ BOOL CFifoSocket::SocketLoop()
 	FifoMsg *pFifoMsg;
 	BOOL bLastClock = FALSE;
 
+	ASSERT(CLOCKS_PER_SEC == 1000);		// * 1000 / CLOCKS_PER_SEC = msec
+
 	if ( m_nLimitSize > 0 ) {
 		if ( (m_nBufSize = (int)((LONGLONG)m_nLimitSize * 50 / 1000)) < 32 )		// Byte per 50ms
 			m_nBufSize = 32;
-		else if ( m_nBufSize > (256 * 1024) )
-			m_nBufSize = (256 * 1024);
+		else if ( m_nBufSize > (64 * 1024) )
+			m_nBufSize = (64 * 1024);
 	}
 
 	buffer = TempBuffer(m_nBufSize);
@@ -2184,7 +2186,13 @@ BOOL CFifoSocket::SocketLoop()
 
 		m_hWaitEvents.RemoveAll();
 
-		if ( ReadWriteEvent() <= 0 && (nCloseFlag & CLOSEFLAG_READ) != 0 )
+		n = 0;
+		if ( RecvTimeOut != 0 )
+			n |= 02;	// 1 << FIFO_STDOUT
+		if ( SendTimeOut != 0 )
+			n |= 01;	// 1 << FIFO_STDIN
+
+		if ( ReadWriteEvent(n) <= 0 && (nCloseFlag & CLOSEFLAG_READ) != 0 )
 			break;
 
 		if ( (nCloseFlag & CLOSEFLAG_EVENT) == 0 ) {
@@ -2222,6 +2230,8 @@ BOOL CFifoSocket::SocketLoop()
 		} else
 			TimeOut = WSA_INFINITE;
 
+		now = clock();
+
 		if ( (Event = WSAWaitForMultipleEvents((DWORD)m_hWaitEvents.GetSize(), (WSAEVENT *)m_hWaitEvents.GetData(), FALSE, TimeOut, FALSE)) == WSA_WAIT_FAILED ) {
 			m_nLastError = WSAGetLastError();
 			return FALSE;
@@ -2229,18 +2239,34 @@ BOOL CFifoSocket::SocketLoop()
 
 		if ( Event == WSA_WAIT_TIMEOUT ) {
 			if ( RecvTimeOut != 0 || SendTimeOut != 0 ) {
-				RecvTimeOut = SendTimeOut = 0;
+				DWORD d = (DWORD)(clock() - now);	// * 1000 / COLOCS_PER_SEC
 				NetworkEvents.lNetworkEvents = 0;
-				if ( (fdEvents & FD_WRITE) == 0 ) {
-					NetworkEvents.lNetworkEvents |= FD_WRITE;
-					NetworkEvents.iErrorCode[FD_WRITE_BIT] = 0;
+
+				if ( RecvTimeOut != 0 ) {
+					if ( RecvTimeOut <= d ) {
+						RecvTimeOut = 0;
+						if ( (fdEvents & FD_READ) == 0 ) {
+							NetworkEvents.lNetworkEvents |= FD_READ;
+							NetworkEvents.iErrorCode[FD_READ_BIT] = 0;
+						}
+					} else
+						RecvTimeOut -= d;
 				}
-				if ( (fdEvents & FD_READ) == 0 ) {
-					NetworkEvents.lNetworkEvents |= FD_READ;
-					NetworkEvents.iErrorCode[FD_READ_BIT] = 0;
+
+				if ( SendTimeOut != 0 ) {
+					if ( SendTimeOut <= d ) {
+						SendTimeOut = 0;
+						if ( (fdEvents & FD_WRITE) == 0 ) {
+							NetworkEvents.lNetworkEvents |= FD_WRITE;
+							NetworkEvents.iErrorCode[FD_WRITE_BIT] = 0;
+						}
+					} else
+						SendTimeOut -= d;
 				}
+
 				if ( NetworkEvents.lNetworkEvents != 0 )
 					goto SOCKETEVENT;
+
 			} else if ( (nCloseFlag & (CLOSEFLAG_READ | CLOSEFLAG_READ)) != 0 ) {
 				m_nLastError = 0;
 				return FALSE;
@@ -2251,6 +2277,23 @@ BOOL CFifoSocket::SocketLoop()
 			if ( (m_nLastError = WSAGetLastError()) == 0 )
 				m_nLastError = WSA_INVALID_HANDLE;
 			return FALSE;
+		}
+
+		// TimeOut’†‚É•Ê‚ÌƒCƒxƒ“ƒg‚ª”­¶‚µ‚½
+		if ( RecvTimeOut != 0 || SendTimeOut != 0 ) {
+			DWORD d = (DWORD)(clock() - now);	// * 1000 / COLOCS_PER_SEC
+			if ( RecvTimeOut != 0 ) {
+				if ( RecvTimeOut <= d )
+					RecvTimeOut = 1;
+				else
+					RecvTimeOut -= d;
+			}
+			if ( SendTimeOut != 0 ) {
+				if ( SendTimeOut <= d )
+					SendTimeOut = 1;
+				else
+					SendTimeOut -= d;
+			}
 		}
 
 		if ( m_hWaitEvents[Event] == m_AbortEvent ) {
@@ -2290,16 +2333,24 @@ BOOL CFifoSocket::SocketLoop()
 					m_nLastError = NetworkEvents.iErrorCode[FD_READ_BIT];
 					return FALSE;
 				} else {
+					now = clock();
 					for ( ; ; ) {
 						if ( m_nLimitSize > 0 ) {
-							n = (int)((now = clock()) - RecvClock);
-							RecvClock = now;
-							if ( n >= 0 && n < (CLOCKS_PER_SEC * 3) && (RecvSize -= ((LONGLONG)m_nLimitSize * n / CLOCKS_PER_SEC)) > 0 && (RecvTimeOut = (int)(RecvSize * 1000 / m_nLimitSize)) > 0 ) {
+							if ( RecvTimeOut != 0 ) {
 								fdEvents &= ~FD_READ;
 								break;
-							} else {
-								RecvSize = 0;
-								RecvTimeOut = 0;
+							}
+							if ( (n = (int)(now - RecvClock)) > 0 ) {	// * 1000 / COLOCS_PER_SEC
+								LONGLONG d = RecvSize - (LONGLONG)m_nLimitSize * n / CLOCKS_PER_SEC;
+								if ( d > 0 && (RecvTimeOut = (DWORD)(d * 1000 / m_nLimitSize)) > 0) {
+									RecvSize = 0;
+									RecvClock = clock() + RecvTimeOut;
+									fdEvents &= ~FD_READ;
+									break;
+								} else if ( n >= CLOCKS_PER_SEC ) {
+									RecvSize = 0;
+									RecvClock = now = clock();
+								}
 							}
 						}
 
@@ -2329,16 +2380,24 @@ BOOL CFifoSocket::SocketLoop()
 					m_nLastError = NetworkEvents.iErrorCode[FD_WRITE_BIT];
 					return FALSE;
 				} else {
+					now = clock();
 					for ( ; ; ) {
 						if ( m_nLimitSize > 0 ) {
-							n = (int)((now = clock()) - SendClock);
-							SendClock = now;
-							if ( n >= 0 && n < (CLOCKS_PER_SEC * 3) && (SendSize -= ((LONGLONG)m_nLimitSize * n / CLOCKS_PER_SEC)) > 0 && (SendTimeOut = (int)(SendSize * 1000 / m_nLimitSize)) > 0 ) {
+							if ( SendTimeOut != 0 ) {
 								fdEvents &= ~FD_WRITE;
 								break;
-							} else {
-								SendSize = 0;
-								SendTimeOut = 0;
+							}
+							if ( (n = (int)(now - SendClock)) > 0 ) {	// * 1000 / COLOCS_PER_SEC
+								LONGLONG d = SendSize - (LONGLONG)m_nLimitSize * n / CLOCKS_PER_SEC;
+								if ( d > 0 && (SendTimeOut = (DWORD)(d * 1000 / m_nLimitSize)) > 0) {
+									SendSize = 0;
+									SendClock = clock() + SendTimeOut;
+									fdEvents &= ~FD_WRITE;
+									break;
+								} else if ( n >= CLOCKS_PER_SEC ) {
+									SendSize = 0;
+									SendClock = now = clock();
+								}
 							}
 						}
 

@@ -334,7 +334,7 @@ void CStatusDlg::OnFilePrint()
 	dc.EndDoc();
 	dc.SelectObject(pOldFont);
 
-	dc.Detach();
+	dc.DeleteDC();
 }
 
 LRESULT CStatusDlg::OnDpiChanged(WPARAM wParam, LPARAM lParam)

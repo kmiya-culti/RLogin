@@ -2176,19 +2176,9 @@ int CRLoginDoc::OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags)
 	if ( nFlags != 0 )
 		return nBufLen;
 
-	if ( m_pScript != NULL ) {
-		if ( m_pScript->IsSockOver() ) {
-			for ( n = 0 ; n < 100 ; n++ ) { 
-				if ( !m_pScript->Exec() )
-					break;
-			}
-		}
-		if ( m_pScript->IsSockOver() )
-			return 0;
-		if ( m_pScript->m_SockMode == DATA_BUF_HAVE ) {
-			m_pScript->SetSockBuff(lpBuf, nBufLen);
-			return nBufLen;
-		}
+	if ( m_pScript != NULL && m_pScript->m_SockMode == DATA_BUF_HAVE ) {
+		m_pScript->SetSockBuff(lpBuf, nBufLen);
+		return nBufLen;
 	}
 
 	n = m_TextRam.Write(lpBuf, (nBufLen < RECVDEFSIZ ? nBufLen : RECVDEFSIZ), &sync);
@@ -2556,6 +2546,9 @@ void CRLoginDoc::UpdateOption(COptDlg *pOptDlg)
 		m_TextRam.m_BitMapFileFixed.RemoveAll();
 		m_TextRam.m_TextBitMap.m_TextFixed.RemoveAll();
 	}
+
+	if ( (pOptDlg->m_ModFlag & UMOD_TEXTRAM) != 0 )
+		m_TextRam.UpdateEucJpMsCheck();
 
 	UpdateAllViews(NULL, (pOptDlg->m_ModFlag & UMOD_RESIZE) != 0 ? UPDATE_RESIZE : UPDATE_INITPARA, NULL);
 }

@@ -451,7 +451,6 @@ class CFileNode *CFileNode::Find(LPCTSTR path)
 CCmdQue::CCmdQue()
 {
 	m_ExtId = 0;
-	m_SendTime = 0;
 	m_Func = NULL;
 	m_EndFunc = NULL;
 	m_Offset = m_Size = m_NextOfs = 0LL;
@@ -1834,7 +1833,7 @@ int CSFtp::RemoteDataReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 
 	pQue->m_Offset = pOwner->m_NextOfs;
 	pQue->m_Len = (pOwner->m_FileNode[0].HaveSize() && (pOwner->m_Size - pQue->m_Offset) <= SSH2_FX_TRANSBUFLEN ? (int)(pOwner->m_Size - pQue->m_Offset) : SSH2_FX_TRANSBUFLEN);
-	n = ( m_UpDownRate > 0 ? (pOwner->m_Max * SSH2_FX_TRANSBUFLEN * 1000 / m_UpDownRate) : SSH2_FX_TRANSTYPMSEC);
+	n = ( m_UpDownRate > 0 ? (pOwner->m_Max * SSH2_FX_TRANSBUFLEN / m_UpDownRate) : SSH2_FX_TRANSTYPMSEC);
 
 	if ( pOwner != pQue && (n > SSH2_FX_TRANSMAXMSEC || (pQue->m_Offset + pQue->m_Len) >= pOwner->m_Size) ) {
 		pOwner->m_Max--;
@@ -2212,7 +2211,7 @@ int CSFtp::RemoteDataWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 
 	pQue->m_Offset = pOwner->m_NextOfs;
 	pQue->m_Len = (pOwner->m_FileNode[0].HaveSize() && (pOwner->m_Size - pQue->m_Offset) <= SSH2_FX_TRANSBUFLEN ? (int)(pOwner->m_Size - pQue->m_Offset) : SSH2_FX_TRANSBUFLEN);
-	n = ( m_UpDownRate > 0 ? (pOwner->m_Max * SSH2_FX_TRANSBUFLEN * 1000 / m_UpDownRate) : SSH2_FX_TRANSTYPMSEC);
+	n = ( m_UpDownRate > 0 ? (pOwner->m_Max * SSH2_FX_TRANSBUFLEN / m_UpDownRate) : SSH2_FX_TRANSTYPMSEC);
 
 	if ( pQue != pOwner && (n > SSH2_FX_TRANSMAXMSEC || (pQue->m_Offset + pQue->m_Len) >= pOwner->m_Size) ) {
 		pOwner->m_Max--;
@@ -3123,7 +3122,7 @@ void CSFtp::SetPosProg(LONGLONG pos)
 		else
 			tmp[0].Format(_T("%dB/Sec"), (int)(d));
 
-		m_UpDownRate = (int)d;
+		m_UpDownRate = (int)(d / 1024.0);	// KByte/sec
 
 		m_UpDownStat[2].SetWindowText(tmp[0]);
 		m_UpDownStat[3].SetWindowText(tmp[1]);

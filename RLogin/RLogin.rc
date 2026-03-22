@@ -747,7 +747,7 @@ CAPTION "About RLogin"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,91,277,60,14,WS_GROUP
-    LTEXT           "RLogin (%s) Version 2.31.4 (2026/02/24)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.31.5 (2026/03/23)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2026 Culti",IDC_STATIC,44,17,189,8
     CONTROL         "<a href=""https://kmiya-culti.github.io/RLogin/"">https://kmiya-culti.github.io/RLogin/</a>",IDC_SYSLINK3,
                     "SysLink",WS_TABSTOP,44,27,189,8
@@ -759,8 +759,8 @@ BEGIN
     LTEXT           "All rights reserved.",IDC_STATIC,44,81,189,8
     CONTROL         "<a href=""https://openssl-library.org/source/license/apache-license-2.0.txt"">Apache License</a>",IDC_SYSLINK4,
                     "SysLink",WS_TABSTOP,44,91,189,8
-    LTEXT           "zlib 1.3.1 (22 Jan 2024)",IDC_STATIC,44,105,189,8
-    LTEXT           "Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,115,189,8
+    LTEXT           "zlib 1.3.2 (17 Feb 2026)",IDC_STATIC,44,105,189,8
+    LTEXT           "Copyr ight (C) 1995-2026 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,115,189,8
     CONTROL         "<a href=""https://zlib.net/zlib_license.html"">zlib License</a>",IDC_SYSLINK5,
                     "SysLink",WS_TABSTOP,44,125,189,8
     LTEXT           "iconv (GNU libiconv 1.18)",IDC_STATIC,44,139,189,8
@@ -2391,8 +2391,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,31,4,0
- PRODUCTVERSION 2,31,4,0
+ FILEVERSION 2,31,5,0
+ PRODUCTVERSION 2,31,5,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2409,12 +2409,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.31.4.0"
+            VALUE "FileVersion", "2.31.5.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.31.4.0"
+            VALUE "ProductVersion", "2.31.5.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4831,7 +4831,7 @@ BEGIN
     IDE_OPTFIXNOTFOUND      "継承先のエントリーが見当たりませんませんでした。\n標準の設定を使用して接続します"
     IDE_VERCHKERROR         "バージョンチェックに失敗しました"
     IDE_FILEOPENERROR       "ファイルのオープンに失敗しました"
-	IDE_HOSTKEYPROVEERR     "新しく追加されたホスト鍵を検証できませんでした\n検証できないホスト鍵を削除しますか？"
+    IDE_HOSTKEYPROVEERR     "新しく追加されたホスト鍵を検証できませんでした\n検証できないホスト鍵を削除しますか？"
 END
 
 STRINGTABLE

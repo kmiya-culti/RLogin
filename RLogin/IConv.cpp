@@ -265,6 +265,119 @@ static const LPCTSTR CodePageList[] = {
 	_T("CP65001 UTF-8"),
 };
 
+#define	BYTETYPE_2BOM	1
+#define	BYTETYPE_2BE	2
+#define	BYTETYPE_2LE	3
+#define	BYTETYPE_4BOM	4
+#define	BYTETYPE_4BE	5
+#define	BYTETYPE_4LE	6
+
+typedef struct _IconvByteType {
+	LPCTSTR name;
+	int type;
+} IconvByteType;
+
+static const IconvByteType ByteTypeTab[] = {
+	{ _T("CSUCS4")		,		BYTETYPE_4BE },
+	{ _T("CSUNICODE"),			BYTETYPE_2BE },
+	{ _T("CSUNICODE11"),		BYTETYPE_2BE },
+	{ _T("ISO-10646-UCS-2"),	BYTETYPE_2BE },
+	{ _T("ISO-10646-UCS-4"),	BYTETYPE_4BE },
+	{ _T("UCS-2"),				BYTETYPE_2BE },
+	{ _T("UCS-2-INTERNAL"),		BYTETYPE_2LE },
+	{ _T("UCS-2-SWAPPED"),		BYTETYPE_2BE },
+	{ _T("UCS-2BE"),			BYTETYPE_2BE },
+	{ _T("UCS-2LE"),			BYTETYPE_2LE },
+	{ _T("UCS-4"),				BYTETYPE_4BE },
+	{ _T("UCS-4-INTERNAL"),		BYTETYPE_4LE },
+	{ _T("UCS-4-SWAPPED"),		BYTETYPE_4BE },
+	{ _T("UCS-4BE"),			BYTETYPE_4BE },
+	{ _T("UCS-4LE"),			BYTETYPE_4LE },
+	{ _T("UNICODE-1-1"),		BYTETYPE_2BE },
+	{ _T("UNICODEBIG"),			BYTETYPE_2BE },
+	{ _T("UNICODELITTLE"),		BYTETYPE_2LE },
+	{ _T("UTF-16"),				BYTETYPE_2BOM },
+	{ _T("UTF-16BE"),			BYTETYPE_2BE },
+	{ _T("UTF-16LE"),			BYTETYPE_2LE },
+	{ _T("UTF-32"),				BYTETYPE_4BOM },
+	{ _T("UTF-32BE"),			BYTETYPE_4BE },
+	{ _T("UTF-32LE"),			BYTETYPE_4LE },
+};
+
+/*********************************
+
+	SJIS					JIS
+HI	0x81-0x9F 0xE0-0xFC		0x21-0x7E
+LO	0x40-0x7E 0x80-0xFC		0x21-0x7E
+
+SJIS		EUCJP		JISX213-1
+0x8140		0xA1A1		0x02121
+0xEFFC		0xFEFE		0x07E7E
+
+SJIS		EUCJP		JISX213-2
+0xF040		0x8FA1A1	0x12121
+0xFCFC		0x8FFEFE	0x17E7E
+
+**********************************/
+
+DWORD JisToSJis(DWORD cd)
+{
+	DWORD hi,lo;
+
+	hi = (cd >> 8) & 0xFF;
+	lo = cd & 0xFF;
+
+	if ( (hi & 1) != 0 )
+		lo += (lo <= 0x5F ? 0x1F : 0x20);
+	else
+		lo += 0x7E;
+
+	if ( (cd & 0xFF0000) == 0 ) {
+		if ( hi <= 0x5E )
+			hi = (hi + 0xE1) / 2;
+		else
+			hi = (hi + 0x161) / 2;
+	} else {
+		if ( hi >= 0x6E )
+			hi = (hi + 0x17B) / 2;
+		else if ( hi == 0x21 || (hi >= 0x23 && hi <= 0x25) )
+			hi = (hi + 0x1BF) / 2;
+		else if ( hi == 0x28 || (hi >= 0x2C && hi <= 0x2F) )
+			hi = (hi + 0x1B9) / 2;
+		else
+			return 0x8140;
+	}
+
+	return (hi << 8 | lo);
+}
+DWORD SJisToJis(DWORD cd)
+{
+	DWORD hi,lo;
+
+	hi = (cd >> 8) & 0xFF;
+	lo = cd & 0xFF;
+
+	if ( hi <= 0x9F )
+		hi = (hi - 0x71) * 2 + 1;
+	else if ( hi <= 0xEF )
+		hi = (hi - 0xB1) * 2 + 1;
+	else
+		hi = (hi - 0x60) * 2 + 1;
+
+	if ( lo >= 0x9F ) {
+		lo -= 0x7E;
+		hi++;
+	} else
+		lo -= (lo >= 0x80 ? 0x20 : 0x1F);
+
+	if ( hi >= 0x12A )
+		hi += 0x44;
+	else if ( hi >= 0x126 || hi == 0x122 )
+		hi += 0x06;
+
+	return (hi << 8 | lo);
+}
+
 //////////////////////////////////////////////////////////////////////
 // \’z/Á–Å
 //////////////////////////////////////////////////////////////////////
@@ -280,6 +393,7 @@ CIConv::CIConv()
 	m_FromCodePage = 0;
 	m_ToCodePage = 0;
 	m_DecTab = NULL;
+	m_ByteOrder = 0;
 }
 
 CIConv::~CIConv()
@@ -310,6 +424,12 @@ void CIConv::IConvClose()
 	m_ErrCount = 0;
 }
 
+static int NameByteTypeComp(const void *src, const void *dis)
+{
+	LPCTSTR pSrc = (LPCTSTR)src;
+	IconvByteType *pDis = (IconvByteType *)dis;
+	return _tcscmp(pSrc, pDis->name);
+}
 static int IConvNameCmp(const void *src, const void *dis)
 {
 	return _tcscmp((LPCTSTR)src, ((DECCHARTAB *)dis)->name);
@@ -324,6 +444,7 @@ class CIConv *CIConv::GetIConv(LPCTSTR from, LPCTSTR to)
 		m_From = from;
 		m_To   = to;
 		m_Mode = 0;
+		m_ByteOrder = 0;
 
 		/*if ( _tcscmp(from, _T("EUC-JISX0213")) == 0 )
 			m_Mode |= 0x01;
@@ -391,6 +512,11 @@ class CIConv *CIConv::GetIConv(LPCTSTR from, LPCTSTR to)
 			CString msg;
 			msg.Format(_T("iconv not supported '%s' to '%s'"), from, to); 
 			CWinApp::ShowAppMessageBox(NULL, msg, MB_ICONERROR, 0);
+		} else {
+			if ( BinaryFind((void *)from, (void *)ByteTypeTab, sizeof(IconvByteType), sizeof(ByteTypeTab) / sizeof(IconvByteType), NameByteTypeComp, &n) )
+				m_ByteOrder |= ByteTypeTab[n].type;
+			if ( BinaryFind((void *)to, (void *)ByteTypeTab, sizeof(IconvByteType), sizeof(ByteTypeTab) / sizeof(IconvByteType), NameByteTypeComp, &n) )
+				m_ByteOrder |= (ByteTypeTab[n].type << 8);
 		}
 
 		return this;
@@ -738,9 +864,54 @@ void CIConv::RemoteToStr(LPCTSTR from, LPCSTR in, CString &out)
 	out = (LPCWSTR)bOut;
 }
 
+#if defined(USE_NOENDIAN) || !defined(BYTE_ORDER)
+#define	SETSHORTBE(p, c)	{ ((unsigned char *)(p))[0] = (unsigned char)((c) >> 8); \
+							  ((unsigned char *)(p))[1] = (unsigned char)(c); }
+#define	SETSHORTLE(p, c)	{ ((unsigned char *)(p))[1] = (unsigned char)((c) >> 8); \
+							  ((unsigned char *)(p))[0] = (unsigned char)(c); }
+#define	SETLONGBE(p, c)		{ ((unsigned char *)(p))[0] = (unsigned char)((c) >> 24); \
+							  ((unsigned char *)(p))[1] = (unsigned char)((c) >> 16); \
+							  ((unsigned char *)(p))[2] = (unsigned char)((c) >>  8); \
+							  ((unsigned char *)(p))[3] = (unsigned char)(c); }
+#define	SETLONGLE(p, c)		{ ((unsigned char *)(p))[3] = (unsigned char)((c) >> 24); \
+							  ((unsigned char *)(p))[2] = (unsigned char)((c) >> 16); \
+							  ((unsigned char *)(p))[1] = (unsigned char)((c) >>  8); \
+							  ((unsigned char *)(p))[0] = (unsigned char)(c); }
+#define	GETSHORTBE(p)		(((DWORD)(((unsigned char *)(p))[0]) << 8) | \
+							 ((DWORD)(((unsigned char *)(p))[1])))
+#define	GETSHORTLE(p)		(((DWORD)(((unsigned char *)(p))[1]) << 8) | \
+							 ((DWORD)(((unsigned char *)(p))[0])))
+#define	GETLONGBE(p)		(((DWORD)(((unsigned char *)(p))[0]) << 24) | \
+							 ((DWORD)(((unsigned char *)(p))[1]) << 16) | \
+							 ((DWORD)(((unsigned char *)(p))[2]) <<  8) | \
+							 ((DWORD)(((unsigned char *)(p))[3])))
+#define	GETLONGLE(p)		(((DWORD)(((unsigned char *)(p))[3]) << 24) | \
+							 ((DWORD)(((unsigned char *)(p))[2]) << 16) | \
+							 ((DWORD)(((unsigned char *)(p))[1]) <<  8) | \
+							 ((DWORD)(((unsigned char *)(p))[0])))
+#elif BYTE_ORDER == BIG_ENDIAN
+#define	SETSHORTBE(p, c)	{ *((unsigned short *)(p)) = (unsigned short)(c); }
+#define	SETSHORTLE(p, c)	{ *((unsigned short *)(p)) = _byteswap_ushort((unsigned short)(c)); }
+#define	SETLONGBE(p, c)		{ *((unsigned long *)(p)) = (unsigned long)(c); }
+#define	SETLONGLE(p, c)		{ *((unsigned long *)(p)) = _byteswap_ulong((unsigned long)(c)); }
+#define	GETSHORTBE(p)		(DWORD)(*((unsigned short *)(p)))
+#define	GETSHORTLE(p)		(DWORD)_byteswap_ushort(*((unsigned short *)(p)))
+#define	GETLONGBE(p)		(DWORD)(*((unsigned long *)(p)))
+#define	GETLONGLE(p)		(DWORD)_byteswap_ulong(*((unsigned long *)(p)))
+#else
+#define	SETSHORTBE(p, c)	{ *((unsigned short *)(p)) = _byteswap_ushort((unsigned short)(c)); }
+#define	SETSHORTLE(p, c)	{ *((unsigned short *)(p)) = (unsigned short)(c); }
+#define	SETLONGBE(p, c)		{ *((unsigned long *)(p)) = _byteswap_ulong((unsigned long)(c)); }
+#define	SETLONGLE(p, c)		{ *((unsigned long *)(p)) = (unsigned long)(c); }
+#define	GETSHORTBE(p)		(DWORD)_byteswap_ushort(*((unsigned short *)(p)))
+#define	GETSHORTLE(p)		(DWORD)(*((unsigned short *)(p)))
+#define	GETLONGBE(p)		(DWORD)_byteswap_ulong(*((unsigned long *)(p)))
+#define	GETLONGLE(p)		(DWORD)(*((unsigned long *)(p)))
+#endif
+
 DWORD CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 {
-	int n = 0;
+	int n;
 	DWORD od = ch;
 	CIConv *cp;
     char *inp, *otp;
@@ -748,6 +919,7 @@ DWORD CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
     unsigned char itmp[32], otmp[32];
 
 	cp = GetIConv(from, to);
+
 	if ( cp->m_Cd == (iconv_t)(-1) )
 		return ch;
 
@@ -766,24 +938,21 @@ DWORD CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 		ch &= 0x7F;
 		if ( ch >= 0x0020 && ch <= 0x007F )
 			ch = cp->m_DecTab[ch - 0x20];
-		from = _T("UCS-4BE");
 		break;
 	case 0x0006:		// DEC_xxx
 		ch &= 0x7F;
 		if ( ch >= 0x0060 && ch <= 0x007F )
 			ch = cp->m_DecTab[ch - 0x60];
-		from = _T("UCS-4BE");
 		break;
 	case 0x0007:		// IBM437
 		if ( ch >= 0x0000 && ch <= 0x00FF )
 			ch = IBM437[ch];
-		from = _T("UCS-4BE");
 		break;
 	case 0x0008:		// CP0....	NRCS
 		ch = CIso646Dlg::TableMaping(cp->m_FromCodePage, ch);
-		from = _T("UCS-4BE");
 		break;
 	case 0x0009:		// CP
+		n = 0;
 		if ( (ch & 0xFF000000) != 0 )
 			itmp[n++] = (unsigned char)(ch >> 24);
 		if ( (ch & 0xFFFF0000) != 0 )
@@ -791,28 +960,16 @@ DWORD CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 		if ( (ch & 0xFFFFFF00) != 0 )
 			itmp[n++] = (unsigned char)(ch >> 8);
 		itmp[n++] = (unsigned char)(ch);
-		n = ::MultiByteToWideChar(cp->m_FromCodePage, 0, (LPCSTR)itmp, n, (LPWSTR)otmp, 32) * sizeof(WCHAR);
+		n = ::MultiByteToWideChar(cp->m_FromCodePage, 0, (LPCSTR)itmp, n, (LPWSTR)otmp, 32);
 		ch = 0;
 		for ( int i = 0 ; i < n ; i++ )
-			ch = (ch << 8) | otmp[i];
-		n = 0;
-		from = _T("UCS-2LE");
+			ch = (ch << 16) | (otmp[i * 2 + 1] << 8) | otmp[i * 2];
 		break;
 	}
-	
-	if ( _tcscmp(from, _T("UCS-4BE")) == 0 ) {
-		itmp[n++] = (unsigned char)(ch >> 24);
-		itmp[n++] = (unsigned char)(ch >> 16);
-		itmp[n++] = (unsigned char)(ch >> 8);
-		itmp[n++] = (unsigned char)(ch);
-	} else if ( _tcscmp(from, _T("UTF-16BE")) == 0 ) {
-		if ( (ch & 0xFFFF0000) != 0 ) {
-			itmp[n++] = (unsigned char)(ch >> 24);
-			itmp[n++] = (unsigned char)(ch >> 16);
-		}
-		itmp[n++] = (unsigned char)(ch >> 8);
-		itmp[n++] = (unsigned char)(ch);
-	} else {
+
+	n = 0;
+	switch(cp->m_ByteOrder & 0xFF) {
+	case 0:
 		if ( (ch & 0xFF000000) != 0 )
 			itmp[n++] = (unsigned char)(ch >> 24);
 		if ( (ch & 0xFFFF0000) != 0 )
@@ -820,6 +977,39 @@ DWORD CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 		if ( (ch & 0xFFFFFF00) != 0 )
 			itmp[n++] = (unsigned char)(ch >> 8);
 		itmp[n++] = (unsigned char)(ch);
+		break;
+	case BYTETYPE_2BOM:
+		SETSHORTBE(itmp, 0xFEFF);
+		n += 2;
+		// no break;
+	case BYTETYPE_2BE:
+		if ( (ch & 0xFFFF0000) != 0 ) {
+			SETSHORTBE(itmp + n, ch >> 16);
+			n += 2;
+		}
+		SETSHORTBE(itmp + n, ch);
+		n += 2;
+		break;
+	case BYTETYPE_2LE:
+		if ( (ch & 0xFFFF0000) != 0 ) {
+			SETSHORTLE(itmp + n, ch >> 16);
+			n += 2;
+		}
+		SETSHORTLE(itmp + n, ch);
+		n += 2;
+		break;
+	case BYTETYPE_4BOM:
+		SETLONGBE(itmp, 0x0000FEFF);
+		n += 4;
+		// no break;
+	case BYTETYPE_4BE:
+		SETLONGBE(itmp + n, ch);
+		n += 4;
+		break;
+	case BYTETYPE_4LE:
+		SETLONGLE(itmp + n, ch);
+		n += 4;
+		break;
 	}
 
     inp = (char *)itmp;
@@ -835,8 +1025,64 @@ DWORD CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 
 	ch = 0;
 	otp = (char *)otmp;
-	for ( n = (int)(32 - ots) ; n > 0 ;  n-- )
-		ch = (ch << 8) | (unsigned char)(*(otp++));
+	n = (int)(32 - ots);
+
+	switch(cp->m_ByteOrder >> 8) {
+	case 0:
+		for ( ; n > 0 ; n-- )
+			ch = (ch << 8) | (unsigned char)(*(otp++));
+		break;
+	case BYTETYPE_2BOM:
+		if ( n >= 2 ) {
+			if ( memcmp(otp, "\xFE\xFF", 2) == 0 ) {			// BE
+				otp += 2;
+				n -= 2;
+				goto BYTEUCS2BE;
+			} else if ( memcmp(otp, "\xFF\xFE", 2) == 0 ) {		// LE
+				otp += 2;
+				n -= 2;
+				goto BYTEUCS2LE;
+			}
+		}
+		// no break;
+	case BYTETYPE_2BE:
+	BYTEUCS2BE:
+		if ( n >= 4 )
+			ch = (GETSHORTBE(otp + 2) << 16) | GETSHORTBE(otp);
+		else if ( n >= 2 )
+			ch = GETSHORTBE(otp);
+		break;
+	case BYTETYPE_2LE:
+	BYTEUCS2LE:
+		if ( n >= 4 )
+			ch = (GETSHORTLE(otp + 2) << 16) | GETSHORTLE(otp);
+		else if ( n >= 2 )
+			ch = GETSHORTLE(otp);
+		break;
+	case BYTETYPE_4BOM:
+		if ( n >= 4 ) {
+			if ( memcmp(otp, "\x00\x00\xFE\xFF", 4) == 0 ) {			// BE
+				otp += 4;
+				n -= 4;
+				goto BYTEUCS4BE;
+			} else if ( memcmp(otp, "\xFF\xFE\x00\x00", 4) == 0 ) {		// LE
+				otp += 4;
+				n -= 4;
+				goto BYTEUCS4LE;
+			}
+		}
+		// no break;
+	case BYTETYPE_4BE:
+	BYTEUCS4BE:
+		if ( n >= 4 )
+			ch = GETLONGBE(otp);
+		break;
+	case BYTETYPE_4LE:
+	BYTEUCS4LE:
+		if ( n >= 4 )
+			ch = GETLONGLE(otp);
+		break;
+	}
 
 	switch(cp->m_Mode & 0xFF00) {
 	case 0x0300:	// EUC-JISX0213 > JISX0213.1
@@ -857,10 +1103,17 @@ DWORD CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 			ch = n;
 		break;
 	case 0x0700:	// CP
-		n = ::WideCharToMultiByte(cp->m_ToCodePage, 0, (LPCWSTR)otmp, (32 - (int)ots) / sizeof(WCHAR), (LPSTR)inp, 32, NULL, NULL );
+		n = 0;
+		if ( (ch & 0xFFFF0000) != 0 ) {
+			SETSHORTLE(itmp + n, ch >> 16);
+			n += 2;
+		}
+		SETSHORTLE(itmp + n, ch);
+		n += 2;
+		n = ::WideCharToMultiByte(cp->m_ToCodePage, 0, (LPCWSTR)itmp, n / sizeof(WCHAR), (LPSTR)otmp, 32, NULL, NULL );
 		ch = 0;
 		for ( int i = 0 ; i < n ; i++ )
-			ch = (ch << 8) | inp[i];
+			ch = (ch << 8) | (unsigned char)otmp[i];
 		break;
 	}
 

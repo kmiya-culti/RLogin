@@ -1109,6 +1109,7 @@ public:	// Options
 	COLORREF m_TabBackColor;
 	CCodeFlag m_DefUniCodeFlag;
 	CCodeFlag m_UniCodeFlag;
+	int m_EucJpMsCheck;
 
 	void Init();
 	void InitBankTab();
@@ -1424,6 +1425,7 @@ public:
 	void SetRetChar(BOOL f8);
 	void IncDscs(int &Pcss, CString &str);
 	BOOL DrcsStr(LPCTSTR str, int bank, CString &tmp);
+	void UpdateEucJpMsCheck();
 
 	// Static Lib
 	static int JapanCharSet(LPCTSTR name);

@@ -5471,13 +5471,13 @@ int CScript::Func09(int cmd, CScriptValue &local)
 		if ( m_pDoc->m_pSock != NULL ) {
 			CStringD str;
 			str = (DCHAR)(int)local[0];
-			LPCSTR mbs = m_pDoc->RemoteStr(str);
+			CStringA mbs = m_pDoc->RemoteStr(str);
 			m_pDoc->m_pSock->SendProtocol((LPCSTR)mbs, (int)strlen(mbs));
 		}
 		break;
 	case 4:		// sputs(s);
 		if ( m_pDoc->m_pSock != NULL ) {
-			LPCSTR mbs = m_pDoc->RemoteStr((LPCWSTR)local[0]);
+			CStringA mbs = m_pDoc->RemoteStr((LPCWSTR)local[0]);
 			m_pDoc->m_pSock->SendProtocol((LPCSTR)mbs, (int)strlen(mbs));
 		}
 		break;
@@ -5536,7 +5536,7 @@ int CScript::Func09(int cmd, CScriptValue &local)
 
 	case 13:	// tprintf(fmt, ...)
 		if ( m_pDoc->m_pSock != NULL ) {
-			LPCSTR mbs = m_pDoc->RemoteStr(Format(local, 0));
+			CStringA mbs = m_pDoc->RemoteStr(Format(local, 0));
 			m_pDoc->m_pSock->SendProtocol((LPCSTR)mbs, (int)strlen(mbs));
 		}
 		break;
@@ -5622,14 +5622,14 @@ int CScript::Func08(int cmd, CScriptValue &local)
 		{
 			CStringD str;
 			str = (DCHAR)(int)local[0];
-			LPCSTR mbs = m_pDoc->RemoteStr(str);
-			PutConsOut((LPBYTE)mbs, (int)strlen(mbs));
+			CStringA mbs = m_pDoc->RemoteStr(str);
+			PutConsOut((LPBYTE)(LPCSTR)mbs, (int)strlen(mbs));
 		}
 		break;
 	case 4:		// cputs(s)
 		{
-			LPCSTR mbs = m_pDoc->RemoteStr((LPCTSTR)local[0]);
-			PutConsOut((LPBYTE)mbs, (int)strlen(mbs));
+			CStringA mbs = m_pDoc->RemoteStr((LPCTSTR)local[0]);
+			PutConsOut((LPBYTE)(LPCSTR)mbs, (int)strlen(mbs));
 		}
 		break;
 	case 5:		// cwrite(s)
@@ -5782,8 +5782,8 @@ int CScript::Func08(int cmd, CScriptValue &local)
 
 	case 15:		// cprintf(fmt, ...)
 		{
-			LPCSTR mbs = m_pDoc->RemoteStr(Format(local, 0));
-			PutConsOut((LPBYTE)mbs, (int)strlen(mbs));
+			CStringA mbs = m_pDoc->RemoteStr(Format(local, 0));
+			PutConsOut((LPBYTE)(LPCSTR)mbs, (int)strlen(mbs));
 		}
 		break;
 
@@ -7243,7 +7243,9 @@ void CScript::SetConsBuff(LPBYTE buf, int len)
 	if ( m_ConsMode == DATA_BUF_NONE )
 		return;
 
-	m_ConsBuff.Apend(buf, len);
+	if ( m_ConsBuff.GetSize() < DATA_BUF_LIMIT )
+		m_ConsBuff.Apend(buf, len);
+
 	m_EventFlag &= ~SCP_EVENT_CONS;
 }
 BOOL CScript::IsSockOver()
@@ -7255,7 +7257,9 @@ void CScript::SetSockBuff(LPBYTE buf, int len)
 	if ( m_SockMode == DATA_BUF_NONE )
 		return;
 
-	m_SockBuff.Apend(buf, len);
+	if ( m_SockBuff.GetSize() < DATA_BUF_LIMIT )
+		m_SockBuff.Apend(buf, len);
+
 	m_EventFlag &= ~SCP_EVENT_SOCK;
 }
 void CScript::PutConsOut(LPBYTE buf, int len)

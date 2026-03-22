@@ -163,7 +163,6 @@ class CCmdQue : public CObject
 {
 public:
 	DWORD m_ExtId;
-	CTime m_SendTime;
 	CBuffer m_Msg;
 	int (CSFtp::*m_Func)(int type, CBuffer *bp, class CCmdQue *pQue);
 	int (CSFtp::*m_EndFunc)(int st, CCmdQue *pQue);
@@ -317,7 +316,7 @@ public:
 	CList<class CCmdQue *, class CCmdQue *> m_WaitQue;
 
 	CSemaphore m_CmdQueSema;
-	inline void AddCmdQue(CCmdQue *pQue) { pQue->m_SendTime = CTime::GetCurrentTime(); m_CmdQueSema.Lock(); m_CmdQue.AddTail(pQue); m_CmdQueSema.Unlock(); };
+	inline void AddCmdQue(CCmdQue *pQue) { m_CmdQueSema.Lock(); m_CmdQue.AddTail(pQue); m_CmdQueSema.Unlock(); };
 
 	void SendBuffer(CBuffer *bp);
 	int ReceiveBuffer(CBuffer *bp);

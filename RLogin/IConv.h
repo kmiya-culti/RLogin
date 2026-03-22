@@ -12,6 +12,9 @@
 #include <iconv.h>
 #include "Data.h"
 
+extern DWORD JisToSJis(DWORD cd);
+extern DWORD SJisToJis(DWORD cd);
+
 class CIConv : public CObject  
 {
 public:
@@ -28,6 +31,7 @@ public:
 	int m_ToCodePage;
 	CDwordIndex m_CodeIndex;
 	const WORD *m_DecTab;
+	int m_ByteOrder;
 
 	CBuffer *ExtFromConv(CBuffer *in);
 	void ExtToConv(CBuffer *out);

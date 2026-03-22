@@ -670,7 +670,7 @@ void CTekWnd::OnFilePrint()
 	dc.EndPage();
 	dc.EndDoc();
 
-	dc.Detach();
+	dc.DeleteDC();
 }
 
 //////////////////////////////////////////////////////////

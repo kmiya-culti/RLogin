@@ -286,7 +286,6 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_bAuthAgentReqEnable = FALSE;
 
 	m_GlbReqMap.RemoveAll();
-	m_OpnReqMap.RemoveAll();
 	m_ChnReqMap.RemoveAll();
 
 	m_OpenChanCount = 0;

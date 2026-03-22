@@ -3050,11 +3050,13 @@ void CTextRam::Init()
 	}
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
 
-	m_SendCharSet[0] = _T("EUCJP-MS");
-	m_SendCharSet[1] = _T("CP932");
-	m_SendCharSet[2] = _T("ISO-2022-JP-MS");
+	m_SendCharSet[0] = _T("EUCJP-MS");			// EUC-JIS-2004
+	m_SendCharSet[1] = _T("CP932");				// SHIFT_JIS-2004
+	m_SendCharSet[2] = _T("ISO-2022-JP-MS");	// ISO-2022-JP-2004
 	m_SendCharSet[3] = _T("UTF-8");
 	m_SendCharSet[4] = _T("BIG-5");
+
+	UpdateEucJpMsCheck();
 
 	m_WheelSize      = 2;
 	m_BitMapFile     = _T("");
@@ -3360,6 +3362,7 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("SendCharSet"))) >= 0 ) {
 			for ( i = 0 ; i < 4 && i < index[n].GetSize() ; i++ )
 				m_SendCharSet[i] = index[n][i];
+			UpdateEucJpMsCheck();
 		}
 
 		if ( (n = index.Find(_T("BitMapFile"))) >= 0 )
@@ -4049,6 +4052,8 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	m_SendCharSet[1] = stra.GetAt(11);
 	m_SendCharSet[2] = stra.GetAt(12);
 	m_SendCharSet[3] = stra.GetAt(13);
+
+	UpdateEucJpMsCheck();
 
 	m_WheelSize    = stra.GetVal(14);
 	m_BitMapFile   = stra.GetAt(15);
@@ -7552,6 +7557,24 @@ BOOL CTextRam::DrcsStr(LPCTSTR str, int bank, CString &tmp)
 		}
 	}
 	return FALSE;
+}
+void CTextRam::UpdateEucJpMsCheck()
+{
+	m_EucJpMsCheck = 0;
+
+	if ( m_SendCharSet[EUC_SET].Compare(_T("EUC-JP-MS")) == 0 ||
+		 m_SendCharSet[EUC_SET].Compare(_T("EUCJP-MS")) == 0 ||
+		 m_SendCharSet[EUC_SET].Compare(_T("EUCJP-OPEN")) == 0 ||
+		 m_SendCharSet[EUC_SET].Compare(_T("EUCJP-WIN")) == 0 ||
+		 m_SendCharSet[EUC_SET].Compare(_T("EUCJPMS")) == 0 ||
+		_tcsncmp(m_SendCharSet[EUC_SET], _T("CP51932"), 7) == 0 )
+		m_EucJpMsCheck |= 002;
+
+	if ( m_SendCharSet[ASCII_SET].Compare(_T("ISO-2022-JP-MS")) == 0 ||
+		_tcsncmp(m_SendCharSet[ASCII_SET], _T("CP50220"), 7) == 0 ||
+		_tcsncmp(m_SendCharSet[ASCII_SET], _T("CP50221"), 7) == 0 ||
+		_tcsncmp(m_SendCharSet[ASCII_SET], _T("CP50222"), 7) == 0 )
+		m_EucJpMsCheck |= 004;
 }
 
 #define	CMDMAPBITSIZE	(8 * sizeof(DWORD))

@@ -2396,10 +2396,60 @@ void CTextRam::fc_TEXT2(DWORD ch)
 	fc_KANJI(ch);
 
 	m_BackChar = (m_BackChar << 8) | ch;
+
 	if ( --m_CodeLen <= 0 ) {
+		// EUC-JP-MS(CP51932) ISO-2022-JP-MS(CP50221)の
+		// CP932ベースの異常なSS3やDセットの文字コードを
+		// Unicodeにして表示してみる 2026/03/04
+		if ( m_EucJpMsCheck != 0 ) {
+			if ( (m_BackChar & 0x8080) == 0x8080 ) {	// EUC
+				if ( (m_EucJpMsCheck & 002) != 0 ) {	// EUC-JP-MS
+					DWORD nc, oc = m_BackChar;
+					if ( m_BankNow == m_BankTab[m_KanjiMode][3] )
+						oc |= 0x8F0000;
+					if ( (nc = m_IConv.IConvChar(m_SendCharSet[EUC_SET], m_FontTab[m_BankNow].m_IContName, oc)) != 0 ) {
+						m_BackChar = nc;
+					} else if ( (nc = m_IConv.IConvChar(m_SendCharSet[EUC_SET], _T("UTF-16BE"), oc)) != 0 ) {
+						m_BankNow = UNICODE_INDEX;
+						m_BackChar = IconvToMsUnicode(m_SendCharSet[EUC_SET], nc);
+					} else
+						m_BackChar &= 0x7F7F7F7F;
+				} else
+					m_BackChar &= 0x7F7F7F7F;
+			} else {									// ISO-2022
+				if ( (m_EucJpMsCheck & 004) != 0 ) {	// ISO-2022-JP-MS
+					DWORD nc = 0;
+					CBuffer in, out;
+					in = (m_FontTab[m_BankNow].m_CodeSet == SET_94x94 ? "\x1B$(" : "\x1B$,");	// GZM4 or GZM6
+					in += TstrToMbs(m_FontTab[m_BankNow].m_IndexName);
+					if ( (m_BackChar & 0xFF000000) != 0 )
+						in.Put8Bit(m_BackChar >> 24);
+					if ( (m_BackChar & 0xFFFF0000) != 0 )
+						in.Put8Bit(m_BackChar >> 16);
+					if ( (m_BackChar & 0xFFFFFF00) != 0 )
+						in.Put8Bit(m_BackChar >> 8);
+					in.Put8Bit(m_BackChar);
+					if ( m_IConv.IConvBuf(m_SendCharSet[ASCII_SET], m_FontTab[m_BankNow].m_IContName, &in, &out) ) {
+						while ( out.GetSize() > 0 )
+							nc = (nc << 8) | out.Get8Bit();
+						m_BackChar = nc;
+					} else if ( m_IConv.IConvBuf(m_SendCharSet[ASCII_SET], _T("UTF-16BE"), &in, &out) ) {
+						while ( out.GetSize() > 0 )
+							nc = (nc << 8) | out.Get8Bit();
+						m_BankNow = UNICODE_INDEX;
+						m_BackChar = IconvToMsUnicode(m_SendCharSet[ASCII_SET], nc);
+					} else
+						m_BackChar &= 0x7F7F7F7F;
+				} else
+					m_BackChar &= 0x7F7F7F7F;
+			}
+		} else
+			m_BackChar &= 0x7F7F7F7F;
+
 		INSMDCK(2);
-		PUT2BYTE(m_BackChar & 0x7F7F7F7F, m_BankNow);
+		PUT2BYTE(m_BackChar, m_BankNow);
 	}
+
 	fc_POP(ch);
 }
 void CTextRam::fc_TEXT3(DWORD ch)

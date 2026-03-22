@@ -129,7 +129,7 @@ extern "C" {
 #define	MODE_ENC				0
 #define	MODE_DEC				1
 
-#define INTBLOB_LEN				28
+#define INTBLOB_LEN				20
 #define SIGBLOB_LEN				(2*INTBLOB_LEN)
 
 class CCipher: public CObject
@@ -930,7 +930,6 @@ public:
 	BOOL m_bAuthAgentReqEnable;
 
 	CWordArray m_GlbReqMap;
-	CWordArray m_OpnReqMap;
 	CWordArray m_ChnReqMap;
 
 	int m_OpenChanCount;

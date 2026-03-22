@@ -392,7 +392,7 @@ public:
 
 	virtual void FifoEvents(int nFd, CFifoBuffer *pFifo, DWORD fdEvent, void *pParam);
 
-	int ReadWriteEvent();
+	int ReadWriteEvent(int bBlock = 0);
 };
 
 class CFifoTunnel : public CFifoBase
