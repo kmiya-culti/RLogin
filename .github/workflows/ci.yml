@@ -1,0 +1,561 @@
+name: Windows CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  WIN_SDK: 10.0.26100.0
+  TOOLSET: v143
+
+jobs:
+  build-deps:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+    env:
+      ARCH: ${{ matrix.arch }}
+      ARCH_SUBDIR: ${{ matrix.arch == 'x86' && 'x32' || matrix.arch }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache OpenSSL build
+        id: cache-openssl
+        uses: actions/cache@v4
+        with:
+          path: |
+            RLogin/openssl-3.5.4/include
+            RLogin/openssl-3.5.4/libcrypto.lib
+            RLogin/openssl-3.5.4/libssl.lib
+            RLogin/openssl-3.5.4-x32/include
+            RLogin/openssl-3.5.4-x32/libcrypto.lib
+            RLogin/openssl-3.5.4-x32/libssl.lib
+          key: ${{ runner.os }}-openssl-3.5.4-${{ env.TOOLSET }}-${{ env.WIN_SDK }}-${{ env.ARCH }}
+
+      - name: Detect existing OpenSSL build
+        id: openssl-skip
+        working-directory: RLogin
+        run: |
+          $libDir = Join-Path (Get-Location) "openssl-3.5.4"
+          $x86Dir = Join-Path (Get-Location) "openssl-3.5.4-x32"
+          if (Test-Path $libDir) {
+            Push-Location $libDir
+            if ((Test-Path "libssl.lib") -and (Test-Path "libcrypto.lib")) {
+              $x86Ready = $false
+              if ($env:ARCH -eq "x86") {
+                $x86Ready = (Test-Path (Join-Path $x86Dir "include\openssl\bn.h")) -and (Test-Path (Join-Path $x86Dir "libssl.lib")) -and (Test-Path (Join-Path $x86Dir "libcrypto.lib"))
+              }
+
+              if ($env:ARCH -ne "x86" -or $x86Ready) {
+                Write-Host "OpenSSL outputs found; skipping setup and build"
+                "skip=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+              }
+            }
+            Pop-Location
+          }
+
+      - name: Select MSVC dev-cmd arch
+        run: |
+          $devCmdArch = switch ($env:ARCH) {
+            "x64" { "x64" }
+            "x86" { "x86" }
+            default { throw "Unsupported ARCH: $env:ARCH" }
+          }
+
+          "DEV_CMD_ARCH=$devCmdArch" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ env.DEV_CMD_ARCH }}
+
+      - name: Verify nmake availability
+        run: |
+          Get-Command nmake
+
+      - name: Install build prerequisites
+        if: steps.cache-openssl.outputs.cache-hit != 'true' && steps.openssl-skip.outputs.skip != 'true'
+        run: |
+          choco install strawberryperl nasm --no-progress -y
+
+      - name: Download OpenSSL source
+        if: steps.cache-openssl.outputs.cache-hit != 'true' && steps.openssl-skip.outputs.skip != 'true'
+        working-directory: RLogin
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = "https://www.openssl.org/source/openssl-3.5.4.tar.gz"
+          $file = "openssl-3.5.4.tar.gz"
+          $dir = "openssl-3.5.4"
+
+          if (Test-Path $dir) {
+            Write-Host "Removing stale $dir before fresh extraction"
+            Remove-Item $dir -Recurse -Force
+          }
+
+          if (Test-Path $dir) {
+            Write-Host "Using cached $dir"
+            return
+          }
+
+          if (-not (Test-Path $file)) {
+            Write-Host "Downloading $file"
+            $maxAttempts = 3
+            for ($i = 1; $i -le $maxAttempts; $i++) {
+              try {
+                Invoke-WebRequest -Uri $url -OutFile $file -TimeoutSec 300
+                break
+              } catch {
+                if ($i -eq $maxAttempts) {
+                  throw
+                }
+                Write-Warning "Download failed (attempt $i/$maxAttempts). Retrying in 5 seconds..."
+                Start-Sleep -Seconds 5
+              }
+            }
+          }
+
+          Write-Host "Extracting $file"
+          tar -xzvf $file
+
+      - name: Build OpenSSL
+        if: steps.openssl-skip.outputs.skip != 'true'
+        working-directory: RLogin/openssl-3.5.4
+        run: |
+          if ((Test-Path "libssl.lib") -and (Test-Path "libcrypto.lib")) {
+            Write-Host "OpenSSL already built; skipping"
+            return
+          }
+
+          $target = switch ($env:ARCH) {
+            "x64" { "VC-WIN64A" }
+            "x86" { "VC-WIN32" }
+            default { throw "Unsupported ARCH: $env:ARCH" }
+          }
+
+          perl Configure $target no-shared no-module enable-legacy /O2 -MT
+          nmake clean
+          nmake
+
+      - name: Prepare OpenSSL layout
+        working-directory: RLogin
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Get-Location
+          $srcRoot = Join-Path $root "openssl-3.5.4"
+          if (-not (Test-Path (Join-Path $srcRoot "libcrypto.lib"))) {
+            throw "OpenSSL libcrypto.lib not found under $srcRoot"
+          }
+          if (-not (Test-Path (Join-Path $srcRoot "libssl.lib"))) {
+            throw "OpenSSL libssl.lib not found under $srcRoot"
+          }
+
+          if ($env:ARCH -eq "x86") {
+            $destRoot = Join-Path $root "openssl-3.5.4-x32"
+            $includeSrc = Join-Path $srcRoot "include"
+            $includeDst = Join-Path $destRoot "include"
+            New-Item -ItemType Directory -Force -Path $destRoot | Out-Null
+
+            Write-Host "Copying OpenSSL outputs to $destRoot for x86 layout"
+            Copy-Item -Recurse -Force -Path $includeSrc -Destination $destRoot
+            Copy-Item -Force -LiteralPath (Join-Path $srcRoot "libcrypto.lib") -Destination (Join-Path $destRoot "libcrypto.lib")
+            Copy-Item -Force -LiteralPath (Join-Path $srcRoot "libssl.lib") -Destination (Join-Path $destRoot "libssl.lib")
+          }
+
+      - name: Upload OpenSSL artifact
+        if: env.ARCH != 'x86'
+        uses: actions/upload-artifact@v4
+        with:
+          name: openssl-3.5.4-${{ env.TOOLSET }}-${{ env.WIN_SDK }}-${{ env.ARCH }}
+          path: |
+            RLogin/openssl-3.5.4/include
+            RLogin/openssl-3.5.4/libcrypto.lib
+            RLogin/openssl-3.5.4/libssl.lib
+
+      - name: Upload OpenSSL artifact (x86 layout)
+        if: env.ARCH == 'x86'
+        uses: actions/upload-artifact@v4
+        with:
+          name: openssl-3.5.4-${{ env.TOOLSET }}-${{ env.WIN_SDK }}-${{ env.ARCH }}
+          path: |
+            RLogin/openssl-3.5.4/include
+            RLogin/openssl-3.5.4/libcrypto.lib
+            RLogin/openssl-3.5.4/libssl.lib
+            RLogin/openssl-3.5.4-x32/include
+            RLogin/openssl-3.5.4-x32/libcrypto.lib
+            RLogin/openssl-3.5.4-x32/libssl.lib
+
+      - name: Cache libiconv build
+        id: cache-libiconv
+        uses: actions/cache@v4
+        with:
+          path: |
+            RLogin/libiconv-1.17/include
+            RLogin/libiconv-1.17/lib/${{ env.ARCH_SUBDIR }}/iconv.lib
+            RLogin/libiconv-1.17/lib/${{ env.ARCH_SUBDIR }}/libiconv.lib
+          key: ${{ runner.os }}-libiconv-1.17-${{ env.TOOLSET }}-${{ env.WIN_SDK }}-${{ env.ARCH }}
+
+      - name: Detect existing libiconv build
+        id: libiconv-skip
+        working-directory: RLogin
+        run: |
+          $libDir = Join-Path (Get-Location) "libiconv-1.17"
+          $archDir = Join-Path $libDir "lib/${{ env.ARCH_SUBDIR }}"
+          $iconvCandidate = Join-Path $archDir "iconv.lib"
+          $libiconvCandidate = Join-Path $archDir "libiconv.lib"
+          if (Test-Path $archDir) {
+            if ((Test-Path $iconvCandidate) -and (Test-Path $libiconvCandidate)) {
+              Write-Host "libiconv outputs found; skipping setup and build"
+              "skip=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            }
+          }
+
+      - name: Download libiconv source
+        if: steps.cache-libiconv.outputs.cache-hit != 'true' && steps.libiconv-skip.outputs.skip != 'true'
+        working-directory: RLogin
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.17.tar.gz"
+          $file = "libiconv-1.17.tar.gz"
+          $dir = "libiconv-1.17"
+
+          if (Test-Path $dir) {
+            Write-Host "Using cached $dir"
+            return
+          }
+
+          if (-not (Test-Path $file)) {
+            Write-Host "Downloading $file"
+            $maxAttempts = 3
+            for ($i = 1; $i -le $maxAttempts; $i++) {
+              try {
+                Invoke-WebRequest -Uri $url -OutFile $file -TimeoutSec 300
+                break
+              } catch {
+                if ($i -eq $maxAttempts) {
+                  throw
+                }
+                Write-Warning "Download failed (attempt $i/$maxAttempts). Retrying in 5 seconds..."
+                Start-Sleep -Seconds 5
+              }
+            }
+          }
+
+          Write-Host "Extracting $file"
+          tar -xzvf $file
+
+      - name: Apply libiconv patch
+        if: steps.cache-libiconv.outputs.cache-hit != 'true' && steps.libiconv-skip.outputs.skip != 'true'
+        working-directory: RLogin/libiconv-1.17
+        run: |
+          $patchPath = Join-Path "${{ github.workspace }}" "docs/libiconv-1.17.patch"
+          if (-not (Test-Path $patchPath)) {
+            throw "Patch not found: $patchPath"
+          }
+
+          $patchRaw = Get-Content $patchPath -Raw
+          $patchLf = $patchRaw -replace "`r`n", "`n"
+          [System.IO.File]::WriteAllText($patchPath, $patchLf, (New-Object System.Text.UTF8Encoding($false)))
+
+          if (-not (Test-Path ".patch_applied")) {
+            git apply $patchPath
+            New-Item -Path ".patch_applied" -ItemType File | Out-Null
+          } else {
+            Write-Host "libiconv patch already applied; skipping"
+          }
+
+      - name: Build libiconv
+        if: steps.cache-libiconv.outputs.cache-hit != 'true' && steps.libiconv-skip.outputs.skip != 'true'
+        working-directory: RLogin/libiconv-1.17
+        run: |
+          $rootDir = Get-Location
+          $archDir = Join-Path $rootDir "lib/${{ env.ARCH_SUBDIR }}"
+          $iconvCandidate = Join-Path $archDir "iconv.lib"
+          $libiconvCandidate = Join-Path $archDir "libiconv.lib"
+
+          if ((Test-Path $iconvCandidate) -and (Test-Path $libiconvCandidate)) {
+            Write-Host "libiconv already built; skipping"
+            return
+          }
+
+          if (-not (Test-Path "lib/Makefile.ms")) {
+            throw "Makefile.ms not found under libiconv-1.17/lib"
+          }
+
+          $buildConfig = switch ($env:ARCH) {
+            "x64" { @{ Target = "x64"; OutDir = "x64"; Args = @() } }
+            "x86" { @{ Target = "x32"; OutDir = "x32"; Args = @() } }
+            default { throw "Unsupported ARCH: $env:ARCH" }
+          }
+
+          Push-Location "lib"
+          nmake -f Makefile.ms $($buildConfig.Target) $($buildConfig.Args -join " ")
+          Pop-Location
+
+          New-Item -ItemType Directory -Force -Path $archDir | Out-Null
+
+          $builtDir = Join-Path $rootDir "lib/$($buildConfig.OutDir)"
+          $candidatePaths = @()
+
+          foreach ($name in @("iconv.lib", "libiconv.lib")) {
+            $candidate = Join-Path $builtDir $name
+            if (Test-Path $candidate) {
+              $candidatePaths += $candidate
+            }
+          }
+
+          if (-not $candidatePaths) {
+            $libRoot = Join-Path $rootDir "lib"
+            $candidates = Get-ChildItem -Path $libRoot -Filter "*.lib" -Recurse
+            if (-not $candidates) {
+              throw "Built library not found anywhere under $libRoot"
+            }
+
+            $preferred = $candidates | Where-Object { $_.Name -ieq "iconv.lib" } | Select-Object -First 1
+            if (-not $preferred) {
+              $preferred = $candidates | Where-Object { $_.Name -ieq "libiconv.lib" } | Select-Object -First 1
+            }
+            if (-not $preferred) {
+              $preferred = $candidates | Select-Object -First 1
+              Write-Warning "No iconv/libiconv named output found; using $($preferred.Name)"
+            }
+            $candidatePaths = @($preferred.FullName)
+          }
+
+          $sourceLib = @($candidatePaths) | Select-Object -First 1
+          if (-not (Test-Path $sourceLib)) {
+            throw "Resolved source library does not exist: $sourceLib"
+          }
+
+          Write-Host "Using libiconv source: $sourceLib"
+          Write-Host "iconv target: $iconvCandidate"
+          Write-Host "libiconv target: $libiconvCandidate"
+
+          if ((Test-Path $iconvCandidate) -and ([System.IO.Path]::GetFullPath($iconvCandidate) -ieq [System.IO.Path]::GetFullPath($sourceLib))) {
+            Write-Host "iconv.lib already present at $iconvCandidate; skipping copy"
+          } elseif (-not (Test-Path $iconvCandidate)) {
+            Copy-Item -LiteralPath $sourceLib -Destination $iconvCandidate -Force
+          } else {
+            Write-Host "iconv.lib exists but differs from source; overwriting"
+            Copy-Item -LiteralPath $sourceLib -Destination $iconvCandidate -Force
+          }
+
+          if ((Test-Path $libiconvCandidate) -and ([System.IO.Path]::GetFullPath($libiconvCandidate) -ieq [System.IO.Path]::GetFullPath($sourceLib))) {
+            Write-Host "libiconv.lib already present at $libiconvCandidate; skipping copy"
+          } elseif (-not (Test-Path $libiconvCandidate)) {
+            Copy-Item -LiteralPath $sourceLib -Destination $libiconvCandidate -Force
+          } else {
+            Write-Host "libiconv.lib exists but differs from source; overwriting"
+            Copy-Item -LiteralPath $sourceLib -Destination $libiconvCandidate -Force
+          }
+
+      - name: Upload libiconv artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libiconv-1.17-${{ env.TOOLSET }}-${{ env.WIN_SDK }}-${{ env.ARCH }}
+          path: |
+            RLogin/libiconv-1.17/include
+            RLogin/libiconv-1.17/lib/${{ env.ARCH_SUBDIR }}/iconv.lib
+            RLogin/libiconv-1.17/lib/${{ env.ARCH_SUBDIR }}/libiconv.lib
+
+      - name: Cache zlib build
+        id: cache-zlib
+        uses: actions/cache@v4
+        with:
+          path: |
+            RLogin/zlib-1.3.1/zlib.h
+            RLogin/zlib-1.3.1/zconf.h
+            RLogin/zlib-1.3.1/${{ env.ARCH_SUBDIR }}/zlib.lib
+          key: ${{ runner.os }}-zlib-1.3.1-${{ env.TOOLSET }}-${{ env.WIN_SDK }}-${{ env.ARCH }}
+
+      - name: Detect existing zlib build
+        id: zlib-skip
+        working-directory: RLogin
+        run: |
+          $libDir = Join-Path (Get-Location) "zlib-1.3.1"
+          $archLib = Join-Path $libDir "${{ env.ARCH_SUBDIR }}/zlib.lib"
+          Write-Host "Looking for zlib at $archLib"
+          if (Test-Path $archLib) {
+            Write-Host "zlib outputs found; skipping setup and build"
+            "skip=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+
+      - name: Download zlib source
+        if: steps.cache-zlib.outputs.cache-hit != 'true' && steps.zlib-skip.outputs.skip != 'true'
+        working-directory: RLogin
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = "https://zlib.net/zlib-1.3.1.tar.xz"
+          $file = "zlib-1.3.1.tar.xz"
+          $dir = "zlib-1.3.1"
+
+          if (Test-Path $dir) {
+            Write-Host "Using cached $dir"
+            return
+          }
+
+          if (-not (Test-Path $file)) {
+            Write-Host "Downloading $file"
+            $maxAttempts = 3
+            for ($i = 1; $i -le $maxAttempts; $i++) {
+              try {
+                Invoke-WebRequest -Uri $url -OutFile $file -TimeoutSec 300
+                break
+              } catch {
+                if ($i -eq $maxAttempts) {
+                  throw
+                }
+                Write-Warning "Download failed (attempt $i/$maxAttempts). Retrying in 5 seconds..."
+                Start-Sleep -Seconds 5
+              }
+            }
+          }
+
+          Write-Host "Extracting $file"
+          tar -xzvf $file
+
+      - name: Build zlib
+        if: steps.zlib-skip.outputs.skip != 'true'
+        working-directory: RLogin/zlib-1.3.1
+        run: |
+          $archDir = Join-Path (Get-Location) "${{ env.ARCH_SUBDIR }}"
+          $archLib = Join-Path $archDir "zlib.lib"
+          Write-Host "Using zlib output directory: $archDir"
+          Write-Host "Expecting zlib.lib at: $archLib"
+          if (Test-Path $archLib) {
+            Write-Host "zlib already built; skipping"
+            return
+          }
+
+          $asm = switch ($env:ARCH) {
+            "x64" { "ml64" }
+            "x86" { "ml" }
+            default { throw "Unsupported ARCH: $env:ARCH" }
+          }
+
+          if ($env:ARCH -eq "arm64") {
+            $mk = "win32/Makefile.msc"
+            if (-not (Test-Path $mk)) {
+              throw "Makefile not found: $mk"
+            }
+
+            Write-Host "Adjusting zlib base address for ARM64"
+            (Get-Content $mk) -replace "-base:0x5A4C0000", "-base:0x140000000" |
+              Set-Content -Encoding ASCII $mk
+          }
+
+          nmake -f win32/Makefile.msc AS="$asm" CFLAGS="/MT /Ox /Ob2 /Oi /Ot /GS- /Gy -W1 /nologo -Fdzlib -I."
+          New-Item -ItemType Directory -Force -Path $archDir | Out-Null
+          Move-Item *.obj -Destination $archDir -ErrorAction SilentlyContinue
+          Move-Item *.lib -Destination $archDir -ErrorAction SilentlyContinue
+          Move-Item *.dll -Destination $archDir -ErrorAction SilentlyContinue
+          Move-Item *.exp -Destination $archDir -ErrorAction SilentlyContinue
+          Move-Item *.res -Destination $archDir -ErrorAction SilentlyContinue
+          Move-Item *.pdb -Destination $archDir -ErrorAction SilentlyContinue
+          Move-Item *.exe -Destination $archDir -ErrorAction SilentlyContinue
+
+      - name: Upload zlib artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zlib-1.3.1-${{ env.TOOLSET }}-${{ env.WIN_SDK }}-${{ env.ARCH }}
+          path: |
+            RLogin/zlib-1.3.1/zlib.h
+            RLogin/zlib-1.3.1/zconf.h
+            RLogin/zlib-1.3.1/${{ env.ARCH_SUBDIR }}/zlib.lib
+
+      - name: Download nettle sources
+        working-directory: RLogin
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $url = "http://nanno.bf1.jp/softlib/man/rlogin/nettle-2.0.zip"
+          $zip = "nettle-2.0.zip"
+          $dir = "nettle-2.0"
+
+          if (Test-Path $dir) {
+            Write-Host "Removing existing $dir before extraction"
+            Remove-Item $dir -Recurse -Force
+          }
+
+          Write-Host "Downloading nettle sources from $url"
+          Invoke-WebRequest -Uri $url -OutFile $zip -TimeoutSec 300
+
+          Write-Host "Extracting $zip"
+          Expand-Archive -Path $zip -DestinationPath . -Force
+          Remove-Item $zip -Force
+
+      - name: Validate dependency layout
+        working-directory: RLogin
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $archDir = "${{ env.ARCH_SUBDIR }}"
+          $opensslDir = if ($env:ARCH -eq "x86") { "openssl-3.5.4-x32" } else { "openssl-3.5.4" }
+          $checks = @(
+            @{ Path = "$opensslDir/include/openssl/bn.h"; Label = "OpenSSL bn.h" },
+            @{ Path = "$opensslDir/libcrypto.lib"; Label = "OpenSSL libcrypto.lib" },
+            @{ Path = "$opensslDir/libssl.lib"; Label = "OpenSSL libssl.lib" },
+            @{ Path = "libiconv-1.17/include/iconv.h"; Label = "libiconv iconv.h" },
+            @{ Path = "libiconv-1.17/lib/$archDir/iconv.lib"; Label = "libiconv iconv.lib ($archDir)" },
+            @{ Path = "libiconv-1.17/lib/$archDir/libiconv.lib"; Label = "libiconv libiconv.lib ($archDir)" },
+            @{ Path = "zlib-1.3.1/zlib.h"; Label = "zlib.h" },
+            @{ Path = "zlib-1.3.1/$archDir/zlib.lib"; Label = "zlib.lib ($archDir)" },
+            @{ Path = "nettle-2.0/twofish.cpp"; Label = "nettle twofish.cpp" }
+          )
+
+          foreach ($check in $checks) {
+            if (-not (Test-Path $check.Path)) {
+              throw "Missing dependency file: $($check.Label) at $($check.Path)"
+            }
+            Write-Host "Found $($check.Label)"
+          }
+
+      - name: Set platform directory
+        working-directory: RLogin
+        run: |
+          $platformDir = switch ($env:ARCH) {
+            "x86" { "Win32" }
+            "x64" { "x64" }
+            default { throw "Unsupported ARCH: $env:ARCH" }
+          }
+
+          "PLATFORM_DIR=$platformDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Apply RLogin patch
+        working-directory: RLogin
+        run: |
+          $patchPath = Join-Path "${{ github.workspace }}" "ci/RLogin.patch"
+          if (-not (Test-Path $patchPath)) {
+            throw "Patch not found: $patchPath"
+          }
+
+          $patchRaw = Get-Content $patchPath -Raw
+          [System.IO.File]::WriteAllText($patchPath, $patchRaw, (New-Object System.Text.UTF8Encoding($false)))
+
+          if (-not (Test-Path ".patch_applied")) {
+            git apply $patchPath
+            New-Item -Path ".patch_applied" -ItemType File | Out-Null
+          } else {
+            Write-Host "RLogin patch already applied; skipping"
+          }
+
+      - name: Build RLogin (Release ${{ env.ARCH }})
+        working-directory: RLogin
+        run: |
+          $solutionDir = (Get-Location).Path + '\\'
+          msbuild RLogin.vcxproj /p:Configuration=Release /p:Platform=$env:PLATFORM_DIR /p:SolutionDir="$solutionDir"
+
+      - name: Upload RLogin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RLogin-Release-${{ env.ARCH }}
+          path: RLogin/Release/${{ env.PLATFORM_DIR }}/RLogin.exe
