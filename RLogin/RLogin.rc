@@ -747,13 +747,13 @@ CAPTION "About RLogin"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,91,277,60,14,WS_GROUP
-    LTEXT           "RLogin (%s) Version 2.31.5 (2026/03/23)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.31.6 (2026/04/24)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2026 Culti",IDC_STATIC,44,17,189,8
     CONTROL         "<a href=""https://kmiya-culti.github.io/RLogin/"">https://kmiya-culti.github.io/RLogin/</a>",IDC_SYSLINK3,
                     "SysLink",WS_TABSTOP,44,27,189,8
     CONTROL         "<a href=""http://nanno.bf1.jp/softlib/man/rlogin/"">http://nanno.bf1.jp/softlib/man/rlogin/</a>",IDC_SYSLINK2,
                     "SysLink",WS_TABSTOP,44,37,189,8
-    LTEXT           "OpenSSL 3.5.5 27 Jan 2026",IDC_STATIC,44,51,189,8
+    LTEXT           "OpenSSL 3.5.6 7 Apr 2026",IDC_STATIC,44,51,189,8
     LTEXT           "Copyright (c) 1998-2026 The OpenSSL Project",IDC_STATIC,44,61,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,71,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,81,189,8
@@ -2391,8 +2391,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,31,5,0
- PRODUCTVERSION 2,31,5,0
+ FILEVERSION 2,31,6,0
+ PRODUCTVERSION 2,31,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2409,12 +2409,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.31.5.0"
+            VALUE "FileVersion", "2.31.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.31.5.0"
+            VALUE "ProductVersion", "2.31.6.0"
         END
     END
     BLOCK "VarFileInfo"

@@ -3036,7 +3036,7 @@ void CTextRam::Init()
 	EnableOption(TO_RLFONT);	// ?8404 フォントサイズから一行あたりの文字数を決定
 	EnableOption(TO_RLUNIAWH);	// ?8428 UnicodeのAタイプの文字を半角として表示する
 	EnableOption(TO_RLC1DIS);	// ?8454 C1制御を行わない
-	EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
+//	EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
 	EnableOption(TO_RLNODELAY);	//  1486 TCPオプションのNoDelayを有効にする
 
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));

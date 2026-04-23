@@ -1048,14 +1048,14 @@ DWORD CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 	case BYTETYPE_2BE:
 	BYTEUCS2BE:
 		if ( n >= 4 )
-			ch = (GETSHORTBE(otp + 2) << 16) | GETSHORTBE(otp);
+			ch = (GETSHORTBE(otp) << 16) | GETSHORTBE(otp + 2);
 		else if ( n >= 2 )
 			ch = GETSHORTBE(otp);
 		break;
 	case BYTETYPE_2LE:
 	BYTEUCS2LE:
 		if ( n >= 4 )
-			ch = (GETSHORTLE(otp + 2) << 16) | GETSHORTLE(otp);
+			ch = (GETSHORTLE(otp) << 16) | GETSHORTLE(otp + 2);
 		else if ( n >= 2 )
 			ch = GETSHORTLE(otp);
 		break;

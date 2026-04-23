@@ -144,6 +144,7 @@ public:
 
 	CCommandLineInfoEx();
 	virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
+	void ParseEscape(CString &str);
 	BOOL ParseUrl(const TCHAR* pszParam);
 	void GetString(CString &str);
 	void SetString(LPCTSTR str);

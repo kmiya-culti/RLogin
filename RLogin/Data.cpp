@@ -2948,51 +2948,102 @@ BOOL CBuffer::LoadFile(LPCTSTR filename)
 	CFile file;
 	ULONGLONG FileSize;
 
-	/************************************************
+/************************************************
 
-		modeReadWrite | shareExclusive
-				modeRead | shareExclusive	X
-				modeRead | shareDenyWrite	X
-				modeRead | shareDenyRead	X
-				modeRead | shareDenyNone	X
-		modeReadWrite | shareDenyWrite
-				modeRead | shareExclusive	X
-				modeRead | shareDenyWrite	X
-				modeRead | shareDenyRead	X
-				modeRead | shareDenyNone	0
-		modeReadWrite | shareDenyRead
-				modeRead | shareExclusive	X
-				modeRead | shareDenyWrite	X
-				modeRead | shareDenyRead	X
-				modeRead | shareDenyNone	X
-		modeReadWrite | shareDenyNone
-				modeRead | shareExclusive	X
-				modeRead | shareDenyWrite	X
-				modeRead | shareDenyRead	X
-				modeRead | shareDenyNone	0
+modeRead | shareCompat				modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						X			X			X
+	shareDenyRead						X			X			X
+	shareDenyNone						X			X			X
+modeRead | shareExclusive			modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						X			X			X
+	shareDenyRead						X			X			X
+	shareDenyNone						X			X			X
+modeRead | shareDenyWrite			modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						O			X			X
+	shareDenyRead						X			X			X
+	shareDenyNone						O			X			X
+modeRead | shareDenyRead			modeRead	modeWrite	modeReadWrite				
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						X			O			X
+	shareDenyRead						X			X			X
+	shareDenyNone						X			O			X
+modeRead | shareDenyNone			modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						O			O			O
+	shareDenyRead						X			X			X
+	shareDenyNone						O			O			O
+				
+modeWrite | shareCompat				modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						X			X			X
+	shareDenyRead						X			X			X
+	shareDenyNone						X			X			X
+modeWrite | shareExclusive			modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						X			X			X
+	shareDenyRead						X			X			X
+	shareDenyNone						X			X			X
+modeWrite | shareDenyWrite			modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						X			X			X
+	shareDenyRead						O			X			X
+	shareDenyNone						O			X			X
+modeWrite | shareDenyRead			modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						X			X			X
+	shareDenyRead						X			O			X
+	shareDenyNone						X			O			X
+modeWrite | shareDenyNone			modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						X			X			X
+	shareDenyRead						O			O			O
+	shareDenyNone						O			O			O
+				
+modeReadWrite | shareCompat			modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						X			X			X
+	shareDenyRead						X			X			X
+	shareDenyNone						X			X			X
+modeReadWrite | shareExclusive		modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						X			X			X
+	shareDenyRead						X			X			X
+	shareDenyNone						X			X			X
+modeReadWrite | shareDenyWrite		modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						X			X			X
+	shareDenyRead						X			X			X
+	shareDenyNone						O			X			X
+modeReadWrite | shareDenyRead		modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						X			X			X
+	shareDenyRead						X			X			X
+	shareDenyNone						X			O			X
+modeReadWrite | shareDenyNone		modeRead	modeWrite	modeReadWrite
+	shareCompat							X			X			X
+	shareExclusive						X			X			X
+	shareDenyWrite						X			X			X
+	shareDenyRead						X			X			X
+	shareDenyNone						O			O			O
 
-		modeWrite | shareExclusive
-				modeRead | shareExclusive	X
-				modeRead | shareDenyWrite	X
-				modeRead | shareDenyRead	X
-				modeRead | shareDenyNone	X
-		modeWrite | shareDenyWrite
-				modeRead | shareExclusive	X
-				modeRead | shareDenyWrite	X
-				modeRead | shareDenyRead	0
-				modeRead | shareDenyNone	0
-		modeWrite | shareDenyRead
-				modeRead | shareExclusive	X
-				modeRead | shareDenyWrite	X
-				modeRead | shareDenyRead	X
-				modeRead | shareDenyNone	X
-		modeWrite | shareDenyNone
-				modeRead | shareExclusive	X
-				modeRead | shareDenyWrite	X
-				modeRead | shareDenyRead	0
-				modeRead | shareDenyNone	0
-
-	************************************************/
+************************************************/
 
 	if( !file.Open(filename, CFile::modeRead | CFile::shareDenyNone) )
 		return FALSE;

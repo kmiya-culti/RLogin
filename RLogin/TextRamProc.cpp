@@ -2373,8 +2373,8 @@ void CTextRam::fc_TEXT(DWORD ch)
 
 	switch(m_FontTab[m_BankNow].m_CodeSet) {
 	case SET_94:
-		//if ( (ch &= 0x7F) == 0x7F )
-		//	break;
+		if ( (!IsOptEnable(TO_DRCSMMv1) || IsOptEnable(TO_DRCSMMv3)) && (ch &= 0x7F) == 0x7F )
+			break;
 	case SET_96:
 		INSMDCK(1);
 		PUT1BYTE(ch & 0x7F, m_BankNow);

@@ -293,6 +293,34 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 	}
 	CCommandLineInfo::ParseParam(pszParam, bFlag, bLast);
 }
+void CCommandLineInfoEx::ParseEscape(CString &str)
+{
+	CString tmp;
+
+#define	ISHEXDIGIT(c)	(((c) >= _T('0') && (c) <= _T('9')) || ((c) >= _T('A') && (c) <= _T('F')) || ((c) >= _T('a') && (c) <= _T('f')))
+
+	for ( LPCTSTR p = str ; *p != _T('\0') ; ) {
+		if ( p[0] == _T('%') && ISHEXDIGIT(p[1]) && ISHEXDIGIT(p[2]) ) {
+			p++;
+			TCHAR c = 0;
+			for ( int n = 0 ; n < 2 ; n++ ) {
+				if ( *p >= _T('0') && *p <= _T('9') )
+					c = c * 16 + (*(p++) - _T('0'));
+				else if ( *p >= _T('A') && *p <= _T('F') )
+					c = c * 16 + (*(p++) - _T('A') + 10);
+				else if ( *p >= _T('a') && *p <= _T('f') )
+					c = c * 16 + (*(p++) - _T('a') + 10);
+				else
+					break;
+			}
+			tmp += c;
+		} else
+			tmp += *(p++);
+	}
+
+	if ( tmp.Compare(str) != 0 )
+		str = tmp;
+}
 BOOL CCommandLineInfoEx::ParseUrl(const TCHAR* pszParam)
 {
 	// ssh://username:password@hostname:port/path?arg=value#anchor
@@ -325,7 +353,24 @@ BOOL CCommandLineInfoEx::ParseUrl(const TCHAR* pszParam)
 
 	tmp = pszParam;
 
-	if ( (n = tmp.Find(_T('@'))) >= 0 ) {
+	// username[:password@#?/:]@hostname‚È‚ç@‘O‚Ì"@#?/:"‚ð–³Ž‹‚·‚é 2026/03/30
+	if ( (i = tmp.ReverseFind(_T('@'))) < 0 )
+		i = 0;
+
+	if ( (n = tmp.ReverseFind(_T('#'))) >= i ) {
+		str = (LPCTSTR)tmp + n + 1;		// anchor
+		tmp.Delete(n, tmp.GetLength() - n);
+	}
+	if ( (n = tmp.ReverseFind(_T('?'))) >= i ) {
+		argv = (LPCTSTR)tmp + n + 1;		// arg=value
+		tmp.Delete(n, tmp.GetLength() - n);
+	}
+	if ( (n = tmp.ReverseFind(_T('/'))) >= i ) {
+		m_Path = (LPCTSTR)tmp + n + 1;		// path
+		tmp.Delete(n, tmp.GetLength() - n);
+	}
+
+	if ( (n = tmp.ReverseFind(_T('@'))) >= 0 ) {
 		str = tmp.Left(n);				// username:password
 		tmp.Delete(0, n + 1);
 
@@ -334,19 +379,6 @@ BOOL CCommandLineInfoEx::ParseUrl(const TCHAR* pszParam)
 			m_Pass = str.Mid(n + 1);
 		} else
 			m_User = str;
-	}
-
-	if ( (n = tmp.Find(_T('#'))) >= 0 ) {
-		str = (LPCTSTR)tmp + n + 1;		// anchor
-		tmp.Delete(n, tmp.GetLength() - n);
-	}
-	if ( (n = tmp.Find(_T('?'))) >= 0 ) {
-		argv = (LPCTSTR)tmp + n + 1;		// arg=value
-		tmp.Delete(n, tmp.GetLength() - n);
-	}
-	if ( (n = tmp.Find(_T('/'))) >= 0 ) {
-		m_Path = (LPCTSTR)tmp + n + 1;		// path
-		tmp.Delete(n, tmp.GetLength() - n);
 	}
 
 	if ( (i = tmp.Find(_T('['))) >= 0 && (n = tmp.Find(_T(']'))) > i ) {
@@ -360,6 +392,11 @@ BOOL CCommandLineInfoEx::ParseUrl(const TCHAR* pszParam)
 	} else
 		m_Addr = tmp;
 
+	ParseEscape(m_User);
+	ParseEscape(m_Pass);
+	ParseEscape(m_Addr);
+	ParseEscape(m_Port);
+
 	if ( !argv.IsEmpty() ) {
 		CStringIndex index;
 		index.GetQueryString(argv);
@@ -368,7 +405,8 @@ BOOL CCommandLineInfoEx::ParseUrl(const TCHAR* pszParam)
 				ParseParam(index[n].GetIndex(), TRUE, FALSE);
 			} else {
 				ParseParam(index[n].GetIndex(), TRUE, FALSE);
-				ParseParam(index[n], FALSE, FALSE);
+				if ( m_PasStat != 0 )
+					ParseParam(index[n], FALSE, FALSE);
 			}
 		}
 	}
