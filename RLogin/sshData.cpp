@@ -2604,7 +2604,7 @@ int CIdKey::HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh)
 	return TRUE;
 }
 
-int CIdKey::CompositeHash(CBuffer *bp, LPBYTE buf, int len)
+int CIdKey::CompositeHash(CBuffer *bp, LPBYTE buf, int len, LPBYTE ctx, int ctxlen)
 {
 	// draft-sun-ssh-composite-sigs-02
 	// 3.2.  Composite Sign
@@ -2658,7 +2658,9 @@ int CIdKey::CompositeHash(CBuffer *bp, LPBYTE buf, int len)
 
 	bp->Apend(prefix, 32);
 	bp->Apend(label, (int)strlen((LPCSTR)label));
-	bp->Apend((BYTE *)"\x00", 1);
+	bp->Put8Bit(ctxlen);
+	if ( ctx != NULL && ctxlen > 0 )
+		bp->Apend(ctx, ctxlen);
 	bp->Apend(digest, dlen);
 
 	return TRUE;
@@ -2767,7 +2769,7 @@ int CIdKey::CompositeSign(CBuffer *bp, LPBYTE buf, int len)
 		secKey.m_bSecInit = TRUE;
 	}
 
-	if ( !CompositeHash(&hash, buf, len) )
+	if ( !CompositeHash(&hash, buf, len, NULL, 0) )
 		return FALSE;
 
 	if ( !firKey.Sign(&sig, hash.GetPtr(), hash.GetSize()) )
@@ -3020,7 +3022,7 @@ int CIdKey::CompositeVerify(CBuffer *sig, LPBYTE data, int datalen)
 		secKey.m_PublicKey.Apend(pub.GetPtr(), pub.GetSize());
 	}
 
-	if ( !CompositeHash(&hash, data, datalen) )
+	if ( !CompositeHash(&hash, data, datalen, NULL, 0) )
 		return FALSE;
 
 	tmp.Clear();

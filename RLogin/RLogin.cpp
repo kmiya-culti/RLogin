@@ -1856,8 +1856,12 @@ BOOL CRLoginApp::InitInstance()
 			ExD2D1CreateFactory = (HRESULT (WINAPI *)(__in D2D1_FACTORY_TYPE factoryType, __in REFIID riid, __in_opt CONST D2D1_FACTORY_OPTIONS *pFactoryOptions, __out void **ppIFactory))GetProcAddress(ExD2D1Api, "D2D1CreateFactory");
 			ExDWriteCreateFactory = (HRESULT (WINAPI *)(__in DWRITE_FACTORY_TYPE factoryType, __in REFIID iid, __out IUnknown **factory))GetProcAddress(ExDWriteApi, "DWriteCreateFactory");
 
-			if ( ExD2D1CreateFactory != NULL && ExDWriteCreateFactory != NULL && SUCCEEDED(ExD2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory), NULL, reinterpret_cast<void **>(&m_pD2DFactory))) )
+			if ( ExD2D1CreateFactory != NULL && ExDWriteCreateFactory != NULL && SUCCEEDED(ExD2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, __uuidof(ID2D1Factory), NULL, reinterpret_cast<void **>(&m_pD2DFactory))) ) {
 				ExDWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory), reinterpret_cast<IUnknown **>(&m_pDWriteFactory));
+#if defined(USE_DIRECT2D) && USE_DWRITE >= 2
+				ExDWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory2), reinterpret_cast<IUnknown **>(&m_pDWriteFactory2));
+#endif
+			}
 		}
 	}
 
@@ -2120,6 +2124,11 @@ int CRLoginApp::ExitInstance()
 
 	if (m_pDCRT != NULL)
 		m_pDCRT->Release();
+
+#if defined(USE_DIRECT2D) && USE_DWRITE >= 2
+	if (m_pDWriteFactory2 != NULL)
+		m_pDWriteFactory2->Release();
+#endif
 
 	if (m_pDWriteFactory != NULL)
 		m_pDWriteFactory->Release();

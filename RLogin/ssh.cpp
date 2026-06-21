@@ -3856,7 +3856,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) ) {
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
 		tmp.Put32Bit(pChan->m_RemoteID);
-		if ( m_ExtInfo.Find(_T("agent-forward")) >= 0 )		// draft-ietf-sshm-ssh-agent-12
+		if ( m_ExtInfo.Find(_T("agent-forward")) >= 0 )		// RFC9987	Secure Shell (SSH) Agent Protocol
 			tmp.PutStr("agent-req");
 		else
 			tmp.PutStr("auth-agent-req@openssh.com");
@@ -4145,7 +4145,7 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_CURVE25519,	_T("curve25519-sha256")							},	// RFC8731	MUST			SHOULD
 		{ DHMODE_CURVE448,		_T("curve448-sha512")							},	// RFC8731	MAY				MAY
 		{ DHMODE_SNT761X25519,	_T("sntrup761x25519-sha512@openssh.com")		},
-		{ DHMODE_SNT761X25519,	_T("sntrup761x25519-sha512")					},	// draft-josefsson-ntruprime-ssh-00
+		{ DHMODE_SNT761X25519,	_T("sntrup761x25519-sha512")					},	// RFC9941	SHOULD
 		{ DHMODE_RSA1024SHA1,	_T("rsa1024-sha1")								},	// RFC4432	MUST NOT		MUST NOT
 		{ DHMODE_RSA2048SHA2,	_T("rsa2048-sha256")							},	// RFC4432	MAY				MAY
 		{ DHMODE_MLKEM768X25519,_T("mlkem768x25519-sha256")						},	// draft-kampanakis-curdle-ssh-pq-ke-04
@@ -5308,6 +5308,7 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 	pChan->m_RemotePacks = bp->Get32Bit();
 	pChan->m_LocalComs   = 0;
 
+	// RFC9987	Secure Shell (SSH) Agent Protocol
 	if ( type.CompareNoCase("auth-agent@openssh.com") == 0 || type.CompareNoCase("agent-connect") == 0 ) {
 		pChan->m_Type = SSHFT_AGENT;
 		pChan->m_Status |= (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE);

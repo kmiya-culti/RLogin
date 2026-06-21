@@ -3024,20 +3024,22 @@ void CTextRam::Init()
 	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 	memset(m_AnsiOpt, 0, sizeof(DWORD) * 16);
 	memset(m_OptTab,  0, sizeof(DWORD) * 16);
-	EnableOption(TO_ANSISRM);	//    12 SRM Set Send/Receive mode (Local echo off)
-	EnableOption(TO_DECANM);	// ?   2 ANSI/VT52 Mode
-	EnableOption(TO_DECAWM);	// ?   7 Autowrap mode
-	EnableOption(TO_DECARM);	// ?   8 Autorepeat mode
-	EnableOption(TO_DECTCEM);	// ?  25 Text Cursor Enable Mode
-	EnableOption(TO_XTMCUS);	// ?  41 XTerm tab bug fix
-//	EnableOption(TO_XTMRVW);	// ?  45 XTerm Reverse-wraparound mod
-	EnableOption(TO_DECBKM);	// ?  67 Backarrow key mode (BS)
-	EnableOption(TO_XTPRICOL);	// ?1070 Private Color Map
-	EnableOption(TO_RLFONT);	// ?8404 フォントサイズから一行あたりの文字数を決定
-	EnableOption(TO_RLUNIAWH);	// ?8428 UnicodeのAタイプの文字を半角として表示する
-	EnableOption(TO_RLC1DIS);	// ?8454 C1制御を行わない
-//	EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
-	EnableOption(TO_RLNODELAY);	//  1486 TCPオプションのNoDelayを有効にする
+	EnableOption(TO_ANSISRM);		//    12 SRM Set Send/Receive mode (Local echo off)
+	EnableOption(TO_DECANM);		// ?   2 ANSI/VT52 Mode
+	EnableOption(TO_DECAWM);		// ?   7 Autowrap mode
+	EnableOption(TO_DECARM);		// ?   8 Autorepeat mode
+	EnableOption(TO_DECTCEM);		// ?  25 Text Cursor Enable Mode
+	EnableOption(TO_XTMCUS);		// ?  41 XTerm tab bug fix
+//	EnableOption(TO_XTMRVW);		// ?  45 XTerm Reverse-wraparound mod
+	EnableOption(TO_DECBKM);		// ?  67 Backarrow key mode (BS)
+	EnableOption(TO_XTPRICOL);		// ?1070 Private Color Map
+	EnableOption(TO_RLFONT);		// ?8404 フォントサイズから一行あたりの文字数を決定
+	EnableOption(TO_RLUNIAWH);		// ?8428 UnicodeのAタイプの文字を半角として表示する
+	EnableOption(TO_RLC1DIS);		// ?8454 C1制御を行わない
+//	EnableOption(TO_DRCSMMv1);		// ?8800 Unicode 16 Maping
+	EnableOption(TO_RLNODELAY);		//  1486 TCPオプションのNoDelayを有効にする
+	EnableOption(TO_RLCOLEMOJI);	//  1485 カラー絵文字を表示する
+	DisableOption(TO_RLDELYEMOJI);	//  1493 絵文字をスレッドで遅れて表示
 
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 
@@ -6276,6 +6278,219 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 
 	pDC->SelectObject(oPen);
 }
+
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+
+struct TextRendererContext {
+    ID2D1SolidColorBrush *pBrush;
+#if USE_DWRITE >= 2
+	IDWriteFactory2 *pDWriteFactory;
+#endif
+};
+
+class TextRenderer : public IDWriteTextRenderer
+{
+public:
+    TextRenderer(ID2D1HwndRenderTarget *pRT) : refCount(0), pRT(pRT)
+    {
+		AddRef();
+    }
+
+    virtual ~TextRenderer()
+    {
+    }
+
+    IFACEMETHOD(IsPixelSnappingDisabled)(__maybenull void* clientDrawingContext, __out BOOL* isDisabled)
+    {
+		*isDisabled = FALSE;
+		return S_OK;
+    }
+
+    IFACEMETHOD(GetCurrentTransform)(__maybenull void* clientDrawingContext, __out DWRITE_MATRIX* transform)
+    {
+		// forward the render target's transform
+		pRT->GetTransform(reinterpret_cast<D2D1_MATRIX_3X2_F*>(transform));
+		return S_OK;
+    }
+
+    IFACEMETHOD(GetPixelsPerDip)(__maybenull void* clientDrawingContext, __out FLOAT* pixelsPerDip)
+    {
+		float dpiX, unused;
+		pRT->GetDpi(&dpiX, &unused);
+		*pixelsPerDip = dpiX / 96.0f;
+		return S_OK;
+    }
+
+    IFACEMETHOD(DrawUnderline)(__maybenull void* clientDrawingContext,
+		FLOAT baselineOriginX, FLOAT baselineOriginY,
+		__in DWRITE_UNDERLINE const* underline, 
+		IUnknown* clientDrawingEffect)
+    {
+		return E_NOTIMPL;
+    }
+
+    IFACEMETHOD(DrawStrikethrough)(__maybenull void* clientDrawingContext,
+		FLOAT baselineOriginX, FLOAT baselineOriginY,
+		__in DWRITE_STRIKETHROUGH const* strikethrough, 
+		IUnknown* clientDrawingEffect)
+    {
+		return E_NOTIMPL;
+    }
+
+    IFACEMETHOD(DrawInlineObject)(__maybenull void* clientDrawingContext,
+		FLOAT originX, FLOAT originY,
+		IDWriteInlineObject* inlineObject, BOOL isSideways, BOOL isRightToLeft,
+		IUnknown* clientDrawingEffect)
+    {
+		return E_NOTIMPL;
+    }
+
+    IFACEMETHOD(DrawGlyphRun)(__maybenull void* clientDrawingContext,
+		FLOAT baselineOriginX, FLOAT baselineOriginY,
+		DWRITE_MEASURING_MODE measuringMode, __in DWRITE_GLYPH_RUN const* glyphRun,
+		__in DWRITE_GLYPH_RUN_DESCRIPTION const* glyphRunDescription,
+		IUnknown* clientDrawingEffect)
+    {
+		struct TextRendererContext *ctx = reinterpret_cast<struct TextRendererContext*>(clientDrawingContext);
+
+#if USE_DWRITE >= 2
+		IDWriteColorGlyphRunEnumerator *enumerator = NULL;
+		HRESULT hr = DWRITE_E_NOCOLOR;
+		
+		if ( ctx->pDWriteFactory != NULL )
+			hr = ctx->pDWriteFactory->TranslateColorGlyphRun(baselineOriginX, baselineOriginY, glyphRun, glyphRunDescription, measuringMode, NULL, 0, &enumerator);
+
+		if ( hr == DWRITE_E_NOCOLOR || enumerator == NULL ) {
+			pRT->DrawGlyphRun(D2D1::Point2F(baselineOriginX, baselineOriginY), glyphRun, ctx->pBrush, measuringMode);
+
+		} else if ( SUCCEEDED(hr) ) {
+			BOOL hasRun = TRUE;
+			enumerator->MoveNext(&hasRun);
+			while (hasRun)
+			{
+				const DWRITE_COLOR_GLYPH_RUN* colorGlyphRun;
+				enumerator->GetCurrentRun(&colorGlyphRun);
+
+				ctx->pBrush->SetColor(colorGlyphRun->runColor);
+				pRT->DrawGlyphRun(D2D1::Point2F(colorGlyphRun->baselineOriginX, colorGlyphRun->baselineOriginY), &colorGlyphRun->glyphRun, ctx->pBrush, measuringMode);
+				enumerator->MoveNext(&hasRun);
+			}
+			enumerator->Release();
+		}
+#else
+		pRT->DrawGlyphRun(D2D1::Point2F(baselineOriginX, baselineOriginY), glyphRun, ctx->pBrush, measuringMode);
+#endif
+		return S_OK;
+    }
+
+public:
+    IFACEMETHOD_(unsigned long, AddRef) ()
+    {
+		return InterlockedIncrement(&refCount);
+    }
+
+    IFACEMETHOD_(unsigned long, Release) ()
+    {
+		long newCount = InterlockedDecrement(&refCount);
+
+		if ( newCount == 0 ) {
+			delete this;
+			return 0;
+		}
+		return newCount;
+    }
+
+    IFACEMETHOD(QueryInterface)(IID const& riid, void** ppvObject)
+    {
+		if ( __uuidof(IDWriteTextRenderer) == riid ) {
+			*ppvObject = this;
+		} else if ( __uuidof(IDWritePixelSnapping) == riid ) {
+			*ppvObject = this;
+		} else if ( __uuidof(IUnknown) == riid ) {
+			*ppvObject = this;
+		} else {
+			*ppvObject = NULL;
+			return E_FAIL;
+		}
+		return S_OK;
+    }
+
+private:
+    long refCount;
+    ID2D1HwndRenderTarget *pRT;
+};
+#endif
+
+BOOL CTextRam::DrawDWrite(CDC* pDC, LPCWSTR str, int len, CRect& rect, COLORREF fc, COLORREF bc, BOOL bEraBack, BOOL bCenter, BOOL bEmoji, CFontChacheNode *pFontCache, DrawWork& prop)
+{
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	if ( !DCSwitch(pDC, RENDERDC_DIRECT2D) || !pFontCache->GetDirectWriteFont() )
+		return FALSE;
+
+	IDWriteTextLayout* pTextLayout = NULL;
+	DWRITE_TEXT_METRICS tTextMetrics;
+	D2D_RECT_F rectF;
+	CFontNode *pFontNode = &(m_FontTab[prop.bank]);
+
+	rectF.left   = (FLOAT)rect.left    * 96.0f / (FLOAT)SCREEN_DPI_X;
+	rectF.right  = (FLOAT)rect.right   * 96.0f / (FLOAT)SCREEN_DPI_X;
+	rectF.top    = (FLOAT)rect.top     * 96.0f / (FLOAT)SCREEN_DPI_Y;
+	rectF.bottom = (FLOAT)rect.bottom  * 96.0f / (FLOAT)SCREEN_DPI_Y;
+
+	FLOAT x      = (FLOAT)(rect.left + prop.pView->m_CharWidth  * pFontNode->m_OffsetW / 100) * 96.0f / (FLOAT)SCREEN_DPI_X;
+	FLOAT y      = (FLOAT)(rect.top  - prop.pView->m_CharHeight * pFontNode->m_OffsetH / 100 - pFontCache->m_Offset) * 96.0f / (FLOAT)SCREEN_DPI_Y;
+	FLOAT offset = (FLOAT)pFontCache->m_Offset * 96.0f / (FLOAT)SCREEN_DPI_Y;
+
+	pFontCache->m_pTextFormat->SetTextAlignment(bCenter ? DWRITE_TEXT_ALIGNMENT_CENTER : (DWRITE_TEXT_ALIGNMENT)3);
+
+	if ( FAILED(((CRLoginApp*)::AfxGetApp())->m_pDWriteFactory->CreateTextLayout(str, len, pFontCache->m_pTextFormat,
+			(rectF.right - rectF.left), (rectF.bottom - rectF.top), &pTextLayout)) && DCSwitch(pDC, RENDERDC_DIRECT2D))
+		return FALSE;
+
+	BOOL bZoom = FALSE;
+	pTextLayout->GetMetrics(&tTextMetrics);		// 文字上余白を含むサイズ
+
+	// 幅が大きければ調整
+	if ( (int)(tTextMetrics.width + 0.5f) > (int)(tTextMetrics.layoutWidth + 0.5f) ) {
+		D2D1_MATRIX_3X2_F scaleMatrix = D2D1::Matrix3x2F::Scale(
+			tTextMetrics.layoutWidth  / tTextMetrics.width, 1.0f,
+			D2D1::Point2F(rectF.left, rectF.top));
+		DCRT(pDC)->SetTransform(scaleMatrix);
+		rectF.right = rectF.left + (rectF.right - rectF.left) * tTextMetrics.width  / tTextMetrics.layoutWidth;
+		bZoom = TRUE;
+		pTextLayout->SetMaxWidth(rectF.right - rectF.left);
+	}
+
+	ID2D1SolidColorBrush *pBrush = NULL;
+
+	if ( bEraBack ) {
+		DCRT(pDC)->CreateSolidColorBrush(D2D1::ColorF((FLOAT)GetRValue(bc) / 255.0f, (FLOAT)GetGValue(bc) / 255.0f, (FLOAT)GetBValue(bc) / 255.0f), &pBrush);
+		DCRT(pDC)->FillRectangle(rectF, pBrush); 
+		pBrush->SetColor(D2D1::ColorF((FLOAT)GetRValue(fc) / 255.0f, (FLOAT)GetGValue(fc) / 255.0f, (FLOAT)GetBValue(fc) / 255.0f));
+	} else
+		DCRT(pDC)->CreateSolidColorBrush(D2D1::ColorF((FLOAT)GetRValue(fc) / 255.0f, (FLOAT)GetGValue(fc) / 255.0f, (FLOAT)GetBValue(fc) / 255.0f), &pBrush);
+
+	TextRenderer render(DCRT(pDC));
+#if USE_DWRITE >= 2
+	struct TextRendererContext ctx = { pBrush, bEmoji ? ((CRLoginApp *)::AfxGetApp())->m_pDWriteFactory2 : NULL };
+#else
+	struct TextRendererContext ctx = { pBrush };
+#endif
+	DCRT(pDC)->PushAxisAlignedClip(rectF, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+	pTextLayout->Draw(&ctx, &render, x, y);
+	DCRT(pDC)->PopAxisAlignedClip();
+
+	if ( bZoom )
+		DCRT(pDC)->SetTransform(D2D1::Matrix3x2F::Identity());
+
+	pBrush->Release();
+	pTextLayout->Release();
+
+	return TRUE;
+#else
+	return FALSE;
+#endif // USE_DIRECT2D
+}
 void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, BOOL bRevs, DrawWork &prop)
 {
 	int n, i, a, c;
@@ -6297,7 +6512,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	if ( bEraBack )
 		mode |= ETO_OPAQUE;
 
-	width  = prop.pView->m_CharWidth  * prop.csz * (prop.zoom == 0 ? 1 : 2);
+	width  = prop.pView->m_CharWidth  * (prop.zoom == 0 ? 1 : 2);
 	height = prop.pView->m_CharHeight * (prop.zoom <= 1 ? 1 : 2);
 
 	if ( prop.csz > 1 )
@@ -6312,6 +6527,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	}
 
 	if ( ATT_EXTYPE(prop.attr) == ATT_MIRROR ) {
+		DrawDCMode(pDC, prop);
 		mirDC.CreateCompatibleDC(pDC);
 		MirMap.CreateCompatibleBitmap(pDC, rect.Width(), rect.Height());
 		pOldMirMap = mirDC.SelectObject(&MirMap);
@@ -6328,18 +6544,81 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	}
 
 	pFontCache = pFontNode->GetFont(width, height, style, prop.font, this);
+
+	if ( pFontNode->SetFontImage(width, height, FALSE) )
+		type = 4;	// Gaiji Mode
+	else if ( (prop.attr & ATT_RTOL) != 0 )
+		type = 5;	// Right to Left or Mc
+	else if ( (prop.attr & ATT_EMOJI) != 0 )
+		type = 3;	// Emoji Center
+	else if ( pFontCache->m_bFixed )
+		type = 1;	// Fixed Draw
+	else if ( prop.csz == 1 && IsOptEnable(TO_RLWORDPP) )
+		type = 2;	// Proportion Draw
+
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	if ( prop.dcrt && pSaveDC == NULL && prop.zoom == 0 ) {
+		switch (type) {
+		case 1:		// Fixed Draw
+		case 5:		// Right to Left or Mc
+			if ( DrawDWrite(pDC, prop.pText, prop.tlen, box, fc, bc, bEraBack, FALSE, FALSE, pFontCache, prop) )
+				return;
+			break;
+		case 3:		// Emoji
+#if USE_DWRITE < 2
+			if ( prop.emode != 0 )
+				break;
+#endif
+		case 0:		// Center Draw
+			prop.pos.top    = prop.line - prop.pView->m_HisOfs + prop.pView->m_HisMin;
+			prop.pos.bottom = prop.pos.top + 1;
+
+			for ( n = i = a = 0 ; n < prop.size ; n++ ) { 
+				while ( prop.pSpace[i] == 0 )
+					i++;
+				box.right = box.left + prop.pSpace[i];
+
+				str.Empty();
+				while ( a <= i )
+					str += prop.pText[a++];
+
+				prop.pos.left   = prop.cols + n * prop.csz;
+				prop.pos.right  = prop.pos.left + prop.csz;
+
+				if ( !DrawDWrite(pDC, str, str.GetLength(), box, fc, bc, bEraBack, TRUE, (type == 3 && prop.emode != 0 ? TRUE : FALSE), pFontCache, prop) )
+					break;
+
+				box.left += prop.pSpace[i++];
+			}
+			return;
+		}
+	}
+#endif
+
+	if ( pSaveDC == NULL )
+		DrawDCMode(pDC, prop);
+
 	pDC->SelectObject(pFontCache->m_pFont);
 	pDC->SetTextColor(fc);
 	pDC->SetBkColor(bc);
 
-	if ( (prop.attr & ATT_EMOJI) != 0 && prop.emode != 0 )
-		type = 3;
-	else if ( pFontCache->m_bFixed )
-		type = 1;
-	else if ( IsOptEnable(TO_RLWORDPP) )
-		type = 2;
+	if ( type == 1 ) {
+		// Fixed Draw
+		// オプションで縮小する必要があればCenter Drawに変更、固定幅
+		x = box.left + prop.pView->m_CharWidth  * pFontNode->m_OffsetW / 100;
+		y = box.top  - prop.pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? prop.pView->m_CharHeight : 0);
 
-	if ( pFontNode->SetFontImage(width, height, FALSE) ) {
+		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
+		if ( prop.csz == 2 && (box.Width() * 50 / sz.cx) == 25 ) {	// 50-51%
+			// 全角のサイズ指定を半角で行う場合の救済処置
+			pFontCache = pFontNode->GetFont(width * box.Width() / sz.cx, height, style, prop.font, this);
+			pDC->SelectObject(pFontCache->m_pFont);
+		} else if ( box.Width() < sz.cx && !IsOptEnable(TO_RLUNIAHF) )
+			goto DRAWCHAR;
+
+		pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, prop.pText, prop.tlen, prop.pSpace);
+
+	} else if ( type == 4 ) {
 		// Gaiji Mode
 		// 文字単位で縮小、固定幅、センターリング
 		CDC tmpDC;
@@ -6452,7 +6731,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 			tmpDC.DeleteDC();
 		}
 
-	} else if ( (prop.attr & ATT_RTOL) != 0 ) {
+	} else if ( type == 5 ) {
 		// Right to Left, Mc属性（Spacing Mark)を持つブロック
 		// 文字列単位で縮小・拡大、プロポーショナル
 		x = box.left + prop.pView->m_CharWidth  * pFontNode->m_OffsetW / 100;
@@ -6471,22 +6750,6 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		//pDC->SetTextCharacterExtra(0);
 
 		prop.pView->m_ClipUpdateLine = TRUE;
-
-	} else if ( type == 1 ) {
-		// Fixed Draw
-		// オプションで縮小する必要があればCenter Drawに変更、固定幅
-		x = box.left + prop.pView->m_CharWidth  * pFontNode->m_OffsetW / 100;
-		y = box.top  - prop.pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? prop.pView->m_CharHeight : 0);
-
-		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
-		if ( prop.csz == 2 && (box.Width() * 50 / sz.cx) == 25 ) {	// 50-51%
-			// 全角のサイズ指定を半角で行う場合の救済処置
-			pFontCache = pFontNode->GetFont(width * box.Width() / sz.cx, height, style, prop.font, this);
-			pDC->SelectObject(pFontCache->m_pFont);
-		} else if ( box.Width() < sz.cx && !IsOptEnable(TO_RLUNIAHF) )
-			goto DRAWCHAR;
-
-		pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, prop.pText, prop.tlen, prop.pSpace);
 
 	} else if ( type == 2 ) {
 		// Proportion Draw
@@ -6545,7 +6808,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 
 		prop.pView->m_ClipUpdateLine = TRUE;
 
-	} else {
+	} else {	// type == 0 || type == 3
 		// Center Draw
 		// 文字単位で縮小、固定幅、センターリング
 		DRAWCHAR:
@@ -6805,6 +7068,21 @@ void CTextRam::DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, Dra
 
 	pDC->SetBkMode(OldBkMode);
 }
+void CTextRam::DrawRectangle(CDC* pDC, CRect& rect, COLORREF bc, int alpha)
+{
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	ID2D1SolidColorBrush *pBrush = NULL;
+	DCRT(pDC)->CreateSolidColorBrush(D2D1::ColorF(
+		(FLOAT)GetRValue(bc) / 255.0f, (FLOAT)GetGValue(bc) / 255.0f, (FLOAT)GetBValue(bc) / 255.0f, (FLOAT)alpha / 255.0f), &pBrush);
+	D2D_RECT_F rectF;
+	rectF.left   = (FLOAT)rect.left   * 96.0f / (FLOAT)SCREEN_DPI_Y;
+	rectF.right  = (FLOAT)rect.right  * 96.0f / (FLOAT)SCREEN_DPI_Y;
+	rectF.top    = (FLOAT)rect.top    * 96.0f / (FLOAT)SCREEN_DPI_Y;
+	rectF.bottom = (FLOAT)rect.bottom * 96.0f / (FLOAT)SCREEN_DPI_Y;
+	DCRT(pDC)->FillRectangle(rectF, pBrush); 
+	pBrush->Release();
+#endif	// USE_DIRECT2D
+}
 void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 {
 	BOOL bRevs = FALSE;
@@ -6894,21 +7172,29 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 
 	if ( prop.pView->m_HaveBack ) {	// pView->m_pBitmap != NULL ) {
 		if ( bEraBack ) {
-			CDC workDC;
-			CBitmap workMap, *pOldMap;
-			BLENDFUNCTION bf;
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+			if (prop.dcrt && DCMode(pDC) == RENDERDC_DIRECT2D) {
+				DrawRectangle(pDC, rect, bcol, m_BitMapBlend);
+			} else 
+#endif	// USE_DIRECT2D
+			{
+				CDC workDC;
+				CBitmap workMap, * pOldMap;
+				BLENDFUNCTION bf;
 
-			workDC.CreateCompatibleDC(pDC);
-			workMap.CreateCompatibleBitmap(pDC, rect.Width(), rect.Height());
-			pOldMap = (CBitmap *)workDC.SelectObject(&workMap);
-			workDC.FillSolidRect(0, 0, rect.Width(), rect.Height(), bcol);
+				DrawDCMode(pDC, prop);
+				workDC.CreateCompatibleDC(pDC);
+				workMap.CreateCompatibleBitmap(pDC, rect.Width(), rect.Height());
+				pOldMap = (CBitmap*)workDC.SelectObject(&workMap);
+				workDC.FillSolidRect(0, 0, rect.Width(), rect.Height(), bcol);
 
-			ZeroMemory(&bf, sizeof(bf));
-			bf.BlendOp = AC_SRC_OVER;
-			bf.SourceConstantAlpha = m_BitMapBlend;
+				ZeroMemory(&bf, sizeof(bf));
+				bf.BlendOp = AC_SRC_OVER;
+				bf.SourceConstantAlpha = m_BitMapBlend;
 
-			pDC->AlphaBlend(rect.left, rect.top, rect.Width(), rect.Height(), &workDC, 0, 0, rect.Width(), rect.Height(), bf);
-			workDC.SelectObject(pOldMap);
+				pDC->AlphaBlend(rect.left, rect.top, rect.Width(), rect.Height(), &workDC, 0, 0, rect.Width(), rect.Height(), bf);
+				workDC.SelectObject(pOldMap);
+			}
 		}
 		bEraBack = FALSE;
 	} else
@@ -6927,12 +7213,21 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 				box.left = box.right;
 				box.right -= vbofs;
 			}
-			pDC->FillSolidRect(box, bcol);
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+			if (prop.dcrt && DCMode(pDC) == RENDERDC_DIRECT2D) {
+				DrawRectangle(pDC, box, bcol, 255);
+			} else
+#endif // USE_DIRECT2D
+			{
+				DrawDCMode(pDC, prop);
+				pDC->FillSolidRect(box, bcol);
+			}
 		}
 	}
 
 	if ( prop.idx != (-1) ) {
 		// Image Draw
+		DrawDCMode(pDC, prop);
 		if ( (pWnd = GetGrapWnd(prop.idx)) != NULL && pWnd->m_BlockX > 0 && pWnd->m_BlockY > 0 ) {
 			pWnd->DrawBlock(pDC, rect, bcol, bEraBack, prop.stx, prop.sty, prop.edx, prop.sty + 1,
 				prop.pView->m_Width, prop.pView->m_Height, prop.pView->m_CharWidth, prop.pView->m_CharHeight, prop.pView->m_Cols, prop.pView->m_Lines);
@@ -6947,11 +7242,21 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 
 	} else if ( prop.bank < 0 || prop.bank >= m_FontTab.GetSize() ) {
 		// Blank Draw
-		if ( bEraBack )
-			pDC->FillSolidRect(rect, bcol);
+		if ( bEraBack ) {
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+			if ( prop.dcrt && DCMode(pDC) == RENDERDC_DIRECT2D ) {
+				DrawRectangle(pDC, rect, bcol, 255);
+			} else 
+#endif	// USE_DIRECT2D
+			{
+				DrawDCMode(pDC, prop);
+				pDC->FillSolidRect(rect, bcol);
+			}
+		}
 
 	} else if ( (prop.attr & ATT_BORDER) != 0 ) {
 		// Line Draw
+		DrawDCMode(pDC, prop);
 		DrawLine(pDC, rect, fcol, bcol, bEraBack, prop);
 
 	} else {
@@ -6959,14 +7264,20 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 		DrawChar(pDC, rect, fcol, bcol, bEraBack, bRevs, prop);
 	}
 
-	if ( ATT_EXTYPE(prop.attr) == ATT_OVERCHAR )
+	if ( ATT_EXTYPE(prop.attr) == ATT_OVERCHAR ) {
+		DrawDCMode(pDC, prop);
 		DrawOverChar(pDC, rect, fcol, bcol, prop);
+	}
 
-	if ( (prop.attr & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_SUNDER | ATT_STRESS)) != 0 )
+	if ( (prop.attr & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_SUNDER | ATT_STRESS)) != 0 ) {
+		DrawDCMode(pDC, prop);
 		DrawHoriLine(pDC, rect, fcol, bcol, prop);
+	}
 
-	if ( (prop.attr & (ATT_FRAME | ATT_CIRCLE | ATT_RSLINE | ATT_RDLINE | ATT_LSLINE | ATT_LDLINE)) != 0 )
+	if ( (prop.attr & (ATT_FRAME | ATT_CIRCLE | ATT_RSLINE | ATT_RDLINE | ATT_LSLINE | ATT_LDLINE)) != 0 ) {
+		DrawDCMode(pDC, prop);
 		DrawVertLine(pDC, rect, fcol, bcol, prop);
+	}
 
 	//// リバースチェック
 	bRevs  = (IsOptEnable(TO_DECSCNM) ? 1 : 0);
@@ -6974,8 +7285,10 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 	if ( prop.pView->m_VisualBellFlag != 0 && !IsOptEnable(TO_RLVBELLLINE) )
 		bRevs ^= 1;
 
-	if ( bRevs )
+	if ( bRevs ) {
+		DrawDCMode(pDC, prop);
 		pDC->InvertRect(rect);
+	}
 }
 void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView, BOOL bPrint)
 {
@@ -7006,6 +7319,10 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 
 	prop.emode  = (IsOptEnable(TO_RLCOLEMOJI)  ? 1 : 0);
 	prop.emode |= (IsOptEnable(TO_RLDELYEMOJI) ? 2 : 0);
+
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	prop.dcrt = DCCheck(pDC);
+#endif
 
 	if ( pView->m_ClipFlag > 1 ) {
 		if ( pView->m_ClipStaPos <= pView->m_ClipEndPos ) {
@@ -7287,7 +7604,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			// Text Draw
 			if ( memcmp(&prop, &work, sizeof(work)) != 0 ) {
 				if ( len > 0 ) {
-					rect.right = pView->CalcGrapX(x * zoom);
+					rect.right  = pView->CalcGrapX(x * zoom);
 					prop.size   = len;
 					prop.tlen   = (int)text.GetSize();
 					prop.pText  = text.GetData();
@@ -7321,7 +7638,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		}
 
 		if ( len > 0 ) {
-			rect.right = pView->CalcGrapX(x * zoom);
+			rect.right  = pView->CalcGrapX(x * zoom);
 			prop.size   = len;
 			prop.tlen   = (int)text.GetSize();
 			prop.pText  = text.GetData();
@@ -7330,6 +7647,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		}
 	}
 
+	DrawDCMode(pDC, prop);
 	pDC->SelectObject(pFontOld);
 }
 

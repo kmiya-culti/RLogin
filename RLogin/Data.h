@@ -2,9 +2,6 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)
-#define AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_
-
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
@@ -609,7 +606,9 @@ typedef struct _FontSizeTab {
 	WCHAR FontName[LF_FACESIZE];
 	int Width;
 	int Height;
-	BOOL bFixed;
+	int Offset;
+	int Fixed;
+	int DHeight;
 } FONTSIZETAB;
 
 class CFontChacheNode : public CObject
@@ -625,9 +624,15 @@ public:
 	int m_Quality;
 	BOOL m_bFixed;
 	int m_Offset;
+	int m_DHeight;
 
 	FONTSIZETAB *FontSizeCheck(LPCTSTR pFontName);
 	CFont *Open(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);
+
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	IDWriteTextFormat *m_pTextFormat;
+	BOOL GetDirectWriteFont();
+#endif
 
 	CFontChacheNode();
 	~CFontChacheNode();
@@ -1419,4 +1424,43 @@ public:
 	inline operator LPCWSTR () { return m_pStr; }
 };
 
-#endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+
+#define	RENDERDC_GDI		0
+#define	RENDERDC_DIRECT2D	1
+#define	RENDERDC_PUSH		2
+#define	RENDERDC_POP		3
+
+#define	DCSwitch(pDC, mode)		((CRenderDC *)pDC)->SwitchMode(mode)
+#define	DCRT(pDC)				((CRenderDC *)pDC)->m_pHwndRT
+#define	DCMode(pDC)				((CRenderDC *)pDC)->m_Mode
+
+inline BOOL DCCheck(CDC *pDC)
+{
+	CRuntimeClass *pClass = pDC->GetRuntimeClass();
+	return (strcmp("CRenderDC", pClass->m_lpszClassName) == 0 ? TRUE : FALSE);
+}
+
+class CRenderDC : public CDC
+{
+	DECLARE_DYNAMIC(CRenderDC)
+
+public:
+	CRenderDC();
+
+public:
+	HWND m_hWnd;		// CPaintDC compatible
+	PAINTSTRUCT m_ps;	// CPaintDC compatible
+
+public:
+	ID2D1HwndRenderTarget *m_pHwndRT;
+	ID2D1GdiInteropRenderTarget *m_pGDIRT;
+	D2D1_LAYER_PARAMETERS m_layerParam;
+	CList<ID2D1Layer *, ID2D1Layer *> m_Layer;
+	int m_bkMode;
+
+	int m_Mode;
+	BOOL SwitchMode(int mode);
+
+};
+#endif

@@ -247,6 +247,11 @@ public:
 	inline class CMainFrame *GetMainWnd() { return (class CMainFrame *)AfxGetMainWnd(); }
 	inline class CRLoginApp *GetApp() { return (class CRLoginApp *)AfxGetApp(); }
 
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	ID2D1HwndRenderTarget *m_pHwndRT;
+	ID2D1GdiInteropRenderTarget *m_pGDIRT;
+#endif
+
 protected:
 	int OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
 
@@ -280,6 +285,10 @@ protected:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnDropFiles(HDROP hDropInfo);
 	afx_msg void OnSettingChange(UINT uFlags, LPCTSTR lpszSection);
+
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	afx_msg void OnPaint();
+#endif
 
 	afx_msg LRESULT OnImeNotify(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnImeComposition(WPARAM wParam, LPARAM lParam);

@@ -4918,11 +4918,22 @@ CFontChacheNode::CFontChacheNode()
 	m_Quality = 0;
 	m_bFixed  = FALSE;
 	m_Offset  = 0;
+	m_DHeight = 0;
+
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	m_pTextFormat = NULL;
+#endif
 }
 CFontChacheNode::~CFontChacheNode()
 {
 	if ( m_pFont != NULL )
 		delete m_pFont;
+
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	// 先にm_pDWriteFactoryがリリースされるようなので無視
+	//if ( m_pTextFormat != NULL )
+	//	m_pTextFormat->Release();
+#endif
 }
 FONTSIZETAB *CFontChacheNode::FontSizeCheck(LPCTSTR pFontName)
 {
@@ -4948,11 +4959,15 @@ FONTSIZETAB *CFontChacheNode::FontSizeCheck(LPCTSTR pFontName)
 	_tcsncpy(pTab->FontName, pFontName, LF_FACESIZE);
 	pTab->Width  = 100;
 	pTab->Height = 100;
-	pTab->bFixed = FALSE;
+	pTab->Offset = 0;
+	pTab->Fixed  = 0;
 
 	ZeroMemory(&(LogFont), sizeof(LOGFONT));
     _tcsncpy(LogFont.lfFaceName, pFontName, LF_FACESIZE);
 	LogFont.lfHeight = 100;
+
+	//LogFont.lfWidth  = 8;
+	//LogFont.lfHeight = 16;
 
 	if ( !Font.CreateFontIndirect(&LogFont) )
 		return pTab;
@@ -4963,44 +4978,49 @@ FONTSIZETAB *CFontChacheNode::FontSizeCheck(LPCTSTR pFontName)
 	// Fixed Font Check 'W' == 'i'
 	sz = dc.GetTextExtent(_T("W"), 1);
 	if ( (n = sz.cx) <= 0 ) n = 1;
-	sz = dc.GetTextExtent(_T("i"), 1);
-	if ( (sz.cx * 100 / n) >= 80 )
-		pTab->bFixed = TRUE;
 
-	dc.GetTextMetrics(&Metric);
-	sz = dc.GetTextExtent(_T("ABC012abc"), 9);
+	sz = dc.GetTextExtent(_T("i"), 1);
+	if ( (sz.cx * 100 / n) >= 96 )
+		pTab->Fixed |= 001;
+	sz = dc.GetTextExtent(_T("\u4e9c"), 1);		// 亜
+	if ( (sz.cx * 100 / n) >= 198 )
+		pTab->Fixed |= 002;
+
+	dc.GetTextMetrics(&Metric);		// 文字上余白を含まないサイズ
+	sz = dc.GetTextExtent(_T("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"), 52);
 
 	//TRACE(_T("Fonts=%s Width=%d Height=%d tmHe=%d tmAsc=%d tmDes=%d tmInLe=%d tmChAv=%d tmChMax=%d Fixed=%d Sx=%d Sy=%d Sw=%d Sh=%d\n"),
 	//	LogFont.lfFaceName, LogFont.lfWidth, LogFont.lfHeight,
 	//	Metric.tmHeight, Metric.tmAscent, Metric.tmDescent, Metric.tmInternalLeading,
 	//	Metric.tmAveCharWidth, Metric.tmMaxCharWidth,
-	//	pTab->bFixed, sz.cx, sz.cy, sz.cx * 100 / Metric.tmAveCharWidth * 9,
-	//  Metric.tmInternalLeading * 100 / Metric.tmHeight);
+	//	pTab->bFixed, sz.cx, sz.cy, 
+	//	sz.cx * 100 / (Metric.tmAveCharWidth * 9),
+	//	Metric.tmInternalLeading * 100 / Metric.tmHeight);
 
 	//		---- ---+---+
 	//				|	| tmInternalLeading	
-	//		----	| --+
-	//		 **		|
-	//		*  *	| tmAsent
-	//		 ***	|
-	//		   * ---+
-	//		 ** 	| tmDescent
-	//		---- ---+
+	//		----	| --+-------+
+	//		 **		|           |
+	//		*  *	| tmAsent   |
+	//		 ***	|			| tmHeight
+	//		   * ---+			|
+	//		 ** 	| tmDescent	|
+	//		---- ---+-----------*
 	//
 	//  Fonts=小塚ゴシック Std R	Width=8 Height=16 tmHe=16 tmAsc=12 tmDes=4 tmInLe=4 tmChAv=8 tmChMax=10 Fixed=0 Sx=40 Sy=16 Sw=55  Sh=25
 	//	Fonts=Source Han Mono SC	Width=8 Height=16 tmHe=16 tmAsc=13 tmDes=3 tmInLe=5 tmChAv=8 tmChMax=8  Fixed=1 Sx=45 Sy=16 Sw=62  Sh=31
+	//	Fonts=Source Han Mono K		Width=8 Height=16 tmHe=16 tmAsc=13 tmDes=3 tmInLe=5 tmChAv=8 tmChMax=8  Fixed=1 Sx=45 Sy=16 Sw=62  Sh=31
+	//	Fonts=Cascadia Code			Width=8 Height=16 tmHe=16 tmAsc=13 tmDes=3 tmInLe=4 tmChAv=8 tmChMax=31 Fixed=1 Sx=72 Sy=16 Sw=100 Sh=25
 	//  Fonts=メイリオ				Width=8 Height=16 tmHe=16 tmAsc=11 tmDes=5 tmInLe=5 tmChAv=8 tmChMax=24 Fixed=0 Sx=47 Sy=16 Sw=65  Sh=31
-	//  Fonts=ＭＳ ゴシック			Width=8 Height=16 tmHe=16 tmAsc=14 tmDes=2 tmInLe=0 tmChAv=8 tmChMax=32 Fixed=1 Sx=72 Sy=16 Sw=100 Sh=0
 	//  Fonts=Meiryo UI				Width=8 Height=16 tmHe=15 tmAsc=12 tmDes=3 tmInLe=3 tmChAv=8 tmChMax=40 Fixed=0 Sx=81 Sy=15 Sw=112 Sh=18
+	//  Fonts=ＭＳ ゴシック			Width=8 Height=16 tmHe=16 tmAsc=14 tmDes=2 tmInLe=0 tmChAv=8 tmChMax=32 Fixed=1 Sx=72 Sy=16 Sw=100 Sh=0
 	//  Fonts=ＭＳ Ｐゴシック		Width=8 Height=16 tmHe=16 tmAsc=14 tmDes=2 tmInLe=0 tmChAv=8 tmChMax=38 Fixed=0 Sx=95 Sy=16 Sw=131 Sh=0
 
-	// 実際のフォントの幅が小さい場合
-	if ( (sz.cx * 100 / (Metric.tmAveCharWidth * 9)) < 80 )
-		pTab->Width = Metric.tmAveCharWidth * 9 * 90 / sz.cx;
+	pTab->Width  = Metric.tmAveCharWidth * 52 * 100 / sz.cx;
 
-	// 文字上が広い欧文フォントで高さが小さい場合
-	if ( ((Metric.tmHeight - Metric.tmInternalLeading) * 100 / Metric.tmHeight) < 80 )
-		pTab->Height = Metric.tmHeight * 80 / (Metric.tmHeight - Metric.tmInternalLeading);
+	pTab->DHeight = LogFont.lfHeight * 100 / (Metric.tmInternalLeading + Metric.tmHeight);	// 文字上余白(tmInternalLeading)を含むサイズに調整
+	pTab->Height  = LogFont.lfHeight * 100 / Metric.tmHeight;								// 文字上余白(tmInternalLeading)を含まないサイズに調整
+	pTab->Offset  = Metric.tmInternalLeading * 30 / Metric.tmHeight;						// 少しだけ上余白を設定
 
 	//TRACE(_T("%s\tWith=%d Height=%d Fixed=%d\n"), pTab->FontName, pTab->Width, pTab->Height, pTab->bFixed);
 
@@ -5029,12 +5049,13 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 	m_Style   = Style;
 	m_Quality = Quality;
 
-	m_bFixed  = pTab->bFixed;
-	m_Offset  = m_LogFont.lfHeight - Height;
+	m_bFixed  = (pTab->Fixed & ((Style & FONTSTYLE_FULLWIDTH) != 0 ? 002 : 001)) != 0 ? TRUE : FALSE;
+	m_Offset  = (m_LogFont.lfHeight * pTab->Offset + 90) / 100;		// 切り上げ
+	m_DHeight = (Height * pTab->DHeight + 0) / 100;					// 切り下げ	DirectWrite用
 
 	// SHIFTJIS_CHARSETのみ文字幅を半角で指定
-	if ( (Style & FONTSTYLE_FULLWIDTH) != 0 && CharSet == SHIFTJIS_CHARSET )
-		m_LogFont.lfWidth /= 2;
+	//if ( (Style & FONTSTYLE_FULLWIDTH) != 0 && CharSet == SHIFTJIS_CHARSET )
+	//	m_LogFont.lfWidth /= 2;
 
 	if ( m_pFont == NULL )
 		m_pFont = new CFont;
@@ -5044,8 +5065,47 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 	if ( !m_pFont->CreateFontIndirect(&m_LogFont) )
 		m_pFont->Attach((HFONT)GetStockObject(SYSTEM_FONT));
 
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	if ( m_pTextFormat != NULL )
+		m_pTextFormat->Release();
+	m_pTextFormat = NULL;
+#endif
+
 	return m_pFont;
 }
+
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+BOOL CFontChacheNode::GetDirectWriteFont()
+{
+	if ( m_pTextFormat != NULL )
+		return TRUE;
+
+	if ( m_pTextFormat != NULL )
+		m_pTextFormat->Release();
+	m_pTextFormat = NULL;
+
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+
+	if ( pApp->m_pDWriteFactory == NULL )
+		return FALSE;
+
+	FLOAT height = (FLOAT)MulDiv(m_DHeight, 96, SCREEN_DPI_Y);
+
+	if ( FAILED(pApp->m_pDWriteFactory->CreateTextFormat(
+			m_LogFont.lfFaceName, NULL, 
+			(m_LogFont.lfWeight == FW_BOLD ? DWRITE_FONT_WEIGHT_BOLD  : DWRITE_FONT_WEIGHT_NORMAL),
+			(m_LogFont.lfItalic == TRUE    ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL),
+			DWRITE_FONT_STRETCH_NORMAL,
+			height, _T(""), &m_pTextFormat)) )
+		return FALSE;
+
+	m_pTextFormat->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+	//m_pTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+	//m_pTextFormat->SetTextAlignment((DWRITE_TEXT_ALIGNMENT)3);	// (DWRITE_TEXT_ALIGNMENT_JUSTIFIED);
+
+	return TRUE;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // CFontChache
@@ -13515,3 +13575,68 @@ const Utf8ToWstr & Utf8ToWstr:: operator = (LPCSTR str)
 
 	return *this;
 }
+
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+
+//////////////////////////////////////////////////////////////////////
+// CRenderDC
+
+IMPLEMENT_DYNAMIC(CRenderDC, CDC)
+
+CRenderDC::CRenderDC()
+{
+	m_layerParam = D2D1::LayerParameters();
+}
+BOOL CRenderDC::SwitchMode(int mode)
+{
+	ASSERT(DCCheck(this));
+
+	if ( m_Mode == mode )
+		return TRUE;
+
+	switch(mode) {
+	case RENDERDC_GDI:
+		{
+			HDC hDC = NULL;
+			if ( FAILED(m_pGDIRT->GetDC(D2D1_DC_INITIALIZE_MODE_COPY, &hDC)) )
+				return FALSE;
+			Attach(hDC);
+			SetBkMode(m_bkMode);
+			m_Mode = mode;
+		}
+		break;
+
+	case RENDERDC_DIRECT2D:
+		m_bkMode = GetBkMode();
+		Detach();
+		m_pGDIRT->ReleaseDC(NULL);
+		m_Mode = mode;
+		break;
+
+	case RENDERDC_PUSH:
+		{
+			mode = m_Mode;
+			SwitchMode(RENDERDC_DIRECT2D);
+			ID2D1Layer *pLayer = NULL;
+			if ( FAILED(m_pHwndRT->CreateLayer(NULL, &pLayer)) )
+				return FALSE;
+			m_pHwndRT->PushLayer(m_layerParam, pLayer);
+			m_Layer.AddHead(pLayer);
+			SwitchMode(mode);
+		}
+		break;
+	case RENDERDC_POP:
+		{
+			mode = m_Mode;
+			SwitchMode(RENDERDC_DIRECT2D);
+			m_pHwndRT->PopLayer();
+			ID2D1Layer *pLayer = m_Layer.RemoveHead();
+			pLayer->Release();
+			SwitchMode(mode);
+		}
+		break;
+	}
+
+	return TRUE;
+}
+#endif

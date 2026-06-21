@@ -204,6 +204,9 @@ public:
 #ifdef	USE_DIRECTWRITE
 	ID2D1Factory *m_pD2DFactory;
 	IDWriteFactory *m_pDWriteFactory;
+#if defined(USE_DIRECT2D) && USE_DWRITE >= 2
+	IDWriteFactory2 *m_pDWriteFactory2;
+#endif
 	ID2D1DCRenderTarget *m_pDCRT;
 	CEmojiImage *m_pEmojiList[EMOJI_HASH];
 	CString m_EmojiFontName;

@@ -27,6 +27,7 @@
 #define	USE_ENTRYICON			// ServerSelectDlgのリストでアイコンを表示する
 //#define	USE_EXTESCSTR		// DECDMACで拡張エスペープ文字を有効にする
 //#define	USE_PRIPROEXT		// プライベートプロファイルのサイズ制限を拡張
+#define	USE_DIRECT2D			// Direct2DのGDI_COMPATIBLEをテスト
 
 #ifndef	USE_NOENDIAN
 #define	LITTLE_ENDIAN		0
@@ -146,8 +147,19 @@
 #ifdef	USE_DIRECTWRITE
   #include <d2d1.h>
   #include <d2d1helper.h>
-  #include <dwrite.h>
   #include <wincodec.h>
+
+  #ifdef USE_DIRECT2D
+    #if _MSC_VER < _MSC_VER_VS17
+	  #define USE_DWRITE 0
+      #include <dwrite.h>
+    #else
+	  #define USE_DWRITE 2
+      #include <dwrite_2.h>
+    #endif
+  #else
+    #include <dwrite.h>
+  #endif
 #endif
 
 #include <sapi.h>

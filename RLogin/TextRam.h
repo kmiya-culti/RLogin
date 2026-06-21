@@ -1352,6 +1352,9 @@ public:
 		int     emode;
 		class CRLoginDoc *pDoc;
 		class CRLoginView *pView;
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+		BOOL	dcrt;
+#endif
 	} DrawWork;
 
 	int IsWord(DWORD ch);
@@ -1376,12 +1379,20 @@ public:
 
 	void DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop);
 	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, DrawWork &prop);
+	BOOL DrawDWrite(CDC *pDC, LPCWSTR str, int len, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, BOOL bCenter, BOOL bEmoji, CFontChacheNode *pFontCache, DrawWork &prop);
 	void DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, BOOL bRevs, DrawWork &prop);
 	void DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop);
 	void DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop);
 	void DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop);
+	void DrawRectangle(CDC *pDC, CRect &rect, COLORREF bc, int alpha);
 	void DrawString(CDC *pDC, CRect &rect, DrawWork &prop);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView, BOOL bPrint);
+
+	inline void DrawDCMode(CDC *pDC, DrawWork &prop) {
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+		if ( prop.dcrt ) DCSwitch(pDC, RENDERDC_GDI);
+#endif
+	}
 
 	CWnd *GetAciveView();
 	void PostMessage(UINT message, WPARAM wParam = 0, LPARAM lParam = 0);

@@ -378,7 +378,7 @@ public:
 	int HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh = NULL);
 	int ChkOldCertHosts(LPCTSTR host);
 
-	BOOL CompositeHash(CBuffer *bp, LPBYTE buf, int len);
+	BOOL CompositeHash(CBuffer *bp, LPBYTE buf, int len, LPBYTE ctx, int ctxlen);
 	int CompositeSign(CBuffer *bp, LPBYTE buf, int len);
 	BOOL SignAlgCheck(LPCTSTR alg);
 	int Sign(CBuffer *bp, LPBYTE buf, int len);
