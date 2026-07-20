@@ -20,9 +20,9 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CAlgoDlg ダイアログ
 
+IMPLEMENT_DYNAMIC(CAlgoDlg, CDialogExt)
 
-CAlgoDlg::CAlgoDlg(CWnd* pParent /*=NULL*/)
-	: CDialogExt(CAlgoDlg::IDD, pParent)
+CAlgoDlg::CAlgoDlg(CWnd* pParent /*=NULL*/)	: CDialogExt(CAlgoDlg::IDD, pParent)
 {
 	m_EncShuffle = FALSE;
 	m_MacShuffle = FALSE;

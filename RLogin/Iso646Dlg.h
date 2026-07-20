@@ -1,5 +1,6 @@
 #pragma once
 #include "afxwin.h"
+#include "DialogExt.h"
 
 // CIso646Dlg ダイアログ
 

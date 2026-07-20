@@ -16,11 +16,13 @@ public:
 	COLORREF m_TextColor;
 	BOOL m_bTimerEnable;
 	BOOL m_bMultiLine;
+	BOOL m_bOwnerDraw;
 
 	CMsgWnd();
 	virtual ~CMsgWnd();
 
 	void Message(LPCTSTR str, CWnd *pWnd = NULL, COLORREF bc = RGB(0, 0, 0));
+	void OnDraw(CDC *pDC, CRect &rect);
 
 protected:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
@@ -44,12 +46,14 @@ public:
 	int m_ImageSeq;
 	CImageList m_ImageList;
 	class CRLoginView *m_pView;
+	BOOL m_bOwnerDraw;
 
 	CBtnWnd();
 	virtual ~CBtnWnd();
 
 	void DoButton(CWnd *pWnd, class CTextRam *pTextRam);
 	void CreateImageList();
+	void OnDraw(CDC *pDC, CRect &rect);
 
 protected:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);

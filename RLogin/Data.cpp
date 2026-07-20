@@ -4347,7 +4347,7 @@ ERROF:
 	return ret;
 }
 
-CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, int Alpha, int Style, CWnd *pWnd)
+CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, int Alpha, int Style, CWnd *pWnd, BOOL *pUpdate)
 {
 	int x, y, cx, cy;
 	CDC MemDC;
@@ -4356,6 +4356,9 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 	CPoint po;
 	CSize offset, size;
 	CWnd *pMain;
+
+	if ( pUpdate != NULL )
+		*pUpdate = FALSE;
 
 	if ( (HBITMAP)m_Image == NULL )
 		return NULL;
@@ -4402,7 +4405,6 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 	po = MemDC.GetBrushOrg();
 	MemDC.SetStretchBltMode(HALFTONE);
 	MemDC.FillSolidRect(0, 0, width, height, bkcolor);
-
 
 	if ( m_bkIndex != (-1) && (m_Image.GetBPP() == 4 || m_Image.GetBPP() == 8) ) {
 		RGBQUAD coltab[1];
@@ -4728,9 +4730,12 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 	MemDC.SelectObject(pOldMemMap);
 	MemDC.SetBrushOrg(po);
 
+	if ( pUpdate != NULL )
+		*pUpdate = TRUE;
+
 	return (&m_Bitmap);
 }
-CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, class CTextBitMap *pTextBitMap, LPCTSTR title, int Alpha, int Style, CWnd *pWnd)
+CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, class CTextBitMap *pTextBitMap, LPCTSTR title, int Alpha, int Style, CWnd *pWnd, BOOL *pUpdate)
 {
 	int n;
 	int cr, cg, cb;
@@ -4739,6 +4744,9 @@ CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcol
 	CRect rect;
 	CFont Font, *pOldFont;
 	BOOL bEraBack = FALSE;
+
+	if ( pUpdate != NULL )
+		*pUpdate = FALSE;
 
 	if ( m_pTextBitMap == NULL )
 		m_pTextBitMap = new CTextBitMap;
@@ -4819,6 +4827,9 @@ CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcol
 
 	MemDC.SelectObject(pOldMemMap);
 	MemDC.SelectObject(pOldFont);
+
+	if ( pUpdate != NULL )
+		*pUpdate = TRUE;
 
 	return (&m_Bitmap);
 }
@@ -4966,9 +4977,6 @@ FONTSIZETAB *CFontChacheNode::FontSizeCheck(LPCTSTR pFontName)
     _tcsncpy(LogFont.lfFaceName, pFontName, LF_FACESIZE);
 	LogFont.lfHeight = 100;
 
-	//LogFont.lfWidth  = 8;
-	//LogFont.lfHeight = 16;
-
 	if ( !Font.CreateFontIndirect(&LogFont) )
 		return pTab;
 
@@ -4986,15 +4994,15 @@ FONTSIZETAB *CFontChacheNode::FontSizeCheck(LPCTSTR pFontName)
 	if ( (sz.cx * 100 / n) >= 198 )
 		pTab->Fixed |= 002;
 
-	dc.GetTextMetrics(&Metric);		// 文字上余白を含まないサイズ
+	dc.GetTextMetrics(&Metric);
 	sz = dc.GetTextExtent(_T("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"), 52);
 
 	//TRACE(_T("Fonts=%s Width=%d Height=%d tmHe=%d tmAsc=%d tmDes=%d tmInLe=%d tmChAv=%d tmChMax=%d Fixed=%d Sx=%d Sy=%d Sw=%d Sh=%d\n"),
 	//	LogFont.lfFaceName, LogFont.lfWidth, LogFont.lfHeight,
 	//	Metric.tmHeight, Metric.tmAscent, Metric.tmDescent, Metric.tmInternalLeading,
 	//	Metric.tmAveCharWidth, Metric.tmMaxCharWidth,
-	//	pTab->bFixed, sz.cx, sz.cy, 
-	//	sz.cx * 100 / (Metric.tmAveCharWidth * 9),
+	//	pTab->Fixed, sz.cx, sz.cy, 
+	//	sz.cx * 100 / (Metric.tmAveCharWidth * 52),
 	//	Metric.tmInternalLeading * 100 / Metric.tmHeight);
 
 	//		---- ---+---+
@@ -5007,20 +5015,27 @@ FONTSIZETAB *CFontChacheNode::FontSizeCheck(LPCTSTR pFontName)
 	//		 ** 	| tmDescent	|
 	//		---- ---+-----------*
 	//
-	//  Fonts=小塚ゴシック Std R	Width=8 Height=16 tmHe=16 tmAsc=12 tmDes=4 tmInLe=4 tmChAv=8 tmChMax=10 Fixed=0 Sx=40 Sy=16 Sw=55  Sh=25
-	//	Fonts=Source Han Mono SC	Width=8 Height=16 tmHe=16 tmAsc=13 tmDes=3 tmInLe=5 tmChAv=8 tmChMax=8  Fixed=1 Sx=45 Sy=16 Sw=62  Sh=31
-	//	Fonts=Source Han Mono K		Width=8 Height=16 tmHe=16 tmAsc=13 tmDes=3 tmInLe=5 tmChAv=8 tmChMax=8  Fixed=1 Sx=45 Sy=16 Sw=62  Sh=31
-	//	Fonts=Cascadia Code			Width=8 Height=16 tmHe=16 tmAsc=13 tmDes=3 tmInLe=4 tmChAv=8 tmChMax=31 Fixed=1 Sx=72 Sy=16 Sw=100 Sh=25
-	//  Fonts=メイリオ				Width=8 Height=16 tmHe=16 tmAsc=11 tmDes=5 tmInLe=5 tmChAv=8 tmChMax=24 Fixed=0 Sx=47 Sy=16 Sw=65  Sh=31
-	//  Fonts=Meiryo UI				Width=8 Height=16 tmHe=15 tmAsc=12 tmDes=3 tmInLe=3 tmChAv=8 tmChMax=40 Fixed=0 Sx=81 Sy=15 Sw=112 Sh=18
-	//  Fonts=ＭＳ ゴシック			Width=8 Height=16 tmHe=16 tmAsc=14 tmDes=2 tmInLe=0 tmChAv=8 tmChMax=32 Fixed=1 Sx=72 Sy=16 Sw=100 Sh=0
-	//  Fonts=ＭＳ Ｐゴシック		Width=8 Height=16 tmHe=16 tmAsc=14 tmDes=2 tmInLe=0 tmChAv=8 tmChMax=38 Fixed=0 Sx=95 Sy=16 Sw=131 Sh=0
+	//	Fonts=Consolas				Width=0 Height=100 tmHe=100 tmAsc=79 tmDes=21 tmInLe=15 tmChAv=47 tmChMax= 95 Fixed=1 Sx=2444 Sy=100 Sw=100 Sh=15
+	//	Fonts=Cascadia Code			Width=0 Height=100 tmHe=100 tmAsc=82 tmDes=18 tmInLe=24 tmChAv=44 tmChMax=171 Fixed=1 Sx=2288 Sy=100 Sw=100 Sh=24
+	//	Fonts=Source Han Mono HC N	Width=0 Height=100 tmHe=101 tmAsc=81 tmDes=20 tmInLe=32 tmChAv=68 tmChMax= 69 Fixed=1 Sx=2392 Sy=101 Sw= 67 Sh=31
+	//	Fonts=ＭＳ ゴシック			Width=0 Height=100 tmHe=100 tmAsc=86 tmDes=14 tmInLe= 0 tmChAv=50 tmChMax=197 Fixed=3 Sx=2600 Sy=100 Sw=100 Sh= 0
+	//	Fonts=ＭＳ Ｐゴシック		Width=0 Height=100 tmHe=100 tmAsc=86 tmDes=14 tmInLe= 0 tmChAv=42 tmChMax=197 Fixed=0 Sx=2773 Sy=100 Sw=126 Sh= 0
+	//	Fonts=小塚ゴシック Std R	Width=0 Height=100 tmHe=100 tmAsc=75 tmDes=25 tmInLe=24 tmChAv=73 tmChMax= 95 Fixed=0 Sx=2222 Sy=100 Sw= 58 Sh=24
+	//	Fonts=小塚ゴシック Pro R	Width=0 Height=100 tmHe=100 tmAsc=75 tmDes=25 tmInLe=26 tmChAv=72 tmChMax= 93 Fixed=0 Sx=2165 Sy=100 Sw= 57 Sh=26
+	//	Fonts=メイリオ				Width=0 Height=100 tmHe=100 tmAsc=71 tmDes=29 tmInLe=33 tmChAv=64 tmChMax=187 Fixed=0 Sx=2115 Sy=100 Sw= 63 Sh=33
+	//	Fonts=Meiryo UI				Width=0 Height=100 tmHe= 99 tmAsc=83 tmDes=16 tmInLe=21 tmChAv=42 tmChMax=219 Fixed=0 Sx=2465 Sy= 99 Sw=112 Sh=21
 
+	pTab->Aspect = sz.cy * 100 * 52 / sz.cx;
+
+	// GDIの場合平均サイズを指定
 	pTab->Width  = Metric.tmAveCharWidth * 52 * 100 / sz.cx;
 
-	pTab->DHeight = LogFont.lfHeight * 100 / (Metric.tmInternalLeading + Metric.tmHeight);	// 文字上余白(tmInternalLeading)を含むサイズに調整
-	pTab->Height  = LogFont.lfHeight * 100 / Metric.tmHeight;								// 文字上余白(tmInternalLeading)を含まないサイズに調整
-	pTab->Offset  = Metric.tmInternalLeading * 30 / Metric.tmHeight;						// 少しだけ上余白を設定
+	// DirectWriteの場合は、文字上余白が含まれないHeightサイズで指定
+	// GDIの場合は、文字上余白を含むHeightサイズで指定
+
+	pTab->DHeight = LogFont.lfHeight * 100 / (Metric.tmInternalLeading + Metric.tmHeight);
+	pTab->Height  = 100;
+	pTab->Offset  = 0;
 
 	//TRACE(_T("%s\tWith=%d Height=%d Fixed=%d\n"), pTab->FontName, pTab->Width, pTab->Height, pTab->bFixed);
 
@@ -5050,12 +5065,10 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 	m_Quality = Quality;
 
 	m_bFixed  = (pTab->Fixed & ((Style & FONTSTYLE_FULLWIDTH) != 0 ? 002 : 001)) != 0 ? TRUE : FALSE;
-	m_Offset  = (m_LogFont.lfHeight * pTab->Offset + 90) / 100;		// 切り上げ
-	m_DHeight = (Height * pTab->DHeight + 0) / 100;					// 切り下げ	DirectWrite用
+	m_Offset  = (m_LogFont.lfHeight * pTab->Offset + 50) / 100;
 
-	// SHIFTJIS_CHARSETのみ文字幅を半角で指定
-	//if ( (Style & FONTSTYLE_FULLWIDTH) != 0 && CharSet == SHIFTJIS_CHARSET )
-	//	m_LogFont.lfWidth /= 2;
+	m_DHeight = (FLOAT)Height * (FLOAT)pTab->DHeight / 100.0f;
+	m_Aspect = pTab->Aspect;
 
 	if ( m_pFont == NULL )
 		m_pFont = new CFont;
@@ -5086,17 +5099,59 @@ BOOL CFontChacheNode::GetDirectWriteFont()
 
 	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 
-	if ( pApp->m_pDWriteFactory == NULL )
+	if ( pApp->m_pDWriteFactory2 == NULL )
 		return FALSE;
 
-	FLOAT height = (FLOAT)MulDiv(m_DHeight, 96, SCREEN_DPI_Y);
+	wchar_t localeName[LOCALE_NAME_MAX_LENGTH];
+	CStringW familyName = TstrToUni(m_LogFont.lfFaceName);
+    DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
+    DWRITE_FONT_STYLE  style  = DWRITE_FONT_STYLE_NORMAL;
 
-	if ( FAILED(pApp->m_pDWriteFactory->CreateTextFormat(
-			m_LogFont.lfFaceName, NULL, 
-			(m_LogFont.lfWeight == FW_BOLD ? DWRITE_FONT_WEIGHT_BOLD  : DWRITE_FONT_WEIGHT_NORMAL),
-			(m_LogFont.lfItalic == TRUE    ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL),
+	if ( !GetUserDefaultLocaleName(localeName, LOCALE_NAME_MAX_LENGTH) )
+		wcscpy(localeName, L"en-US");
+
+	if ( pApp->m_pGdiInterop != NULL ) {
+        LOGFONTW lf = { 0 };
+        wcscpy_s(lf.lfFaceName, (LPCWSTR)familyName);
+        
+        // GDIの情報を基にDirectWriteのフォントオブジェクトを作成
+        IDWriteFont* pFont = nullptr;
+        if (SUCCEEDED(pApp->m_pGdiInterop->CreateFontFromLOGFONT(&lf, &pFont))) {
+            // 1. 正確な太さとスタイルを取得
+            weight = pFont->GetWeight();
+            style = pFont->GetStyle();
+            
+            // 2. 正確なファミリ名を取得
+            IDWriteFontFamily* pFamily = nullptr;
+            if (SUCCEEDED(pFont->GetFontFamily(&pFamily))) {
+                IDWriteLocalizedStrings* pFamilyNames = nullptr;
+                if (SUCCEEDED(pFamily->GetFamilyNames(&pFamilyNames))) {
+                    UINT32 index = 0;
+                    BOOL exists = FALSE;
+                    pFamilyNames->FindLocaleName(localeName, &index, &exists);
+                    if (!exists) index = 0; // 見つからなければデフォルト
+                    
+                    UINT32 length = 0;
+                    pFamilyNames->GetStringLength(index, &length);
+					WCHAR* tmp = new WCHAR[length + 1];
+					pFamilyNames->GetString(index, tmp, length + 1);
+					familyName = tmp;
+					delete[] tmp;
+                    
+                    pFamilyNames->Release();
+                }
+                pFamily->Release();
+            }
+            pFont->Release();
+        }
+    }
+
+	if ( FAILED(pApp->m_pDWriteFactory2->CreateTextFormat(
+			familyName, NULL, 
+			(m_LogFont.lfWeight == FW_BOLD ? DWRITE_FONT_WEIGHT_BOLD  : weight),
+			(m_LogFont.lfItalic == TRUE    ? DWRITE_FONT_STYLE_ITALIC : style),
 			DWRITE_FONT_STRETCH_NORMAL,
-			height, _T(""), &m_pTextFormat)) )
+			m_DHeight, localeName, &m_pTextFormat)) )
 		return FALSE;
 
 	m_pTextFormat->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
@@ -8036,7 +8091,8 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	156
+#define	CMDSKEYTABMAX	(sizeof(CmdsKeyTab) / sizeof(struct _CmdsKeyTab))
+
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -8058,6 +8114,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_CLIPBOARD_HIS8,			L"$CLIPBOARD_HIS8"	},
 	{	IDM_CLIPBOARD_HIS9,			L"$CLIPBOARD_HIS9"	},
 	{	IDM_TOOLCUST,				L"$CUSTOM_TOOLBAR"	},
+	{	IDM_GDIDRAWONLY,			L"$D2D_DISABLE"		},
 	{	IDM_DIALOGFONT,				L"$DIALOG_FONT"		},
 	{	ID_EDIT_COPY,				L"$EDIT_COPY"		},
 	{	ID_EDIT_COPY_ALL,			L"$EDIT_COPYALL"	},
@@ -13145,6 +13202,81 @@ BOOL CBitmapEx::CreateMaskBitmap(CBitmap *pSrcBitmap, COLORREF backCol)
 
 	return TRUE;
 }
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+ID2D1Bitmap *CBitmapEx::Copy2D1Bitmap(ID2D1RenderTarget *pRT, CBitmap *pSrcBitmap, BOOL bAlpha, COLORREF TransColor)
+{
+	if ( pRT == NULL || pSrcBitmap == NULL )
+		return NULL;
+
+	BITMAP map;
+	BYTE *pSrcBuf = NULL;
+	BYTE *pDisBuf = NULL;
+	CDC tempDC;
+	CBitmap *pOldMap = NULL;
+	ID2D1Bitmap *p2D1Bitmap = NULL;
+	D2D1_BITMAP_PROPERTIES bmProp = { D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED), (FLOAT)SCREEN_DPI_X, (FLOAT)SCREEN_DPI_Y };
+
+	if ( !pSrcBitmap->GetBitmap(&map) )
+		return NULL;
+
+	pDisBuf = new BYTE[map.bmWidth * map.bmHeight * 4];		// B8G8R8A8
+
+	if ( map.bmBitsPixel <= 24 ) {
+		tempDC.CreateCompatibleDC(NULL);
+		pOldMap = tempDC.SelectObject(pSrcBitmap);
+
+		for ( int y = 0 ; y < map.bmHeight ; y++ ) {
+			BYTE *p = pDisBuf + y * map.bmWidth * 4;
+			for ( int x = 0 ; x < map.bmWidth ; x++ ) {
+				COLORREF c = tempDC.GetPixel(x, y);
+				*(p++) = GetBValue(c);
+				*(p++) = GetGValue(c);;
+				*(p++) = GetRValue(c);;
+				*(p++) = (TransColor != c ? 255 : 0);
+			}
+		}
+
+		tempDC.SelectObject(pOldMap);
+		tempDC.DeleteDC();
+
+	} else if ( map.bmBitsPixel == 32 ) {
+		DWORD len = map.bmWidthBytes * map.bmHeight;
+		pSrcBuf = new BYTE[len];
+		if ( pSrcBitmap->GetBitmapBits(len, pSrcBuf) != len )
+			goto ENDOF;
+
+		if ( TransColor != (-1) ) {
+			for ( int y = 0 ; y < map.bmHeight ; y++ ) {
+				COLORREF *s = (COLORREF *)(pSrcBuf + y * map.bmWidthBytes);
+				COLORREF *p = (COLORREF *)(pDisBuf + y * map.bmWidth * 4);
+				for ( int x = 0 ; x < map.bmWidth ; x++ ) {
+					COLORREF c = *(s++) & 0x00FFFFFF;
+					*(p++) = c | (TransColor != c ? 0xFF000000 : 0);
+				}
+			}
+		} else {
+			for ( int y = 0 ; y < map.bmHeight ; y++ )
+				memcpy(pDisBuf + y * map.bmWidth * 4, pSrcBuf + y * map.bmWidthBytes, map.bmWidth * 4);
+
+			if ( !bAlpha )
+				bmProp.pixelFormat.alphaMode = D2D1_ALPHA_MODE_IGNORE;
+		}
+	} else
+		goto ENDOF;
+
+	if ( FAILED(pRT->CreateBitmap(D2D1::SizeU(map.bmWidth, map.bmHeight), pDisBuf, map.bmWidth * 4, bmProp, &p2D1Bitmap)) )
+		goto ENDOF;
+
+ENDOF:
+	if ( pSrcBuf != NULL )
+		delete [] pSrcBuf;
+
+	if ( pDisBuf != NULL )
+		delete [] pDisBuf;
+
+	return p2D1Bitmap;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // CCodeFlag
@@ -13585,57 +13717,102 @@ IMPLEMENT_DYNAMIC(CRenderDC, CDC)
 
 CRenderDC::CRenderDC()
 {
-	m_layerParam = D2D1::LayerParameters();
+	m_hWnd = NULL;
+	ZeroMemory(&m_ps, sizeof(m_ps));
+
+	m_Mode = (-1);
+	m_Mode = 0;
+
+	m_pGDIRT = NULL;
+	m_pDCRT = NULL;
+
+#ifdef RENDERDC_FLASH
+	m_pBMRT = NULL;
+	m_Stat = 000;
+#endif // RENDERDC_FLASH
+
+#ifdef USE_DIRECT3D
+	m_pCtx4 = NULL;
+#endif // USE_DIRECT3D
 }
 BOOL CRenderDC::SwitchMode(int mode)
 {
-	ASSERT(DCCheck(this));
+	ASSERT(IsKindOf(RUNTIME_CLASS(CRenderDC)));
 
 	if ( m_Mode == mode )
 		return TRUE;
 
-	switch(mode) {
+#ifdef RENDERDC_FLASH
+	// GetDC/ReleseDC BeginDraw/EndDraw がRENDERDC_FLASHの回数だけに減る（基本１度だけ）
+	switch (mode) {
 	case RENDERDC_GDI:
-		{
+		if ( (m_Stat & 001) == 0 ) {
 			HDC hDC = NULL;
 			if ( FAILED(m_pGDIRT->GetDC(D2D1_DC_INITIALIZE_MODE_COPY, &hDC)) )
 				return FALSE;
 			Attach(hDC);
 			SetBkMode(m_bkMode);
-			m_Mode = mode;
+			m_Stat |= 001;
 		}
-		break;
-
-	case RENDERDC_DIRECT2D:
-		m_bkMode = GetBkMode();
-		Detach();
-		m_pGDIRT->ReleaseDC(NULL);
 		m_Mode = mode;
 		break;
 
-	case RENDERDC_PUSH:
-		{
-			mode = m_Mode;
-			SwitchMode(RENDERDC_DIRECT2D);
-			ID2D1Layer *pLayer = NULL;
-			if ( FAILED(m_pHwndRT->CreateLayer(NULL, &pLayer)) )
-				return FALSE;
-			m_pHwndRT->PushLayer(m_layerParam, pLayer);
-			m_Layer.AddHead(pLayer);
-			SwitchMode(mode);
+	case RENDERDC_DIRECT2D:
+		if ( (m_Stat & 002) == 0 ) {
+			m_pBMRT->BeginDraw();
+			m_pBMRT->Clear();
+			m_Stat |= 002;
 		}
+		m_Mode = mode;
 		break;
-	case RENDERDC_POP:
-		{
-			mode = m_Mode;
-			SwitchMode(RENDERDC_DIRECT2D);
-			m_pHwndRT->PopLayer();
-			ID2D1Layer *pLayer = m_Layer.RemoveHead();
-			pLayer->Release();
-			SwitchMode(mode);
+
+	case RENDERDC_FLASH:
+		if ( (m_Stat & 002) != 0 ) {
+			if ( (m_Stat & 001) != 0 ) {
+				m_bkMode = GetBkMode();
+				Detach();
+				m_pGDIRT->ReleaseDC(&m_ps.rcPaint);
+				m_Stat &= ~001;
+			}
+			m_pBMRT->EndDraw();
+			ID2D1Bitmap *pBitmap = NULL;
+			if ( SUCCEEDED(m_pBMRT->GetBitmap(&pBitmap)) ) {
+				D2D_RECT_F rectF = { (FLOAT)m_ps.rcPaint.left, (FLOAT)m_ps.rcPaint.top, (FLOAT)m_ps.rcPaint.right, (FLOAT)m_ps.rcPaint.bottom };
+				m_pDCRT->DrawBitmap(pBitmap, rectF, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, rectF);
+				pBitmap->Release();
+			}
+			m_Stat &= ~002;
 		}
+		m_Mode = mode;
 		break;
 	}
+
+#else // !RENDERDC_FLASH
+	// GetDC/ReleseDC が文字表示の条件だけ起こりえる。全画面文字数/2が最大値？
+	switch (mode) {
+	case RENDERDC_GDI:
+		if ( m_pGDIRT == NULL )
+			return FALSE;
+		else {
+			HDC hDC = NULL;
+			if ( FAILED(m_pGDIRT->GetDC(D2D1_DC_INITIALIZE_MODE_COPY, &hDC)) )
+				return FALSE;
+			Attach(hDC);
+			SetBkMode(m_bkMode);
+		}
+		m_Mode = mode;
+		break;
+
+	case RENDERDC_DIRECT2D:
+		if ( m_pGDIRT == NULL )
+			return FALSE;
+		m_bkMode = GetBkMode();
+		Detach();
+		m_pGDIRT->ReleaseDC(&m_ps.rcPaint);	// これが条件により重いらしい
+		m_Mode = mode;
+		break;
+	}
+#endif // RENDERDC_FLASH
 
 	return TRUE;
 }

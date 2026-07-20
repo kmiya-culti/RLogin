@@ -271,6 +271,7 @@ BEGIN
         MENUITEM "ダイアログフォントの設定(&D)",            IDM_DIALOGFONT
         MENUITEM "ツールバーのカスタマイズ(&T)",            IDM_TOOLCUST
         MENUITEM "タブバーをマルチラインで表示(&M)",          IDM_TABMULTILINE
+        MENUITEM "Direct2Dを使用しない(&G)",          IDM_GDIDRAWONLY
         MENUITEM SEPARATOR
         MENUITEM "プライベートプロファイル作成(&P)",          IDM_CREATEPROFILE
         MENUITEM "レジストリをファイルに保存(&B)",           IDM_SAVEREGFILE
@@ -456,6 +457,7 @@ BEGIN
         MENUITEM "ダイアログフォントの設定(&D)",            IDM_DIALOGFONT
         MENUITEM "ツールバーのカスタマイズ(&T)",            IDM_TOOLCUST
         MENUITEM "タブバーをマルチラインで表示(&M)",          IDM_TABMULTILINE
+        MENUITEM "Direct2Dを使用しない(&G)",          IDM_GDIDRAWONLY
         MENUITEM SEPARATOR
         MENUITEM "プライベートプロファイル作成(&P)",          IDM_CREATEPROFILE
         MENUITEM "レジストリをファイルに保存(&B)",           IDM_SAVEREGFILE
@@ -747,7 +749,7 @@ CAPTION "About RLogin"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,91,277,60,14,WS_GROUP
-    LTEXT           "RLogin (%s) Version 2.31.7 (2026/06/22)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.31.8 (2026/07/21)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2026 Culti",IDC_STATIC,44,17,189,8
     CONTROL         "<a href=""https://kmiya-culti.github.io/RLogin/"">https://kmiya-culti.github.io/RLogin/</a>",IDC_SYSLINK3,
                     "SysLink",WS_TABSTOP,44,27,189,8
@@ -2391,8 +2393,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,31,7,0
- PRODUCTVERSION 2,31,7,0
+ FILEVERSION 2,31,8,0
+ PRODUCTVERSION 2,31,8,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2409,12 +2411,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.31.7.0"
+            VALUE "FileVersion", "2.31.8.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.31.7.0"
+            VALUE "ProductVersion", "2.31.8.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4800,6 +4802,8 @@ BEGIN
     IDS_MESSAGEBOX_CONTINUE "続行(&C)"
     IDS_FILEOVERWRITEMSG    "既に指定されたファイルが存在します\n上書きで保存しますか？"
     IDS_DELAYSENDPROGMSG    "推定される送信時間が%d秒以上です"
+    IDS_GDIONLYENABLEMSG    "Direct2Dを使用せずにGDIだけで描画を行いますか？"
+    IDS_GDIONLYDISABLEMSG   "Direct2Dが利用できる場合は、GDIを使わないようにしますか？"
 END
 
 STRINGTABLE
@@ -5340,6 +5344,7 @@ BEGIN
     IDM_FONT_SIZE_UP        "一時的にフォントサイズを大きくします\nフォント拡大"
     IDM_FONT_SIZE_DOWN      "一時的にフォントサイズを小さくします\nフォント縮小"
     IDM_FONT_SIZE_DEF       "デフォルトのフォントサイズに戻します\nフォント初期値"
+    IDM_GDIDRAWONLY         "DIrect2Dを使用せずにGDIで画面表示する\nDirect2Dを使用しない"
 END
 
 #endif    // 日本語 (日本) resources

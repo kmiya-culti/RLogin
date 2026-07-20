@@ -6,27 +6,11 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
-				
-				
-				
-				
-				
-				
-				
-				
-		background-color : #ffffff; font-size : 90%; 
+TD {
+		background-color : #ffffff; font-size : 90%;
 }
-.BOX{		
-				
-				
-				
-				
-				
-				
-				
-				
-		background-color : silver; 
+.BOX{
+		background-color : silver;
 }
 -->
 </STYLE>
@@ -41,8 +25,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.31.7)</TD>
-            <TD width="20%" align="right">2026/06/22</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.31.8)</TD>
+            <TD width="20%" align="right">2026/07/21</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -458,8 +442,20 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2026/07/21</TD>
+            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.31.8/">2.31.8</A></TD>
+            <TD>DPIの違うモニター間の移動で正しく表示されないのを修正<BR>
+            GDIとDirect2Dの切り換えを最小になるように変更<BR>
+            GDIとDirectWriteのフォント名指定を近くなるように修正<BR>
+            フォントサイズをフォントの属性に合わせるように変更<BR>
+            SGRの51,52での囲み属性を上下のグラデーションに変更<BR>
+            メニュー・ヘルプに「Direct2Dを使用しない」を暫定的に追加<BR>
+            Direct2DでGDI用にメモリRTを確保してから合成するように変更<BR>
+            オプション変更の保存確認が重複する不都合を修正</TD>
+          </TR>
+          <TR>
             <TD align="center">2026/06/22</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.31.7/">2.31.7</A></TD>
+            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.31.7/">2.31.7</A></TD>
             <TD>x64のコンパイルをVisual Studio 2026に変更<BR>
             x32は、保守的にもう少し維持するが削除予定<BR>
             文字描画をGDIからDirect2D/DirectWriteに部分的に変更<BR>
@@ -469,7 +465,7 @@ TD {
           </TR>
           <TR>
             <TD align="center">2026/04/24</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.31.6/">2.31.6</A></TD>
+            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.31.6/">2.31.6</A></TD>
             <TD>UTF-8でサロゲートする文字が正しく表示されないのを修正<BR>
             CSIオプション8453(8800 DRCSMMv1)をデフォルトRSTに変更<BR>
             94文字セットの表示範囲をDRCSMMv1で変化するように変更<BR>
@@ -477,7 +473,7 @@ TD {
           </TR>
           <TR>
             <TD align="center">2026/03/23</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.31.5/">2.31.5</A></TD>
+            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.31.5/">2.31.5</A></TD>
             <TD>DSA鍵の署名・検証ができない問題を修正<BR>
             TCP/IPの帯域制限を正しく動作するように修正<BR>
             CodePage変換でU+??00の文字が正しく変換されないバグを修正<BR>
@@ -487,7 +483,7 @@ TD {
           </TR>
           <TR>
             <TD align="center">2026/02/24</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.31.4/">2.31.4</A></TD>
+            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.31.4/">2.31.4</A></TD>
             <TD>2.31.2で「サーバー情報を開く」が文字バンクを正常に読めないバグを修正<BR>
             RLogin内のSSHエージェントで鍵の追加・削除を正しく動作するように修正<BR>
             OpenSSHの署名された公開鍵でログインする場合の処理を修正<BR>
@@ -496,17 +492,6 @@ TD {
             SFTPのファイルアップロードのフロー制御をより細かく行うように変更<BR>
             OpenSSHのホスト鍵の追加を検証するように変更<BR>
             openssl-3.5.5に更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2026/01/23</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.31.3/">2.31.3</A></TD>
-            <TD>2.31.1で/inuseコマンドラインオプションが動作しない不都合を修正<BR>
-            2.31.1でプライベートプロファイル使用時にポートフォワード設定が壊れるのを修正<BR>
-            実行ファイルのアーカイブに各種ライブラリのライセンスを付属するように変更<BR>
-            おさかなを飼うの画像を新たに作成し解像度を上げライセンスを変更<BR>
-            各ビューが再アクティブ時に画面を更新するように変更<BR>
-            mldsa44/65/87-es/edの仕様変更に追従して暫定的に対応<BR>
-            iconvリストにWindowsのコードページとDEC文字セットなどを追加</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -1372,7 +1357,7 @@ TD {
                   <TD colspan="6">ヘルプ(H)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" rowspan="14" width="10">&nbsp;</TD>
+                  <TD align="center" rowspan="15" width="10">&nbsp;</TD>
                   <TD valign="top" colspan="2" width="250">RLoginのバージョン情報(A)</TD>
                   <TD valign="top" width="450">プログラムやライブラリなどのバージョン情報を表示します</TD>
                   <TD valign="top" width="120" align="right"></TD>
@@ -1422,6 +1407,12 @@ TD {
                   <TD valign="top">タブバーをボタンスタイルで複数行で表示するようにします</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$TAB_MULTILINE</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" colspan="2">Direct2Dを使用しない(G)</TD>
+                  <TD valign="top">DirectXのDirect2DとDirectWriteを用いて文字を描画せずに従来のGDIだけでターミナル画面を表示するようにします。Direct2Dで正しく表示されない場合を想定してこのオプションを用意しましたが、かなり後ろ向きな設定です</TD>
+                  <TD valign="top" align="right"></TD>
+                  <TD valign="top">$D2D_DISABLE</TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">プライベートプロファイル作成(P)</TD>

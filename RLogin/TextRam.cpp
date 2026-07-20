@@ -6283,15 +6283,18 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 
 struct TextRendererContext {
     ID2D1SolidColorBrush *pBrush;
-#if USE_DWRITE >= 2
-	IDWriteFactory2 *pDWriteFactory;
+	IDWriteFactory2 *pDWriteFactory2;
+
+#ifdef USE_DIRECT3D
+	IDWriteFactory4 *pDWriteFactory4;
+	ID2D1DeviceContext4 *pD2DDeviceContext4;
 #endif
 };
 
 class TextRenderer : public IDWriteTextRenderer
 {
 public:
-    TextRenderer(ID2D1HwndRenderTarget *pRT) : refCount(0), pRT(pRT)
+    TextRenderer(ID2D1RenderTarget *pRT) : refCount(0), pRT(pRT)
     {
 		AddRef();
     }
@@ -6352,36 +6355,90 @@ public:
 		IUnknown* clientDrawingEffect)
     {
 		struct TextRendererContext *ctx = reinterpret_cast<struct TextRendererContext*>(clientDrawingContext);
-
-#if USE_DWRITE >= 2
-		IDWriteColorGlyphRunEnumerator *enumerator = NULL;
 		HRESULT hr = DWRITE_E_NOCOLOR;
-		
-		if ( ctx->pDWriteFactory != NULL )
-			hr = ctx->pDWriteFactory->TranslateColorGlyphRun(baselineOriginX, baselineOriginY, glyphRun, glyphRunDescription, measuringMode, NULL, 0, &enumerator);
 
-		if ( hr == DWRITE_E_NOCOLOR || enumerator == NULL ) {
-			pRT->DrawGlyphRun(D2D1::Point2F(baselineOriginX, baselineOriginY), glyphRun, ctx->pBrush, measuringMode);
+#ifdef USE_DIRECT3D
+		if ( ctx->pDWriteFactory4 != NULL && ctx->pD2DDeviceContext4 != NULL ) {
+			DWRITE_GLYPH_IMAGE_FORMATS supportedFormats =
+				DWRITE_GLYPH_IMAGE_FORMATS_TRUETYPE |
+				DWRITE_GLYPH_IMAGE_FORMATS_CFF |
+				DWRITE_GLYPH_IMAGE_FORMATS_COLR |
+				DWRITE_GLYPH_IMAGE_FORMATS_SVG |
+				DWRITE_GLYPH_IMAGE_FORMATS_PNG |
+				DWRITE_GLYPH_IMAGE_FORMATS_JPEG |
+				DWRITE_GLYPH_IMAGE_FORMATS_TIFF |
+				DWRITE_GLYPH_IMAGE_FORMATS_PREMULTIPLIED_B8G8R8A8;
+			IDWriteColorGlyphRunEnumerator1 *pEnumerator1 = NULL;
+			D2D1_POINT_2F baselineOrigin = D2D1::Point2F(baselineOriginX, baselineOriginY);
 
-		} else if ( SUCCEEDED(hr) ) {
+			hr = ctx->pDWriteFactory4->TranslateColorGlyphRun(baselineOrigin, glyphRun, glyphRunDescription, supportedFormats, measuringMode, NULL, 0, &pEnumerator1);
+
+			if ( hr == DWRITE_E_NOCOLOR || pEnumerator1 == NULL ) {
+				ctx->pD2DDeviceContext4->DrawGlyphRun(baselineOrigin, glyphRun, glyphRunDescription, ctx->pBrush, measuringMode);
+				return S_OK;
+			} else if ( FAILED(hr) )
+				return hr;
+
 			BOOL hasRun = TRUE;
-			enumerator->MoveNext(&hasRun);
-			while (hasRun)
-			{
-				const DWRITE_COLOR_GLYPH_RUN* colorGlyphRun;
-				enumerator->GetCurrentRun(&colorGlyphRun);
+			D2D1_COLOR_F colF = ctx->pBrush->GetColor();
+			pEnumerator1->MoveNext(&hasRun);
+			while ( hasRun ) {
+				DWRITE_COLOR_GLYPH_RUN1 const *pColorGlyphRun1;
+				pEnumerator1->GetCurrentRun(&pColorGlyphRun1);
+				D2D1_POINT_2F currentBaselineOrigin = D2D1::Point2F(pColorGlyphRun1->baselineOriginX, pColorGlyphRun1->baselineOriginY);
 
-				ctx->pBrush->SetColor(colorGlyphRun->runColor);
-				pRT->DrawGlyphRun(D2D1::Point2F(colorGlyphRun->baselineOriginX, colorGlyphRun->baselineOriginY), &colorGlyphRun->glyphRun, ctx->pBrush, measuringMode);
-				enumerator->MoveNext(&hasRun);
+				switch (pColorGlyphRun1->glyphImageFormat) {
+				case DWRITE_GLYPH_IMAGE_FORMATS_PNG:
+				case DWRITE_GLYPH_IMAGE_FORMATS_JPEG:
+				case DWRITE_GLYPH_IMAGE_FORMATS_TIFF:
+				case DWRITE_GLYPH_IMAGE_FORMATS_PREMULTIPLIED_B8G8R8A8:
+					ctx->pD2DDeviceContext4->DrawColorBitmapGlyphRun(pColorGlyphRun1->glyphImageFormat, currentBaselineOrigin, &pColorGlyphRun1->glyphRun, measuringMode);
+					break;
+				case DWRITE_GLYPH_IMAGE_FORMATS_SVG:
+					ctx->pD2DDeviceContext4->DrawSvgGlyphRun(currentBaselineOrigin, &pColorGlyphRun1->glyphRun, ctx->pBrush, NULL, 0, measuringMode);
+					break;
+				case DWRITE_GLYPH_IMAGE_FORMATS_TRUETYPE:
+				case DWRITE_GLYPH_IMAGE_FORMATS_CFF:
+				case DWRITE_GLYPH_IMAGE_FORMATS_COLR:
+				default:
+					ctx->pBrush->SetColor(pColorGlyphRun1->paletteIndex != 0xFFFF ? pColorGlyphRun1->runColor : colF);
+					ctx->pD2DDeviceContext4->DrawGlyphRun(currentBaselineOrigin, &pColorGlyphRun1->glyphRun, pColorGlyphRun1->glyphRunDescription, ctx->pBrush, measuringMode);
+					break;
+				}
+
+				pEnumerator1->MoveNext(&hasRun);
 			}
-			enumerator->Release();
-		}
-#else
-		pRT->DrawGlyphRun(D2D1::Point2F(baselineOriginX, baselineOriginY), glyphRun, ctx->pBrush, measuringMode);
+			pEnumerator1->Release();
+		} else 
 #endif
+		{
+			IDWriteColorGlyphRunEnumerator *pEnumerator = NULL;
+
+			if ( ctx->pDWriteFactory2 != NULL )
+				hr = ctx->pDWriteFactory2->TranslateColorGlyphRun(baselineOriginX, baselineOriginY, glyphRun, glyphRunDescription, measuringMode, NULL, 0, &pEnumerator);
+
+			if ( hr == DWRITE_E_NOCOLOR || pEnumerator == NULL ) {
+				pRT->DrawGlyphRun(D2D1::Point2F(baselineOriginX, baselineOriginY), glyphRun, ctx->pBrush, measuringMode);
+				return S_OK;
+			} else if ( FAILED(hr) )
+				return hr;
+
+			BOOL hasRun = TRUE;
+			D2D1_COLOR_F colF = ctx->pBrush->GetColor();
+			pEnumerator->MoveNext(&hasRun);
+			while ( hasRun ) {
+				DWRITE_COLOR_GLYPH_RUN const *pColorGlyphRun;
+				pEnumerator->GetCurrentRun(&pColorGlyphRun);
+
+				ctx->pBrush->SetColor(pColorGlyphRun->paletteIndex != 0xFFFF ? pColorGlyphRun->runColor : colF);
+				pRT->DrawGlyphRun(D2D1::Point2F(pColorGlyphRun->baselineOriginX, pColorGlyphRun->baselineOriginY), &pColorGlyphRun->glyphRun, ctx->pBrush, measuringMode);
+
+				pEnumerator->MoveNext(&hasRun);
+			}
+			pEnumerator->Release();
+		}
 		return S_OK;
-    }
+	}
 
 public:
     IFACEMETHOD_(unsigned long, AddRef) ()
@@ -6417,49 +6474,90 @@ public:
 
 private:
     long refCount;
-    ID2D1HwndRenderTarget *pRT;
+    ID2D1RenderTarget *pRT;
 };
 #endif
 
-BOOL CTextRam::DrawDWrite(CDC* pDC, LPCWSTR str, int len, CRect& rect, COLORREF fc, COLORREF bc, BOOL bEraBack, BOOL bCenter, BOOL bEmoji, CFontChacheNode *pFontCache, DrawWork& prop)
+BOOL CTextRam::DrawDWrite(CDC* pDC, LPCWSTR str, int len, CRect& rect, COLORREF fc, COLORREF bc, BOOL bEraBack, BOOL bEmoji, DWRITE_TEXT_ALIGNMENT textAlignment, CFontChacheNode *pFontCache, DrawWork& prop)
 {
 #if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
 	if ( !DCSwitch(pDC, RENDERDC_DIRECT2D) || !pFontCache->GetDirectWriteFont() )
 		return FALSE;
 
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 	IDWriteTextLayout* pTextLayout = NULL;
 	DWRITE_TEXT_METRICS tTextMetrics;
-	D2D_RECT_F rectF;
+	D2D_RECT_F rectF = { (FLOAT)rect.left, (FLOAT)rect.top, (FLOAT)rect.right, (FLOAT)rect.bottom };
 	CFontNode *pFontNode = &(m_FontTab[prop.bank]);
 
-	rectF.left   = (FLOAT)rect.left    * 96.0f / (FLOAT)SCREEN_DPI_X;
-	rectF.right  = (FLOAT)rect.right   * 96.0f / (FLOAT)SCREEN_DPI_X;
-	rectF.top    = (FLOAT)rect.top     * 96.0f / (FLOAT)SCREEN_DPI_Y;
-	rectF.bottom = (FLOAT)rect.bottom  * 96.0f / (FLOAT)SCREEN_DPI_Y;
+	FLOAT x = (FLOAT)(rect.left + prop.pView->m_CharWidth  * pFontNode->m_OffsetW / 100);
+	FLOAT y = (FLOAT)(rect.top  - prop.pView->m_CharHeight * pFontNode->m_OffsetH / 100);
 
-	FLOAT x      = (FLOAT)(rect.left + prop.pView->m_CharWidth  * pFontNode->m_OffsetW / 100) * 96.0f / (FLOAT)SCREEN_DPI_X;
-	FLOAT y      = (FLOAT)(rect.top  - prop.pView->m_CharHeight * pFontNode->m_OffsetH / 100 - pFontCache->m_Offset) * 96.0f / (FLOAT)SCREEN_DPI_Y;
-	FLOAT offset = (FLOAT)pFontCache->m_Offset * 96.0f / (FLOAT)SCREEN_DPI_Y;
+	// チャラクタセットのGDI文字品質設定をDirectWriteの仕様に合わせて設定
+	static int aliasMode[] = {
+		D2D1_TEXT_ANTIALIAS_MODE_DEFAULT,			// DEFAULT_QUALITY
+		D2D1_TEXT_ANTIALIAS_MODE_ALIASED,			// DRAFT_QUALITY
+		D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE,			// PROOF_QUALITY
+		D2D1_TEXT_ANTIALIAS_MODE_ALIASED,			// NONANTIALIASED_QUALITY
+		D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE,			// ANTIALIASED_QUALITY
+		D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE,			// CLEARTYPE_QUALITY
+		D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE,			// CLEARTYPE_NATURAL_QUALITY
+	};
+	DCRT(pDC)->SetTextAntialiasMode((D2D1_TEXT_ANTIALIAS_MODE)aliasMode[pFontNode->m_Quality]);
 
-	pFontCache->m_pTextFormat->SetTextAlignment(bCenter ? DWRITE_TEXT_ALIGNMENT_CENTER : (DWRITE_TEXT_ALIGNMENT)3);
+	// 文字配置をセンタリングもしくわDWRITE_TEXT_ALIGNMENT_JUSTIFIED(3)に設定
+	pFontCache->m_pTextFormat->SetTextAlignment(textAlignment);
 
-	if ( FAILED(((CRLoginApp*)::AfxGetApp())->m_pDWriteFactory->CreateTextLayout(str, len, pFontCache->m_pTextFormat,
+	if ( FAILED(pApp->m_pDWriteFactory2->CreateTextLayout(str, len, pFontCache->m_pTextFormat,
 			(rectF.right - rectF.left), (rectF.bottom - rectF.top), &pTextLayout)) && DCSwitch(pDC, RENDERDC_DIRECT2D))
 		return FALSE;
 
 	BOOL bZoom = FALSE;
-	pTextLayout->GetMetrics(&tTextMetrics);		// 文字上余白を含むサイズ
+	D2D1_POINT_2F ZoomF = D2D1::Point2F(1.0f, 1.0f);
+
+	if ( FAILED(pTextLayout->GetMetrics(&tTextMetrics)) ) {	// 文字上余白を含むサイズが返ってくる
+		pTextLayout->Release();
+		return FALSE;
+	}
+
+	// 1:横２倍 2:縦横２倍上 3:縦横２倍下 (縦２倍はフォントサイズで指定済み)
+	if ( prop.zoom != 0 ) {
+		ZoomF.x *= 2.0f;
+		bZoom = TRUE;
+	}
 
 	// 幅が大きければ調整
-	if ( (int)(tTextMetrics.width + 0.5f) > (int)(tTextMetrics.layoutWidth + 0.5f) ) {
-		D2D1_MATRIX_3X2_F scaleMatrix = D2D1::Matrix3x2F::Scale(
-			tTextMetrics.layoutWidth  / tTextMetrics.width, 1.0f,
-			D2D1::Point2F(rectF.left, rectF.top));
-		DCRT(pDC)->SetTransform(scaleMatrix);
-		rectF.right = rectF.left + (rectF.right - rectF.left) * tTextMetrics.width  / tTextMetrics.layoutWidth;
+	if ( (int)(tTextMetrics.width * ZoomF.x + 0.5f) > (int)(tTextMetrics.layoutWidth + 0.5f) ) {
+		ZoomF.x = tTextMetrics.layoutWidth / tTextMetrics.width;
 		bZoom = TRUE;
+	}
+
+	// 鏡面文字U+FFFFFの場合
+	if ( ATT_EXTYPE(prop.attr) == ATT_MIRROR ) {
+		ZoomF.x *= -1.0f;
+		bZoom = TRUE;
+	}
+
+	if ( bZoom ) {
+		D2D1::Matrix3x2F scaleMatrix = D2D1::Matrix3x2F::Scale(ZoomF.x, ZoomF.y, D2D1::Point2F(rectF.left, rectF.top));
+
+		// 鏡面の場合は、横に移動させる
+		if ( ZoomF.x < 0.0f ) {
+			ZoomF.x = 0.0f - ZoomF.x;
+			scaleMatrix = scaleMatrix * D2D1::Matrix3x2F::Translation(tTextMetrics.layoutWidth, 0.0f);
+		}
+
+		DCRT(pDC)->SetTransform(scaleMatrix);
+
+		rectF.right  = rectF.left + (rectF.right  - rectF.left) / ZoomF.x;
 		pTextLayout->SetMaxWidth(rectF.right - rectF.left);
 	}
+
+	// 下位置に合わせて描画
+	y -= tTextMetrics.height - tTextMetrics.layoutHeight;
+
+	if ( prop.zoom == 2 )
+		y += (FLOAT)prop.pView->m_CharHeight;
 
 	ID2D1SolidColorBrush *pBrush = NULL;
 
@@ -6471,22 +6569,25 @@ BOOL CTextRam::DrawDWrite(CDC* pDC, LPCWSTR str, int len, CRect& rect, COLORREF 
 		DCRT(pDC)->CreateSolidColorBrush(D2D1::ColorF((FLOAT)GetRValue(fc) / 255.0f, (FLOAT)GetGValue(fc) / 255.0f, (FLOAT)GetBValue(fc) / 255.0f), &pBrush);
 
 	TextRenderer render(DCRT(pDC));
-#if USE_DWRITE >= 2
-	struct TextRendererContext ctx = { pBrush, bEmoji ? ((CRLoginApp *)::AfxGetApp())->m_pDWriteFactory2 : NULL };
-#else
-	struct TextRendererContext ctx = { pBrush };
+	struct TextRendererContext ctx = { pBrush, (bEmoji ? pApp->m_pDWriteFactory2 : NULL)
+#ifdef USE_DIRECT3D
+		,pApp->m_pDwriteFactory4, DCCTX4(pDC)
 #endif
+	};
+
+	// クリップ付きで描画
 	DCRT(pDC)->PushAxisAlignedClip(rectF, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-	pTextLayout->Draw(&ctx, &render, x, y);
+	HRESULT hr = pTextLayout->Draw(&ctx, &render, x, y);
 	DCRT(pDC)->PopAxisAlignedClip();
 
+	// トランスフォームを元に戻す
 	if ( bZoom )
 		DCRT(pDC)->SetTransform(D2D1::Matrix3x2F::Identity());
 
 	pBrush->Release();
 	pTextLayout->Release();
 
-	return TRUE;
+	return (SUCCEEDED(hr) ? TRUE : FALSE);
 #else
 	return FALSE;
 #endif // USE_DIRECT2D
@@ -6526,23 +6627,6 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		width = width * 80 / 100;
 	}
 
-	if ( ATT_EXTYPE(prop.attr) == ATT_MIRROR ) {
-		DrawDCMode(pDC, prop);
-		mirDC.CreateCompatibleDC(pDC);
-		MirMap.CreateCompatibleBitmap(pDC, rect.Width(), rect.Height());
-		pOldMirMap = mirDC.SelectObject(&MirMap);
-
-		if ( !bEraBack )
-			mirDC.StretchBlt(rect.Width() - 1, 0, 0 - rect.Width(), rect.Height(), pDC, rect.left, rect.top, rect.Width(), rect.Height(), SRCCOPY);
-		mirDC.SetBkMode(TRANSPARENT);
-
-		pSaveDC = pDC;
-		pDC = &mirDC;
-
-		rect.SetRect(0, 0, save.Width(), save.Height());
-		box = frame = rect;
-	}
-
 	pFontCache = pFontNode->GetFont(width, height, style, prop.font, this);
 
 	if ( pFontNode->SetFontImage(width, height, FALSE) )
@@ -6557,22 +6641,21 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		type = 2;	// Proportion Draw
 
 #if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
-	if ( prop.dcrt && pSaveDC == NULL && prop.zoom == 0 ) {
+	if ( prop.dcrt ) {
 		switch (type) {
-		case 1:		// Fixed Draw
 		case 5:		// Right to Left or Mc
-			if ( DrawDWrite(pDC, prop.pText, prop.tlen, box, fc, bc, bEraBack, FALSE, FALSE, pFontCache, prop) )
+			if ( DrawDWrite(pDC, prop.pText, prop.tlen, box, fc, bc, bEraBack, FALSE, DWRITE_TEXT_ALIGNMENT_JUSTIFIED, pFontCache, prop) )
 				return;
 			break;
-		case 3:		// Emoji
-#if USE_DWRITE < 2
-			if ( prop.emode != 0 )
+		case 1:		// Fixed Draw
+			if ( (pFontCache->m_Aspect + 5) / 10 == m_DefFontHw ) {
+				if ( DrawDWrite(pDC, prop.pText, prop.tlen, box, fc, bc, bEraBack, FALSE, DWRITE_TEXT_ALIGNMENT_LEADING, pFontCache, prop) )
+					return;
 				break;
-#endif
+			}
+			// no break;
+		case 3:		// Emoji
 		case 0:		// Center Draw
-			prop.pos.top    = prop.line - prop.pView->m_HisOfs + prop.pView->m_HisMin;
-			prop.pos.bottom = prop.pos.top + 1;
-
 			for ( n = i = a = 0 ; n < prop.size ; n++ ) { 
 				while ( prop.pSpace[i] == 0 )
 					i++;
@@ -6582,21 +6665,36 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 				while ( a <= i )
 					str += prop.pText[a++];
 
-				prop.pos.left   = prop.cols + n * prop.csz;
-				prop.pos.right  = prop.pos.left + prop.csz;
-
-				if ( !DrawDWrite(pDC, str, str.GetLength(), box, fc, bc, bEraBack, TRUE, (type == 3 && prop.emode != 0 ? TRUE : FALSE), pFontCache, prop) )
+				if ( !DrawDWrite(pDC, str, str.GetLength(), box, fc, bc, bEraBack, (type == 3 && prop.emode != 0 ? TRUE : FALSE), DWRITE_TEXT_ALIGNMENT_CENTER, pFontCache, prop) )
 					break;
 
 				box.left += prop.pSpace[i++];
 			}
-			return;
+			if ( n >= prop.size )
+				return;
+			box = rect;
+			break;
 		}
 	}
 #endif
+	
+	DrawDCMode(pDC, prop);
 
-	if ( pSaveDC == NULL )
-		DrawDCMode(pDC, prop);
+	if ( ATT_EXTYPE(prop.attr) == ATT_MIRROR ) {
+		mirDC.CreateCompatibleDC(pDC);
+		MirMap.CreateCompatibleBitmap(pDC, rect.Width(), rect.Height());
+		pOldMirMap = mirDC.SelectObject(&MirMap);
+
+		if ( !bEraBack )
+			mirDC.StretchBlt(rect.Width() - 1, 0, 0 - rect.Width(), rect.Height(), pDC, rect.left, rect.top, rect.Width(), rect.Height(), SRCCOPY);
+		mirDC.SetBkMode(TRANSPARENT);
+
+		pSaveDC = pDC;
+		pDC = &mirDC;
+
+		rect.SetRect(0, 0, save.Width(), save.Height());
+		box = frame = rect;
+	}
 
 	pDC->SelectObject(pFontCache->m_pFont);
 	pDC->SetTextColor(fc);
@@ -6868,154 +6966,294 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 }
 void CTextRam::DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop)
 {
-	COLORREF hc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
-	CPen fPen(PS_SOLID, 1, fc);
-	CPen cPen(PS_SOLID, 1, prop.pView->m_CharHeight < BD_HALFSIZE ? hc : fc);
-	CPen hPen(PS_SOLID, 1, hc);
-	CPen *oPen = pDC->SelectObject(&cPen);
-//	int OldRop2 = pDC->SetROP2(R2_MERGEPENNOT);
+	COLORREF hc = RGB((GetRValue(fc) * 2 + GetRValue(bc)) / 3, (GetGValue(fc) * 2 + GetGValue(bc)) / 3, (GetBValue(fc) * 2 + GetBValue(bc)) / 3);
+	int bd_size = prop.pView->m_CharHeight / 16;
+	CPen Pen[2];
+	CPen *pOldPen;
+	LOGBRUSH Brush[2];
 	POINT point[4];
+
+	if ( bd_size <= 0 )
+		bd_size = 1;
+
+	fc = hc;
+	hc = RGB((GetRValue(fc) * 2 + GetRValue(bc)) / 3, (GetGValue(fc) * 2 + GetGValue(bc)) / 3, (GetBValue(fc) * 2 + GetBValue(bc)) / 3);
+
+	if ( bd_size == 1 ) {
+		Pen[0].CreatePen(PS_SOLID, BD_SIZE, prop.pView->m_CharHeight < 10 ? hc : fc);
+		Pen[1].CreatePen(PS_SOLID, BD_SIZE, hc);
+	} else {
+		Brush[0].lbColor = prop.pView->m_CharHeight < 10 ? hc : fc;
+		Brush[0].lbStyle = BS_SOLID;
+		Pen[0].CreatePen(PS_GEOMETRIC | PS_SOLID | PS_ENDCAP_FLAT | PS_JOIN_MITER, bd_size, &Brush[0]);
+		Brush[1].lbColor = hc;
+		Brush[1].lbStyle = BS_SOLID;
+		Pen[1].CreatePen(PS_GEOMETRIC | PS_SOLID | PS_ENDCAP_FLAT | PS_JOIN_MITER, bd_size, &Brush[1]);
+	}
+
 	point[0].x = rect.left;
 	point[1].x = rect.right;
 
+	DrawDCMode(pDC, prop);
+
+	pOldPen = pDC->SelectObject(&Pen[0]);
+
 	if ( (prop.attr & ATT_OVER) != 0 ) {
-		point[0].y = rect.top;
-		point[1].y = rect.top;
+		point[0].y = rect.top + bd_size / 2;
+		point[1].y = rect.top + bd_size / 2;
+		pDC->SelectObject(&Pen[0]);
 		pDC->Polyline(point, 2);
 	} else if ( (prop.attr & ATT_DOVER) != 0 ) {
-		point[0].y = rect.top;
-		point[1].y = rect.top;
+		point[0].y = rect.top + bd_size / 2;
+		point[1].y = rect.top + bd_size / 2;
+		pDC->SelectObject(&Pen[0]);
 		pDC->Polyline(point, 2);
-		point[2].x = ((prop.attr & ATT_LDLINE) != 0 ? (rect.left + 2) : rect.left);
-		point[2].y = rect.top + 2;
-		point[3].x = ((prop.attr & ATT_RDLINE) != 0 ? (rect.right - 3) : rect.right);
-		point[3].y = rect.top + 2;
-		pDC->SelectObject(&hPen);
+		point[2].x = ((prop.attr & ATT_LDLINE) != 0 ? (rect.left + bd_size) : rect.left);
+		point[2].y = rect.top + bd_size + bd_size / 2;
+		point[3].x = ((prop.attr & ATT_RDLINE) != 0 ? (rect.right - bd_size) : rect.right);
+		point[3].y = rect.top + bd_size + bd_size / 2;
+		pDC->SelectObject(&Pen[1]);
 		pDC->Polyline(&(point[2]), 2);
 	}
 
 	if ( (prop.attr & ATT_LINE) != 0 ) {
 		point[0].y = (rect.top + rect.bottom) / 2;
 		point[1].y = (rect.top + rect.bottom) / 2;
-		pDC->SelectObject(&cPen);
+		pDC->SelectObject(&Pen[0]);
 		pDC->Polyline(point, 2);
 	} else if ( (prop.attr & ATT_STRESS) != 0 ) {
-		point[0].y = (rect.top + rect.bottom) / 2 - 1;
-		point[1].y = (rect.top + rect.bottom) / 2 - 1;
-		pDC->SelectObject(&cPen);
+		point[0].y = (rect.top + rect.bottom) / 2 - bd_size;
+		point[1].y = (rect.top + rect.bottom) / 2 - bd_size;
+		pDC->SelectObject(&Pen[0]);
 		pDC->Polyline(point, 2);
-		point[0].y = (rect.top + rect.bottom) / 2 + 1;
-		point[1].y = (rect.top + rect.bottom) / 2 + 1;
+		point[0].y = (rect.top + rect.bottom) / 2 + bd_size;
+		point[1].y = (rect.top + rect.bottom) / 2 + bd_size;
 		pDC->Polyline(point, 2);
 	}
 
 	if ( (prop.attr & ATT_UNDER) != 0 ) {
-		point[0].y = rect.bottom - 2;
-		point[1].y = rect.bottom - 2;
-		pDC->SelectObject(&fPen);
+		point[0].y = rect.bottom - bd_size * 2 + bd_size / 2;
+		point[1].y = rect.bottom - bd_size * 2 + bd_size / 2;
+		pDC->SelectObject(&Pen[0]);
 		pDC->Polyline(point, 2);
 	} else if ( (prop.attr & ATT_SUNDER) != 0 ) {
-		point[0].y = rect.bottom - 1;
-		point[1].y = rect.bottom - 1;
-		pDC->SelectObject(&cPen);
+		point[0].y = rect.bottom - bd_size + bd_size / 2;
+		point[1].y = rect.bottom - bd_size + bd_size / 2;
+		pDC->SelectObject(&Pen[0]);
 		pDC->Polyline(point, 2);
 	} else if ( (prop.attr & ATT_DUNDER) != 0 ) {
-		point[0].y = rect.bottom - 1;
-		point[1].y = rect.bottom - 1;
-		pDC->SelectObject(&cPen);
+		point[0].y = rect.bottom - bd_size + bd_size / 2;
+		point[1].y = rect.bottom - bd_size + bd_size / 2;
+		pDC->SelectObject(&Pen[0]);
 		pDC->Polyline(point, 2);
-		point[2].x = ((prop.attr & ATT_LDLINE) != 0 ? (rect.left + 2) : rect.left);
-		point[2].y = rect.bottom - 3;
-		point[3].x = ((prop.attr & ATT_RDLINE) != 0 ? (rect.right - 3) : rect.right);
-		point[3].y = rect.bottom - 3;
-		pDC->SelectObject(&hPen);
+		point[2].x = ((prop.attr & ATT_LDLINE) != 0 ? (rect.left + bd_size) : rect.left);
+		point[2].y = rect.bottom - bd_size * 2 + bd_size / 2;
+		point[3].x = ((prop.attr & ATT_RDLINE) != 0 ? (rect.right - bd_size) : rect.right);
+		point[3].y = rect.bottom - bd_size * 2 + bd_size / 2;
+		pDC->SelectObject(&Pen[1]);
 		pDC->Polyline(&(point[2]), 2);
 	}
 
-//	pDC->SetROP2(OldRop2);
-	pDC->SelectObject(oPen);
+	pDC->SelectObject(pOldPen);
 }
 void CTextRam::DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop)
 {
-	int n, i;
-	int x, w, c;
-	COLORREF hc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
-	CPen cPen(PS_SOLID, 1, prop.pView->m_CharHeight < BD_HALFSIZE ? hc : fc);
-	CPen hPen(PS_SOLID, 1, hc);
-	CPen *oPen = pDC->SelectObject(&cPen);
-//	int OldRop2 = pDC->SetROP2(R2_MERGEPENNOT);
+#ifndef	USE_TEXTFRAME
+	if ( (prop.attr & (ATT_FRAME | ATT_CIRCLE)) != 0 ) {
+
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+		if ( prop.dcrt && DCSwitch(pDC, RENDERDC_DIRECT2D) ) {
+
+			FLOAT cr = (FLOAT)GetRValue(fc) / 255.0f;
+			FLOAT cg = (FLOAT)GetGValue(fc) / 255.0f;
+			FLOAT cb = (FLOAT)GetBValue(fc) / 255.0f;
+			D2D1_GRADIENT_STOP gradientStops[3];
+			gradientStops[0].color = D2D1::ColorF(cr, cg, cb, (prop.attr & ATT_FRAME) != 0 ? 0.6f : 0.0f);
+			gradientStops[0].position = 0.0f;
+			gradientStops[1].color = D2D1::ColorF(cr, cg, cb, 0.0f);
+			gradientStops[1].position = 0.5f;
+			gradientStops[2].color = D2D1::ColorF(cr, cg, cb, (prop.attr & ATT_CIRCLE) != 0 ? 0.6f : 0.0f);
+			gradientStops[2].position = 1.0f;
+			ID2D1GradientStopCollection* pGradientStops = nullptr;
+			if ( SUCCEEDED(DCRT(pDC)->CreateGradientStopCollection(gradientStops, 3, D2D1_GAMMA_2_2, D2D1_EXTEND_MODE_CLAMP, &pGradientStops)) ) {
+
+				ID2D1LinearGradientBrush* pLinearGradientBrush = nullptr;
+				D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES brushProperties = D2D1::LinearGradientBrushProperties(
+					D2D1::Point2F((FLOAT)((rect.left + rect.right) / 2), (FLOAT)rect.top), 
+					D2D1::Point2F((FLOAT)((rect.left + rect.right) / 2), (FLOAT)rect.bottom));
+				if ( SUCCEEDED(DCRT(pDC)->CreateLinearGradientBrush(brushProperties, pGradientStops, &pLinearGradientBrush)) ) {
+
+					DCRT(pDC)->FillRectangle(D2D1::RectF((FLOAT)rect.left, (FLOAT)rect.top, (FLOAT)rect.right, (FLOAT)rect.bottom), pLinearGradientBrush);
+					pLinearGradientBrush->Release();
+				}
+
+				pGradientStops->Release();
+			}
+
+		} else
+#endif	// USE_DIRECT2D
+		{
+			int mx = rect.Width();
+			int my = rect.Height();
+			int cy = my / 2;
+			CImage tmp;
+			tmp.CreateEx(mx, my, 32, BI_RGB, NULL, CImage::createAlphaChannel);
+
+			for ( int y = 0 ; y < my ; y++ ) {
+				DWORD* p = (DWORD*)tmp.GetPixelAddress(0, y);
+				DWORD c = 0;
+				if ( y <= cy ) {
+					if ( (prop.attr & ATT_FRAME) != 0 )
+						c = (cy - y) * 153 / cy;		// 255 * 0.6 = 153
+				} else {
+					if ( (prop.attr & ATT_CIRCLE) != 0 )
+						c = (y - cy) * 153 / cy;
+				}
+				if ( c > 0 )
+					*p = (c << 24) | (((DWORD)GetRValue(fc) * c / 255) << 16) | (((DWORD)GetGValue(fc) * c / 255) << 8) | (((DWORD)GetBValue(fc) * c / 255) << 0);
+				else
+					*p = 0;
+				DupMemCpy(p + 1, p, (mx - 1) * sizeof(DWORD));
+			}
+
+			DrawDCMode(pDC, prop);
+
+			HDC hDC = tmp.GetDC();
+			static const BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
+			AlphaBlend(pDC->GetSafeHdc(), rect.left, rect.top, rect.Width(), rect.Height(), hDC, 0, 0, rect.Width(), rect.Height(), bf);
+			tmp.ReleaseDC();
+		}
+	}
+
+	if ( (prop.attr & (ATT_RSLINE | ATT_RDLINE | ATT_LSLINE | ATT_LDLINE)) == 0 )
+		return;
+
+#endif	// !USE_TEXTFRAME
+
+	int n, i, x, w;
+	int bd_size = prop.pView->m_CharHeight / 16;
+	CPen Pen[2];
+	CPen *pOldPen;
+	LOGBRUSH Brush[2];
 	POINT point[9];
+	COLORREF hc = RGB((GetRValue(fc) * 2 + GetRValue(bc)) / 3, (GetGValue(fc) * 2 + GetGValue(bc)) / 3, (GetBValue(fc) * 2 + GetBValue(bc)) / 3);
+
+	if ( bd_size <= 0 )
+		bd_size = 1;
+
+	fc = hc;
+	hc = RGB((GetRValue(fc) * 2 + GetRValue(bc)) / 3, (GetGValue(fc) * 2 + GetGValue(bc)) / 3, (GetBValue(fc) * 2 + GetBValue(bc)) / 3);
+
+	if ( bd_size == 1 ) {
+		Pen[0].CreatePen(PS_SOLID, BD_SIZE, prop.pView->m_CharHeight < 10 ? hc : fc);
+		Pen[1].CreatePen(PS_SOLID, BD_SIZE, hc);
+	} else {
+		Brush[0].lbColor = prop.pView->m_CharHeight < 10 ? hc : fc;
+		Brush[0].lbStyle = BS_SOLID;
+		Pen[0].CreatePen(PS_GEOMETRIC | PS_SOLID | PS_ENDCAP_FLAT | PS_JOIN_MITER, bd_size, &Brush[0]);
+		Brush[1].lbColor = hc;
+		Brush[1].lbStyle = BS_SOLID;
+		Pen[1].CreatePen(PS_GEOMETRIC | PS_SOLID | PS_ENDCAP_FLAT | PS_JOIN_MITER, bd_size, &Brush[1]);
+	}
 
 	x = rect.left;
+
+	DrawDCMode(pDC, prop);
+
+	pOldPen = pDC->SelectObject(&Pen[0]);
+
 	for ( n = i = 0 ; n < prop.size ; n++, i++ ) {
 		while ( prop.pSpace[i] == 0 )
 			i++;
 		w = prop.pSpace[i];
 
+#ifdef	USE_TEXTFRAME
 		if ( (prop.attr & ATT_FRAME) != 0 ) {
-			point[0].x = x; point[0].y = rect.top + 1;
-			point[1].x = x + w - 2; point[1].y = rect.top + 1;
-			point[2].x = x + w - 2; point[2].y = rect.bottom - 1;
-			point[3].x = x; point[3].y = rect.bottom - 1;
-			point[4].x = x; point[4].y = rect.top + 1;
-			pDC->SelectObject(&cPen);
+			point[0].x = x;
+			point[0].y = rect.top + bd_size / 2;
+			point[1].x = x + w - bd_size + (bd_size / 2);
+			point[1].y = rect.top + + bd_size / 2;
+			point[2].x = x + w - bd_size + (bd_size / 2);
+			point[2].y = rect.bottom - bd_size + bd_size / 2;
+			point[3].x = x + bd_size / 2;
+			point[3].y = rect.bottom - bd_size + bd_size / 2;
+			point[4].x = x + bd_size / 2;
+			point[4].y = rect.top + + bd_size / 2;
+			pDC->SelectObject(&Pen[0]);
 			pDC->Polyline(point, 5);
 		} else if ( (prop.attr & ATT_CIRCLE) != 0 ) {
-			c = w / 3;
-			point[0].x = x + c; point[0].y = rect.top + 1;
-			point[1].x = x + w - 2 - c; point[1].y = rect.top + 1;
-			point[2].x = x + w - 2; point[2].y = rect.top + 1 + c;
-			point[3].x = x + w - 2; point[3].y = rect.bottom - 1 - c;
-			point[4].x = x + w - 2 - c; point[4].y = rect.bottom - 1;
-			point[5].x = x + c; point[5].y = rect.bottom - 1;
-			point[6].x = x; point[6].y = rect.bottom - 1 - c;
-			point[7].x = x; point[7].y = rect.top + 1 + c;
-			point[8].x = x + c; point[8].y = rect.top + 1;
-			pDC->SelectObject(&cPen);
+			int c = w / 4;
+			point[0].x = x + bd_size / 2 + c;
+			point[0].y = rect.top + bd_size / 2;
+			point[1].x = x + w - bd_size + bd_size / 2 - c; 
+			point[1].y = rect.top + bd_size / 2;
+			point[2].x = x + w - bd_size + bd_size / 2; 
+			point[2].y = rect.top + bd_size / 2 + c;
+			point[3].x = x + w - bd_size + bd_size / 2; 
+			point[3].y = rect.bottom - bd_size + bd_size / 2 - c;
+			point[4].x = x + w - bd_size + bd_size / 2 - c; 
+			point[4].y = rect.bottom - bd_size + bd_size / 2;
+			point[5].x = x + bd_size / 2 + c;
+			point[5].y = rect.bottom - bd_size + bd_size / 2;
+			point[6].x = x + bd_size / 2; 
+			point[6].y = rect.bottom - 1 - c;
+			point[7].x = x + bd_size / 2; 
+			point[7].y = rect.top + bd_size / 2 + c;
+			point[8].x = x + bd_size / 2 + c; 
+			point[8].y = rect.top + bd_size / 2;
+			pDC->SelectObject(&Pen[0]);
 			pDC->Polyline(point, 9);
 		}
+#endif	// USE_TEXTFRAME
 
 		if ( (prop.attr & ATT_RSLINE) != 0 ) {
-			point[0].x = x + w - 1; point[0].y = rect.top;
-			point[1].x = x + w - 1; point[1].y = rect.bottom;
-			pDC->SelectObject(&cPen);
+			point[0].x = x + w - bd_size + bd_size / 2;
+			point[0].y = rect.top;
+			point[1].x = x + w - bd_size + bd_size / 2;
+			point[1].y = rect.bottom;
+			pDC->SelectObject(&Pen[0]);
 			pDC->Polyline(point, 2);
 		} else if ( (prop.attr & ATT_RDLINE) != 0 ) {
-			point[0].x = x + w - 1; point[0].y = rect.top;
-			point[1].x = x + w - 1; point[1].y = rect.bottom;
-			pDC->SelectObject(&cPen);
+			point[0].x = x + w - bd_size + bd_size / 2;
+			point[0].y = rect.top;
+			point[1].x = x + w - bd_size + bd_size / 2;
+			point[1].y = rect.bottom;
+			pDC->SelectObject(&Pen[0]);
 			pDC->Polyline(point, 2);
-			point[0].x = x + w - 3;
-			point[0].y = ((prop.attr & ATT_DOVER) != 0 ? (rect.top + 2) : rect.top);
-			point[1].x = x + w - 3;
-			point[1].y = ((prop.attr & ATT_DUNDER) != 0 ? (rect.bottom - 2) : (rect.bottom));
-			pDC->SelectObject(&hPen);
+			point[0].x = x + w - bd_size * 2 + bd_size / 2;
+			point[0].y = ((prop.attr & ATT_DOVER) != 0 ? (rect.top + bd_size) : rect.top);
+			point[1].x = x + w - bd_size * 2 + (bd_size / 2);
+			point[1].y = ((prop.attr & ATT_DUNDER) != 0 ? (rect.bottom - bd_size) : (rect.bottom));
+			pDC->SelectObject(&Pen[1]);
 			pDC->Polyline(point, 2);
 		}
 
 		if ( (prop.attr & ATT_LSLINE) != 0 ) {
-			point[0].x = x; point[0].y = rect.top;
-			point[1].x = x; point[1].y = rect.bottom;
-			pDC->SelectObject(&cPen);
+			point[0].x = x + bd_size / 2;
+			point[0].y = rect.top;
+			point[1].x = x + bd_size / 2;
+			point[1].y = rect.bottom;
+			pDC->SelectObject(&Pen[0]);
 			pDC->Polyline(point, 2);
 		} else if ( (prop.attr & ATT_LDLINE) != 0 ) {
-			point[0].x = x; point[0].y = rect.top;
-			point[1].x = x; point[1].y = rect.bottom;
-			pDC->SelectObject(&cPen);
+			point[0].x = x + bd_size / 2;
+			point[0].y = rect.top;
+			point[1].x = x + bd_size / 2;
+			point[1].y = rect.bottom;
+			pDC->SelectObject(&Pen[0]);
 			pDC->Polyline(point, 2);
-			point[0].x = x + 2;
-			point[0].y = ((prop.attr & ATT_DOVER) != 0 ? (rect.top + 2) : rect.top);
-			point[1].x = x + 2;
-			point[1].y = ((prop.attr & ATT_DUNDER) != 0 ? (rect.bottom - 2) : (rect.bottom));
-			pDC->SelectObject(&hPen);
+			point[0].x = x + bd_size + bd_size / 2;
+			point[0].y = ((prop.attr & ATT_DOVER) != 0 ? (rect.top + bd_size) : rect.top);
+			point[1].x = x + bd_size + bd_size / 2;
+			point[1].y = ((prop.attr & ATT_DUNDER) != 0 ? (rect.bottom - bd_size) : (rect.bottom));
+			pDC->SelectObject(&Pen[1]);
 			pDC->Polyline(point, 2);
 		}
 
 		x += w;
 	}
 
-//	pDC->SetROP2(OldRop2);
-	pDC->SelectObject(oPen);
+	pDC->SelectObject(pOldPen);
 }
 void CTextRam::DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop)
 {
@@ -7029,6 +7267,7 @@ void CTextRam::DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, Dra
 	int style  = (prop.attr & ATT_BOLD) != 0 && IsOptEnable(TO_RLBOLD) ? FONTSTYLE_BOLD : FONTSTYLE_NONE;
 	CSize sz;
 	CRect box;
+	int OldBkMode;
 
 	if ( (prop.attr & ATT_ITALIC) != 0 ) {
 		style |= FONTSTYLE_ITALIC;
@@ -7036,9 +7275,40 @@ void CTextRam::DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, Dra
 	}
 
 	pFontCache = pFontNode->GetFont(width, height, style, prop.font, this);
+
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	if ( prop.dcrt && DCMode(pDC) == RENDERDC_DIRECT2D ) {
+		box.left = rect.left;
+		box.top = rect.top;
+		box.bottom = rect.bottom;
+
+		for ( n = i = a = 0 ; n < prop.size ; n++, i++ ) {
+			while ( prop.pSpace[i] == 0 )
+				i++;
+			w = prop.pSpace[i];
+
+			str.Empty();
+			while ( a <= i )
+				str += prop.pText[a++];
+
+			if ( (over = pFontNode->OverCharStr(str)) != NULL ) {
+				box.right = box.left + w;
+
+				DrawDWrite(pDC, over, (int)_tcslen(over), box, fc, bc, FALSE, FALSE, DWRITE_TEXT_ALIGNMENT_CENTER, pFontCache, prop);
+			}
+
+			box.left += w;
+		}
+
+		return;
+	}
+#endif
+
+	DrawDCMode(pDC, prop);
+
 	pDC->SelectObject(pFontCache->m_pFont);
 	pDC->SetTextColor(fc);
-	int OldBkMode = pDC->SetBkMode(TRANSPARENT);
+	OldBkMode = pDC->SetBkMode(TRANSPARENT);
 
 	box.left = rect.left;
 	box.top = rect.top;
@@ -7071,25 +7341,22 @@ void CTextRam::DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, Dra
 void CTextRam::DrawRectangle(CDC* pDC, CRect& rect, COLORREF bc, int alpha)
 {
 #if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	// DCSwitch(pDC, RENDERDC_DIRECT2D);	// 事前に DCMode(pDC) == RENDERDC_DIRECT2D しているので無用
 	ID2D1SolidColorBrush *pBrush = NULL;
-	DCRT(pDC)->CreateSolidColorBrush(D2D1::ColorF(
-		(FLOAT)GetRValue(bc) / 255.0f, (FLOAT)GetGValue(bc) / 255.0f, (FLOAT)GetBValue(bc) / 255.0f, (FLOAT)alpha / 255.0f), &pBrush);
-	D2D_RECT_F rectF;
-	rectF.left   = (FLOAT)rect.left   * 96.0f / (FLOAT)SCREEN_DPI_Y;
-	rectF.right  = (FLOAT)rect.right  * 96.0f / (FLOAT)SCREEN_DPI_Y;
-	rectF.top    = (FLOAT)rect.top    * 96.0f / (FLOAT)SCREEN_DPI_Y;
-	rectF.bottom = (FLOAT)rect.bottom * 96.0f / (FLOAT)SCREEN_DPI_Y;
+	DCRT(pDC)->CreateSolidColorBrush(D2D1::ColorF((FLOAT)GetRValue(bc) / 255.0f, (FLOAT)GetGValue(bc) / 255.0f, (FLOAT)GetBValue(bc) / 255.0f, (FLOAT)alpha / 255.0f), &pBrush);
+	D2D_RECT_F rectF = { (FLOAT)rect.left, (FLOAT)rect.top, (FLOAT)rect.right, (FLOAT)rect.bottom };
 	DCRT(pDC)->FillRectangle(rectF, pBrush); 
 	pBrush->Release();
 #endif	// USE_DIRECT2D
 }
 void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 {
-	BOOL bRevs = FALSE;
+	int  nRevs = 0;
 	BOOL bEraBack = FALSE;
 	COLORREF fcol, bcol, tcol;
 	CGrapWnd *pWnd;
 	int vbofs = 0;
+	int overDraw = 0;
 
 	// Text Color & Back Color
 	if ( (prop.attr & ATT_BOLD) != 0 && (!IsOptEnable(TO_RLBOLD) || IsOptEnable(TO_RLBOLDHC)) ) {
@@ -7109,34 +7376,22 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 	else
 		bcol = m_ColTab[prop.bcol];
 
-	if ( (prop.attr & ATT_REVS) != 0 ) {
-		tcol = fcol;
-		fcol = bcol;
-		bcol = tcol;
-		bRevs = TRUE;
-	}
+	if ( (prop.attr & ATT_REVS) != 0 )
+		nRevs ^= 1;
 
 	if ( (prop.attr & ATT_BLINK) != 0 ) {
 		if ( !prop.print )
 			prop.pView->AddDeleyInval((prop.aclock / BLINK_TIME + 1) * BLINK_TIME, rect);
 
-		if ( ((prop.aclock / BLINK_TIME) & 1) != 0 ) {
-			tcol = fcol;
-			fcol = bcol;
-			bcol = tcol;
-			bRevs = TRUE;
-		}
+		if ( ((prop.aclock / BLINK_TIME) & 1) != 0 )
+			nRevs ^= 1;
 
 	} else if ( (prop.attr & ATT_SBLINK) != 0 ) {
 		if ( !prop.print )
 			prop.pView->AddDeleyInval((prop.aclock / SBLINK_TIME + 1) * SBLINK_TIME, rect);
 
-		if ( ((prop.aclock / SBLINK_TIME) & 1) != 0 ) {
-			tcol = fcol;
-			fcol = bcol;
-			bcol = tcol;
-			bRevs = TRUE;
-		}
+		if ( ((prop.aclock / SBLINK_TIME) & 1) != 0 )
+			nRevs ^= 1;
 	}
 
 	if ( (prop.attr & ATT_SECRET) != 0 )
@@ -7145,35 +7400,57 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 	if ( (prop.attr & ATT_HALF) != 0 )
 		fcol = RGB((GetRValue(fcol) + GetRValue(bcol)) / 2, (GetGValue(fcol) + GetGValue(bcol)) / 2, (GetBValue(fcol) + GetBValue(bcol)) / 2);
 
+	if ( IsOptEnable(TO_DECSCNM) )
+		nRevs ^= 1;
+
+	if ( nRevs != 0 ) {
+		tcol = fcol;
+		fcol = bcol;
+		bcol = tcol;
+	}
+
 	if ( (prop.attr & ATT_SMARK) != 0 ) {
 		tcol = fcol;
 		fcol = bcol;
 		bcol = tcol;
-		if ( bRevs )
+		if ( nRevs != 0 )
 			bcol = RGB((GetRValue(fcol) + GetRValue(bcol)) / 2, (GetGValue(fcol) + GetGValue(bcol)) / 2, (GetBValue(fcol) + GetBValue(bcol)) / 2);
 		bcol = RGB((GetRValue(m_MarkColor) + GetRValue(bcol)) / 2, (GetGValue(m_MarkColor) + GetGValue(bcol)) / 2, (GetBValue(m_MarkColor) + GetBValue(bcol)) / 2);
-		bRevs = TRUE;
+		nRevs = 1;
 	}
 
 	if ( (prop.attr & ATT_CLIP) != 0 ) {
 		tcol = fcol;
 		fcol = bcol;
 		bcol = tcol;
-		if ( bRevs )
+		if ( nRevs != 0 ) 
 			bcol = RGB((GetRValue(fcol) + GetRValue(bcol)) / 2, (GetGValue(fcol) + GetGValue(bcol)) / 2, (GetBValue(fcol) + GetBValue(bcol)) / 2);
-		bRevs = TRUE;
+		nRevs = 1;
 	}
 
 	if ( IsOptEnable(TO_RLBACKHALF) && prop.pView->GetFocus()->GetSafeHwnd() != prop.pView->GetSafeHwnd() )
 		fcol = RGB((GetRValue(fcol) * 2 + GetRValue(bcol)) / 3, (GetGValue(fcol) * 2 + GetGValue(bcol)) / 3, (GetBValue(fcol) * 2 + GetBValue(bcol)) / 3);
 
-	if ( bRevs || prop.bcol != m_DefAtt.std.bcol )
+	if (prop.pView->m_VisualBellFlag != 0 && !IsOptEnable(TO_RLVBELLLINE)) {
+		fcol ^= 0xFFFFFF;
+		bcol ^= 0xFFFFFF;
+		nRevs = 1;
+	}
+
+	if ( nRevs != 0 || prop.bcol != m_DefAtt.std.bcol )
 		bEraBack = TRUE;
+
+	if ( ATT_EXTYPE(prop.attr) == ATT_OVERCHAR )
+		overDraw |= 001;
+	if ( (prop.attr & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_SUNDER | ATT_STRESS)) != 0 )
+		overDraw |= 002;
+	if ( (prop.attr & (ATT_FRAME | ATT_CIRCLE | ATT_RSLINE | ATT_RDLINE | ATT_LSLINE | ATT_LDLINE)) != 0 )
+		overDraw |= 004;
 
 	if ( prop.pView->m_HaveBack ) {	// pView->m_pBitmap != NULL ) {
 		if ( bEraBack ) {
 #if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
-			if (prop.dcrt && DCMode(pDC) == RENDERDC_DIRECT2D) {
+			if ( overDraw == 0 && prop.dcrt && DCMode(pDC) == RENDERDC_DIRECT2D) {
 				DrawRectangle(pDC, rect, bcol, m_BitMapBlend);
 			} else 
 #endif	// USE_DIRECT2D
@@ -7237,14 +7514,14 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 		} else if ( bEraBack )
 			pDC->FillSolidRect(rect, bcol);
 
-		if ( bRevs )
+		if ( nRevs != 0 )
 			pDC->InvertRect(rect);
 
 	} else if ( prop.bank < 0 || prop.bank >= m_FontTab.GetSize() ) {
 		// Blank Draw
 		if ( bEraBack ) {
 #if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
-			if ( prop.dcrt && DCMode(pDC) == RENDERDC_DIRECT2D ) {
+			if ( overDraw == 0 && prop.dcrt && DCMode(pDC) == RENDERDC_DIRECT2D ) {
 				DrawRectangle(pDC, rect, bcol, 255);
 			} else 
 #endif	// USE_DIRECT2D
@@ -7261,34 +7538,24 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, DrawWork &prop)
 
 	} else {
 		// Text Draw
-		DrawChar(pDC, rect, fcol, bcol, bEraBack, bRevs, prop);
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+		if ( bEraBack && overDraw != 0 ) {
+			DrawDCMode(pDC, prop);
+			pDC->FillSolidRect(rect, bcol);
+			bEraBack = FALSE;
+		}
+#endif
+		DrawChar(pDC, rect, fcol, bcol, bEraBack, nRevs != 0 ? TRUE : FALSE, prop);
 	}
 
-	if ( ATT_EXTYPE(prop.attr) == ATT_OVERCHAR ) {
-		DrawDCMode(pDC, prop);
+	if ( (overDraw & 001) != 0 )	// ATT_EXTYPE(prop.attr) == ATT_OVERCHAR ) {
 		DrawOverChar(pDC, rect, fcol, bcol, prop);
-	}
 
-	if ( (prop.attr & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_SUNDER | ATT_STRESS)) != 0 ) {
-		DrawDCMode(pDC, prop);
+	if ( (overDraw & 002) != 0 )	// (prop.attr & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_SUNDER | ATT_STRESS)) != 0 ) {
 		DrawHoriLine(pDC, rect, fcol, bcol, prop);
-	}
 
-	if ( (prop.attr & (ATT_FRAME | ATT_CIRCLE | ATT_RSLINE | ATT_RDLINE | ATT_LSLINE | ATT_LDLINE)) != 0 ) {
-		DrawDCMode(pDC, prop);
+	if ( (overDraw & 004) != 0 )	// (prop.attr & (ATT_FRAME | ATT_CIRCLE | ATT_RSLINE | ATT_RDLINE | ATT_LSLINE | ATT_LDLINE)) != 0 ) {
 		DrawVertLine(pDC, rect, fcol, bcol, prop);
-	}
-
-	//// リバースチェック
-	bRevs  = (IsOptEnable(TO_DECSCNM) ? 1 : 0);
-
-	if ( prop.pView->m_VisualBellFlag != 0 && !IsOptEnable(TO_RLVBELLLINE) )
-		bRevs ^= 1;
-
-	if ( bRevs ) {
-		DrawDCMode(pDC, prop);
-		pDC->InvertRect(rect);
-	}
 }
 void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView, BOOL bPrint)
 {
@@ -7321,7 +7588,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 	prop.emode |= (IsOptEnable(TO_RLDELYEMOJI) ? 2 : 0);
 
 #if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
-	prop.dcrt = DCCheck(pDC);
+	prop.dcrt = pDC->IsKindOf(RUNTIME_CLASS(CRenderDC));
 #endif
 
 	if ( pView->m_ClipFlag > 1 ) {
@@ -7392,8 +7659,9 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 				sx--;
 		}
 		if ( ex < m_Cols && top != NULL && (top[ex].m_Vram.attr & ATT_RTOL) != 0 ) {
-			while ( (ex + 1) < m_Cols && (top[ex + 1].m_Vram.attr & ATT_RTOL) != 0 )
+			do {
 				ex++;
+			} while ( ex < m_Cols && (top[ex].m_Vram.attr & ATT_RTOL) != 0 );
 		}
 
 		prop.cols = work.cols = sx;
@@ -9336,10 +9604,8 @@ void CTextRam::DISPVRAM(int sx, int sy, int w, int h)
 }
 void CTextRam::DISPRECT(int sx, int sy, int ex, int ey)
 {
-	int y;
-
 	if ( sx > 0 ) {
-		for ( y = sy ; y < ey ; y++ ) {
+		for ( int y = sy ; y < ey ; y++ ) {
 			if ( IS_2BYTE(GETVRAM(sx, y)->m_Vram.mode) ) {
 				sx--;
 				break;
@@ -9347,7 +9613,7 @@ void CTextRam::DISPRECT(int sx, int sy, int ex, int ey)
 		}
 	}
 	if ( ex < m_Cols ) {
-		for ( y = sy ; y < ey ; y++ ) {
+		for ( int y = sy ; y < ey ; y++ ) {
 			if ( IS_1BYTE(GETVRAM(ex, y)->m_Vram.mode) ) {
 				ex++;
 				break;

@@ -247,10 +247,17 @@ public:
 	inline class CMainFrame *GetMainWnd() { return (class CMainFrame *)AfxGetMainWnd(); }
 	inline class CRLoginApp *GetApp() { return (class CRLoginApp *)AfxGetApp(); }
 
-#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+#if defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
 	ID2D1HwndRenderTarget *m_pHwndRT;
+	ID2D1BitmapRenderTarget *m_pDCRT;
 	ID2D1GdiInteropRenderTarget *m_pGDIRT;
-#endif
+  #ifdef RENDERDC_FLASH
+	ID2D1BitmapRenderTarget *m_pBMRT;
+  #endif
+  #ifdef USE_DIRECT3D
+	ID2D1DeviceContext4 *m_pCtx4;
+  #endif // USE_DIRECT3D
+#endif // USE_DIRECT2D
 
 protected:
 	int OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);

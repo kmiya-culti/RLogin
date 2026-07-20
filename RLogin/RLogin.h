@@ -204,9 +204,31 @@ public:
 #ifdef	USE_DIRECTWRITE
 	ID2D1Factory *m_pD2DFactory;
 	IDWriteFactory *m_pDWriteFactory;
-#if defined(USE_DIRECT2D) && USE_DWRITE >= 2
+
+  #ifdef USE_DIRECT2D
+	IDWriteGdiInterop *m_pGdiInterop;
 	IDWriteFactory2 *m_pDWriteFactory2;
-#endif
+	BOOL m_bGdiOnly;
+  #endif // USE_DIRECT2D
+
+  #ifdef USE_DIRECT3D
+	D3D_FEATURE_LEVEL m_D3DFeatureLevel;
+	ID3D11DeviceContext2 *m_pD3DContext2;
+	ID3D11Device2 *m_pD3DDevice2;
+
+	IDXGIDevice1 *m_pDXGIDevice1;
+	IDXGIAdapter *m_pDXGIAdapter;
+	IDXGIFactory2 *m_pDXGIFactory2;
+
+	ID2D1Factory5 *m_pD2DFactory5;
+	ID2D1Device4 *m_pD2DDevice4;
+
+	IDWriteFactory4 *m_pDwriteFactory4;
+
+	BOOL D3DInit();
+	void D3DClear();
+  #endif // USE_DIRECT3D
+
 	ID2D1DCRenderTarget *m_pDCRT;
 	CEmojiImage *m_pEmojiList[EMOJI_HASH];
 	CString m_EmojiFontName;
@@ -402,6 +424,8 @@ public:
 	afx_msg void OnSecporicy();
 	afx_msg void OnSshSig();
 	afx_msg void OnUpdateEmoji(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnGdiOnly();
+	afx_msg void OnUpdateGdiOnly(CCmdUI *pCmdUI);
 	DECLARE_MESSAGE_MAP()
 };
 

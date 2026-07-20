@@ -592,8 +592,8 @@ public:
 	CRect m_ScreenPos;
 
 	BOOL LoadFile(LPCTSTR filename);
-	CBitmap *GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, int Alpha = 255, int Style = 0, CWnd *pWnd = NULL);
-	CBitmap *GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, class CTextBitMap *pTextBitMap, LPCTSTR title, int Alpha, int Style, CWnd *pWnd);
+	CBitmap *GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, int Alpha = 255, int Style = 0, CWnd *pWnd = NULL, BOOL *pUpdate = NULL);
+	CBitmap *GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, class CTextBitMap *pTextBitMap, LPCTSTR title, int Alpha, int Style, CWnd *pWnd = NULL, BOOL *pUpdate = NULL);
 
 	static int GifTrnsIndex(LPBYTE lpBuf, int len);
 
@@ -609,6 +609,7 @@ typedef struct _FontSizeTab {
 	int Offset;
 	int Fixed;
 	int DHeight;
+	int Aspect;
 } FONTSIZETAB;
 
 class CFontChacheNode : public CObject
@@ -624,7 +625,8 @@ public:
 	int m_Quality;
 	BOOL m_bFixed;
 	int m_Offset;
-	int m_DHeight;
+	FLOAT m_DHeight;
+	int m_Aspect;
 
 	FONTSIZETAB *FontSizeCheck(LPCTSTR pFontName);
 	CFont *Open(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);
@@ -1340,6 +1342,9 @@ public:
 	BOOL LoadResBitmap(int nId, int dpiX, int dpiY, COLORREF backCol);
 	BOOL CopyBitmap(CBitmap *pSrcBitmap);
 	BOOL CreateMaskBitmap(CBitmap *pSrcBitmap, COLORREF backCol);
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	static ID2D1Bitmap *Copy2D1Bitmap(ID2D1RenderTarget *pRT, CBitmap *pSrcBitmap, BOOL bAlpha, COLORREF TransColor);
+#endif
 };
 
 class CCodeFlag : public CObject
@@ -1428,18 +1433,23 @@ public:
 
 #define	RENDERDC_GDI		0
 #define	RENDERDC_DIRECT2D	1
-#define	RENDERDC_PUSH		2
-#define	RENDERDC_POP		3
+
+// RENDERDC_FLASH‚ð’è‹`‚·‚é‚ÆGetDC/ReleaseDC‚ðÅ¬ŒÀ‚É—}‚¦‚é‚±‚Æ‚ªo—ˆ‚é
+// ³‚µBeginDraw/EndDraw‚ÆDrawBitmap‚ª‘‚¦‚é‚ª‚Ç‚¿‚ç‚ª—Ç‚¢‚©ŠÂ‹«‚É‚æ‚èˆÙ‚È‚é‰Â”\«‚ª‚ ‚é
+#define	RENDERDC_FLASH		2
 
 #define	DCSwitch(pDC, mode)		((CRenderDC *)pDC)->SwitchMode(mode)
-#define	DCRT(pDC)				((CRenderDC *)pDC)->m_pHwndRT
 #define	DCMode(pDC)				((CRenderDC *)pDC)->m_Mode
 
-inline BOOL DCCheck(CDC *pDC)
-{
-	CRuntimeClass *pClass = pDC->GetRuntimeClass();
-	return (strcmp("CRenderDC", pClass->m_lpszClassName) == 0 ? TRUE : FALSE);
-}
+#ifdef RENDERDC_FLASH
+  #define DCRT(pDC)				((CRenderDC *)pDC)->m_pBMRT
+#else
+  #define DCRT(pDC)				((CRenderDC *)pDC)->m_pDCRT
+#endif
+
+#ifdef USE_DIRECT3D
+  #define DCCTX4(pDC)			((CRenderDC *)pDC)->m_pCtx4
+#endif // USE_DIRECT3D
 
 class CRenderDC : public CDC
 {
@@ -1453,14 +1463,20 @@ public:
 	PAINTSTRUCT m_ps;	// CPaintDC compatible
 
 public:
-	ID2D1HwndRenderTarget *m_pHwndRT;
+	ID2D1BitmapRenderTarget *m_pDCRT;
 	ID2D1GdiInteropRenderTarget *m_pGDIRT;
-	D2D1_LAYER_PARAMETERS m_layerParam;
-	CList<ID2D1Layer *, ID2D1Layer *> m_Layer;
-	int m_bkMode;
+
+#ifdef RENDERDC_FLASH
+	ID2D1BitmapRenderTarget *m_pBMRT;
+	int m_Stat;
+#endif // RENDERDC_FLASH
+
+#ifdef USE_DIRECT3D
+	ID2D1DeviceContext4 *m_pCtx4;
+#endif // USE_DIRECT3D
 
 	int m_Mode;
+	int m_bkMode;
 	BOOL SwitchMode(int mode);
-
 };
 #endif

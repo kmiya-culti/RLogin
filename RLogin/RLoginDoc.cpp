@@ -118,6 +118,7 @@ CRLoginDoc::CRLoginDoc()
 	m_SockSyncChar = (-1);
 	m_bPfdCheck = FALSE;
 	m_pFifoMonWnd = NULL;
+	m_bSaveCheck = FALSE;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -298,9 +299,20 @@ BOOL CRLoginDoc::DoFileSave()
 
 	return FALSE;
 }
+BOOL CRLoginDoc::SaveModified()
+{
+	if ( m_bSaveCheck )
+		return FALSE;
+
+	m_bSaveCheck = TRUE;
+	BOOL rt = CDocument::SaveModified();
+	m_bSaveCheck = FALSE;
+
+	return rt;
+}
 void CRLoginDoc::OnFileClose()
 {
-	if ( ((CMainFrame *)::AfxGetMainWnd())->IsTimerIdleBusy() )
+	if ( m_bSaveCheck || ((CMainFrame *)::AfxGetMainWnd())->IsTimerIdleBusy() )
 		return;
 
 	if ( m_pSock != NULL && m_pSock->m_bConnect ) {

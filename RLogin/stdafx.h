@@ -7,7 +7,7 @@
 #define	USE_GOZI			5	// GOZI Version
 #define	USE_DWMAPI				// ガラス効果を有効にする
 #define	USE_JUMPLIST			// Windows7のジャンプリストを有効
-#define	USE_TEXTFRAME			// 囲み文字を有効にする
+//#define	USE_TEXTFRAME			// 囲み文字を有効にする
 #define	USE_DIRECTWRITE			// DirectWriteを使用して絵文字表示
 //#define	USE_DEBUGLOG		// プログラムレベルでデバッグログを作成
 #define	USE_OLE					// OLEを使用したファイル操作を有効にする
@@ -28,6 +28,7 @@
 //#define	USE_EXTESCSTR		// DECDMACで拡張エスペープ文字を有効にする
 //#define	USE_PRIPROEXT		// プライベートプロファイルのサイズ制限を拡張
 #define	USE_DIRECT2D			// Direct2DのGDI_COMPATIBLEをテスト
+#define	USE_DIRECT3D			// Direct3D上の2Dをテスト
 
 #ifndef	USE_NOENDIAN
 #define	LITTLE_ENDIAN		0
@@ -106,6 +107,20 @@
   #define _WIN32_IE			0x0600		// これを IE の他のバージョン向けに適切な値に変更してください。
 #endif
 
+#if _MSC_VER < _MSC_VER_VS17
+  #ifdef USE_DIRECT2D
+    #undef USE_DIRECT2D
+  #endif
+  #ifdef USE_DIRECT3D
+    #undef USE_DIRECT3D
+  #endif
+#endif
+
+#ifdef USE_DIRECT3D
+  #undef NTDDI_VERSION
+  #define NTDDI_VERSION NTDDI_WIN10_RS1
+#endif
+
 // 一般的で無視しても安全な MFC の警告メッセージの一部の非表示を解除します。
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// 一部の CString コンストラクタは明示的です。
 #define _AFX_ALL_WARNINGS
@@ -145,22 +160,24 @@
 #pragma warning(disable : 4996)		// openssl legacy warningを消す
 
 #ifdef	USE_DIRECTWRITE
-  #include <d2d1.h>
-  #include <d2d1helper.h>
-  #include <wincodec.h>
-
-  #ifdef USE_DIRECT2D
-    #if _MSC_VER < _MSC_VER_VS17
-	  #define USE_DWRITE 0
-      #include <dwrite.h>
-    #else
-	  #define USE_DWRITE 2
-      #include <dwrite_2.h>
-    #endif
+  #ifdef USE_DIRECT3D
+    #include <d3d11_4.h>
+    #include <d2d1_3.h>
+    #include <dwrite_3.h>
+    #include <d2d1helper.h>
+    #include <wincodec.h>
   #else
-    #include <dwrite.h>
-  #endif
-#endif
+    #include <d2d1.h>
+    #include <d2d1helper.h>
+    #include <wincodec.h>
+
+    #ifdef USE_DIRECT2D
+      #include <dwrite_2.h>
+    #else
+      #include <dwrite.h>
+    #endif // USE_DIRECT2D
+  #endif // USE_DIRECT3D
+#endif // USE_DIRECTWRITE
 
 #include <sapi.h>
 #include <atlimage.h>

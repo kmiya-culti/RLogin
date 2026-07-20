@@ -127,6 +127,7 @@ public:
 	BOOL m_bSleepDisable;
 	int m_SockSyncChar;
 	BOOL m_bPfdCheck;
+	BOOL m_bSaveCheck;
 
 	static void LoadOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
 	static void SaveOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
@@ -204,6 +205,7 @@ protected:
 	virtual void DeleteContents();
 	virtual BOOL OnNewDocument();
 	virtual BOOL OnOpenDocument(LPCTSTR lpszPathName);
+	virtual BOOL SaveModified();
 
 public:
 	virtual BOOL DoFileSave();

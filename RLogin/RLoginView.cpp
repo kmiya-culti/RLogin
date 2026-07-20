@@ -369,10 +369,17 @@ CRLoginView::CRLoginView()
 	m_HaveBack = FALSE;
 	m_bUseUpdateCall = FALSE;
 
-#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+#if defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
 	m_pHwndRT = NULL;
+	m_pDCRT = NULL;
 	m_pGDIRT = NULL;
-#endif
+  #ifdef RENDERDC_FLASH
+	m_pBMRT = NULL;
+  #endif // RENDERDC_FLASH
+  #ifdef USE_DIRECT3D
+	m_pCtx4 = NULL;
+  #endif // USE_DIRECT3D
+#endif // USE_DIRECT2D
 }
 
 CRLoginView::~CRLoginView()
@@ -383,16 +390,22 @@ CRLoginView::~CRLoginView()
 	if ( m_pCellSize != NULL )
 		delete [] m_pCellSize;
 
-#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
-	if ( m_pGDIRT != NULL ) {
+#if defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+  #ifdef USE_DIRECT3D
+	if ( m_pCtx4 != NULL )
+		m_pCtx4->Release();
+  #endif
+  #ifdef RENDERDC_FLASH
+	if ( m_pBMRT != NULL )
+		m_pBMRT->Release();
+  #endif // RENDERDC_FLASH
+	if ( m_pGDIRT != NULL )
 		m_pGDIRT->Release();
-		m_pGDIRT = NULL;
-	}
-	if ( m_pHwndRT != NULL ) {
+	if ( m_pDCRT != NULL )
+		m_pDCRT->Release();
+	if ( m_pHwndRT != NULL )
 		m_pHwndRT->Release();
-		m_pHwndRT = NULL;
-	}
-#endif
+#endif // USE_DIRECT2D
 }
 
 BOOL CRLoginView::PreCreateWindow(CREATESTRUCT& cs)
@@ -435,6 +448,9 @@ void CRLoginView::OnDraw(CDC* pDC)
 	CBitmap *pOldBitMap;
 	CRLoginDoc* pDoc = GetDocument();
 	CRect frame, drawbox, rect;
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	BOOL bDCRT = pDC->IsKindOf(RUNTIME_CLASS(CRenderDC));
+#endif
 
 	GetClientRect(frame);
 	drawbox = frame;
@@ -460,29 +476,32 @@ void CRLoginView::OnDraw(CDC* pDC)
 
 		if ( m_pBitmap != NULL ) {
 #if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
-			TempDC.CreateCompatibleDC(pDC);
-			pOldBitMap = (CBitmap *)TempDC.SelectObject(m_pBitmap);
-			pDC->BitBlt(drawbox.left, drawbox.top, drawbox.Width(), drawbox.Height(), &TempDC, drawbox.left, drawbox.top, SRCCOPY);
-			TempDC.SelectObject(pOldBitMap);
-			pDC->SetBkMode(TRANSPARENT);
-			m_HaveBack = TRUE;
-#else
-			// 背景画像を描画 WorkDCに仮描画を準備（チラつき防止の為）
-			workDC.CreateCompatibleDC(pDC);
-			workMap.CreateCompatibleBitmap(pDC, frame.Width(), frame.Height());
-			pOldworkMap = (CBitmap *)workDC.SelectObject(&workMap);
-
-			pSaveDC = pDC;
-			pDC = &workDC;
-
-			TempDC.CreateCompatibleDC(pDC);
-			pOldBitMap = (CBitmap *)TempDC.SelectObject(m_pBitmap);
-
-			pDC->BitBlt(drawbox.left, drawbox.top, drawbox.Width(), drawbox.Height(), &TempDC, drawbox.left, drawbox.top, SRCCOPY);
-			TempDC.SelectObject(pOldBitMap);
-			pDC->SetBkMode(TRANSPARENT);
-			m_HaveBack = TRUE;
+			if ( bDCRT ) {
+				TempDC.CreateCompatibleDC(pDC);
+				pOldBitMap = (CBitmap*)TempDC.SelectObject(m_pBitmap);
+				pDC->BitBlt(drawbox.left, drawbox.top, drawbox.Width(), drawbox.Height(), &TempDC, drawbox.left, drawbox.top, SRCCOPY);
+				TempDC.SelectObject(pOldBitMap);
+				pDC->SetBkMode(TRANSPARENT);
+				m_HaveBack = TRUE;
+			} else
 #endif
+			{
+				// 背景画像を描画 WorkDCに仮描画を準備（チラつき防止の為）
+				workDC.CreateCompatibleDC(pDC);
+				workMap.CreateCompatibleBitmap(pDC, frame.Width(), frame.Height());
+				pOldworkMap = (CBitmap*)workDC.SelectObject(&workMap);
+
+				pSaveDC = pDC;
+				pDC = &workDC;
+
+				TempDC.CreateCompatibleDC(pDC);
+				pOldBitMap = (CBitmap*)TempDC.SelectObject(m_pBitmap);
+
+				pDC->BitBlt(drawbox.left, drawbox.top, drawbox.Width(), drawbox.Height(), &TempDC, drawbox.left, drawbox.top, SRCCOPY);
+				TempDC.SelectObject(pOldBitMap);
+				pDC->SetBkMode(TRANSPARENT);
+				m_HaveBack = TRUE;
+			}
 		} else if ( !ExDwmEnable && ((CMainFrame *)::AfxGetMainWnd())->m_bGlassStyle ) {
 			// 透過ウィンドウの背景描画
 			PaintDesktop(pDC->GetSafeHdc());
@@ -497,6 +516,11 @@ void CRLoginView::OnDraw(CDC* pDC)
 	else if ( !m_HaveBack )
 		pDC->FillSolidRect(frame, GetSysColor(COLOR_APPWORKSPACE));
 
+#ifdef RENDERDC_FLASH
+	if ( bDCRT )
+		DCSwitch(pDC, RENDERDC_FLASH);
+#endif // RENDERDC_FLASH
+
 	// 仮描画であれば実際に描画
 	if ( pSaveDC != NULL ) {
 		pDC = pSaveDC;
@@ -506,6 +530,10 @@ void CRLoginView::OnDraw(CDC* pDC)
 
 	// Tekの重ね書き
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) ) {
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+		if ( bDCRT && !DCSwitch(pDC, RENDERDC_GDI) )
+			return;
+#endif
 		if ( m_TekBitmap.m_hObject != NULL ) {
 			BITMAP mapinfo;
 			m_TekBitmap.GetBitmap(&mapinfo);
@@ -533,12 +561,20 @@ void CRLoginView::OnDraw(CDC* pDC)
 
 #if		USE_GOZI == 1 || USE_GOZI == 2
 	if ( m_GoziView ) {
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+		if ( bDCRT && !DCSwitch(pDC, RENDERDC_GDI) )
+			return;
+#endif
 		CMainFrame *pMain = GetMainWnd();
 		if ( pMain != NULL && pMain->m_ImageGozi.m_hImageList != NULL )
 			pMain->m_ImageGozi.Draw(pDC, m_GoziStyle >> 4, m_GoziPos, ILD_NORMAL);
 	}
 #elif	USE_GOZI == 3 || USE_GOZI == 4 || USE_GOZI == 5
 	if ( m_GoziView ) {
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+		if ( bDCRT && !DCSwitch(pDC, RENDERDC_GDI) )
+			return;
+#endif
 		CMainFrame *pMain = GetMainWnd();
 		for ( int n = 0 ; n < m_GoziMax ; n++ ) {
 			if ( pMain != NULL && pMain->m_ImageGozi.m_hImageList != NULL )
@@ -557,6 +593,10 @@ void CRLoginView::OnDraw(CDC* pDC)
 
 	// カレットを描画
 	if ( !pDC->IsPrinting() && (m_CaretFlag & FGCARET_CREATE) != 0 && (m_CaretFlag & FGCARET_DRAW) != 0 && rect.IntersectRect(m_CaretRect, drawbox) ) {
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+		if ( bDCRT && !DCSwitch(pDC, RENDERDC_GDI) )
+			return;
+#endif
 		if (TempDC.m_hDC == NULL)
 			TempDC.CreateCompatibleDC(pDC);
 
@@ -802,6 +842,38 @@ void CRLoginView::InvalidateTextRect(CRect &rect)
 {
 	int height;
 	CRLoginDoc *pDoc = GetDocument();
+
+	if ( rect.left > 0 ) {
+		int min = rect.left;
+		for ( int y = rect.top ; y < rect.bottom ; y++ ) {
+			int x = rect.left;
+			CCharCell* vp = pDoc->m_TextRam.GETVRAM(0, y);
+			if ( (vp[x].m_Vram.attr & ATT_RTOL) != 0 ) {
+				while ( x > 0 && (vp[x- 1].m_Vram.attr & ATT_RTOL) != 0 )
+					x--;
+			}
+			if ( min > x )
+				min = x;
+		}
+		if ( rect.left > min )
+			rect.left = min;
+	}
+	if ( rect.right < m_Cols ) {
+		int max = rect.right;
+		for (int y = rect.top; y < rect.bottom ; y++) {
+			int x = rect.right;
+			CCharCell* vp = pDoc->m_TextRam.GETVRAM(0, y);
+			if ( (vp[x].m_Vram.attr & ATT_RTOL) != 0 ) {
+				do {
+					x++;
+				} while ( x < m_Cols && (vp[x].m_Vram.attr & ATT_RTOL) != 0 );
+			}
+			if ( max < x )
+				max = x;
+		}
+		if ( rect.right < max )
+			rect.right = max;
+	}
 
 	rect.left   = m_Width  * rect.left  / m_Cols + (rect.left == 0 ? 0 : pDoc->m_TextRam.m_ScrnOffset.left);
 	rect.right  = m_Width  * rect.right / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left + (rect.right >= (pDoc->m_TextRam.m_Cols - 1) ? pDoc->m_TextRam.m_ScrnOffset.right : 0);
@@ -1465,7 +1537,30 @@ void CRLoginView::OnSize(UINT nType, int cx, int cy)
 #if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
 	if ( m_pHwndRT != NULL )
 		m_pHwndRT->Resize(D2D1::SizeU(cx, cy));
-#endif
+
+  #ifdef USE_DIRECT3D
+	if ( m_pCtx4 != NULL ) {
+		m_pCtx4->Release();
+		m_pCtx4 = NULL;
+	}
+  #endif // USE_DIRECT3D
+
+  #ifdef RENDERDC_FLASH
+	if ( m_pBMRT != NULL ) {
+		m_pBMRT->Release();
+		m_pBMRT = NULL;
+	}
+  #endif // RENDERDC_FLASH
+
+	if ( m_pGDIRT != NULL ) {
+		m_pGDIRT->Release();
+		m_pGDIRT = NULL;
+	}
+	if ( m_pDCRT != NULL ) {
+		m_pDCRT->Release();
+		m_pDCRT = NULL;
+	}
+#endif // USE_DIRECT2D
 
 	CString tmp;
 	CRLoginDoc *pDoc = GetDocument();
@@ -1659,18 +1754,23 @@ RECALL:
 			BOOL bText = (pDoc->m_TextRam.m_TextBitMap.m_bEnable && !pDoc->m_TextRam.m_TextBitMap.m_Text.IsEmpty() ? TRUE : FALSE);
 
 			pDoc->EntryText(file, NULL, FALSE, &pDoc->m_TextRam.m_BitMapFileFixed);
-			if ( bText )
-				pDoc->EntryText(text, NULL, TRUE, &pDoc->m_TextRam.m_TextBitMap.m_TextFixed);
 
-			CDC *pDC = GetDC();
-			GetClientRect(rect);
-			m_BmpFile.LoadFile(file);
-			m_pBitmap = m_BmpFile.GetBitmap(pDC, rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
-			if ( bText )
-				m_pBitmap = m_BmpFile.GetTextBitmap(pDC, rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), &(pDoc->m_TextRam.m_TextBitMap), text, pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
-			if ( m_BmpFile.m_Style == MAPING_DESKTOP )
-				((CMainFrame *)::AfxGetMainWnd())->m_UseBitmapUpdate = TRUE;
-			ReleaseDC(pDC);
+			if ( m_BmpFile.LoadFile(file) || bText ) {
+				CDC *pDC = GetDC();
+				GetClientRect(rect);
+
+				if ( bText ) {
+					pDoc->EntryText(text, NULL, TRUE, &pDoc->m_TextRam.m_TextBitMap.m_TextFixed);
+					m_pBitmap = m_BmpFile.GetTextBitmap(pDC, rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), &(pDoc->m_TextRam.m_TextBitMap), text, pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
+				} else
+					m_pBitmap = m_BmpFile.GetBitmap(pDC, rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
+
+				if ( m_BmpFile.m_Style == MAPING_DESKTOP )
+					((CMainFrame *)::AfxGetMainWnd())->m_UseBitmapUpdate = TRUE;
+
+				ReleaseDC(pDC);
+			} else
+				m_pBitmap = NULL;
 		} else
 			m_pBitmap = NULL;
 
@@ -3074,7 +3174,7 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 			msg.Format(_T("%d, %d (%d:%d) %s\n"), x + 1, y + m_HisOfs - m_HisMin + 1, vp->m_Vram.fcol, vp->m_Vram.bcol, (LPCTSTR)uc);
 
 			if ( pFontNode->m_CodeSet < SET_UNICODE ) {
-				uc.Format(_T("%s(%s)\n"), cset[pFontNode->m_CodeSet], pFontNode->m_IndexName);
+				uc.Format(_T("%s(%s)\n"), cset[pFontNode->m_CodeSet], (LPCTSTR)pFontNode->m_IndexName);
 				msg += uc;
 
 				if ( pDoc->m_TextRam.DrcsStr(p, vp->m_Vram.bank, drcs) )
@@ -4092,6 +4192,31 @@ void CRLoginView::OnSearchNext()
 
 void CRLoginView::OnGoziview()
 {
+#ifdef USE_DRAWBENCHMARK
+	LARGE_INTEGER freq, start, end;
+	QueryPerformanceFrequency(&freq);
+
+	QueryPerformanceCounter(&start);
+
+	const int count = 200;
+	for (int n = 0; n < count; n++) {
+		Invalidate(FALSE);
+		UpdateWindow();
+	}
+
+	QueryPerformanceCounter(&end);
+	double elapsedMs = (double)(end.QuadPart - start.QuadPart) * 1000.0 / (double)freq.QuadPart;
+
+	CString msg, tmp;
+	msg += _T("====================================\n");
+	tmp.Format(_T("Total Bench (%d times): %.3f ms\n"), count, elapsedMs);
+	msg += tmp;
+	tmp.Format(_T("Average per OnPaint : %.3f ms\n"), elapsedMs / count);
+	msg += tmp;
+	msg += _T("====================================\n");
+
+	::AfxMessageBox(msg);
+#else // !USE_DRAWBENCHMARK
 	if ( m_GoziView ) {
 		m_GoziView = FALSE;
 	} else {
@@ -4117,8 +4242,9 @@ void CRLoginView::OnGoziview()
 			m_GoziData[n].m_GoziPos.SetPoint(0, 0);
 		}
 		SetTimer(VTMID_GOZIUPDATE, 200, NULL);
-#endif
+#endif // USE_GOZI
 	}
+#endif // USE_DRAWBENCHMARK
 }
 void CRLoginView::OnUpdateGoziview(CCmdUI *pCmdUI)
 {
@@ -4403,83 +4529,219 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	m_TopOffset = save_param[10];
 }
 
-#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+#if defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
 
 void CRLoginView::OnPaint()
 {
 	CRenderDC dc;
-	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+	CRLoginApp* pApp = (CRLoginApp*)::AfxGetApp();
 
-	if ( pApp->m_pD2DFactory == NULL )
+	if ( pApp->m_bGdiOnly || pApp->m_pD2DFactory == NULL )
 		goto ENDOF;
 
-	if ( m_pGDIRT == NULL ) {
+	if ( m_pGDIRT == NULL || m_pDCRT == NULL ) {
 		if ( m_pHwndRT == NULL ) {
 			CRect rect;
 			GetClientRect(rect);
 			D2D1_SIZE_U size = D2D1::SizeU(rect.Width(), rect.Height());
 
-			D2D1_RENDER_TARGET_PROPERTIES properties = D2D1::RenderTargetProperties();
-			properties.usage =  D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE;
+			// dpiを96に指定しないとDirectX内でx*dpi/96で座標を計算するようなので注意
+			D2D1_RENDER_TARGET_PROPERTIES properties = D2D1::RenderTargetProperties(
+					D2D1_RENDER_TARGET_TYPE_DEFAULT,
+					D2D1::PixelFormat(
+						DXGI_FORMAT_B8G8R8A8_UNORM, // GDIと互換性のあるピクセルフォーマット
+						D2D1_ALPHA_MODE_PREMULTIPLIED
+					),
+					(FLOAT)DEFAULT_DPI_X,
+					(FLOAT)DEFAULT_DPI_Y,
+					D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE // GDI相互運用フラグ
+				);
 
-			if ( FAILED(pApp->m_pD2DFactory->CreateHwndRenderTarget(properties, D2D1::HwndRenderTargetProperties(GetSafeHwnd(), size), &m_pHwndRT)) )
+			// V-Sync同期しない設定にした
+			D2D1_HWND_RENDER_TARGET_PROPERTIES hwndProperties = D2D1::HwndRenderTargetProperties(GetSafeHwnd(), size);
+			hwndProperties.presentOptions = D2D1_PRESENT_OPTIONS_IMMEDIATELY;
+
+			if ( FAILED(pApp->m_pD2DFactory->CreateHwndRenderTarget(properties, hwndProperties, &m_pHwndRT)) )
 				goto ENDOF;
 		}
 
-		if ( FAILED(m_pHwndRT->QueryInterface(__uuidof(ID2D1GdiInteropRenderTarget), (void**)&m_pGDIRT)) )
+		// ID2D1HwndRenderTargetをGDIに直接用いると画面が保存されないので注意
+		// GDIは、画面の部分更新でDirect2Dは、全画面更新なので注意が必要
+
+		// GDI用のメモリレンダーターゲットを作成
+		if (m_pDCRT == NULL && FAILED(m_pHwndRT->CreateCompatibleRenderTarget(NULL, NULL, NULL, D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_GDI_COMPATIBLE, &m_pDCRT)))
 			goto ENDOF;
+
+		// メモリレンダーターゲットからGDI用として作成
+		if ( m_pGDIRT == NULL && FAILED(m_pDCRT->QueryInterface(__uuidof(ID2D1GdiInteropRenderTarget), (void**)&m_pGDIRT)) )
+			goto ENDOF;
+
+#ifdef RENDERDC_FLASH
+		// Direct2D用のレンダーターゲットを別に用意してGDI用のレンダーターゲットと非同期で描画し最後に画面合成する
+		if ( m_pBMRT == NULL && FAILED(m_pHwndRT->CreateCompatibleRenderTarget(&m_pBMRT)) )
+			goto ENDOF;
+#endif // RENDERDC_FLASH
+
+#ifdef USE_DIRECT3D
+		// 最新のカラー絵文字フォーマットに対応する為にID2D1DeviceContext4を別に用意
+		// 基本元のレンダーターゲットなので注意が必要、さらにIDWriteFactory4も必要
+  #ifdef RENDERDC_FLASH
+		m_pBMRT->QueryInterface(IID_PPV_ARGS(&m_pCtx4));
+  #else // !RENDERDC_FLASH
+		m_pDCRT->QueryInterface(IID_PPV_ARGS(&m_pCtx4));
+  #endif // RENDERDC_FLASH
+#endif // USE_DIRECT3D
 	}
 
-	m_pHwndRT->BeginDraw();
+	// メモリレンダーターゲットの描画を開始してGDI用にBeginPaintとGetDCを行いPaintDCのように振る舞う
+	m_pDCRT->BeginDraw();
 
+	// GDIの初期化(dc.m_ps.hdc) 以降EndPaintまで注意!(goto ENDOF出来ない)
 	BeginPaint(&dc.m_ps);
 
+	// PaintDCのように更新領域をクリップする
 	D2D_RECT_F rectF;
-	rectF.left     = (FLOAT)dc.m_ps.rcPaint.left   * 96.0f / (FLOAT)SCREEN_DPI_X;
-	rectF.right    = (FLOAT)dc.m_ps.rcPaint.right  * 96.0f / (FLOAT)SCREEN_DPI_X;
-	rectF.top      = (FLOAT)dc.m_ps.rcPaint.top    * 96.0f / (FLOAT)SCREEN_DPI_Y;
-	rectF.bottom   = (FLOAT)dc.m_ps.rcPaint.bottom * 96.0f / (FLOAT)SCREEN_DPI_Y;
-	m_pHwndRT->PushAxisAlignedClip(rectF, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+	rectF.left   = (FLOAT)dc.m_ps.rcPaint.left;
+	rectF.top    = (FLOAT)dc.m_ps.rcPaint.top;
+	rectF.right  = (FLOAT)dc.m_ps.rcPaint.right;
+	rectF.bottom = (FLOAT)dc.m_ps.rcPaint.bottom;
+	m_pDCRT->PushAxisAlignedClip(rectF, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
 
+	// GetDCに失敗した場合の処理が面倒だがPushAxisAlignedClipの後でないとまずい
 	HDC hDC = NULL;
 	if ( FAILED(m_pGDIRT->GetDC(D2D1_DC_INITIALIZE_MODE_COPY, &hDC)) ) {
-		m_pHwndRT->PopAxisAlignedClip();
+		m_pDCRT->PopAxisAlignedClip();
 		EndPaint(&dc.m_ps);
-		m_pHwndRT->EndDraw();
+		m_pDCRT->EndDraw();
 		InvalidateRect(&dc.m_ps.rcPaint, FALSE);
+
+		// とりあえず再構築
+#ifdef USE_DIRECT3D
+		if ( m_pCtx4 != NULL ) {
+			m_pCtx4->Release();
+			m_pCtx4 = NULL;
+		}
+#endif	// USE_DIRECT3D
+
+		// m_pBMRTは、そのままが安全
+		m_pGDIRT->Release();
+		m_pGDIRT  = NULL;
+		m_pDCRT->Release();	
+		m_pDCRT   = NULL;
 		goto ENDOF;
 	}
 
 	dc.Attach(hDC);
-	dc.m_hWnd = GetSafeHwnd();
-	dc.m_pHwndRT = m_pHwndRT;
-	dc.m_pGDIRT = m_pGDIRT;
-	dc.m_Mode = RENDERDC_GDI;
-	dc.m_bkMode = dc.GetBkMode();
+	dc.m_hWnd    = GetSafeHwnd();
+	dc.m_Mode    = RENDERDC_GDI;
+	dc.m_pDCRT   = m_pDCRT;
+	dc.m_pGDIRT  = m_pGDIRT;
 
+#ifdef RENDERDC_FLASH
+	dc.m_pBMRT   = m_pBMRT;
+	dc.m_Stat    = 001;
+#endif // RENDERDC_FLASH
+
+#ifdef USE_DIRECT3D
+	dc.m_pCtx4   = m_pCtx4;
+#endif // USE_DIRECT3D
+
+	// 実際のターミナル画面の描画
 	OnDraw(&dc);
 
-	EndPaint(&dc.m_ps);
+	// Direct2Dの画面更新がフレームで遅延され子ウィンドウの画面更新が先になり
+	// 上書きされてしまうので親ウィンドウで表示に変更した
 
-	dc.Detach();
-	m_pGDIRT->ReleaseDC(NULL);
-
-	m_pHwndRT->PopAxisAlignedClip();
-
-	if (m_pHwndRT->EndDraw() == D2DERR_RECREATE_TARGET) {
-		m_pGDIRT->Release();	m_pGDIRT = NULL;
-		m_pHwndRT->Release();	m_pHwndRT = NULL;
+	if ( m_MsgWnd.GetSafeHwnd() != NULL ) {
+		dc.SwitchMode(RENDERDC_GDI);
+		CRect rect;
+		m_MsgWnd.GetWindowRect(rect);
+		ScreenToClient(rect);
+		m_MsgWnd.m_bOwnerDraw = TRUE;
+		m_MsgWnd.OnDraw(&dc, rect);
 	}
 
-	if ( m_MsgWnd.GetSafeHwnd() != NULL )
-		m_MsgWnd.Invalidate(FALSE);
+	if ( m_BtnWnd.GetSafeHwnd() != NULL ) {
+		dc.SwitchMode(RENDERDC_GDI);
+		CRect rect;
+		m_BtnWnd.GetWindowRect(rect);
+		ScreenToClient(rect);
+		m_BtnWnd.m_bOwnerDraw = TRUE;
+		m_BtnWnd.OnDraw(&dc, rect);
+	}
 
-	if ( m_BtnWnd.GetSafeHwnd() != NULL )
-		m_BtnWnd.Invalidate(FALSE);
+#ifdef RENDERDC_FLASH
+	// GetDCとAttach済みのチェック
+	if ( (dc.m_Stat & 001) != 0 ) {
+		dc.Detach();
+		m_pGDIRT->ReleaseDC(&dc.m_ps.rcPaint);
+	}
+	// Direct2D専用画面のBeginDrawチェックと画面合成
+	if ( (dc.m_Stat & 002) != 0 ) {
+		m_pBMRT->EndDraw();
+		ID2D1Bitmap *pBitmap = NULL;
+		if ( SUCCEEDED(m_pBMRT->GetBitmap(&pBitmap)) ) {
+			m_pDCRT->DrawBitmap(pBitmap, rectF, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, rectF);
+			pBitmap->Release();
+		}
+	}
+#else
+	// 必要ならReleaseDCしてhDCを解放
+	if ( dc.m_Mode == RENDERDC_GDI ) {
+		dc.Detach();
+		m_pGDIRT->ReleaseDC(&dc.m_ps.rcPaint);
+	}
+#endif // RENDERDC_FLASH
+
+	// GDIを解放(dc.m_ps.hdc)
+	EndPaint(&dc.m_ps);
+
+	// このタイミングでPopClip（ReleaseDC後でEndDraw前）
+	m_pDCRT->PopAxisAlignedClip();
+
+	HRESULT hr = m_pDCRT->EndDraw();
+
+	// メモリ上のレンダーターゲットをhWndのレンダーターゲットにクリアしてから全画面描画
+	m_pHwndRT->BeginDraw();
+	m_pHwndRT->Clear();
+
+	ID2D1Bitmap* pBitmap = NULL;
+	if ( SUCCEEDED(m_pDCRT->GetBitmap(&pBitmap)) ) {
+		CRect rect;
+		GetClientRect(rect);
+		D2D_RECT_F rectF = { (FLOAT)rect.left, (FLOAT)rect.top, (FLOAT)rect.right, (FLOAT)rect.bottom };
+		m_pHwndRT->DrawBitmap(pBitmap, rectF, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, rectF);
+		pBitmap->Release();
+	}
+
+	if ( m_pHwndRT->EndDraw() == D2DERR_RECREATE_TARGET )
+		hr = D2DERR_RECREATE_TARGET;
+
+	if ( hr == D2DERR_RECREATE_TARGET ) {
+#ifdef USE_DIRECT3D
+		if ( m_pCtx4 != NULL ) {
+			m_pCtx4->Release();
+			m_pCtx4 = NULL;
+		}
+#endif	// USE_DIRECT3D
+
+#ifdef RENDERDC_FLASH
+		m_pBMRT->Release();
+		m_pBMRT = NULL;
+#endif	// RENDERDC_FLASH
+
+		m_pGDIRT->Release();
+		m_pGDIRT = NULL;
+		m_pDCRT->Release();	
+		m_pDCRT   = NULL;
+		m_pHwndRT->Release();
+		m_pHwndRT = NULL;
+	}
 
 	return;
 
 ENDOF:
 	CView::OnPaint();
 }
-#endif
+
+#endif // USE_DIRECT2D

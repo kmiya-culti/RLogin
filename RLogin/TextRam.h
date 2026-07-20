@@ -1379,7 +1379,7 @@ public:
 
 	void DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop);
 	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, DrawWork &prop);
-	BOOL DrawDWrite(CDC *pDC, LPCWSTR str, int len, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, BOOL bCenter, BOOL bEmoji, CFontChacheNode *pFontCache, DrawWork &prop);
+	BOOL DrawDWrite(CDC *pDC, LPCWSTR str, int len, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, BOOL bEmoji, DWRITE_TEXT_ALIGNMENT textAlignment, CFontChacheNode *pFontCache, DrawWork &prop);
 	void DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, BOOL bRevs, DrawWork &prop);
 	void DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop);
 	void DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, DrawWork &prop);

@@ -2316,48 +2316,49 @@ BOOL CIdKey::GetTypeFromName(LPCTSTR name, int &type, int &nid)
 	LPCTSTR last;
 	CString tmp;
 	static const TYPENAMETAB TypeNameTab[] = {
-		{ _T("dsa"),						IDKEY_DSA2,			NID_undef				},
-		{ _T("ecdsa-sha2-nistb233"),		IDKEY_ECDSA,		NID_sect233r1			},
-		{ _T("ecdsa-sha2-nistb409"),		IDKEY_ECDSA,		NID_sect409r1			},
-		{ _T("ecdsa-sha2-nistk163"),		IDKEY_ECDSA,		NID_sect163k1			},
-		{ _T("ecdsa-sha2-nistk233"),		IDKEY_ECDSA,		NID_sect233k1			},
-		{ _T("ecdsa-sha2-nistk283"),		IDKEY_ECDSA,		NID_sect283k1			},
-		{ _T("ecdsa-sha2-nistk409"),		IDKEY_ECDSA,		NID_sect409k1			},
-		{ _T("ecdsa-sha2-nistp192"),		IDKEY_ECDSA,		NID_X9_62_prime192v1	},
-		{ _T("ecdsa-sha2-nistp224"),		IDKEY_ECDSA,		NID_secp224r1			},
-		{ _T("ecdsa-sha2-nistp256"),		IDKEY_ECDSA,		NID_X9_62_prime256v1	},
-		{ _T("ecdsa-sha2-nistp384"),		IDKEY_ECDSA,		NID_secp384r1			},
-		{ _T("ecdsa-sha2-nistp521"),		IDKEY_ECDSA,		NID_secp521r1			},
-		{ _T("ecdsa-sha2-nistt571"),		IDKEY_ECDSA,		NID_sect571k1			},
-		{ _T("rsa"),						IDKEY_RSA2,			NID_sha1				},
-		{ _T("rsa-sha2-256"),				IDKEY_RSA2,			NID_sha256				},
-		{ _T("rsa-sha2-512"),				IDKEY_RSA2,			NID_sha512				},
-		{ _T("rsa1"),						IDKEY_RSA1,			NID_sha1				},
-		{ _T("ssh-dss"),					IDKEY_DSA2,			NID_undef				},
-		{ _T("ssh-ed25519"),				IDKEY_ED25519,		NID_ED25519				},
-		{ _T("ssh-ed448"),					IDKEY_ED448,		NID_ED448				},
-		{ _T("ssh-mldsa-44"),				IDKEY_ML_DSA,		NID_ML_DSA_44			},	// draft-sfluhrer-ssh-mldsa-04
-		{ _T("ssh-mldsa-65"),				IDKEY_ML_DSA,		NID_ML_DSA_65			},	// draft-sfluhrer-ssh-mldsa-04
-		{ _T("ssh-mldsa-87"),				IDKEY_ML_DSA,		NID_ML_DSA_87			},	// draft-sfluhrer-ssh-mldsa-04
-		{ _T("ssh-mldsa44-ed25519"),		IDKEY_ML_DSA_ED,	NID_ML_DSA_44			},	// draft-sun-ssh-composite-sigs-02	NID_ED25519
-		{ _T("ssh-mldsa44-es256"),			IDKEY_ML_DSA_ES,	NID_ML_DSA_44			},	// draft-sun-ssh-composite-sigs-02	NID_X9_62_prime256v1
-		{ _T("ssh-mldsa65-ed25519"),		IDKEY_ML_DSA_ED,	NID_ML_DSA_65			},	// draft-sun-ssh-composite-sigs-02	NID_ED25519
-		{ _T("ssh-mldsa65-es256"),			IDKEY_ML_DSA_ES,	NID_ML_DSA_65			},	// draft-sun-ssh-composite-sigs-02	NID_X9_62_prime256v1
-		{ _T("ssh-mldsa87-ed448"),			IDKEY_ML_DSA_ED,	NID_ML_DSA_87			},	// draft-sun-ssh-composite-sigs-02	NID_ED448
-		{ _T("ssh-mldsa87-es384"),			IDKEY_ML_DSA_ES,	NID_ML_DSA_87			},	// draft-sun-ssh-composite-sigs-02	NID_secp384r1
-		{ _T("ssh-rsa"),					IDKEY_RSA2,			NID_sha1				},
-		{ _T("ssh-slh-dsa-sha2-128f"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_128f	},
-		{ _T("ssh-slh-dsa-sha2-128s"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_128s	},
-		{ _T("ssh-slh-dsa-sha2-192f"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_192f	},
-		{ _T("ssh-slh-dsa-sha2-192s"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_192s	},
-		{ _T("ssh-slh-dsa-sha2-256f"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_256f	},
-		{ _T("ssh-slh-dsa-sha2-256s"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_256s	},
-		{ _T("ssh-slh-dsa-shake-128f"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHAKE_128f	},
-		{ _T("ssh-slh-dsa-shake-128s"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHAKE_128s	},
-		{ _T("ssh-slh-dsa-shake-192f"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHAKE_192f	},
-		{ _T("ssh-slh-dsa-shake-192s"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHAKE_192s	},
-		{ _T("ssh-slh-dsa-shake-256f"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHAKE_256f	},
-		{ _T("ssh-slh-dsa-shake-256s"),		IDKEY_SLH_DSA,		NID_SLH_DSA_SHAKE_256s	},
+		{ _T("dsa"),							IDKEY_DSA2,			NID_undef				},
+		{ _T("ecdsa-sha2-nistb233"),			IDKEY_ECDSA,		NID_sect233r1			},
+		{ _T("ecdsa-sha2-nistb409"),			IDKEY_ECDSA,		NID_sect409r1			},
+		{ _T("ecdsa-sha2-nistk163"),			IDKEY_ECDSA,		NID_sect163k1			},
+		{ _T("ecdsa-sha2-nistk233"),			IDKEY_ECDSA,		NID_sect233k1			},
+		{ _T("ecdsa-sha2-nistk283"),			IDKEY_ECDSA,		NID_sect283k1			},
+		{ _T("ecdsa-sha2-nistk409"),			IDKEY_ECDSA,		NID_sect409k1			},
+		{ _T("ecdsa-sha2-nistp192"),			IDKEY_ECDSA,		NID_X9_62_prime192v1	},
+		{ _T("ecdsa-sha2-nistp224"),			IDKEY_ECDSA,		NID_secp224r1			},
+		{ _T("ecdsa-sha2-nistp256"),			IDKEY_ECDSA,		NID_X9_62_prime256v1	},
+		{ _T("ecdsa-sha2-nistp384"),			IDKEY_ECDSA,		NID_secp384r1			},
+		{ _T("ecdsa-sha2-nistp521"),			IDKEY_ECDSA,		NID_secp521r1			},
+		{ _T("ecdsa-sha2-nistt571"),			IDKEY_ECDSA,		NID_sect571k1			},
+		{ _T("rsa"),							IDKEY_RSA2,			NID_sha1				},
+		{ _T("rsa-sha2-256"),					IDKEY_RSA2,			NID_sha256				},
+		{ _T("rsa-sha2-512"),					IDKEY_RSA2,			NID_sha512				},
+		{ _T("rsa1"),							IDKEY_RSA1,			NID_sha1				},
+		{ _T("ssh-dss"),						IDKEY_DSA2,			NID_undef				},
+		{ _T("ssh-ed25519"),					IDKEY_ED25519,		NID_ED25519				},
+		{ _T("ssh-ed448"),						IDKEY_ED448,		NID_ED448				},
+		{ _T("ssh-mldsa-44"),					IDKEY_ML_DSA,		NID_ML_DSA_44			},	// draft-sfluhrer-ssh-mldsa-04
+		{ _T("ssh-mldsa-65"),					IDKEY_ML_DSA,		NID_ML_DSA_65			},	// draft-sfluhrer-ssh-mldsa-04
+		{ _T("ssh-mldsa-87"),					IDKEY_ML_DSA,		NID_ML_DSA_87			},	// draft-sfluhrer-ssh-mldsa-04
+		{ _T("ssh-mldsa44-ed25519"),			IDKEY_ML_DSA_ED,	NID_ML_DSA_44			},	// draft-sun-ssh-composite-sigs-02	NID_ED25519
+		{ _T("ssh-mldsa44-ed25519@openssh.com"),IDKEY_ML_DSA_ED,	NID_ML_DSA_44			},	// draft-miller-sshm-mldsa44-ed25519-composite-sigs-00	NID_ED25519
+		{ _T("ssh-mldsa44-es256"),				IDKEY_ML_DSA_ES,	NID_ML_DSA_44			},	// draft-sun-ssh-composite-sigs-02	NID_X9_62_prime256v1
+		{ _T("ssh-mldsa65-ed25519"),			IDKEY_ML_DSA_ED,	NID_ML_DSA_65			},	// draft-sun-ssh-composite-sigs-02	NID_ED25519
+		{ _T("ssh-mldsa65-es256"),				IDKEY_ML_DSA_ES,	NID_ML_DSA_65			},	// draft-sun-ssh-composite-sigs-02	NID_X9_62_prime256v1
+		{ _T("ssh-mldsa87-ed448"),				IDKEY_ML_DSA_ED,	NID_ML_DSA_87			},	// draft-sun-ssh-composite-sigs-02	NID_ED448
+		{ _T("ssh-mldsa87-es384"),				IDKEY_ML_DSA_ES,	NID_ML_DSA_87			},	// draft-sun-ssh-composite-sigs-02	NID_secp384r1
+		{ _T("ssh-rsa"),						IDKEY_RSA2,			NID_sha1				},
+		{ _T("ssh-slh-dsa-sha2-128f"),			IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_128f	},
+		{ _T("ssh-slh-dsa-sha2-128s"),			IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_128s	},
+		{ _T("ssh-slh-dsa-sha2-192f"),			IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_192f	},
+		{ _T("ssh-slh-dsa-sha2-192s"),			IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_192s	},
+		{ _T("ssh-slh-dsa-sha2-256f"),			IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_256f	},
+		{ _T("ssh-slh-dsa-sha2-256s"),			IDKEY_SLH_DSA,		NID_SLH_DSA_SHA2_256s	},
+		{ _T("ssh-slh-dsa-shake-128f"),			IDKEY_SLH_DSA,		NID_SLH_DSA_SHAKE_128f	},
+		{ _T("ssh-slh-dsa-shake-128s"),			IDKEY_SLH_DSA,		NID_SLH_DSA_SHAKE_128s	},
+		{ _T("ssh-slh-dsa-shake-192f"),			IDKEY_SLH_DSA,		NID_SLH_DSA_SHAKE_192f	},
+		{ _T("ssh-slh-dsa-shake-192s"),			IDKEY_SLH_DSA,		NID_SLH_DSA_SHAKE_192s	},
+		{ _T("ssh-slh-dsa-shake-256f"),			IDKEY_SLH_DSA,		NID_SLH_DSA_SHAKE_256f	},
+		{ _T("ssh-slh-dsa-shake-256s"),			IDKEY_SLH_DSA,		NID_SLH_DSA_SHAKE_256s	},
 	};
 
 	//  123456789012345678901
@@ -3535,10 +3536,6 @@ int CIdKey::GetPrivateBlob(CBuffer *bp)
 
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
-	case IDKEY_ML_DSA:
-	case IDKEY_ML_DSA_ES:
-	case IDKEY_ML_DSA_ED:
-	case IDKEY_SLH_DSA:
 		if ( bUsePub ) {
 			if ( !Create(type & IDKEY_TYPE_MASK) )
 				return FALSE;
@@ -3558,6 +3555,27 @@ int CIdKey::GetPrivateBlob(CBuffer *bp)
 		m_PrivateKey.Apend(tmp.GetPtr(), tmp.GetSize() - m_PublicKey.GetSize());
 		if ( tmp.GetSize() <= m_PublicKey.GetSize() || memcmp(m_PublicKey.GetPtr(), tmp.GetPtr() + m_PrivateKey.GetSize(), m_PublicKey.GetSize()) != 0 )
 			return FALSE;
+		break;
+
+	case IDKEY_ML_DSA:
+	case IDKEY_ML_DSA_ES:
+	case IDKEY_ML_DSA_ED:
+	case IDKEY_SLH_DSA:
+		if ( bUsePub ) {
+			if ( !Create(type & IDKEY_TYPE_MASK) )
+				return FALSE;
+			m_PublicKey.Clear();
+			bp->GetBuf(&m_PublicKey);
+		} else if ( (m_Cert & (IDKEY_CERTV00 | IDKEY_CERTV01)) != 0 ) {
+			tmp.Clear();
+			bp->GetBuf(&tmp);
+			if ( tmp.GetSize() != m_PublicKey.GetSize() || memcmp(m_PublicKey.GetPtr(), tmp.GetPtr(), m_PublicKey.GetSize()) != 0 )
+				return FALSE;
+		}
+		m_PrivateKey.Clear();
+		bp->GetBuf(&m_PrivateKey);
+		if ( m_PrivateKey.GetSize() > m_PublicKey.GetSize() && memcmp(m_PublicKey.GetPtr(), m_PrivateKey.GetPtr(), m_PublicKey.GetSize()) == 0 )
+			m_PrivateKey.Consume(m_PublicKey.GetSize());
 		break;
 
 	default:
@@ -3633,15 +3651,19 @@ int CIdKey::SetPrivateBlob(CBuffer *bp)
 		break;
 	case IDKEY_ED25519:
 	case IDKEY_ED448:
+		if ( bUsePub || (m_Cert & (IDKEY_CERTV00 | IDKEY_CERTV01)) != 0 )
+			bp->PutBuf(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
+		bp->Put32Bit(m_PrivateKey.GetSize() + m_PublicKey.GetSize());
+		bp->Apend(m_PrivateKey.GetPtr(), m_PrivateKey.GetSize());
+		bp->Apend(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
+		break;
 	case IDKEY_ML_DSA:
 	case IDKEY_ML_DSA_ES:
 	case IDKEY_ML_DSA_ED:
 	case IDKEY_SLH_DSA:
 		if ( bUsePub || (m_Cert & (IDKEY_CERTV00 | IDKEY_CERTV01)) != 0 )
 			bp->PutBuf(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
-		bp->Put32Bit(m_PrivateKey.GetSize() + m_PublicKey.GetSize());
-		bp->Apend(m_PrivateKey.GetPtr(), m_PrivateKey.GetSize());
-		bp->Apend(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
+		bp->PutBuf(m_PrivateKey.GetPtr(), m_PrivateKey.GetSize());
 		break;
 	default:
 		return FALSE;

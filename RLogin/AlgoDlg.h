@@ -15,6 +15,8 @@
 
 class CAlgoDlg : public CDialogExt
 {
+	DECLARE_DYNAMIC(CAlgoDlg)
+
 // コンストラクション
 public:
 	CAlgoDlg(CWnd* pParent = NULL);   // 標準のコンストラクタ

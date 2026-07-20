@@ -302,6 +302,8 @@
 #define IDS_MESSAGEBOX_CONTINUE         678
 #define IDS_FILEOVERWRITEMSG            679
 #define IDS_DELAYSENDPROGMSG            680
+#define IDS_GDIONLYENABLEMSG            681
+#define IDS_GDIONLYDISABLEMSG           682
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -339,8 +341,6 @@
 #define IDE_KEYMACTOOLONG               734
 #define IDE_PAGEANTKEYEDIT              735
 #define IDE_SFTPTHREADCMDEXEC           736
-//#define IDE_XMSSBITSIZEERR              737
-//#define IDE_XMSSBITSIZECHECK            738
 #define IDE_REGISTRYDELETEERROR         739
 #define IDE_ENTRYUPDATEEERROR           740
 #define IDE_OPTFIXDEEPENTRY             741
@@ -1305,6 +1305,7 @@
 #define IDM_FONT_SIZE_DOWN              5162
 #define IDM_FONT_SIZE_DEF               5163
 #define IDM_AGENTADDKEY                 5164
+#define IDM_GDIDRAWONLY                 5165
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
@@ -1312,7 +1313,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        174
-#define _APS_NEXT_COMMAND_VALUE         5165
+#define _APS_NEXT_COMMAND_VALUE         5166
 #define _APS_NEXT_CONTROL_VALUE         2556
 #define _APS_NEXT_SYMED_VALUE           681
 #endif

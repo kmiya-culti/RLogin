@@ -741,6 +741,8 @@ BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	ON_UPDATE_COMMAND_UI(IDM_REGISTAPP, &CRLoginApp::OnUpdateRegistapp)
 	ON_COMMAND(IDM_SECPORICY, &CRLoginApp::OnSecporicy)
 	ON_COMMAND(IDM_SSHSIG, &CRLoginApp::OnSshSig)
+	ON_COMMAND(IDM_GDIDRAWONLY, &CRLoginApp::OnGdiOnly)
+	ON_UPDATE_COMMAND_UI(IDM_GDIDRAWONLY, &CRLoginApp::OnUpdateGdiOnly)
 END_MESSAGE_MAP()
 
 
@@ -764,6 +766,27 @@ CRLoginApp::CRLoginApp()
 	m_pD2DFactory    = NULL;
 	m_pDWriteFactory = NULL;
 	m_pDCRT = NULL;
+
+  #ifdef USE_DIRECT2D
+	m_pGdiInterop = NULL;
+	m_pDWriteFactory2 = NULL;
+	m_bGdiOnly = FALSE;
+  #endif
+
+  #ifdef USE_DIRECT3D
+	m_D3DFeatureLevel = D3D_FEATURE_LEVEL_1_0_GENERIC;
+	m_pD3DContext2 = NULL;
+	m_pD3DDevice2 = NULL;
+
+	m_pDXGIDevice1 = NULL;
+	m_pDXGIAdapter = NULL;
+	m_pDXGIFactory2 = NULL;
+
+	m_pD2DFactory5 = NULL;
+	m_pD2DDevice4 = NULL;
+
+	m_pDwriteFactory4 = NULL;
+  #endif	// USE_DIRECT3D
 
 	for ( int n = 0 ; n < EMOJI_HASH ; n++ )
 		m_pEmojiList[n] = NULL;
@@ -829,6 +852,12 @@ CRLoginApp::CRLoginApp()
     EXTERN_C HRESULT (WINAPI *ExD2D1CreateFactory)(__in D2D1_FACTORY_TYPE factoryType, __in REFIID riid, __in_opt CONST D2D1_FACTORY_OPTIONS *pFactoryOptions, __out void **ppIFactory) = NULL;
 	HMODULE ExDWriteApi = NULL;
 	EXTERN_C HRESULT (WINAPI *ExDWriteCreateFactory)(__in DWRITE_FACTORY_TYPE factoryType, __in REFIID iid, __out IUnknown **factory) = NULL;
+  #ifdef USE_DIRECT3D
+	HMODULE ExD3D11Api = NULL;
+	EXTERN_C HRESULT (WINAPI *ExD3D11CreateDevice)(_In_opt_ IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType,	HMODULE Software, UINT Flags,
+		_In_reads_opt_( FeatureLevels ) CONST D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device** ppDevice,
+		_Out_opt_ D3D_FEATURE_LEVEL* pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext** ppImmediateContext ) = NULL;
+  #endif // USE_DIRECT3D
 #endif
 
 	HMODULE ExKernel32Api = NULL;
@@ -1153,7 +1182,15 @@ int DoitMessageBox(LPCTSTR lpszPrompt, UINT nType, CWnd *pParent)
 
 	FormatErrorReset();
 
-	return (int)dlg.DoModal();
+	if (pParent != NULL)
+		pParent->EnableWindow(FALSE);
+
+	int rt = (int)dlg.DoModal();
+
+	if (pParent != NULL)
+		pParent->EnableWindow(TRUE);
+
+	return rt;
 }
 
 BOOL WaitForEvent(HANDLE hHandle, LPCTSTR pMsg)
@@ -1598,6 +1635,129 @@ ENDOF:
 	return rt;
 }
 
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT3D)
+BOOL CRLoginApp::D3DInit()
+{
+	if ( ExD2D1CreateFactory == NULL && ExDWriteCreateFactory == NULL || ExD3D11CreateDevice == NULL )
+		return FALSE;
+
+	HRESULT hr = S_OK;
+	D2D1_FACTORY_OPTIONS d2doptions = {};
+
+	// D3DデバイスとD3Dコンテキストの作成
+	UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+#ifdef _DEBUG
+	creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+	D3D_FEATURE_LEVEL featureLevels[] = {
+		D3D_FEATURE_LEVEL_11_1,
+		D3D_FEATURE_LEVEL_11_0,
+		D3D_FEATURE_LEVEL_10_1,
+		D3D_FEATURE_LEVEL_10_0,
+		D3D_FEATURE_LEVEL_9_3,
+		D3D_FEATURE_LEVEL_9_2,
+		D3D_FEATURE_LEVEL_9_1
+	};
+	hr = ExD3D11CreateDevice(
+		nullptr,					// Specify nullptr to use the default adapter.
+		D3D_DRIVER_TYPE_HARDWARE,	// Create a device using the hardware graphics driver.
+		0,							// Should be 0 unless the driver is D3D_DRIVER_TYPE_SOFTWARE.
+		creationFlags,				// Set debug and Direct2D compatibility flags.
+		featureLevels,				// List of feature levels this app can support.
+		ARRAYSIZE(featureLevels),	// Size of the list above.
+		D3D11_SDK_VERSION,			// Always set this to D3D11_SDK_VERSION for Windows Runtime apps.
+		(ID3D11Device **)&m_pD3DDevice2,				// Returns the Direct3D device created.
+		&m_D3DFeatureLevel,			// Returns feature level of device created.
+		(ID3D11DeviceContext **)&m_pD3DContext2				// Returns the device immediate context.
+	);
+	// 失敗したらWARPにフォールバック
+	if ( FAILED(hr) ) {
+		hr = ExD3D11CreateDevice(
+			nullptr,
+			D3D_DRIVER_TYPE_WARP,	// Create a WARP device instead of a hardware device.
+			0,
+			creationFlags,
+			featureLevels,
+			ARRAYSIZE(featureLevels),
+			D3D11_SDK_VERSION,
+			(ID3D11Device **)&m_pD3DDevice2,
+			&m_D3DFeatureLevel,
+			(ID3D11DeviceContext **)&m_pD3DContext2
+		);
+		if ( FAILED(hr) ) goto ERRRET;
+	}
+
+	// D3DデバイスからDXGIデバイスを取得
+	hr = m_pD3DDevice2->QueryInterface(__uuidof(IDXGIDevice1), (void**)&m_pDXGIDevice1);
+	if ( FAILED(hr) ) goto ERRRET;
+
+	// DXGIファクトリの作成
+	hr = m_pDXGIDevice1->GetAdapter(&m_pDXGIAdapter);
+	if ( FAILED(hr) ) goto ERRRET;
+	hr = m_pDXGIAdapter->GetParent(__uuidof(IDXGIFactory2), (void**)&m_pDXGIFactory2);
+	if ( FAILED(hr) ) goto ERRRET;
+
+	// D2Dファクトリの作成
+#if defined(_DEBUG)
+	d2doptions.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
+#endif
+	hr = ExD2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, __uuidof(ID2D1Factory5), &d2doptions, (void **)&m_pD2DFactory5);
+	if ( FAILED(hr) ) goto ERRRET;
+
+	// D2Dデバイスの作成
+	hr = m_pD2DFactory5->CreateDevice(m_pDXGIDevice1, &m_pD2DDevice4);
+	if ( FAILED(hr) ) goto ERRRET;
+
+	// DWriteファクトリの作成
+	hr = ExDWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory4), reinterpret_cast<IUnknown **>(&m_pDwriteFactory4));
+	if ( FAILED(hr) ) goto ERRRET;
+
+	return TRUE;
+
+ERRRET:
+	D3DClear();
+	return FALSE;
+}
+void CRLoginApp::D3DClear()
+{
+	if ( m_pDwriteFactory4 != NULL ) {
+		m_pDwriteFactory4->Release();
+		m_pDwriteFactory4 = NULL;
+	}
+
+	if ( m_pD2DDevice4 != NULL ) {
+		m_pD2DDevice4->Release();
+		m_pD2DDevice4 = NULL;
+	}
+	if ( m_pD2DFactory5 != NULL ) {
+		m_pD2DFactory5->Release();
+		m_pD2DFactory5 = NULL;
+	}
+
+	if ( m_pDXGIFactory2 != NULL ) {
+		m_pDXGIFactory2->Release();
+		m_pDXGIFactory2 = NULL;
+	}
+	if ( m_pDXGIAdapter != NULL ) {
+		m_pDXGIAdapter->Release();
+		m_pDXGIAdapter = NULL;
+	}
+	if ( m_pDXGIDevice1 != NULL ) {
+		m_pDXGIDevice1->Release();
+		m_pDXGIDevice1 = NULL;
+	}
+
+	if ( m_pD3DDevice2 != NULL ) {
+		m_pD3DDevice2->Release();
+		m_pD3DDevice2 = NULL;
+	}
+	if ( m_pD3DContext2 != NULL ) {
+		m_pD3DContext2->Release();
+		m_pD3DContext2 = NULL;
+	}
+}
+#endif	// USE_DIRECT3D
+
 //////////////////////////////////////////////////////////////////////
 
 #ifdef	OPENSSL_DEBUG
@@ -1851,19 +2011,61 @@ BOOL CRLoginApp::InitInstance()
 
 #ifdef	USE_DIRECTWRITE
 	// DirectWriteを試す
-	if ( IsWinVerCheck(_WIN32_WINNT_WINBLUE, VER_GREATER_EQUAL) ) {
-		if ( (ExD2D1Api = LoadLibrary(_T("d2d1.dll"))) != NULL && (ExDWriteApi = LoadLibrary(_T("dwrite.dll"))) != NULL ) {
-			ExD2D1CreateFactory = (HRESULT (WINAPI *)(__in D2D1_FACTORY_TYPE factoryType, __in REFIID riid, __in_opt CONST D2D1_FACTORY_OPTIONS *pFactoryOptions, __out void **ppIFactory))GetProcAddress(ExD2D1Api, "D2D1CreateFactory");
-			ExDWriteCreateFactory = (HRESULT (WINAPI *)(__in DWRITE_FACTORY_TYPE factoryType, __in REFIID iid, __out IUnknown **factory))GetProcAddress(ExDWriteApi, "DWriteCreateFactory");
-
-			if ( ExD2D1CreateFactory != NULL && ExDWriteCreateFactory != NULL && SUCCEEDED(ExD2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, __uuidof(ID2D1Factory), NULL, reinterpret_cast<void **>(&m_pD2DFactory))) ) {
-				ExDWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory), reinterpret_cast<IUnknown **>(&m_pDWriteFactory));
-#if defined(USE_DIRECT2D) && USE_DWRITE >= 2
-				ExDWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory2), reinterpret_cast<IUnknown **>(&m_pDWriteFactory2));
-#endif
-			}
+	if (IsWinVerCheck(_WIN32_WINNT_WINBLUE, VER_GREATER_EQUAL)) {
+#ifdef USE_DIRECT3D
+		if ((ExD3D11Api = LoadLibrary(_T("d3d11.dll"))) != NULL) {
+			ExD3D11CreateDevice = (HRESULT(WINAPI*)(_In_opt_ IDXGIAdapter * pAdapter, D3D_DRIVER_TYPE DriverType, HMODULE Software, UINT Flags,
+				_In_reads_opt_(FeatureLevels) CONST D3D_FEATURE_LEVEL * pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, _COM_Outptr_opt_ ID3D11Device * *ppDevice,
+				_Out_opt_ D3D_FEATURE_LEVEL * pFeatureLevel, _COM_Outptr_opt_ ID3D11DeviceContext * *ppImmediateContext))GetProcAddress(ExD3D11Api, "D3D11CreateDevice");
 		}
+#endif
+		if ((ExD2D1Api = LoadLibrary(_T("d2d1.dll"))) != NULL && (ExDWriteApi = LoadLibrary(_T("dwrite.dll"))) != NULL) {
+			ExD2D1CreateFactory = (HRESULT(WINAPI*)(__in D2D1_FACTORY_TYPE factoryType, __in REFIID riid, __in_opt CONST D2D1_FACTORY_OPTIONS * pFactoryOptions, __out void** ppIFactory))GetProcAddress(ExD2D1Api, "D2D1CreateFactory");
+			ExDWriteCreateFactory = (HRESULT(WINAPI*)(__in DWRITE_FACTORY_TYPE factoryType, __in REFIID iid, __out IUnknown * *factory))GetProcAddress(ExDWriteApi, "DWriteCreateFactory");
+		}
+
+#if defined(USE_DIRECT2D) && defined(USE_DIRECT3D)
+		// USE_DIRECT2D && USE_DIRECT3D
+		if ( D3DInit() ) {
+			m_pD2DFactory5->QueryInterface(IID_PPV_ARGS(&m_pD2DFactory));
+			m_pDwriteFactory4->QueryInterface(IID_PPV_ARGS(&m_pDWriteFactory2));
+			if ( m_pDWriteFactory2 != NULL )
+				m_pDWriteFactory2->GetGdiInterop(&m_pGdiInterop);
+			m_pDwriteFactory4->QueryInterface(IID_PPV_ARGS(&m_pDWriteFactory));
+
+		} else if ( ExD2D1CreateFactory != NULL && ExDWriteCreateFactory != NULL ) {
+			ExD2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, __uuidof(ID2D1Factory), NULL, reinterpret_cast<void**>(&m_pD2DFactory));
+			ExDWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory2), reinterpret_cast<IUnknown**>(&m_pDWriteFactory2));
+			if ( m_pDWriteFactory2 != NULL ) {
+				m_pDWriteFactory2->GetGdiInterop(&m_pGdiInterop);
+				m_pDWriteFactory2->QueryInterface(IID_PPV_ARGS(&m_pDWriteFactory));
+			} else
+				ExDWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&m_pDWriteFactory));
+
+		}
+#elif defined(USE_DIRECT2D)
+		// USE_DIRECT2D && !USE_DIRECT3D
+		if ( ExD2D1CreateFactory != NULL && ExDWriteCreateFactory != NULL ) {
+			ExD2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, __uuidof(ID2D1Factory), NULL, reinterpret_cast<void**>(&m_pD2DFactory));
+			ExDWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory2), reinterpret_cast<IUnknown**>(&m_pDWriteFactory2));
+			if ( m_pDWriteFactory2 != NULL ) {
+				m_pDWriteFactory2->GetGdiInterop(&m_pGdiInterop);
+				m_pDWriteFactory2->QueryInterface(IID_PPV_ARGS(&m_pDWriteFactory));
+			} else
+				ExDWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&m_pDWriteFactory));
+		}
+#else
+		// !USE_DIRECT2D && !USE_DIRECT3D
+		if ( ExD2D1CreateFactory != NULL && ExDWriteCreateFactory != NULL ) {
+			ExD2D1CreateFactory(D2D1_FACTORY_TYPE_MULTI_THREADED, __uuidof(ID2D1Factory), NULL, reinterpret_cast<void**>(&m_pD2DFactory));
+			ExDWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&m_pDWriteFactory));
+		}
+#endif // USE_DIRECT2D && USE_DIRECT3D
 	}
+
+#ifdef USE_DIRECT2D
+	m_bGdiOnly = GetProfileInt(_T("RLoginApp"), _T("GdiOnly"), FALSE);
+#endif
 
 	m_EmojiFontName = GetProfileString(_T("RLoginApp"), _T("EmojiFontName"), _T("Segoe UI emoji"));
 	m_EmojiImageDir = GetProfileString(_T("RLoginApp"), _T("EmojiImageDir"), _T(""));
@@ -2122,13 +2324,23 @@ int CRLoginApp::ExitInstance()
 			delete pDocPos;
 	}
 
+  #ifdef USE_DIRECT3D
+	D3DClear();
+
+	if (ExD3D11Api != NULL)
+		FreeLibrary(ExD3D11Api);
+#endif // USE_DIRECT3D
+
 	if (m_pDCRT != NULL)
 		m_pDCRT->Release();
 
-#if defined(USE_DIRECT2D) && USE_DWRITE >= 2
+  #ifdef USE_DIRECT2D
+	if ( m_pGdiInterop != NULL )
+		m_pGdiInterop->Release();
+
 	if (m_pDWriteFactory2 != NULL)
 		m_pDWriteFactory2->Release();
-#endif
+  #endif // USE_DIRECT2D
 
 	if (m_pDWriteFactory != NULL)
 		m_pDWriteFactory->Release();
@@ -4607,6 +4819,32 @@ void CRLoginApp::OnSshSig()
 void CRLoginApp::RemoveSshSigDlg(CSshSigDlg *pWnd)
 {
 	m_pSshSigDlgWnd = NULL;
+}
+
+void CRLoginApp::OnGdiOnly()
+{
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	if ( !m_bGdiOnly ) {
+		if ( ::AfxMessageBox(CStringLoad(IDS_GDIONLYENABLEMSG), MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return;
+		m_bGdiOnly = TRUE;
+	} else {
+		if ( ::AfxMessageBox(CStringLoad(IDS_GDIONLYDISABLEMSG), MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return;
+		m_bGdiOnly = FALSE;
+	}
+
+	WriteProfileInt(_T("RLoginApp"), _T("GdiOnly"), m_bGdiOnly);
+#endif
+}
+void CRLoginApp::OnUpdateGdiOnly(CCmdUI *pCmdUI)
+{
+#if	defined(USE_DIRECTWRITE) && defined(USE_DIRECT2D)
+	pCmdUI->Enable(m_pD2DFactory != NULL && m_pDWriteFactory != NULL ? TRUE : FALSE);
+	pCmdUI->SetCheck(m_bGdiOnly);
+#else
+	pCmdUI->Enable(FALSE);
+#endif
 }
 
 #ifdef	USE_DIRECTWRITE

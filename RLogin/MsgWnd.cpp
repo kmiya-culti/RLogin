@@ -23,6 +23,7 @@ CMsgWnd::CMsgWnd()
 	m_FontSize = 25;
 	m_bTimerEnable = TRUE;
 	m_bMultiLine = FALSE;
+	m_bOwnerDraw = FALSE;
 }
 CMsgWnd::~CMsgWnd()
 {
@@ -183,43 +184,42 @@ void CMsgWnd::Message(LPCTSTR str, CWnd *pWnd, COLORREF bc)
 	m_Mixval = 100;
 	m_Timer = 0;
 
+	m_bOwnerDraw = FALSE;
+
 	SetWindowPos(&wndTopMost, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER | SWP_SHOWWINDOW | SWP_ASYNCWINDOWPOS | SWP_DEFERERASE);
 }
 
-void CMsgWnd::OnPaint()
+void CMsgWnd::OnDraw(CDC *pDC, CRect &rect)
 {
 	int x, y;
 	CSize sz, dpi;
-	CRect rect;
 	CFont font, *pOldFont;
 	COLORREF col;
-	CPaintDC dc(this); // device context for painting
 
-	GetClientRect(rect);
 	CDialogExt::GetActiveDpi(dpi, this, GetParent());
 
 	font.CreateFont(MulDiv(m_FontSize, dpi.cy, DEFAULT_DPI_Y), 0, 0, 0, FW_BOLD, FALSE, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
-	pOldFont = dc.SelectObject(&font);
+	pOldFont = pDC->SelectObject(&font);
 
-	dc.SetBkMode(TRANSPARENT);
+	pDC->SetBkMode(TRANSPARENT);
 
-	sz = dc.GetTextExtent(m_Msg);
-	x = (rect.Width()  - sz.cx) / 2;
-	y = (rect.Height() - sz.cy) / 2;
+	sz = pDC->GetTextExtent(m_Msg);
+	x = rect.left + (rect.Width()  - sz.cx) / 2;
+	y = rect.top  + (rect.Height() - sz.cy) / 2;
 
-	dc.SetTextColor(m_BackColor);
+	pDC->SetTextColor(m_BackColor);
 
 	if ( m_Mixval == 100 ) {
 		if ( m_bMultiLine ) {
-			dc.DrawText(m_Msg, CRect(rect.left + 2, rect.top, rect.right, rect.bottom), DT_CENTER | DT_VCENTER | DT_HIDEPREFIX);
-			dc.DrawText(m_Msg, CRect(rect.left - 2, rect.top, rect.right, rect.bottom), DT_CENTER | DT_VCENTER | DT_HIDEPREFIX);
-			dc.DrawText(m_Msg, CRect(rect.left, rect.top + 2, rect.right, rect.bottom), DT_CENTER | DT_VCENTER | DT_HIDEPREFIX);
-			dc.DrawText(m_Msg, CRect(rect.left, rect.top - 2, rect.right, rect.bottom), DT_CENTER | DT_VCENTER | DT_HIDEPREFIX);
+			pDC->DrawText(m_Msg, CRect(rect.left + 2, rect.top, rect.right, rect.bottom), DT_CENTER | DT_VCENTER | DT_HIDEPREFIX);
+			pDC->DrawText(m_Msg, CRect(rect.left - 2, rect.top, rect.right, rect.bottom), DT_CENTER | DT_VCENTER | DT_HIDEPREFIX);
+			pDC->DrawText(m_Msg, CRect(rect.left, rect.top + 2, rect.right, rect.bottom), DT_CENTER | DT_VCENTER | DT_HIDEPREFIX);
+			pDC->DrawText(m_Msg, CRect(rect.left, rect.top - 2, rect.right, rect.bottom), DT_CENTER | DT_VCENTER | DT_HIDEPREFIX);
 		} else {
-			dc.TextOut(x + 2, y,     m_Msg);
-			dc.TextOut(x - 2, y,     m_Msg);
-			dc.TextOut(x    , y + 2, m_Msg);
-			dc.TextOut(x    , y - 2, m_Msg);
+			pDC->TextOut(x + 2, y,     m_Msg);
+			pDC->TextOut(x - 2, y,     m_Msg);
+			pDC->TextOut(x    , y + 2, m_Msg);
+			pDC->TextOut(x    , y - 2, m_Msg);
 		}
 	}
 
@@ -227,14 +227,24 @@ void CMsgWnd::OnPaint()
 			  GetBValue(m_BackColor) * (100 - m_Mixval) / 100 + GetGValue(m_TextColor) * m_Mixval / 100,
 			  GetBValue(m_BackColor) * (100 - m_Mixval) / 100 + GetBValue(m_TextColor) * m_Mixval / 100);
 
-	dc.SetTextColor(col);
+	pDC->SetTextColor(col);
 
 	if ( m_bMultiLine )
-		dc.DrawText(m_Msg, rect, DT_CENTER | DT_VCENTER | DT_HIDEPREFIX);
+		pDC->DrawText(m_Msg, rect, DT_CENTER | DT_VCENTER | DT_HIDEPREFIX);
 	else
-		dc.TextOut(x, y, m_Msg);
+		pDC->TextOut(x, y, m_Msg);
 
-	dc.SelectObject(pOldFont);
+	pDC->SelectObject(pOldFont);
+}
+void CMsgWnd::OnPaint()
+{
+	CPaintDC dc(this); // device context for painting
+
+	if ( !m_bOwnerDraw ) {
+		CRect rect;
+		GetClientRect(rect);
+		OnDraw(&dc, rect);
+	}
 }
 
 void CMsgWnd::OnTimer(UINT_PTR nIDEvent)
@@ -248,7 +258,16 @@ void CMsgWnd::OnTimer(UINT_PTR nIDEvent)
 			PostMessage(WM_CLOSE);
 		} else if ( m_Timer > 50 ) {
 			m_Mixval = 100 - (m_Timer - 50) * 10;
-			Invalidate(m_Timer > 51 ? FALSE : TRUE);
+			if ( m_bOwnerDraw ) {
+				CWnd* pOwner = GetParent();
+				if ( pOwner != NULL ) {
+					CRect rect;
+					GetWindowRect(rect);
+					pOwner->ScreenToClient(rect);
+					pOwner->InvalidateRect(rect, FALSE);
+				}
+			} else
+				Invalidate(m_Timer > 51 ? FALSE : TRUE);
 		}
 		break;
 	}
@@ -265,6 +284,7 @@ CBtnWnd::CBtnWnd()
 {
 	m_ImageSeq = 0;
 	m_pView = NULL;
+	m_bOwnerDraw = FALSE;
 }
 
 CBtnWnd::~CBtnWnd()
@@ -341,11 +361,20 @@ void CBtnWnd::DoButton(CWnd *pWnd, class CTextRam *pTextRam)
 	}
 }
 
+void CBtnWnd::OnDraw(CDC* pDC, CRect& rect)
+{
+	m_ImageList.Draw(pDC, m_ImageSeq < 4 ? m_ImageSeq : (7 - m_ImageSeq), CPoint(rect.left, rect.top), ILD_NORMAL);	// ILD_BLEND50 or ILD_NORMAL
+}
+
 void CBtnWnd::OnPaint()
 {
+	CRect rect;
 	CPaintDC dc(this); // device context for painting
 
-	m_ImageList.Draw(&dc, m_ImageSeq < 4 ? m_ImageSeq : (7 - m_ImageSeq), CPoint(0, 0), ILD_NORMAL);	// ILD_BLEND50 or ILD_NORMAL
+	if ( !m_bOwnerDraw ) {
+		GetClientRect(rect);
+		OnDraw(&dc, rect);
+	}
 }
 
 void CBtnWnd::OnTimer(UINT_PTR nIDEvent)
@@ -354,7 +383,16 @@ void CBtnWnd::OnTimer(UINT_PTR nIDEvent)
 	case 1024:
 		if ( ++m_ImageSeq >= 8 )
 			m_ImageSeq = 0;
-		Invalidate(FALSE);
+		if ( m_bOwnerDraw ) {
+			CWnd *pOwner = GetParent();
+			if ( pOwner != NULL ) {
+				CRect rect;
+				GetWindowRect(rect);
+				pOwner->ScreenToClient(rect);
+				pOwner->InvalidateRect(rect, FALSE);
+			}
+		} else
+			Invalidate(FALSE);
 		break;
 	}
 
