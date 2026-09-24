@@ -6285,6 +6285,9 @@ struct TextRendererContext {
     ID2D1SolidColorBrush *pBrush;
 	IDWriteFactory2 *pDWriteFactory2;
 
+	UINT32 glyphCount;
+	const FLOAT* pAdjGlyphAdvances;
+
 #ifdef USE_DIRECT3D
 	IDWriteFactory4 *pDWriteFactory4;
 	ID2D1DeviceContext4 *pD2DDeviceContext4;
@@ -6355,7 +6358,14 @@ public:
 		IUnknown* clientDrawingEffect)
     {
 		struct TextRendererContext *ctx = reinterpret_cast<struct TextRendererContext*>(clientDrawingContext);
+		DWRITE_GLYPH_RUN AdjGlyphRun;
 		HRESULT hr = DWRITE_E_NOCOLOR;
+
+		if ( ctx->pAdjGlyphAdvances != NULL && ctx->glyphCount == glyphRun->glyphCount ) {
+			AdjGlyphRun = *glyphRun;
+			AdjGlyphRun.glyphAdvances = ctx->pAdjGlyphAdvances;
+			glyphRun = (DWRITE_GLYPH_RUN const*)&AdjGlyphRun;
+		}
 
 #ifdef USE_DIRECT3D
 		if ( ctx->pDWriteFactory4 != NULL && ctx->pD2DDeviceContext4 != NULL ) {
@@ -6514,10 +6524,18 @@ BOOL CTextRam::DrawDWrite(CDC* pDC, LPCWSTR str, int len, CRect& rect, COLORREF 
 
 	BOOL bZoom = FALSE;
 	D2D1_POINT_2F ZoomF = D2D1::Point2F(1.0f, 1.0f);
+	FLOAT *pAdjGlyphAdvances = NULL;
 
 	if ( FAILED(pTextLayout->GetMetrics(&tTextMetrics)) ) {	// 文字上余白を含むサイズが返ってくる
 		pTextLayout->Release();
 		return FALSE;
+	}
+
+	// Fixedフォントの表示位置調整
+	if (textAlignment == DWRITE_TEXT_ALIGNMENT_LEADING) {
+		pAdjGlyphAdvances = new FLOAT[prop.size];
+		for ( int n = 0 ; n < prop.size ; n++ )
+			pAdjGlyphAdvances[n] = (FLOAT)prop.pSpace[n];
 	}
 
 	// 1:横２倍 2:縦横２倍上 3:縦横２倍下 (縦２倍はフォントサイズで指定済み)
@@ -6528,6 +6546,11 @@ BOOL CTextRam::DrawDWrite(CDC* pDC, LPCWSTR str, int len, CRect& rect, COLORREF 
 
 	// 幅が大きければ調整
 	if ( (int)(tTextMetrics.width * ZoomF.x + 0.5f) > (int)(tTextMetrics.layoutWidth + 0.5f) ) {
+		// Fixedフォントの場合は、サイズ変更せずに文字単位で表示に変更
+		if (textAlignment == DWRITE_TEXT_ALIGNMENT_LEADING) {
+			pTextLayout->Release();
+			return FALSE;
+		}
 		ZoomF.x = tTextMetrics.layoutWidth / tTextMetrics.width;
 		bZoom = TRUE;
 	}
@@ -6549,8 +6572,14 @@ BOOL CTextRam::DrawDWrite(CDC* pDC, LPCWSTR str, int len, CRect& rect, COLORREF 
 
 		DCRT(pDC)->SetTransform(scaleMatrix);
 
+		// 拡大・縮小時の位置を逆数で調整
 		rectF.right  = rectF.left + (rectF.right  - rectF.left) / ZoomF.x;
 		pTextLayout->SetMaxWidth(rectF.right - rectF.left);
+
+		if ( pAdjGlyphAdvances != NULL ) {
+			for ( int n = 0 ; n < prop.size ; n++ )
+				pAdjGlyphAdvances[n] = pAdjGlyphAdvances[n] / ZoomF.x;
+		}
 	}
 
 	// 下位置に合わせて描画
@@ -6569,7 +6598,8 @@ BOOL CTextRam::DrawDWrite(CDC* pDC, LPCWSTR str, int len, CRect& rect, COLORREF 
 		DCRT(pDC)->CreateSolidColorBrush(D2D1::ColorF((FLOAT)GetRValue(fc) / 255.0f, (FLOAT)GetGValue(fc) / 255.0f, (FLOAT)GetBValue(fc) / 255.0f), &pBrush);
 
 	TextRenderer render(DCRT(pDC));
-	struct TextRendererContext ctx = { pBrush, (bEmoji ? pApp->m_pDWriteFactory2 : NULL)
+	struct TextRendererContext ctx = { pBrush, (bEmoji ? pApp->m_pDWriteFactory2 : NULL),
+		(UINT32)prop.size, pAdjGlyphAdvances
 #ifdef USE_DIRECT3D
 		,pApp->m_pDwriteFactory4, DCCTX4(pDC)
 #endif
@@ -6586,6 +6616,9 @@ BOOL CTextRam::DrawDWrite(CDC* pDC, LPCWSTR str, int len, CRect& rect, COLORREF 
 
 	pBrush->Release();
 	pTextLayout->Release();
+
+	if (pAdjGlyphAdvances != NULL)
+		delete [] pAdjGlyphAdvances;
 
 	return (SUCCEEDED(hr) ? TRUE : FALSE);
 #else
@@ -6648,11 +6681,8 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 				return;
 			break;
 		case 1:		// Fixed Draw
-			if ( (pFontCache->m_Aspect + 5) / 10 == m_DefFontHw ) {
-				if ( DrawDWrite(pDC, prop.pText, prop.tlen, box, fc, bc, bEraBack, FALSE, DWRITE_TEXT_ALIGNMENT_LEADING, pFontCache, prop) )
-					return;
-				break;
-			}
+			if ( (pFontCache->m_Aspect + 5) / 10 == m_DefFontHw && DrawDWrite(pDC, prop.pText, prop.tlen, box, fc, bc, bEraBack, FALSE, DWRITE_TEXT_ALIGNMENT_LEADING, pFontCache, prop) )
+				return;
 			// no break;
 		case 3:		// Emoji
 		case 0:		// Center Draw

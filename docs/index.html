@@ -6,10 +6,12 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
+TD {		
+				
 		background-color : #ffffff; font-size : 90%;
 }
-.BOX{
+.BOX{		
+				
 		background-color : silver;
 }
 -->
@@ -25,8 +27,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.31.8)</TD>
-            <TD width="20%" align="right">2026/07/21</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.31.9)</TD>
+            <TD width="20%" align="right">2026/09/25</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -442,6 +444,13 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2026/09/25</TD>
+            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.31.9/">2.31.9</A></TD>
+            <TD>DirectWriteでFixedフォントの表示位置を調整<BR>
+            SOS/PM/APCをデフォルトで処理して無視するように変更<BR>
+            openssl-3.5.8に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2026/07/21</TD>
             <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.31.8/">2.31.8</A></TD>
             <TD>DPIの違うモニター間の移動で正しく表示されないのを修正<BR>
@@ -482,18 +491,6 @@ TD {
             zlib-1.3.2に更新</TD>
           </TR>
           <TR>
-            <TD align="center">2026/02/24</TD>
-            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.31.4/">2.31.4</A></TD>
-            <TD>2.31.2で「サーバー情報を開く」が文字バンクを正常に読めないバグを修正<BR>
-            RLogin内のSSHエージェントで鍵の追加・削除を正しく動作するように修正<BR>
-            OpenSSHの署名された公開鍵でログインする場合の処理を修正<BR>
-            認証キーのXMSSのサポートを完全に削除<BR>
-            オプション・プロトコル・SSH・暗号方式・圧縮・noneの優先順位を変更<BR>
-            SFTPのファイルアップロードのフロー制御をより細かく行うように変更<BR>
-            OpenSSHのホスト鍵の追加を検証するように変更<BR>
-            openssl-3.5.5に更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -517,13 +514,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="3" valign="top"><A href="http://www.openssl.org/source/">openssl-3.5.7.tar.gz</A><BR>
+                  <TD width="200" rowspan="3" valign="top"><A href="http://www.openssl.org/source/">openssl-3.5.8.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.5.7 openssl-3.5.7-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.5.8 openssl-3.5.8-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -616,7 +613,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.5.7 9 Jun 2026<BR>
+            <P>OpenSSL 3.5.8 25 Aug 2026<BR>
             Copyright (c) 1998-2026 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>

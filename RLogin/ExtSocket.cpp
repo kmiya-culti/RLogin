@@ -1035,7 +1035,7 @@ int CExtSocket::SSLCheck()
 	long result = 0;
 	X509 *pX509, *cert = NULL;
 	STACK_OF(X509) *pStack;
-	X509_NAME *pName;
+	const X509_NAME *pName;
 	char name_buf[1024];
 	CString tmp, subject, finger, dig;
 	EVP_PKEY *pkey;

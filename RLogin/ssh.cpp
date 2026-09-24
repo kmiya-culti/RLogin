@@ -4148,9 +4148,9 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_SNT761X25519,	_T("sntrup761x25519-sha512")					},	// RFC9941	SHOULD
 		{ DHMODE_RSA1024SHA1,	_T("rsa1024-sha1")								},	// RFC4432	MUST NOT		MUST NOT
 		{ DHMODE_RSA2048SHA2,	_T("rsa2048-sha256")							},	// RFC4432	MAY				MAY
-		{ DHMODE_MLKEM768X25519,_T("mlkem768x25519-sha256")						},	// draft-kampanakis-curdle-ssh-pq-ke-04
-		{ DHMODE_MLKEM768N256,	_T("mlkem768nistp256-sha256")					},	// draft-kampanakis-curdle-ssh-pq-ke-04
-		{ DHMODE_MLKEM1024N384,	_T("mlkem1024nistp384-sha384")					},	// draft-kampanakis-curdle-ssh-pq-ke-04
+		{ DHMODE_MLKEM768X25519,_T("mlkem768x25519-sha256")						},	// RFC10042	SHOULD
+		{ DHMODE_MLKEM768N256,	_T("mlkem768nistp256-sha256")					},	// RFC10042	SHOULD
+		{ DHMODE_MLKEM1024N384,	_T("mlkem1024nistp384-sha384")					},	// RFC10042	SHOULD
 		{ DHMODE_MLKEM512H256,	_T("mlkem512-sha256")							},	// draft-harrison-sshm-mlkem-00
 		{ DHMODE_MLKEM768H256,	_T("mlkem768-sha256")							},	// draft-harrison-sshm-mlkem-00
 		{ DHMODE_MLKEM1024H384,	_T("mlkem1024-sha384")							},	// draft-harrison-sshm-mlkem-00

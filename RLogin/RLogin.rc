@@ -63,8 +63,11 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON                    "res\\RLogin.ico"
+
 IDR_RLOGINTYPE          ICON                    "res\\RLoginDoc.ico"
+
 IDI_ACTIVE              ICON                    "res\\Active.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -72,43 +75,81 @@ IDI_ACTIVE              ICON                    "res\\Active.ico"
 //
 
 IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
+
 IDR_SFTPTOOL            BITMAP                  "res\\toolbar1.bmp"
+
 IDB_ATTR1               BITMAP                  "res\\attr1.bmp"
+
 IDB_ATTR2               BITMAP                  "res\\attr2.bmp"
+
 IDB_ATTR3               BITMAP                  "res\\attr3.bmp"
+
 IDB_ATTR4               BITMAP                  "res\\attr4.bmp"
+
 IDB_ATTR5               BITMAP                  "res\\attr5.bmp"
+
 IDB_ATTR6               BITMAP                  "res\\attr6.bmp"
+
 IDB_ATTR7               BITMAP                  "res\\attr7.bmp"
+
 IDB_ATTR8               BITMAP                  "res\\attr8.bmp"
+
 IDB_BITMAP1             BITMAP                  "res\\bitmap1.bmp"
+
 IDB_BITMAP2             BITMAP                  "res\\bitmap2.bmp"
+
 IDB_BITMAP3             BITMAP                  "res\\bitmap3.bmp"
+
 IDB_BITMAP4             BITMAP                  "res\\bitmap4.bmp"
+
 IDB_BITMAP5             BITMAP                  "res\\bitmap5.bmp"
+
 IDB_BITMAP6             BITMAP                  "res\\bitmap6.bmp"
+
 IDB_BITMAP7             BITMAP                  "res\\bitmap7.bmp"
+
 IDB_BITMAP8             BITMAP                  "res\\bitmap8.bmp"
+
 IDB_BITMAP9             BITMAP                  "res\\bitmap9.bmp"
+
 IDB_MENUMAP1            BITMAP                  "res\\menumap1.bmp"
+
 IDB_MENUMAP2            BITMAP                  "res\\menumap2.bmp"
+
 IDB_MENUMAP3            BITMAP                  "res\\menumap3.bmp"
+
 IDB_MENUMAP4            BITMAP                  "res\\menumap4.bmp"
+
 IDB_MENUMAP5            BITMAP                  "res\\menumap5.bmp"
+
 IDB_HATCH1              BITMAP                  "res\\hatch1.bmp"
+
 IDB_HATCH2              BITMAP                  "res\\hatch2.bmp"
+
 IDB_HATCH3              BITMAP                  "res\\hatch3.bmp"
+
 IDB_CHECKBOX1           BITMAP                  "res\\checkbox1.bmp"
+
 IDB_CHECKBOX2           BITMAP                  "res\\checkbox2.bmp"
+
 IDB_CHECKBOX3           BITMAP                  "res\\checkbox.bmp"
+
 IDB_CHECKBOX4           BITMAP                  "res\\checkbox3.bmp"
+
 IDB_CHECKBOX5           BITMAP                  "res\\checkbox4.bmp"
+
 IDR_TOOLBAR2            BITMAP                  "res\\toolbar2.bmp"
+
 IDB_BITMAP10            BITMAP                  "res\\bitmap10.bmp"
+
 IDB_BITMAP11            BITMAP                  "res\\bitmap11.bmp"
+
 IDB_BITMAP12            BITMAP                  "res\\bitmap12.bmp"
+
 IDB_BITMAP13            BITMAP                  "res\\bitmap13.bmp"
+
 IDB_BITMAP14            BITMAP                  "res\\bitmap14.bmp"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -749,13 +790,13 @@ CAPTION "About RLogin"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,91,277,60,14,WS_GROUP
-    LTEXT           "RLogin (%s) Version 2.31.8 (2026/07/21)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.31.9 (2026/09/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2026 Culti",IDC_STATIC,44,17,189,8
     CONTROL         "<a href=""https://kmiya-culti.github.io/RLogin/"">https://kmiya-culti.github.io/RLogin/</a>",IDC_SYSLINK3,
                     "SysLink",WS_TABSTOP,44,27,189,8
     CONTROL         "<a href=""http://nanno.bf1.jp/softlib/man/rlogin/"">http://nanno.bf1.jp/softlib/man/rlogin/</a>",IDC_SYSLINK2,
                     "SysLink",WS_TABSTOP,44,37,189,8
-    LTEXT           "OpenSSL 3.5.7 9 Jun 2026",IDC_STATIC,44,51,189,8
+    LTEXT           "OpenSSL 3.5.8 25 Aug 2026",IDC_STATIC,44,51,189,8
     LTEXT           "Copyright (c) 1998-2026 The OpenSSL Project",IDC_STATIC,44,61,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,71,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,81,189,8
@@ -2393,8 +2434,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,31,8,0
- PRODUCTVERSION 2,31,8,0
+ FILEVERSION 2,31,9,0
+ PRODUCTVERSION 2,31,9,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2411,12 +2452,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.31.8.0"
+            VALUE "FileVersion", "2.31.9.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.31.8.0"
+            VALUE "ProductVersion", "2.31.9.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4532,6 +4573,17 @@ BEGIN
 0x464c, "\000" 
     IDC_COMBO4, 0x403, 6, 0
 0x5243, 0x4c2b, 0x0046, 
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_ABOUTBOX AFX_DIALOG_LAYOUT
+BEGIN
     0
 END
 

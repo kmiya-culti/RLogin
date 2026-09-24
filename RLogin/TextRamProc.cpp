@@ -3720,45 +3720,36 @@ void CTextRam::fc_DCS(DWORD ch)
 }
 void CTextRam::fc_SOS(DWORD ch)
 {
-	if ( IsOptEnable(TO_RLDOSAVE) ) {
-		m_OscMode = 'X';
-		m_BackChar = 0;
-		m_CodeLen = 0;
-		m_OscLast = 0;
-		m_DcsStat = 0;
-		m_OscPara.Clear();
-		fc_Case(STAGE_OSC2);
-		fc_TimerSet(_T("SOS"));
-	} else
-		fc_POP(ch);
+	m_OscMode = 'X';
+	m_BackChar = 0;
+	m_CodeLen = 0;
+	m_OscLast = 0;
+	m_DcsStat = 0;
+	m_OscPara.Clear();
+	fc_Case(STAGE_OSC2);
+	fc_TimerSet(_T("SOS"));
 }
 void CTextRam::fc_APC(DWORD ch)
 {
-	if ( IsOptEnable(TO_RLDOSAVE) ) {
-		m_OscMode = '_';
-		m_BackChar = 0;
-		m_CodeLen = 0;
-		m_OscLast = 0;
-		m_DcsStat = 0;
-		m_OscPara.Clear();
-		fc_Case(STAGE_OSC2);
-		fc_TimerSet(_T("APC"));
-	} else
-		fc_POP(ch);
+	m_OscMode = '_';
+	m_BackChar = 0;
+	m_CodeLen = 0;
+	m_OscLast = 0;
+	m_DcsStat = 0;
+	m_OscPara.Clear();
+	fc_Case(STAGE_OSC2);
+	fc_TimerSet(_T("APC"));
 }
 void CTextRam::fc_PM(DWORD ch)
 {
-	if ( IsOptEnable(TO_RLDOSAVE) ) {
-		m_OscMode = '^';
-		m_BackChar = 0;
-		m_CodeLen = 0;
-		m_OscLast = 0;
-		m_DcsStat = 0;
-		m_OscPara.Clear();
-		fc_Case(STAGE_OSC2);
-		fc_TimerSet(_T("PM"));
-	} else
-		fc_POP(ch);
+	m_OscMode = '^';
+	m_BackChar = 0;
+	m_CodeLen = 0;
+	m_OscLast = 0;
+	m_DcsStat = 0;
+	m_OscPara.Clear();
+	fc_Case(STAGE_OSC2);
+	fc_TimerSet(_T("PM"));
 }
 void CTextRam::fc_OSC(DWORD ch)
 {
