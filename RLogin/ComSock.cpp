@@ -51,7 +51,6 @@ static UINT ComEventThread(LPVOID pParam)
 
 	pThis->OnReadWriteProc();
 	pThis->m_ThreadMode = CFifoCom::THREAD_NONE;
-	pThis->m_ThreadEvent.SetEvent();
 	return 0;
 }
 BOOL CFifoCom::Open(HANDLE hCom)
@@ -64,9 +63,12 @@ BOOL CFifoCom::Open(HANDLE hCom)
 
 	m_ThreadMode = THREAD_RUN;
 	m_AbortEvent.ResetEvent();
-	m_ThreadEvent.ResetEvent();
 
-	m_pComThread = AfxBeginThread(ComEventThread, this, THREAD_PRIORITY_NORMAL);
+	if ( (m_pComThread = AfxBeginThread(ComEventThread, this, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED)) == NULL )
+		return FALSE;
+
+	m_pComThread->m_bAutoDelete = FALSE; 
+	m_pComThread->ResumeThread();
 
 	return TRUE;
 }
@@ -75,7 +77,9 @@ void CFifoCom::Close()
 	if ( m_ThreadMode == THREAD_RUN && m_pComThread != NULL ) {
 		m_ThreadMode = THREAD_ENDOF;
 		m_AbortEvent.SetEvent();
-		WaitForEvent(m_ThreadEvent, _T("CFifoCom Thread"));
+		WaitForEvent(m_pComThread->m_hThread, _T("CFifoCom Thread"));
+		delete m_pComThread;
+		m_pComThread = NULL;
 	}
 	m_pComThread = NULL;
 }
@@ -446,9 +450,9 @@ void CFifoCom::OnReadWriteProc()
 								EscapeCommFunction(m_hCom, CLRDTR);
 							else if ( pSock->m_pComConf->dcb.fDtrControl == DTR_CONTROL_ENABLE )
 								EscapeCommFunction(m_hCom, SETDTR);
-							if ( pSock->m_pComConf->dcb.fDtrControl == RTS_CONTROL_DISABLE )
+							if ( pSock->m_pComConf->dcb.fRtsControl == RTS_CONTROL_DISABLE )
 								EscapeCommFunction(m_hCom, CLRRTS);
-							else if ( pSock->m_pComConf->dcb.fDtrControl == RTS_CONTROL_ENABLE )
+							else if ( pSock->m_pComConf->dcb.fRtsControl == RTS_CONTROL_ENABLE )
 								EscapeCommFunction(m_hCom, SETRTS);
 							int bs = pSock->GetByteSec();
 							m_SendWait[0] = pSock->m_SendWait[0];
@@ -585,9 +589,9 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 		EscapeCommFunction(m_hCom, CLRDTR);
 	else if ( m_pComConf->dcb.fDtrControl == DTR_CONTROL_ENABLE )
 		EscapeCommFunction(m_hCom, SETDTR);
-	if ( m_pComConf->dcb.fDtrControl == RTS_CONTROL_DISABLE )
+	if ( m_pComConf->dcb.fRtsControl == RTS_CONTROL_DISABLE )
 		EscapeCommFunction(m_hCom, CLRRTS);
-	else if ( m_pComConf->dcb.fDtrControl == RTS_CONTROL_ENABLE )
+	else if ( m_pComConf->dcb.fRtsControl == RTS_CONTROL_ENABLE )
 		EscapeCommFunction(m_hCom, SETRTS);
 
 	if ( !((CFifoCom *)m_pFifoLeft)->Open(m_hCom) )

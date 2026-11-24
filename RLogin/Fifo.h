@@ -69,7 +69,7 @@ public:
 	int m_nBufMax;
 	BYTE *m_pBuffer;
 
-	CSemaphore m_Semaphore;
+	CCriticalSection m_Semaphore;
 
 	int m_nReadNumber;
 	int m_nWriteNumber;
@@ -166,12 +166,12 @@ public:
 	CPtrArray m_EventTab;
 	CDWordArray m_fdAllowEvents;
 	CDWordArray m_fdPostEvents;
-	CSemaphore m_FifoSemaphore;
+	CCriticalSection m_FifoSemaphore;
 	CEvent m_MsgEvent;
 	FifoMsg *m_pMsgTop;
 	FifoMsg *m_pMsgLast;
 	FifoMsg *m_pMsgFree;
-	CSemaphore m_MsgSemaphore;
+	CCriticalSection m_MsgSemaphore;
 
 	int m_nBufSize;
 	int m_nLimitSize;
@@ -345,7 +345,6 @@ class CFifoSync : public CFifoBase
 public:
 	int m_Threadtatus;
 	CWinThread *m_pWinThread;
-	CEvent m_ThreadEvent;
 	CEvent m_AbortEvent;
 	int m_TunnelFd;
 	CPtrArray m_nFdBuffer;
@@ -421,7 +420,6 @@ public:
 	WSAEVENT m_SockEvent;
 	BOOL m_bAbort;
 	CEvent m_AbortEvent;
-	CEvent m_ThreadEvent;
 	int m_Threadtatus;
 	CWinThread *m_pWinThread;
 
@@ -459,7 +457,6 @@ public:
 
 	BOOL m_bAbort;
 	CEvent m_AbortEvent;
-	CEvent m_ThreadEvent;
 	int m_Threadtatus;
 	CWinThread *m_pWinThread;
 

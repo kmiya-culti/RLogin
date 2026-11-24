@@ -1653,13 +1653,13 @@ BOOL CFifoSync::Open(AFX_THREADPROC pfnThreadProc, LPVOID pParam, int nPriority)
 	m_Threadtatus = FIFO_THREAD_EXEC;
 	m_AbortEvent.ResetEvent();
 
-	// pfnThreadProc‚ÌI—¹Žž‚Ém_ThreadEvent.SetEvent‚ð–Y‚ê‚¸‚ÉŒÄ‚Ô‚±‚Æ!
-	m_ThreadEvent.ResetEvent();
-
-	if ( (m_pWinThread = AfxBeginThread(pfnThreadProc, pParam, nPriority)) == NULL ) {
+	if ( (m_pWinThread = AfxBeginThread(pfnThreadProc, pParam, nPriority, 0, CREATE_SUSPENDED)) == NULL ) {
 		m_Threadtatus = FIFO_THREAD_ERROR;
 		return FALSE;
 	}
+	
+	m_pWinThread->m_bAutoDelete = FALSE; 
+	m_pWinThread->ResumeThread();
 
 	return TRUE;
 }
@@ -1671,9 +1671,10 @@ void CFifoSync::Close()
 	if ( m_Threadtatus == FIFO_THREAD_EXEC ) {
 		m_Threadtatus = FIFO_THREAD_ERROR;
 		Abort();
-		WaitForEvent(m_ThreadEvent, _T("CFifoSync Thread"));
+		WaitForEvent(m_pWinThread->m_hThread, _T("CFifoSync Thread"));
 	}
 
+	delete m_pWinThread;
 	m_pWinThread = NULL;
 	m_Threadtatus = FIFO_THREAD_NONE;
 }
@@ -1920,7 +1921,6 @@ static UINT FifoSocketOpenWorker(LPVOID pParam)
 	pThis->ThreadEnd();
 	pThis->m_Threadtatus = status;
 
-	pThis->m_ThreadEvent.SetEvent();
 	return 0;
 }
 void CFifoSocket::ThreadEnd()
@@ -1952,15 +1952,17 @@ BOOL CFifoSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort
 	m_hSocket = INVALID_SOCKET;
 	m_Threadtatus = FIFO_THREAD_EXEC;
 	m_AbortEvent.ResetEvent();
-	m_ThreadEvent.ResetEvent();
 	m_bAbort = FALSE;
 
-	if ( (m_pWinThread = AfxBeginThread(FifoSocketOpenWorker, this, THREAD_PRIORITY_NORMAL)) == NULL ) {
+	if ( (m_pWinThread = AfxBeginThread(FifoSocketOpenWorker, this, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED)) == NULL ) {
 		m_Threadtatus = FIFO_THREAD_ERROR;
 		WSACloseEvent(m_SockEvent);
 		::ThreadMessageBox(_T("Socket begin thread error\n'%s:%d'\n"), lpszHostAddress, nHostPort);
 		return FALSE;
 	}
+	
+	m_pWinThread->m_bAutoDelete = FALSE; 
+	m_pWinThread->ResumeThread();
 
 	return TRUE;
 }
@@ -1974,7 +1976,7 @@ BOOL CFifoSocket::Close()
 	if ( m_Threadtatus == FIFO_THREAD_EXEC ) {
 		m_Threadtatus = FIFO_THREAD_ERROR;
 		m_AbortEvent.SetEvent();
-		WaitForEvent(m_ThreadEvent, _T("CFifoSocket Thread"));
+		WaitForEvent(m_pWinThread->m_hThread, _T("CFifoSocket Thread"));
 	}
 
 	if ( m_hSocket != INVALID_SOCKET )
@@ -1985,6 +1987,7 @@ BOOL CFifoSocket::Close()
 
 	m_hSocket = INVALID_SOCKET;
 	m_SockEvent = WSA_INVALID_EVENT;
+	delete m_pWinThread;
 	m_pWinThread = NULL;
 
 	if ( m_Threadtatus == FIFO_THREAD_NONE )
@@ -2001,7 +2004,6 @@ static UINT FifoSocketWorker(LPVOID pParam)
 	status = (pThis->SocketLoop() ? FIFO_THREAD_NONE : FIFO_THREAD_ERROR);
 	pThis->ThreadEnd();
 	pThis->m_Threadtatus = status;
-	pThis->m_ThreadEvent.SetEvent();
 
 	return 0;
 }
@@ -2021,14 +2023,16 @@ BOOL CFifoSocket::Attach(SOCKET hSocket)
 
 	m_Threadtatus = FIFO_THREAD_EXEC;
 	m_AbortEvent.ResetEvent();
-	m_ThreadEvent.ResetEvent();
 	m_bAbort = FALSE;
 
-	if ( (m_pWinThread = AfxBeginThread(FifoSocketWorker, this, THREAD_PRIORITY_NORMAL)) == NULL ) {
+	if ( (m_pWinThread = AfxBeginThread(FifoSocketWorker, this, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED)) == NULL ) {
 		m_Threadtatus = FIFO_THREAD_ERROR;
 		WSACloseEvent(m_SockEvent);
 		return FALSE;
 	}
+
+	m_pWinThread->m_bAutoDelete = FALSE; 
+	m_pWinThread->ResumeThread();
 
 	return TRUE;
 }
@@ -2040,9 +2044,10 @@ void CFifoSocket::Detach()
 	if ( m_Threadtatus == FIFO_THREAD_EXEC ) {
 		m_Threadtatus = FIFO_THREAD_ERROR;
 		m_AbortEvent.SetEvent();
-		WaitForEvent(m_ThreadEvent, _T("CFifoSocket Detach Thread"));
+		WaitForEvent(m_pWinThread->m_hThread, _T("CFifoSocket Detach Thread"));
 	}
 
+	delete m_pWinThread;
 	m_pWinThread = NULL;
 
 	DWORD val = 0;
@@ -2601,7 +2606,6 @@ static UINT ListenWorker(LPVOID pParam)
 		pThis->SendFdEvents(FIFO_STDOUT, FD_CLOSE, (void *)(UINT_PTR)pThis->m_nLastError);
 
 	pThis->RemoveAllMsg();
-	pThis->m_ThreadEvent.SetEvent();
 
 	return 0;
 }
@@ -2617,13 +2621,15 @@ BOOL CFifoListen::Open(LPCTSTR lpszHostAddress, UINT nHostPort, int nFamily, int
 
 	m_Threadtatus = (-1);
 	m_AbortEvent.ResetEvent();
-	m_ThreadEvent.ResetEvent();
 
 	m_nLastError = 0;
 	m_bAbort = FALSE;
 
-	if ( (m_pWinThread = AfxBeginThread(ListenWorker, this, THREAD_PRIORITY_NORMAL)) == NULL )
+	if ( (m_pWinThread = AfxBeginThread(ListenWorker, this, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED)) == NULL )
 		return FALSE;
+
+	m_pWinThread->m_bAutoDelete = FALSE; 
+	m_pWinThread->ResumeThread();
 
 	return TRUE;
 }
@@ -2631,7 +2637,8 @@ BOOL CFifoListen::Close()
 {
 	if ( m_pWinThread != NULL ) {
 		m_AbortEvent.SetEvent();
-		WaitForEvent(m_ThreadEvent, _T("CFifoListen Thread"));
+		WaitForEvent(m_pWinThread->m_hThread, _T("CFifoListen Thread"));
+		delete m_pWinThread;
 		m_pWinThread = NULL;
 	}
 

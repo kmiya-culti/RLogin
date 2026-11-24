@@ -795,6 +795,7 @@ CRLoginApp::CRLoginApp()
 	m_EmojiThreadMode = 0;
 	m_EmojiPostStat = 0;
 	m_pEmojiPostDocPos = NULL;
+	m_pEmojiThread = NULL;
 #endif
 
 	m_pVoice = NULL;
@@ -5101,7 +5102,6 @@ static UINT EmojiThreadProc(LPVOID pParam)
 		WaitForSingleObject(pApp->m_EmojiReqEvent, INFINITE);
 	}
 
-	pApp->m_EmojiThreadEvent.SetEvent();
 	return 0;
 }
 
@@ -5179,8 +5179,11 @@ BOOL CRLoginApp::DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLO
 			if ( m_EmojiThreadMode == 0 ) {
 				m_EmojiPostStat = 0;
 				m_pEmojiPostDocPos = NULL;
-				m_EmojiThreadMode = 1;
-				AfxBeginThread(EmojiThreadProc, this, THREAD_PRIORITY_NORMAL);
+				if ( (m_pEmojiThread = AfxBeginThread(EmojiThreadProc, this, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED)) != NULL ) {
+					m_EmojiThreadMode = 1;
+					m_pEmojiThread->m_bAutoDelete = FALSE; 
+					m_pEmojiThread->ResumeThread();
+				}
 			}
 
 			m_EmojiThreadSemaphore.Lock();
@@ -5255,10 +5258,12 @@ void CRLoginApp::EmojiImageInit(LPCTSTR pFontName, LPCTSTR pImageDir)
 }
 void CRLoginApp::EmojiImageFinish()
 {
-	if ( m_EmojiThreadMode != 0 ) {
+	if ( m_EmojiThreadMode != 0 && m_pEmojiThread != NULL ) {
 		m_EmojiThreadMode = 0;
 		m_EmojiReqEvent.SetEvent();
-		WaitForEvent(m_EmojiThreadEvent, _T("Emoji Thread"));
+		WaitForEvent(m_pEmojiThread->m_hThread, _T("Emoji Thread"));
+		delete m_pEmojiThread;
+		m_pEmojiThread = NULL;
 	}
 
 	m_pEmojiThreadQue = NULL;

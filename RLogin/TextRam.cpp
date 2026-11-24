@@ -6531,13 +6531,6 @@ BOOL CTextRam::DrawDWrite(CDC* pDC, LPCWSTR str, int len, CRect& rect, COLORREF 
 		return FALSE;
 	}
 
-	// Fixedフォントの表示位置調整
-	if (textAlignment == DWRITE_TEXT_ALIGNMENT_LEADING) {
-		pAdjGlyphAdvances = new FLOAT[prop.size];
-		for ( int n = 0 ; n < prop.size ; n++ )
-			pAdjGlyphAdvances[n] = (FLOAT)prop.pSpace[n];
-	}
-
 	// 1:横２倍 2:縦横２倍上 3:縦横２倍下 (縦２倍はフォントサイズで指定済み)
 	if ( prop.zoom != 0 ) {
 		ZoomF.x *= 2.0f;
@@ -6553,6 +6546,13 @@ BOOL CTextRam::DrawDWrite(CDC* pDC, LPCWSTR str, int len, CRect& rect, COLORREF 
 		}
 		ZoomF.x = tTextMetrics.layoutWidth / tTextMetrics.width;
 		bZoom = TRUE;
+	}
+
+	// Fixedフォントの表示位置調整
+	if (textAlignment == DWRITE_TEXT_ALIGNMENT_LEADING) {
+		pAdjGlyphAdvances = new FLOAT[prop.size];
+		for ( int n = 0 ; n < prop.size ; n++ )
+			pAdjGlyphAdvances[n] = (FLOAT)prop.pSpace[n];
 	}
 
 	// 鏡面文字U+FFFFFの場合

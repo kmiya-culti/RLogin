@@ -215,9 +215,8 @@ public:
 	OVERLAPPED m_OverLap;
 	CEvent m_WaitEvent;
 	class CSFtp *m_pPostWnd;
-	CSemaphore m_Lock;
+	CCriticalSection m_Lock;
 	CWinThread *m_pThread;
-	CEvent m_ThreadEvent;
 	DWORD m_LastError;
 	enum _FolStat { FOL_INIT, FOL_DONE, FOL_HAVEDATA, FOL_OVERLAP, FOL_OVERWAIT, FOL_OVERFLOW } m_Stat;
 	CList<class CCmdQue *, class CCmdQue *> m_ReadQue;
@@ -315,7 +314,7 @@ public:
 	CList<class CCmdQue *, class CCmdQue *> m_CmdQue;
 	CList<class CCmdQue *, class CCmdQue *> m_WaitQue;
 
-	CSemaphore m_CmdQueSema;
+	CCriticalSection m_CmdQueSema;
 	inline void AddCmdQue(CCmdQue *pQue) { m_CmdQueSema.Lock(); m_CmdQue.AddTail(pQue); m_CmdQueSema.Unlock(); };
 
 	void SendBuffer(CBuffer *bp);

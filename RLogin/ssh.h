@@ -1004,7 +1004,7 @@ public:
 	BOOL IsStriStr(LPCSTR str, LPCSTR ptn);
 	void CreateMyPeer();
 
-	CSemaphore m_AgentSemaphore;
+	CCriticalSection m_AgentSemaphore;
 	CMutex *m_pAgentMutex;
 	CStringA m_AgentPass;
 

@@ -6,11 +6,17 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
+TD {
+				
+				
+				
 				
 		background-color : #ffffff; font-size : 90%;
 }
-.BOX{		
+.BOX{
+				
+				
+				
 				
 		background-color : silver;
 }
@@ -27,8 +33,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.31.9)</TD>
-            <TD width="20%" align="right">2026/09/25</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.32.0)</TD>
+            <TD width="20%" align="right">2026/11/24</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -353,7 +359,7 @@ TD {
         <TBODY>
           <TR>
             <TD width="600">動作環境としてWindows XP x32/Windows 7 x64/Windows 10 x64/Windows 11 x64にて確認しています<BR>
-            サーバーは、FreeBSD 14.2のrlogind, telnetd, sshd(openssh-10.2p1)を使用しています<BR>
+            サーバーは、FreeBSD 14.2のrlogind, telnetd, sshd(openssh-10.5p1)を使用しています<BR>
             <BR>
             「rlogin.zip」を解凍してRLogin.exeを適当な場所に置いて実行してください<BR>
             <BR>
@@ -444,6 +450,15 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2026/11/24</TD>
+            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.32.0/">2.32.0</A></TD>
+            <TD>DirectWriteでFixedフォントのメモリーリークを修正<BR>
+            ワーカースレッドの終了処理を変更<BR>
+            Unicode-18.0.0のデータに更新<BR>
+            openssl-3.5.9に更新<BR>
+            zlib-1.4に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2026/09/25</TD>
             <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.31.9/">2.31.9</A></TD>
             <TD>DirectWriteでFixedフォントの表示位置を調整<BR>
@@ -481,16 +496,6 @@ TD {
             openssl-3.5.6に更新</TD>
           </TR>
           <TR>
-            <TD align="center">2026/03/23</TD>
-            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.31.5/">2.31.5</A></TD>
-            <TD>DSA鍵の署名・検証ができない問題を修正<BR>
-            TCP/IPの帯域制限を正しく動作するように修正<BR>
-            CodePage変換でU+??00の文字が正しく変換されないバグを修正<BR>
-            EUCJP-MSなどの異常なSS3に対応して表示するように変更<BR>
-            スクリプトのsclose忘れでも固まらないように変更<BR>
-            zlib-1.3.2に更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -514,13 +519,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="3" valign="top"><A href="http://www.openssl.org/source/">openssl-3.5.8.tar.gz</A><BR>
+                  <TD width="200" rowspan="3" valign="top"><A href="http://www.openssl.org/source/">openssl-3.5.9.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.5.8 openssl-3.5.8-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.5.9 openssl-3.5.9-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -535,12 +540,12 @@ TD {
                   <TD valign="top">arm64用 out64<BR>
                   x64_arm64 Cross Tools<BR>
                   コマンド プロンプト (2022)</TD>
-                  <TD valign="top">rename openssl-3.5.6 openssl-3.5.6-arm64<BR>
+                  <TD valign="top">rename openssl-3.5.9 openssl-3.5.9-arm64<BR>
                   perl Configure VC-WIN64-ARM no-shared no-module enable-legacy<BR>
                   nmake</TD>
                 </TR>
                 <TR>
-                  <TD rowspan="2" valign="top"><A href="https://zlib.net/">zlib-1.3.2.tar.gz</A></TD>
+                  <TD rowspan="2" valign="top"><A href="https://zlib.net/">zlib-1.4.tar.gz</A></TD>
                   <TD valign="top">x86用 x32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
@@ -613,12 +618,12 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.5.8 25 Aug 2026<BR>
+            <P>OpenSSL 3.5.9 29 Sep 2026<BR>
             Copyright (c) 1998-2026 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
             <BR>
-            zlib 1.3.2 (17 Feb 2026)<BR>
+            zlib 1.4 (4 Nov 2026)<BR>
             Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler<BR>
             <BR>
             libiconv-1.18<BR>

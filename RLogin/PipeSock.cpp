@@ -90,7 +90,6 @@ static UINT ProcessThread(LPVOID pParam)
 	CFifoPipe *pThis = (CFifoPipe *)pParam;
 
 	pThis->OnProcWait();
-	pThis->m_ThreadEvent[0].SetEvent();
 	return 0;
 }
 static UINT PipeInThread(LPVOID pParam)
@@ -99,7 +98,6 @@ static UINT PipeInThread(LPVOID pParam)
 
 	pThis->OnReadProc();
 	pThis->m_InThreadMode = 0;
-	pThis->m_ThreadEvent[1].SetEvent();
 	return 0;
 }
 static UINT PipeOutThread(LPVOID pParam)
@@ -108,7 +106,6 @@ static UINT PipeOutThread(LPVOID pParam)
 
 	pThis->OnWriteProc();
 	pThis->m_OutThreadMode = 0;
-	pThis->m_ThreadEvent[2].SetEvent();
 	return 0;
 }
 static UINT PipeInOutThread(LPVOID pParam)
@@ -117,7 +114,6 @@ static UINT PipeInOutThread(LPVOID pParam)
 
 	pThis->OnReadWriteProc();
 	pThis->m_OutThreadMode = 0;
-	pThis->m_ThreadEvent[2].SetEvent();
 	return 0;
 }
 BOOL CFifoPipe::IsPipeName(LPCTSTR path)
@@ -166,8 +162,13 @@ BOOL CFifoPipe::Open(LPCTSTR pCommand, BOOL bNew)
 		}
 
 		m_OutThreadMode = 1;
-		m_ThreadEvent[2].ResetEvent();
-		m_OutThread = AfxBeginThread(PipeInOutThread, this, THREAD_PRIORITY_BELOW_NORMAL);
+		if ( (m_OutThread = AfxBeginThread(PipeInOutThread, this, THREAD_PRIORITY_BELOW_NORMAL, 0, CREATE_SUSPENDED)) == NULL ) {
+			m_nLastError = GetLastError();
+			::ThreadMessageBox(_T("Pipe thread bigen error\n'%s'\n"), pCommand);
+			return FALSE;
+		}
+		m_OutThread->m_bAutoDelete = FALSE; 
+		m_OutThread->ResumeThread();
 
 	} else {
 
@@ -208,16 +209,25 @@ BOOL CFifoPipe::Open(LPCTSTR pCommand, BOOL bNew)
 			return FALSE;
 		}
 
-		m_ThreadEvent[0].ResetEvent();
-		m_ProcThread = AfxBeginThread(ProcessThread, this, THREAD_PRIORITY_BELOW_NORMAL);
-
 		m_InThreadMode = 1;
-		m_ThreadEvent[1].ResetEvent();
-		m_InThread = AfxBeginThread(PipeInThread, this, THREAD_PRIORITY_BELOW_NORMAL);
-
 		m_OutThreadMode = 1;
-		m_ThreadEvent[2].ResetEvent();
-		m_OutThread = AfxBeginThread(PipeOutThread, this, THREAD_PRIORITY_BELOW_NORMAL);
+
+		if ( (m_ProcThread = AfxBeginThread(ProcessThread, this, THREAD_PRIORITY_BELOW_NORMAL, 0, CREATE_SUSPENDED)) == NULL ||
+			 (m_InThread = AfxBeginThread(PipeInThread, this, THREAD_PRIORITY_BELOW_NORMAL, 0, CREATE_SUSPENDED)) == NULL ||
+			 (m_OutThread = AfxBeginThread(PipeOutThread, this, THREAD_PRIORITY_BELOW_NORMAL, 0, CREATE_SUSPENDED)) == NULL ) {
+			m_nLastError = GetLastError();
+			::ThreadMessageBox(_T("Pipe thread begen error\n'%s'\n"), pCommand);
+			return FALSE;
+		}
+
+		m_ProcThread->m_bAutoDelete = FALSE; 
+		m_ProcThread->ResumeThread();
+
+		m_InThread->m_bAutoDelete = FALSE; 
+		m_InThread->ResumeThread();
+
+		m_OutThread->m_bAutoDelete = FALSE; 
+		m_OutThread->ResumeThread();
 	}
 
 	SendFdEvents(FIFO_STDOUT, FD_CONNECT, NULL);
@@ -228,7 +238,9 @@ void CFifoPipe::Close()
 {
 	if ( m_proInfo.hProcess != NULL ) {
 		m_AbortEvent[0].SetEvent();
-		WaitForEvent(m_ThreadEvent[0], _T("CFifoPipe ProcThread"));
+		WaitForEvent(m_ProcThread->m_hThread, _T("CFifoPipe ProcThread"));
+		delete m_ProcThread;
+		m_ProcThread = NULL;
 
 		TerminateProcess(m_proInfo.hProcess, 0);
 		WaitForEvent(m_proInfo.hProcess, _T("CFifoPipe Process"));
@@ -253,7 +265,10 @@ void CFifoPipe::Close()
 			ExCancelIoEx(m_hIn[0], NULL);
 		else
 			CancelIo(m_hIn[0]);
-		WaitForEvent(m_ThreadEvent[1], _T("CFifoPipe InThread"));
+
+		WaitForEvent(m_InThread->m_hThread, _T("CFifoPipe InThread"));
+		delete m_InThread;
+		m_InThread = NULL;
 	}
 
 	if ( m_OutThreadMode != 0 ) {
@@ -263,7 +278,9 @@ void CFifoPipe::Close()
 			ExCancelIoEx(m_hOut[1], NULL);
 		else
 			CancelIo(m_hOut[1]);
-		WaitForEvent(m_ThreadEvent[2], _T("CFifoPipe OutThread"));
+		WaitForEvent(m_OutThread->m_hThread, _T("CFifoPipe OutThread"));
+		delete m_OutThread;
+		m_OutThread = NULL;
 	}
 
 	if ( m_hIn[0] != NULL )

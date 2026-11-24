@@ -581,7 +581,8 @@ void CFileOverLap::EndOfThread()
 		} else
 			m_Stat = FOL_INIT;
 		m_WaitEvent.SetEvent();
-		WaitForEvent(m_ThreadEvent, _T("CFileOverLap"));
+		WaitForEvent(m_pThread->m_hThread, _T("CFileOverLap"));
+		delete m_pThread;
 		m_pThread = NULL;
 	}
 }
@@ -663,7 +664,6 @@ static UINT WriteOverLapThread(LPVOID pParam)
 {
 	CFileOverLap *pThis = (CFileOverLap *)pParam;
 	pThis->WriteOverLapWork();
-	pThis->m_ThreadEvent.SetEvent();
 	return 0;
 }
 BOOL CFileOverLap::SeekWriteFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG SeekPos)
@@ -703,11 +703,12 @@ BOOL CFileOverLap::WriteOverLapInit()
 {
 	if ( m_Stat == FOL_INIT ) {
 		m_Stat = FOL_DONE;
-		m_ThreadEvent.ResetEvent();
-		if ( (m_pThread = AfxBeginThread(WriteOverLapThread, this, THREAD_PRIORITY_NORMAL)) == NULL ) {
+		if ( (m_pThread = AfxBeginThread(WriteOverLapThread, this, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED)) == NULL ) {
 			m_Stat = FOL_INIT;
 			return FALSE;
 		}
+		m_pThread->m_bAutoDelete = FALSE; 
+		m_pThread->ResumeThread();
 	}
 
 	m_pPostWnd = NULL;
@@ -745,7 +746,6 @@ static UINT ReadOverLapThread(LPVOID pParam)
 {
 	CFileOverLap *pThis = (CFileOverLap *)pParam;
 	pThis->ReadOverLapWork();
-	pThis->m_ThreadEvent.SetEvent();
 	return 0;
 }
 void CFileOverLap::ReadOverLapWork()
@@ -879,11 +879,12 @@ BOOL CFileOverLap::ReadOverLapInit()
 {
 	if ( m_Stat == FOL_INIT ) {
 		m_Stat = FOL_DONE;
-		m_ThreadEvent.ResetEvent();
-		if ( (m_pThread = AfxBeginThread(ReadOverLapThread, this, THREAD_PRIORITY_NORMAL)) == NULL ) {
+		if ( (m_pThread = AfxBeginThread(ReadOverLapThread, this, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED)) == NULL ) {
 			m_Stat = FOL_INIT;
 			return FALSE;
 		}
+		m_pThread->m_bAutoDelete = FALSE; 
+		m_pThread->ResumeThread();
 	}
 
 	m_pPostWnd = NULL;

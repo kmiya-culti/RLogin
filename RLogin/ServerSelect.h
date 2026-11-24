@@ -53,7 +53,7 @@ public:
 	} ImageIndexParam;
 
 	ImageIndexParam *m_pImageParamTop;
-	CSemaphore m_ImageSemaphore;
+	CCriticalSection m_ImageSemaphore;
 	BOOL m_bImageThreadAbort;
 	BOOL m_bImageThreadRun;
 	CString m_ImageErrorMsg;

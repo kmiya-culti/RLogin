@@ -235,11 +235,11 @@ public:
 	CString m_EmojiImageDir;
 	CEmojiImage *m_pEmojiThreadQue;
 	CEvent m_EmojiReqEvent;
-	CEvent m_EmojiThreadEvent;
+	CWinThread *m_pEmojiThread;
 	int m_EmojiThreadMode;
 	int m_EmojiPostStat;
 	CEmojiDocPos *m_pEmojiPostDocPos;
-	CSemaphore m_EmojiThreadSemaphore;
+	CCriticalSection m_EmojiThreadSemaphore;
 
 	HDC GetEmojiImage(CEmojiImage *pEmoji);
 	void SaveEmojiImage(CEmojiImage *pEmoji);
@@ -378,14 +378,14 @@ public:
 		LPARAM lParam;
 	} PostMsgQue;
 
-	CSemaphore m_PostMsgLock;
+	CCriticalSection m_PostMsgLock;
 	CList<PostMsgQue *, PostMsgQue *> m_PostMsgQue;
 	void IdlePostMessage(HWND hWnd, UINT Msg, WPARAM wParam = 0, LPARAM lParam = 0);
 
 	CWnd *m_pSshSigDlgWnd;
 	void RemoveSshSigDlg(class CSshSigDlg *pWnd);
 
-	CSemaphore m_ImageSemaphore;
+	CCriticalSection m_ImageSemaphore;
 	CPtrArray m_ImageTable;
 	CStringBinary m_ImageIndex;
 	CBmpFile *GetImageFile(LPCTSTR filename);

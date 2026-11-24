@@ -72,7 +72,6 @@ static UINT ProcThread(LPVOID pParam)
 
 	pThis->m_ThreadMode = CSyncSock::THREAD_ENDOF;
 	pThis->m_pMainWnd->PostMessage(WM_THREADCMD, THCMD_ENDOF, (LPARAM)pThis);
-	pThis->m_ThreadEvent.SetEvent();
 
 	return 0;
 }
@@ -152,9 +151,12 @@ void CSyncSock::ThreadCommand(int cmd)
 			break;
 		m_pViewWnd = m_pDoc->GetAciveView();
 
+		if ( (m_pSyncThread = AfxBeginThread(ProcThread, this, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED)) == NULL )
+			break;
+
+		m_pSyncThread->m_bAutoDelete = FALSE; 
+		m_pSyncThread->ResumeThread();
 		m_ThreadMode = THREAD_RUN;
-		m_ThreadEvent.ResetEvent();
-		m_pSyncThread = AfxBeginThread(ProcThread, this, THREAD_PRIORITY_NORMAL);
 
 		m_pDoc->SetSleepReq(SLEEPSTAT_DISABLE);
 		StatusMsg(IDS_FILETRANSMITSTART);
@@ -289,7 +291,9 @@ void CSyncSock::DoAbort(BOOL bClose)
 	if ( m_pDoc != NULL && m_pDoc->m_pSock != NULL )
 		m_pDoc->m_pSock->SyncAbort();
 
-	WaitForEvent(m_ThreadEvent, _T("CSyncSock Thread"));
+	WaitForEvent(m_pSyncThread->m_hThread, _T("CSyncSock Thread"));
+	delete m_pSyncThread;
+	m_pSyncThread = NULL;
 	m_ThreadMode = THREAD_NONE;
 
 	if ( m_pDoc != NULL && m_pDoc->m_pSock != NULL )
